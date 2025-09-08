@@ -16,6 +16,7 @@ import {
   Heart,
   Home,
   Bus,
+  Hash,
 } from "lucide-react";
 
 const DetailItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | string[] }) => (
@@ -44,6 +45,7 @@ export default function ProfileDetails() {
     class: "10",
     section: "A",
     avatarUrl: "https://picsum.photos/200/200",
+    srNumber: "S20240187",
     fatherName: "Rajesh Sharma",
     motherName: "Sunita Sharma",
     fatherPhone: "+91 98765 11111",
@@ -79,6 +81,7 @@ export default function ProfileDetails() {
           <div className="space-y-6">
             <h3 className="font-semibold text-lg text-primary">Personal Information</h3>
             <DetailItem icon={<User size={20} />} label="Student Name" value={student.name} />
+            <DetailItem icon={<Hash size={20} />} label="SR Number" value={student.srNumber} />
             <DetailItem icon={<Calendar size={20} />} label="Date of Birth" value={student.dob} />
             <DetailItem icon={<Heart size={20} />} label="Religion" value={student.religion} />
             <DetailItem icon={<Mail size={20} />} label="Email Address" value={student.email} />

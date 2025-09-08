@@ -39,25 +39,24 @@ export default function FeePayment() {
 
   return (
     <>
-      <Card className="bg-destructive/10 border-destructive/50 h-full flex flex-col">
+      <Card className="bg-destructive/10 border-destructive/50">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-6 w-6" />
+            <AlertTriangle className="h-5 w-5" />
             Fee Reminder
           </CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1">
-          <div className="text-3xl font-bold">₹15,000</div>
-          <p className="text-destructive/80">Due by 2024-08-30</p>
-        </CardContent>
-        <CardFooter>
           <Button
-            className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+            size="sm"
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
             onClick={() => setIsOpen(true)}
           >
             Pay Now
           </Button>
-        </CardFooter>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">₹15,000</div>
+          <p className="text-sm text-destructive/80">Due by 2024-08-30</p>
+        </CardContent>
       </Card>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
