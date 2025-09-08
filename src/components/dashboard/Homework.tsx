@@ -68,10 +68,12 @@ export default function Homework() {
                   <TableCell>{hw.assignment}</TableCell>
                   <TableCell>{hw.dueDate}</TableCell>
                   <TableCell className="text-right">
-                    {hw.attachment && (
+                    {hw.attachment ? (
                       <Button variant="outline" size="icon">
                         <Download className="h-4 w-4" />
                       </Button>
+                    ) : (
+                      "-"
                     )}
                   </TableCell>
                 </TableRow>
