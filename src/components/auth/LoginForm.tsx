@@ -1,0 +1,147 @@
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
+import { app } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address."),
+  password: z.string().min(1, "Password is required."),
+});
+
+export default function LoginForm() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+  const auth = getAuth(app);
+
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof loginSchema>) {
+    setIsLoading(true);
+    setError(null);
+    setNeedsVerification(false);
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        setNeedsVerification(true);
+        setError("Your email is not verified. Please check your inbox for a verification link.");
+        await sendEmailVerification(user);
+        setIsLoading(false);
+        return;
+      }
+
+      // Store a cookie to simulate session
+      document.cookie = "firebase-user=true; path=/";
+
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+      router.push("/");
+    } catch (error: any) {
+      const errorCode = error.code;
+      let errorMessage = "An unknown error occurred.";
+      if (errorCode === "auth/user-not-found" || errorCode === "auth/wrong-password" || errorCode === "auth/invalid-credential") {
+        errorMessage = "Invalid email or password. Please try again.";
+      } else if (errorCode === "auth/too-many-requests") {
+        errorMessage = "Too many failed login attempts. Please try again later.";
+      }
+      setError(errorMessage);
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <>
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email Address</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="student@example.com"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="••••••••" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Sign In
+          </Button>
+        </form>
+      </Form>
+      <p className="mt-4 text-center text-sm text-muted-foreground">
+        Don't have an account?{" "}
+        <Link href="/signup" className="font-medium text-primary hover:underline">
+          Sign up
+        </Link>
+      </p>
+    </>
+  );
+}
