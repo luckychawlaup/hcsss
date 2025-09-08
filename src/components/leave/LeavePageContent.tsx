@@ -196,6 +196,7 @@ export default function LeavePageContent() {
                           selected={{ from: field.value?.from, to: field.value?.to }}
                           onSelect={field.onChange}
                           numberOfMonths={1}
+                          disabled={{ before: new Date() }}
                         />
                       </PopoverContent>
                     </Popover>
