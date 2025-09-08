@@ -12,7 +12,6 @@ import {
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -216,16 +215,10 @@ export default function SignupForm() {
           />
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Account
+            Create Student Account
           </Button>
         </form>
       </Form>
-      <p className="mt-4 text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-primary hover:underline">
-          Sign In
-        </Link>
-      </p>
     </>
   );
 }

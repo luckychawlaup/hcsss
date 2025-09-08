@@ -11,7 +11,6 @@ import {
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -31,7 +30,11 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required."),
 });
 
-export default function LoginForm() {
+interface LoginFormProps {
+  role: "student" | "teacher" | "principal";
+}
+
+export default function LoginForm({ role }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
@@ -64,7 +67,12 @@ export default function LoginForm() {
       if (!user.emailVerified) {
         setNeedsVerification(true);
         setError("Your email is not verified. Please check your inbox for a verification link.");
+        // Resend verification email
         await sendEmailVerification(user);
+        toast({
+          title: "Verification Email Sent",
+          description: "Please check your inbox to verify your email address before logging in.",
+        });
         setIsLoading(false);
         return;
       }
@@ -74,9 +82,12 @@ export default function LoginForm() {
 
       toast({
         title: "Login Successful",
-        description: "Welcome back!",
+        description: `Welcome back, ${role}!`,
       });
+
+      // TODO: Redirect to role-specific dashboard
       router.push("/");
+
     } catch (error: any) {
       const errorCode = error.code;
       let errorMessage = "An unknown error occurred.";
@@ -109,7 +120,7 @@ export default function LoginForm() {
                 <FormControl>
                   <Input
                     type="email"
-                    placeholder="student@example.com"
+                    placeholder={`${role}@example.com`}
                     {...field}
                   />
                 </FormControl>
@@ -132,16 +143,10 @@ export default function LoginForm() {
           />
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign In
+            Sign In as {role.charAt(0).toUpperCase() + role.slice(1)}
           </Button>
         </form>
       </Form>
-      <p className="mt-4 text-center text-sm text-muted-foreground">
-        Don't have an account?{" "}
-        <Link href="/signup" className="font-medium text-primary hover:underline">
-          Sign up
-        </Link>
-      </p>
     </>
   );
 }
