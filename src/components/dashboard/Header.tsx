@@ -23,13 +23,13 @@ export default function Header() {
         </h1>
       </Link>
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="rounded-full">
+        <Button variant="ghost" size="icon" className="rounded-full hidden md:inline-flex">
           <Bell className="h-5 w-5" />
           <span className="sr-only">Notifications</span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 focus:outline-none">
+            <button className="hidden items-center gap-3 focus:outline-none md:flex">
               <div className="text-right hidden sm:block">
                 <p className="font-semibold">Siddharth Sharma</p>
                 <p className="text-sm text-muted-foreground">Class 10 - A</p>

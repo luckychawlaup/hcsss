@@ -46,7 +46,7 @@ export default function Homework() {
           <BookOpen className="h-6 w-6" />
           Today's Homework
         </CardTitle>
-        <Button variant="ghost" size="sm">
+        <Button variant="link" size="sm">
           View All
         </Button>
       </CardHeader>
