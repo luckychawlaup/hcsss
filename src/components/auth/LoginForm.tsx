@@ -61,9 +61,7 @@ export default function LoginForm({ role }: LoginFormProps) {
       values.email === "principal@hcsss.com" &&
       values.password === "000000"
     ) {
-      // Set a generic user cookie and a specific role cookie for the principal
-      document.cookie = "firebase-user=true; path=/; max-age=86400"; // Expires in 1 day
-      document.cookie = "principal-role=true; path=/; max-age=86400";
+      document.cookie = "principal-role=true; path=/; max-age=86400"; // Expires in 1 day
       toast({
         title: "Login Successful",
         description: "Welcome, Principal!",
@@ -95,23 +93,18 @@ export default function LoginForm({ role }: LoginFormProps) {
         return;
       }
 
-      // Store a cookie to simulate session
-      document.cookie = "firebase-user=true; path=/; max-age=86400";
-
       toast({
         title: "Login Successful",
         description: `Welcome back!`,
       });
 
       // Redirect to the appropriate dashboard
-      if (role === 'principal') {
-        document.cookie = "principal-role=true; path=/; max-age=86400";
-        router.push("/principal");
-      } else if (role === 'teacher') {
+      if (role === 'teacher') {
         document.cookie = "teacher-role=true; path=/; max-age=86400";
         router.push("/teacher");
       }
       else {
+         // This covers students
         router.push("/");
       }
       router.refresh();

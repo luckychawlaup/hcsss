@@ -19,16 +19,21 @@ export default function AuthProvider({
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      // Check for hardcoded principal login first
+      const isPrincipal = document.cookie.includes("principal-role=true");
+      if (isPrincipal) {
+        setUser({} as User); // Set a dummy user object for principal
+        setLoading(false);
+        return;
+      }
+
       if (user) {
         if (user.emailVerified) {
           setUser(user);
         } else {
-          // If on a protected route, log them out and redirect.
-          // Otherwise, they might be on the login page trying to re-verify.
-          if(pathname !== '/login') {
-            signOut(auth);
-            router.push("/login");
-          }
+          // Immediately sign out unverified users and redirect to login
+          signOut(auth);
+          router.push("/login");
         }
       } else {
         setUser(null);
@@ -59,8 +64,10 @@ export default function AuthProvider({
     );
   }
 
-  if (!user) {
-    return null; // The redirect is handled in the effect
+  // Fallback for principal who doesn't have a firebase user object
+  if (!user && !document.cookie.includes("principal-role=true")) {
+     // Redirect is handled in the effect, this is a fallback.
+    return null;
   }
 
   return <>{children}</>;
