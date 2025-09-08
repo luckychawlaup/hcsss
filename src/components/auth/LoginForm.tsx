@@ -105,8 +105,13 @@ export default function LoginForm({ role }: LoginFormProps) {
 
       // Redirect to the appropriate dashboard
       if (role === 'principal') {
+        document.cookie = "principal-role=true; path=/; max-age=86400";
         router.push("/principal");
-      } else {
+      } else if (role === 'teacher') {
+        document.cookie = "teacher-role=true; path=/; max-age=86400";
+        router.push("/teacher");
+      }
+      else {
         router.push("/");
       }
       router.refresh();
