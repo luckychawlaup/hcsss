@@ -51,29 +51,29 @@ export default function Homework() {
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-6">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Subject</TableHead>
+                <TableHead className="pl-6">Subject</TableHead>
                 <TableHead>Assignment</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead className="text-right">Attachment</TableHead>
+                <TableHead>Due</TableHead>
+                <TableHead className="text-right pr-6">File</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {homeworks.map((hw, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{hw.subject}</TableCell>
+                  <TableCell className="font-medium pl-6">{hw.subject}</TableCell>
                   <TableCell>{hw.assignment}</TableCell>
-                  <TableCell>{hw.dueDate}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>{hw.dueDate.split('-')[2]}/{hw.dueDate.split('-')[1]}</TableCell>
+                  <TableCell className="text-right pr-6">
                     {hw.attachment ? (
-                      <Button variant="outline" size="icon">
+                      <Button variant="ghost" size="icon">
                         <Download className="h-4 w-4" />
                       </Button>
                     ) : (
-                      "-"
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                 </TableRow>

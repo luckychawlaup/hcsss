@@ -40,22 +40,24 @@ export default function FeePayment() {
   return (
     <>
       <Card className="bg-destructive/10 border-destructive/50">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
             Fee Reminder
           </CardTitle>
-          <Button
+        </CardHeader>
+        <CardContent className="flex items-center justify-between">
+          <div>
+            <div className="text-2xl font-bold">₹15,000</div>
+            <p className="text-sm text-destructive/80">Due by 2024-08-30</p>
+          </div>
+           <Button
             size="sm"
             className="bg-accent text-accent-foreground hover:bg-accent/90"
             onClick={() => setIsOpen(true)}
           >
             Pay Now
           </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">₹15,000</div>
-          <p className="text-sm text-destructive/80">Due by 2024-08-30</p>
         </CardContent>
       </Card>
 

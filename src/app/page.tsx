@@ -10,19 +10,19 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header />
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
-        <div className="mx-auto grid w-full max-w-7xl gap-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
+        <div className="mx-auto w-full max-w-4xl">
             <Homework />
-            <div className="space-y-6">
-              <FeePayment />
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <ReportCard />
-                <LeaveApplication />
-              </div>
-              <Attendance />
-            </div>
-          </div>
+        </div>
+        <div className="mx-auto w-full max-w-4xl">
+            <FeePayment />
+        </div>
+         <div className="mx-auto w-full max-w-4xl">
+            <Attendance />
+        </div>
+        <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-2">
+            <ReportCard />
+            <LeaveApplication />
         </div>
       </main>
       <BottomNav />
