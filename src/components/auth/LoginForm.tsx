@@ -55,6 +55,21 @@ export default function LoginForm({ role }: LoginFormProps) {
     setError(null);
     setNeedsVerification(false);
 
+    // Hardcoded Principal Login
+    if (
+      role === "principal" &&
+      values.email === "principal@hcsss.com" &&
+      values.password === "000000"
+    ) {
+      document.cookie = "firebase-user=true; path=/";
+      toast({
+        title: "Login Successful",
+        description: "Welcome, Principal!",
+      });
+      router.push("/principal");
+      return;
+    }
+
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
