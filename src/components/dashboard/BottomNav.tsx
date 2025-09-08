@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, DollarSign, Bell, User } from "lucide-react";
+import { Home, CalendarPlus, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "#", label: "Fees", icon: DollarSign },
+  { href: "/leave", label: "Leave", icon: CalendarPlus },
   { href: "#", label: "Notices", icon: Bell },
   { href: "/profile", label: "Profile", icon: User },
 ];
