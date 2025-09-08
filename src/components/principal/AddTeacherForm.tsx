@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -22,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
+import type { Teacher } from "./PrincipalDashboard";
 
 const addTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -35,7 +37,11 @@ const addTeacherSchema = z.object({
   classTeacherOf: z.string().optional(),
 });
 
-export function AddTeacherForm() {
+interface AddTeacherFormProps {
+    onTeacherAdded: (teacher: Teacher) => void;
+}
+
+export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedId, setGeneratedId] = useState<string | null>(null);
@@ -71,15 +77,13 @@ export function AddTeacherForm() {
       
       const teacherId = generateTeacherId();
       
-      // In a real app, this would be a database call.
-      // We use localStorage for simulation purposes.
-      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const newTeacherData = {
+      const teachers: Teacher[] = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const newTeacherData: Teacher = {
         id: teacherId,
-        name: values.name,
+        ...values,
         dob: format(values.dob, "yyyy-MM-dd"), // Store DOB in a consistent format
-        ...values
       };
+      
       teachers.push(newTeacherData);
       localStorage.setItem("teachers", JSON.stringify(teachers));
 
@@ -90,6 +94,7 @@ export function AddTeacherForm() {
         title: "Teacher Added Successfully!",
         description: `${values.name} has been added to the system.`,
       });
+      onTeacherAdded(newTeacherData); // Notify parent component
       form.reset();
     } catch (e: any) {
       setError("An unexpected error occurred. Please try again.");
@@ -108,6 +113,10 @@ export function AddTeacherForm() {
     }
   };
 
+  const handleAddAnother = () => {
+    setGeneratedId(null);
+  }
+
   if (generatedId) {
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20">
@@ -121,7 +130,7 @@ export function AddTeacherForm() {
                         <Copy className="h-5 w-5 text-primary" />
                     </Button>
                 </div>
-                 <Button onClick={() => setGeneratedId(null)}>Add Another Teacher</Button>
+                 <Button onClick={handleAddAnother}>Add Another Teacher</Button>
             </AlertDescription>
         </Alert>
     )
