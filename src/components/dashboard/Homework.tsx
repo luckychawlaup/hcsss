@@ -45,7 +45,7 @@ const homeworks = [
 
 export default function Homework() {
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-primary">
           <BookOpen className="h-6 w-6" />
@@ -56,38 +56,51 @@ export default function Homework() {
         </Button>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Subject</TableHead>
-              <TableHead>Assignment</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Attachment</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {homeworks.map((hw, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">{hw.subject}</TableCell>
-                <TableCell>{hw.assignment}</TableCell>
-                <TableCell>{hw.dueDate}</TableCell>
-                <TableCell>
-                  <Badge variant={hw.status === "Pending" ? "secondary" : "default"}>
-                    {hw.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  {hw.attachment && (
-                    <Button variant="outline" size="icon">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  )}
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Subject</TableHead>
+                <TableHead>Assignment</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Attachment</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {homeworks.map((hw, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">{hw.subject}</TableCell>
+                  <TableCell>{hw.assignment}</TableCell>
+                  <TableCell>{hw.dueDate}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        hw.status === "Pending"
+                          ? "destructive"
+                          : hw.status === "Completed"
+                          ? "default"
+                          : "secondary"
+                      }
+                      className={
+                        hw.status === 'Completed' ? 'bg-green-500 hover:bg-green-600' : ''
+                      }
+                    >
+                      {hw.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {hw.attachment && (
+                      <Button variant="outline" size="icon">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

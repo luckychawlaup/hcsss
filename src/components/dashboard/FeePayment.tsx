@@ -16,7 +16,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { DollarSign, Loader2, CheckCircle } from "lucide-react";
+import { DollarSign, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 
 export default function FeePayment() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,16 +39,16 @@ export default function FeePayment() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <DollarSign className="h-6 w-6" />
-            Fee Payment
+      <Card className="bg-destructive/10 border-destructive/50">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-6 w-6" />
+            Fee Reminder
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">₹15,000</div>
-          <p className="text-muted-foreground">Due by 2024-08-30</p>
+          <p className="text-destructive/80">Due by 2024-08-30</p>
         </CardContent>
         <CardFooter>
           <Button
