@@ -141,8 +141,10 @@ export default function LeavePageContent() {
         reason: "",
         document: undefined
     });
-    // @ts-ignore
-    document.getElementById('leave-document')?.value = '';
+    const fileInput = document.getElementById('leave-document') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   }
 
   return (
