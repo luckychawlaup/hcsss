@@ -4,13 +4,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, addMonths, differenceInDays, startOfDay } from "date-fns";
 import {
   Card,
   CardHeader,
   CardTitle,
-  CardContent,
-  CardFooter,
+  CardContent
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +31,6 @@ import { cn } from "@/lib/utils";
 import {
   Calendar as CalendarIcon,
   Loader2,
-  Paperclip,
   Send,
   History,
 } from "lucide-react";
@@ -50,7 +48,16 @@ const leaveSchema = z.object({
   ),
   reason: z.string().min(10, "Reason must be at least 10 characters long."),
   document: z.any().optional(),
+}).refine(data => {
+    if (data.dateRange.to) {
+        return differenceInDays(data.dateRange.to, data.dateRange.from) <= 30;
+    }
+    return true;
+}, {
+    message: "Leave duration cannot exceed 30 days.",
+    path: ["dateRange"],
 });
+
 
 type LeaveRequest = {
   id: number;
@@ -108,7 +115,7 @@ export default function LeavePageContent() {
     resolver: zodResolver(leaveSchema),
     defaultValues: {
       dateRange: {
-        from: new Date(),
+        from: startOfDay(new Date()),
       },
       reason: "",
     },
@@ -117,6 +124,8 @@ export default function LeavePageContent() {
   const {
     formState: { isSubmitting },
   } = form;
+  
+  const fromDate = form.watch("dateRange.from");
 
   async function onSubmit(values: z.infer<typeof leaveSchema>) {
     console.log(values);
@@ -137,7 +146,7 @@ export default function LeavePageContent() {
       description: "Your leave request has been sent for approval.",
     });
     form.reset({
-        dateRange: { from: new Date() },
+        dateRange: { from: startOfDay(new Date()) },
         reason: "",
         document: undefined
     });
@@ -148,12 +157,12 @@ export default function LeavePageContent() {
   }
 
   return (
-    <div className="space-y-8">
-      <Card>
-        <CardHeader>
+    <div className="space-y-8 p-4 sm:p-6 lg:p-8">
+      <Card className="border-0 shadow-none">
+        <CardHeader className="p-0">
           <CardTitle>Request for Leave</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 mt-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -196,7 +205,8 @@ export default function LeavePageContent() {
                           selected={{ from: field.value?.from, to: field.value?.to }}
                           onSelect={field.onChange}
                           numberOfMonths={1}
-                          disabled={{ before: new Date() }}
+                          disabled={{ before: startOfDay(new Date()) }}
+                          toDate={fromDate ? addMonths(fromDate, 1) : undefined}
                         />
                       </PopoverContent>
                     </Popover>
@@ -253,14 +263,14 @@ export default function LeavePageContent() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className="border-0 shadow-none">
+        <CardHeader className="p-0">
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
             Leave History
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-0 mt-6">
           {pastLeaves.length > 0 ? (
             pastLeaves.map((leave) => (
               <div

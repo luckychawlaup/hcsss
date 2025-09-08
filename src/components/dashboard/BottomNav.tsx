@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, CalendarPlus, Bell, User } from "lucide-react";
+import { Home, CalendarPlus, LifeBuoy, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/leave", label: "Leave", icon: CalendarPlus },
-  { href: "#", label: "Notices", icon: Bell },
+  { href: "/help", label: "Help", icon: LifeBuoy },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
