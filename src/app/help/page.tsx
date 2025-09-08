@@ -12,7 +12,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin, Shield } from "lucide-react";
 
 export default function HelpPage() {
   const faqs = [
@@ -71,7 +71,11 @@ export default function HelpPage() {
                     </div>
                     <div className="flex items-start gap-4">
                         <MapPin className="h-5 w-5 text-primary mt-1" />
-                        <p>123 Education Lane, Knowledge City, New Delhi, India - 110001</p>
+                        <p>Joya Road, Amroha, 244221, Uttar Pradesh</p>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <Shield className="h-5 w-5 text-primary mt-1" />
+                        <p>CBSE Affiliation No: 2131151<br/>School Code: 81259</p>
                     </div>
                 </CardContent>
             </Card>
