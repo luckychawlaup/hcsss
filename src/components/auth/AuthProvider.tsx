@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { getAuth, onAuthStateChanged, User, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AuthProvider({
@@ -13,13 +13,23 @@ export default function AuthProvider({
 }) {
   const auth = getAuth(app);
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && user.emailVerified) {
-        setUser(user);
+      if (user) {
+        if (user.emailVerified) {
+          setUser(user);
+        } else {
+          // If on a protected route, log them out and redirect.
+          // Otherwise, they might be on the login page trying to re-verify.
+          if(pathname !== '/login') {
+            signOut(auth);
+            router.push("/login");
+          }
+        }
       } else {
         setUser(null);
         router.push("/login");
@@ -28,7 +38,7 @@ export default function AuthProvider({
     });
 
     return () => unsubscribe();
-  }, [auth, router]);
+  }, [auth, router, pathname]);
 
   if (loading) {
     return (

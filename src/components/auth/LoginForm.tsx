@@ -62,13 +62,14 @@ export default function LoginForm({ role }: LoginFormProps) {
       values.password === "000000"
     ) {
       // Set a generic user cookie and a specific role cookie for the principal
-      document.cookie = "firebase-user=true; path=/";
-      document.cookie = "principal-role=true; path=/";
+      document.cookie = "firebase-user=true; path=/; max-age=86400"; // Expires in 1 day
+      document.cookie = "principal-role=true; path=/; max-age=86400";
       toast({
         title: "Login Successful",
         description: "Welcome, Principal!",
       });
       router.push("/principal");
+      router.refresh();
       return;
     }
 
@@ -95,15 +96,21 @@ export default function LoginForm({ role }: LoginFormProps) {
       }
 
       // Store a cookie to simulate session
-      document.cookie = "firebase-user=true; path=/";
+      document.cookie = "firebase-user=true; path=/; max-age=86400";
 
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${role}!`,
+        description: `Welcome back!`,
       });
 
-      // TODO: Redirect to role-specific dashboard
-      router.push("/");
+      // Redirect to the appropriate dashboard
+      if (role === 'principal') {
+        router.push("/principal");
+      } else {
+        router.push("/");
+      }
+      router.refresh();
+
 
     } catch (error: any) {
       const errorCode = error.code;

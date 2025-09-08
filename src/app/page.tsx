@@ -9,15 +9,10 @@ import AuthProvider from "@/components/auth/AuthProvider";
 const checkAuth = async () => {
   const h = headers();
   const cookie = h.get("cookie");
-  const userCookie = cookie?.includes("firebase-user");
-  const isPrincipal = cookie?.includes("principal-role"); // A bit of a hack for this case
-
-  // Don't protect principal route here
-  if (h.get('next-url') === '/principal' && isPrincipal) {
-    return;
-  }
+  // A very basic check. In a real app, you'd want something more robust.
+  const hasUser = cookie?.includes("firebase-user");
   
-  if (!userCookie) {
+  if (!hasUser) {
     redirect("/login");
   }
 };
