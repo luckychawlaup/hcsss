@@ -3,7 +3,6 @@ import FeePayment from "@/components/dashboard/FeePayment";
 import Homework from "@/components/dashboard/Homework";
 import ReportCard from "@/components/dashboard/ReportCard";
 import LeaveApplication from "@/components/dashboard/LeaveApplication";
-import Timetable from "@/components/dashboard/Timetable";
 import Attendance from "@/components/dashboard/Attendance";
 
 export default function DashboardPage() {
@@ -17,7 +16,6 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <ReportCard />
             <LeaveApplication />
-            <Timetable />
             <Attendance />
           </div>
         </div>

@@ -8,7 +8,6 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Download } from "lucide-react";
 
@@ -17,28 +16,24 @@ const homeworks = [
     subject: "Mathematics",
     assignment: "Chapter 5: Algebra",
     dueDate: "2024-08-15",
-    status: "Completed",
     attachment: true,
   },
   {
     subject: "Physics",
     assignment: "Laws of Motion worksheet",
     dueDate: "2024-08-18",
-    status: "Pending",
     attachment: true,
   },
   {
     subject: "History",
     assignment: "Essay on the Mughal Empire",
     dueDate: "2024-08-20",
-    status: "Pending",
     attachment: false,
   },
   {
     subject: "English",
     assignment: "Read 'To Kill a Mockingbird'",
     dueDate: "2024-08-22",
-    status: "Submitted",
     attachment: false,
   },
 ];
@@ -49,7 +44,7 @@ export default function Homework() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-primary">
           <BookOpen className="h-6 w-6" />
-          Homework
+          Today's Homework
         </CardTitle>
         <Button variant="ghost" size="sm">
           View All
@@ -63,7 +58,6 @@ export default function Homework() {
                 <TableHead>Subject</TableHead>
                 <TableHead>Assignment</TableHead>
                 <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Attachment</TableHead>
               </TableRow>
             </TableHeader>
@@ -73,22 +67,6 @@ export default function Homework() {
                   <TableCell className="font-medium">{hw.subject}</TableCell>
                   <TableCell>{hw.assignment}</TableCell>
                   <TableCell>{hw.dueDate}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        hw.status === "Pending"
-                          ? "destructive"
-                          : hw.status === "Completed"
-                          ? "default"
-                          : "secondary"
-                      }
-                      className={
-                        hw.status === 'Completed' ? 'bg-green-500 hover:bg-green-600' : ''
-                      }
-                    >
-                      {hw.status}
-                    </Badge>
-                  </TableCell>
                   <TableCell className="text-right">
                     {hw.attachment && (
                       <Button variant="outline" size="icon">
