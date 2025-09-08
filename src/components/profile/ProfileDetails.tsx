@@ -63,7 +63,7 @@ export default function ProfileDetails() {
         <p className="text-primary-foreground/80">Class {student.class}-{student.section} | SRN: {student.srNumber}</p>
       </div>
       
-      <div className="p-6 space-y-8">
+      <div className="px-4 py-8 space-y-8">
         <Card className="shadow-none border-0">
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>

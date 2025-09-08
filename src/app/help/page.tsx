@@ -60,6 +60,7 @@ export default function HelpPage() {
                     <CardTitle>Contact Us</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                     <p className="font-semibold">Hilton Convent Senior Secondary School</p>
                     <div className="flex items-center gap-4">
                         <Phone className="h-5 w-5 text-primary" />
                         <p>+91 12345 67890</p>
