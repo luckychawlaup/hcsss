@@ -7,7 +7,7 @@ import {
     CardContent
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Users, ClipboardCheck, CalendarCheck } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 
 export default function TeacherDashboard() {
@@ -72,7 +72,7 @@ export default function TeacherDashboard() {
                              <CardDescription>
                                 Mark daily attendance for your classes.
                             </CardDescription>
-                        </Header>
+                        </CardHeader>
                          <CardContent>
                             <p className="text-muted-foreground">The attendance marking module is coming soon.</p>
                         </CardContent>
