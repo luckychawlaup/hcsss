@@ -56,7 +56,9 @@ export function AddTeacherForm() {
   });
 
   const generateTeacherId = () => {
-    return Math.floor(10000000 + Math.random() * 90000000).toString();
+    const prefix = "TCHR";
+    const randomNumber = Math.floor(1000 + Math.random() * 9000).toString();
+    return `${prefix}${randomNumber}`;
   };
 
   async function onSubmit(values: z.infer<typeof addTeacherSchema>) {
@@ -65,12 +67,23 @@ export function AddTeacherForm() {
     setGeneratedId(null);
 
     try {
-      // In a real app, you'd save this to a database.
-      // Here, we'll just simulate it.
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const teacherId = generateTeacherId();
-      console.log("New Teacher Data:", { ...values, teacherId });
+      
+      // In a real app, this would be a database call.
+      // We use localStorage for simulation purposes.
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const newTeacherData = {
+        id: teacherId,
+        name: values.name,
+        dob: format(values.dob, "yyyy-MM-dd"), // Store DOB in a consistent format
+        ...values
+      };
+      teachers.push(newTeacherData);
+      localStorage.setItem("teachers", JSON.stringify(teachers));
+
+      console.log("New Teacher Data:", newTeacherData);
       
       setGeneratedId(teacherId);
       toast({

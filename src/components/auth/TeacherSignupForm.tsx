@@ -33,7 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
-  teacherId: z.string().length(8, "Teacher ID must be exactly 8 digits."),
+  teacherId: z.string().length(8, "Teacher ID must be exactly 8 characters."),
   dob: z.date({ required_error: "Date of birth is required." }),
   password: z.string().min(8, "Password must be at least 8 characters long."),
   confirmPassword: z.string(),
@@ -65,6 +65,25 @@ export default function TeacherSignupForm() {
     setError(null);
 
     try {
+      // --- Verification Step ---
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const teacherRecord = teachers.find((t: any) => t.id === values.teacherId);
+
+      if (!teacherRecord) {
+        setError("Invalid Teacher ID. Please check the ID provided by the principal.");
+        setIsLoading(false);
+        return;
+      }
+      
+      const formattedDob = format(values.dob, "yyyy-MM-dd");
+      if (teacherRecord.name.toLowerCase() !== values.name.toLowerCase() || teacherRecord.dob !== formattedDob) {
+        setError("The details entered do not match the records. Please verify your Name and Date of Birth.");
+        setIsLoading(false);
+        return;
+      }
+      // --- End Verification ---
+
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         values.email,
@@ -127,7 +146,7 @@ export default function TeacherSignupForm() {
               <FormItem>
                 <FormLabel>Teacher ID</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. 87654321" {...field} />
+                  <Input placeholder="e.g. TCHR1234" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
