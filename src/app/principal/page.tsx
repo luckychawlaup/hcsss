@@ -5,10 +5,13 @@ import { headers } from "next/headers";
 
 const checkAuth = async () => {
   const h = headers();
-  const userCookie = h.get("cookie")?.includes("firebase-user");
-  // This is a very basic check and not secure for production.
-  // It's just to demonstrate the flow.
-  if (!userCookie) {
+  const cookie = h.get("cookie");
+  const userCookie = cookie?.includes("firebase-user");
+  const isPrincipal = cookie?.includes("principal-role");
+  
+  // This is a basic check. In a real app, you'd want something more robust
+  // like checking a token against your backend.
+  if (!userCookie || !isPrincipal) {
     redirect("/login");
   }
 };

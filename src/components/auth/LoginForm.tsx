@@ -61,7 +61,9 @@ export default function LoginForm({ role }: LoginFormProps) {
       values.email === "principal@hcsss.com" &&
       values.password === "000000"
     ) {
+      // Set a generic user cookie and a specific role cookie for the principal
       document.cookie = "firebase-user=true; path=/";
+      document.cookie = "principal-role=true; path=/";
       toast({
         title: "Login Successful",
         description: "Welcome, Principal!",
