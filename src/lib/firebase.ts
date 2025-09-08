@@ -1,13 +1,12 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 
 const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-auth-domain",
-  projectId: "your-project-id",
-  storageBucket: "your-storage-bucket",
-  messagingSenderId: "your-messaging-sender-id",
-  appId: "your-app-id",
-  measurementId: "your-measurement-id"
+  apiKey: "AIzaSyA5BScSQ_PjDjpAfIBHCeo5grpSr2i04eM",
+  authDomain: "hilton-convent-school.firebaseapp.com",
+  projectId: "hilton-convent-school",
+  storageBucket: "hilton-convent-school.appspot.com",
+  messagingSenderId: "438196355297",
+  appId: "1:438196355297:web:7d868f78190eff375977a0"
 };
 
 
