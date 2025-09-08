@@ -77,7 +77,7 @@ export default function TeacherSignupForm() {
       
       const formattedDob = format(values.dob, "yyyy-MM-dd");
       if (teacherRecord.name.toLowerCase() !== values.name.toLowerCase() || teacherRecord.dob !== formattedDob) {
-        setError("The details entered do not match the records. Please verify your Name and Date of Birth.");
+        setError("The details entered do not match our records. Please verify your Name and Date of Birth.");
         setIsLoading(false);
         return;
       }
