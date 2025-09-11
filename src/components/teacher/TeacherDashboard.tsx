@@ -13,7 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, ClipboardCheck, CalendarCheck, BookUp, DollarSign, Banknote, CalendarPlus, AlertCircle, Loader2 } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
-import { getAuth, User, sendPasswordResetEmail } from "firebase/auth";
+import { getAuth, User, sendPasswordResetEmail, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getTeacherByAuthId, Teacher, updateTeacher } from "@/lib/firebase/teachers";
 import { getStudents, Student } from "@/lib/firebase/students";
