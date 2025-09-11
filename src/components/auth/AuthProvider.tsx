@@ -74,12 +74,24 @@ export default function AuthProvider({
             } else {
                 router.replace('/');
             }
-        } else if (isPrincipal && !pathname.startsWith('/principal')) {
-             router.replace('/principal');
-        } else if (role === 'teacher' && !pathname.startsWith('/teacher')) {
-            router.replace('/teacher');
-        } else if (role === 'student' && (pathname.startsWith('/teacher') || pathname.startsWith('/principal'))) {
-            router.replace('/');
+        } else if (isPrincipal) {
+            if (!pathname.startsWith('/principal')) {
+                router.replace('/principal');
+            } else {
+                setLoading(false);
+            }
+        } else if (role === 'teacher') {
+            if (!pathname.startsWith('/teacher')) {
+                router.replace('/teacher');
+            } else {
+                setLoading(false);
+            }
+        } else if (role === 'student') {
+            if (pathname.startsWith('/teacher') || pathname.startsWith('/principal')) {
+                router.replace('/');
+            } else {
+                setLoading(false);
+            }
         } else {
             setLoading(false);
         }
