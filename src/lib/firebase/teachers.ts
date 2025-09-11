@@ -36,6 +36,7 @@ export interface Teacher {
   classesTaught?: string[];
   qualifications?: string[];
   mustChangePassword?: boolean;
+  tempPassword?: string;
 }
 
 const generateTempPassword = () => {
@@ -66,6 +67,7 @@ export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'auth
       dob: format(teacherData.dob as unknown as Date, "yyyy-MM-dd"),
       joiningDate: Date.now(),
       mustChangePassword: true, // Flag for first-time login
+      tempPassword: tempPassword,
     };
 
     // Step 3: Save the teacher's profile in the Realtime Database using their UID as the key

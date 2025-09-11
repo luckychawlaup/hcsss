@@ -99,7 +99,8 @@ export default function LoginForm({ role }: LoginFormProps) {
          const teacherProfile = await getTeacherByAuthId(user.uid);
          if (teacherProfile?.mustChangePassword) {
             await sendPasswordResetEmail(auth, user.email!);
-            await updateTeacher(teacherProfile.id, { mustChangePassword: false });
+            // Clear the temporary password and the flag from the database
+            await updateTeacher(teacherProfile.id, { mustChangePassword: false, tempPassword: "" });
             setPasswordResetRequired(true);
             await auth.signOut();
             setIsLoading(false);

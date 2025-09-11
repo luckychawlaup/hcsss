@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
-import { Edit, Trash2, Loader2, Info, Printer, FileDown, Plus, X, UserX } from "lucide-react";
+import { Edit, Trash2, Loader2, Info, Printer, FileDown, Plus, X, UserX, KeyRound } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -99,10 +99,6 @@ const handlePrintLetter = (teacherData: Teacher) => {
         return;
     }
 
-    const formattedJoiningDate = teacherData.joiningDate 
-        ? new Date(teacherData.joiningDate).toLocaleDateString('en-GB')
-        : 'N/A';
-
     printWindow.document.write(`
         <html>
             <head>
@@ -149,7 +145,7 @@ const handlePrintLetter = (teacherData: Teacher) => {
                         
                         <p>We are pleased to offer you the position at Hilton Convent School. We were impressed with your qualifications and experience and believe you will be a valuable asset to our team.</p>
                         
-                        <p>Your joining date is officially recorded as <strong>${new Date(teacherData.joiningDate).toLocaleString('en-GB')}</strong>. Please find your details below:</p>
+                        <p>Your joining date is officially recorded as <strong>${new Date(teacherData.joiningDate).toLocaleDateString('en-GB')}</strong>. Please find your details below:</p>
                         
                         <table class="details">
                             <tr><td>Teacher ID</td><td>${teacherData.id}</td></tr>
@@ -160,23 +156,17 @@ const handlePrintLetter = (teacherData: Teacher) => {
                             ${teacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${teacherData.classesTaught?.join(', ')}</td></tr>` : ''}
                             <tr><td>Primary Subject</td><td>${teacherData.subject}</td></tr>
                             ${teacherData.qualifications && teacherData.qualifications.length > 0 ? `<tr><td>Qualifications</td><td>${teacherData.qualifications.join(', ')}</td></tr>` : ''}
+                             ${teacherData.tempPassword ? `<tr><td>Temporary Password</td><td><strong>${teacherData.tempPassword}</strong></td></tr>` : ''}
                         </table>
 
-                        <h4>Portal Signup Instructions:</h4>
-                        <p>To access the teacher's dashboard, please follow these steps to create your account:</p>
+                        <h4>Portal Login Instructions:</h4>
+                        <p>To access the teacher's dashboard, please follow these steps:</p>
                         <ul>
                             <li>Visit the school's portal and select "I am a Teacher".</li>
-                            <li>Click on "Sign up" to go to the registration page.</li>
-                            <li>You will need to enter the following details exactly as they appear on this letter for verification:
-                                <ul>
-                                    <li>Your Full Name: <strong>${teacherData.name}</strong></li>
-                                    <li>Your Teacher ID: <strong>${teacherData.id}</strong></li>
-                                     <li>Your Registered Email Address: <strong>${teacherData.email}</strong></li>
-                                    <li>Your Joining Date: <strong>${formattedJoiningDate}</strong></li>
-                                </ul>
-                            </li>
-                             <li>Once verified, you will be asked to create a password and your account will be created.</li>
-                            <li>A verification link will be sent to your registered email address. You must verify your email before you can log in.</li>
+                            <li>Use your registered email address (<strong>${teacherData.email}</strong>) and the temporary password provided above to log in.</li>
+                            <li><strong>Important:</strong> Upon your first login, the system will require you to change your password. A password reset link will be automatically sent to your registered email.</li>
+                            <li>Please check your inbox and follow the link to set a new, permanent password for your account.</li>
+                            <li>Once you have set your new password, you can log in as usual.</li>
                         </ul>
                         
                         <p>We look forward to you joining our team.</p>
@@ -380,15 +370,30 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                     {teacher.joiningDate ? formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy') : 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher)}>
-                        <Printer className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(teacher)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher)}>
+                                <Printer className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                         <TooltipContent>Print Joining Letter</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                         <TooltipContent>Edit Teacher</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(teacher)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete Teacher</TooltipContent>
+                    </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
