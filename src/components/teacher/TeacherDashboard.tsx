@@ -19,7 +19,7 @@ import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, DollarSign, CalendarPlus, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, DollarSign, CalendarPlus, AlertCircle, Loader2, ArrowLeft, LifeBuoy, MessageSquareQuote } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import dynamic from "next/dynamic";
 import TeacherNav from "./TeacherNav";
@@ -145,7 +145,7 @@ export default function TeacherDashboard() {
                 return (
                      <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -166,7 +166,7 @@ export default function TeacherDashboard() {
                 return (
                     <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -187,7 +187,7 @@ export default function TeacherDashboard() {
                 return (
                     <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -208,7 +208,7 @@ export default function TeacherDashboard() {
                  return (
                     <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -229,7 +229,7 @@ export default function TeacherDashboard() {
                 return (
                     <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -250,7 +250,7 @@ export default function TeacherDashboard() {
                  return (
                     <Card>
                         <CardHeader>
-                             <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                             <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -279,10 +279,10 @@ export default function TeacherDashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <NavCard title="My Students" description="View and manage student details" icon={Users} onClick={() => setActiveView("manageStudents")} />
                             <NavCard title="Approve Leaves" description="Review student leave requests" icon={CalendarCheck} onClick={() => setActiveView("approveLeaves")} />
-                            <NavCard title="Assign Homework" description="Create and post homework" icon={BookUp} onClick={() => setActiveView("addHomework")} />
-                            <NavCard title="Mark Attendance" description="Take daily class attendance" icon={ClipboardCheck} onClick={() => setActiveView("markAttendance")} />
                             <NavCard title="Apply for Leave" description="Request your own personal leave" icon={CalendarPlus} onClick={() => setActiveView("applyLeave")} />
                             <NavCard title="Salary Details" description="View salary and bank information" icon={DollarSign} onClick={() => setActiveView("salary")} />
+                             <NavCard title="Feedback" description="Submit complaints or suggestions" icon={MessageSquareQuote} onClick={() => { window.location.href = '/feedback'; }} />
+                            <NavCard title="Help & Support" description="Find answers to your questions" icon={LifeBuoy} onClick={() => { window.location.href = '/help'; }} />
                         </div>
                     </div>
                 );
@@ -301,7 +301,7 @@ export default function TeacherDashboard() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Action Required: Change Your Password</AlertTitle>
                     <AlertDescription>
-                    You are currently logged in with a temporary password. For your security, please change it immediately. A password reset link was sent to your email.
+                    You are currently logged in with a temporary password. For your security, please change it immediately. A password reset email was sent to your email.
                     <Button onClick={handleResendEmail} disabled={isResending} variant="link" className="p-0 h-auto ml-2 text-destructive-foreground underline">
                             {isResending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Resend Password Reset Email
