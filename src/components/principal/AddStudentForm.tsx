@@ -25,7 +25,7 @@ import { addStudent } from "@/lib/firebase/students";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-const sections = ["A", "B", "C", "D"];
+const sections = ["A", "B"];
 
 const addStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),

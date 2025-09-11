@@ -33,7 +33,7 @@ import { Badge } from "../ui/badge";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-const sections = ["A", "B", "C", "D"];
+const sections = ["A", "B"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
 
@@ -192,24 +192,24 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             <head>
                 <title>Joining Letter</title>
                 <style>
-                    body { font-family: 'Poppins', sans-serif; line-height: 1.5; color: #333; margin: 20px; font-size: 12px; }
+                    body { font-family: 'Poppins', sans-serif; line-height: 1.5; color: #333; margin: 20px; font-size: 11px; }
                     .container { max-width: 100%; margin: auto; border: 1px solid #eee; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
                     .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 10px; margin-bottom: 15px; }
                     .header img { width: 60px; height: 60px; margin-right: 15px; }
                     .header h1 { font-size: 20px; color: #4285F4; margin: 0; }
                     .header p { margin: 0; font-size: 11px; }
-                    .content { font-size: 12px; }
-                    .content h3 { font-size: 16px; margin-top: 15px; }
+                    .content { font-size: 11px; }
+                    .content h3 { font-size: 15px; margin-top: 15px; }
                     .content p, .content ul, .content h4 { margin: 8px 0; }
                     .content ul { padding-left: 20px; }
-                    .footer { text-align: right; margin-top: 30px; font-style: italic; }
-                    .signature-area { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 5px; width: 200px; text-align: center; }
+                    .footer { text-align: right; margin-top: 25px; font-style: italic; }
+                    .signature-area { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 5px; width: 180px; text-align: center; }
                     .disclaimer { font-size: 9px; color: #777; margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 8px; }
                     .details { border-collapse: collapse; width: 100%; margin: 15px 0; }
-                    .details td { padding: 6px; border: 1px solid #ddd; font-size: 12px; }
+                    .details td { padding: 5px; border: 1px solid #ddd; font-size: 11px; }
                     .details td:first-child { font-weight: bold; width: 30%; background-color: #f9f9f9; }
                     @media print {
-                        body { background-color: #fff; margin: 0; -webkit-print-color-adjust: exact; }
+                        body { background-color: #fff; margin: 0; padding:0; -webkit-print-color-adjust: exact; }
                         .container { border: none; box-shadow: none; padding: 0; }
                     }
                 </style>

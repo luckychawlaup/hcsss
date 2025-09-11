@@ -14,7 +14,7 @@ import {
     CardContent
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
 import { getAuth } from "firebase/auth";
@@ -23,6 +23,7 @@ import type { Student } from "@/lib/firebase/students";
 import { getStudents, deleteStudent, updateStudent } from "@/lib/firebase/students";
 import { AddStudentForm } from "./AddStudentForm";
 import { StudentList } from "./StudentList";
+import ApproveLeaves from "../teacher/ApproveLeaves";
 
 
 export default function PrincipalDashboard() {
@@ -95,9 +96,10 @@ export default function PrincipalDashboard() {
 
         <div className="mx-auto w-full max-w-6xl">
           <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="addTeacher">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="manageTeachers">Manage Teachers</TabsTrigger>
               <TabsTrigger value="manageStudents">Manage Students</TabsTrigger>
+              <TabsTrigger value="viewLeaves">View Leaves</TabsTrigger>
               <TabsTrigger value="makeAnnouncement">Announcements</TabsTrigger>
             </TabsList>
             
@@ -211,6 +213,23 @@ export default function PrincipalDashboard() {
               </Card>
             </TabsContent>
             
+            <TabsContent value="viewLeaves">
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CalendarCheck />
+                    Review Leave Applications
+                  </CardTitle>
+                  <CardDescription>
+                    Review and approve or reject leave applications from all students.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ApproveLeaves students={students} isPrincipalView={true} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="makeAnnouncement">
               <Card className="mt-4">
                 <CardHeader>
