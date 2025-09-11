@@ -8,17 +8,20 @@ import {
   get,
   update,
   remove,
-  query,
-  orderByChild,
-  equalTo,
 } from "firebase/database";
 import type { DataSnapshot } from "firebase/database";
+import { format } from "date-fns";
+
+// NOTE: These functions are intended for a simulated admin environment.
+// In a production app, creating/deleting auth users should be handled
+// by a secure backend (e.g., Cloud Functions) and not directly on the client.
+import { getAuth, createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
 
 const TEACHERS_COLLECTION = "teachers";
 
 export interface Teacher {
-  id: string;
-  authUid?: string; // To link to Firebase Auth user
+  id: string; // This will be the auth UID
+  authUid: string; 
   email: string;
   name: string;
   dob: string;
@@ -32,18 +35,53 @@ export interface Teacher {
   classTeacherOf?: string;
   classesTaught?: string[];
   qualifications?: string[];
+  mustChangePassword?: boolean;
 }
 
-// Add or update a teacher with a specific ID
-export const addTeacher = async (teacherId: string, teacherData: Omit<Teacher, 'id'>) => {
+const generateTempPassword = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let password = '';
+    for (let i = 0; i < 8; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+};
+
+
+// Function to add a teacher and create their auth account
+export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'authUid' | 'joiningDate'>) => {
+  const adminAuth = getAuth(); // This simulation assumes the principal is an admin
+  const tempPassword = generateTempPassword();
+
   try {
-    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
-    await set(teacherRef, teacherData);
-  } catch (e: any) {
-    console.error("Error adding document: ", e.message);
-    throw new Error(`Failed to add teacher. Please ensure your Firebase configuration is correct and the service is available. Original error: ${e.message}`);
+    // Step 1: Create the user in Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(adminAuth, teacherData.email, tempPassword);
+    const user = userCredential.user;
+    const authUid = user.uid;
+
+    // Step 2: Prepare the teacher data for the database
+    const dbData = {
+      ...teacherData,
+      authUid: authUid,
+      dob: format(teacherData.dob as unknown as Date, "yyyy-MM-dd"),
+      joiningDate: Date.now(),
+      mustChangePassword: true, // Flag for first-time login
+    };
+
+    // Step 3: Save the teacher's profile in the Realtime Database using their UID as the key
+    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${authUid}`);
+    await set(teacherRef, dbData);
+
+    return { teacherId: authUid, tempPassword };
+
+  } catch (error: any) {
+    console.error("Error creating teacher with auth: ", error);
+    // If there's an error, we should ideally clean up (e.g., delete the created auth user)
+    // This part is complex to handle robustly on the client-side.
+    throw new Error(`Failed to add teacher: ${error.message}`);
   }
 };
+
 
 // Get all teachers with real-time updates
 export const getTeachers = (callback: (teachers: Teacher[]) => void) => {
@@ -59,42 +97,21 @@ export const getTeachers = (callback: (teachers: Teacher[]) => void) => {
     callback(teachers);
   }, (error) => {
     console.error("Error fetching teachers: ", error);
-    callback([]); // Return empty array on error
+    callback([]);
   });
-  return unsubscribe; // Return the unsubscribe function to clean up the listener
+  return unsubscribe;
 };
 
-// Get a single teacher by ID
-export const getTeacherById = async (teacherId: string): Promise<Teacher | null> => {
+// Get a single teacher by ID (which is their Auth UID)
+export const getTeacherByAuthId = async (authUid: string): Promise<Teacher | null> => {
     try {
-        const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
+        const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${authUid}`);
         const snapshot = await get(teacherRef);
         if (snapshot.exists()) {
             return { id: snapshot.key, ...snapshot.val() };
         } else {
-            console.log("No such document!");
             return null;
         }
-    } catch (e) {
-        console.error("Error getting document:", e);
-        throw e;
-    }
-}
-
-// Get a single teacher by Auth UID
-export const getTeacherByAuthId = async (authUid: string): Promise<Teacher | null> => {
-    try {
-        const teachersRef = ref(db, TEACHERS_COLLECTION);
-        const snapshot = await get(teachersRef);
-        if (snapshot.exists()) {
-            const allTeachers = snapshot.val();
-            for (const teacherId in allTeachers) {
-                if (allTeachers[teacherId].authUid === authUid) {
-                    return { id: teacherId, ...allTeachers[teacherId] };
-                }
-            }
-        }
-        return null; // No teacher found with that authUid
     } catch (e) {
         console.error("Error getting teacher document by auth UID:", e);
         throw e;
@@ -113,7 +130,7 @@ export const updateTeacher = async (teacherId: string, updatedData: Partial<Teac
   }
 };
 
-// Delete a teacher
+// Delete a teacher from DB. Auth user deletion would need a backend function.
 export const deleteTeacher = async (teacherId: string) => {
   try {
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
@@ -123,4 +140,3 @@ export const deleteTeacher = async (teacherId: string) => {
     throw e;
   }
 };
-

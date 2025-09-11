@@ -20,11 +20,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, Printer, Plus, X } from "lucide-react";
+import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, UserPlus, KeyRound } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import type { Teacher } from "@/lib/firebase/teachers";
-import { addTeacher, getTeachers } from "@/lib/firebase/teachers";
+import { addTeacherWithAuth, getTeachers } from "@/lib/firebase/teachers";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -73,13 +73,13 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedId, setGeneratedId] = useState<string | null>(null);
-  const [addedTeacherData, setAddedTeacherData] = useState<Omit<Teacher, 'id'> | null>(null);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [addedTeacherData, setAddedTeacherData] = useState<Omit<Teacher, 'id' | 'authUid'> | null>(null);
   const [assignedClasses, setAssignedClasses] = useState<string[]>([]);
   const [qualificationInput, setQualificationInput] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
-    // Fetch all teachers to check for existing class teacher assignments
     const unsubscribe = getTeachers((teachers) => {
         const assigned = teachers
             .filter(t => t.role === 'classTeacher' && t.classTeacherOf)
@@ -122,35 +122,19 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     form.setValue("qualifications", newQualifications);
   }
 
-  const generateTeacherId = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 8; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
   async function onSubmit(values: z.infer<typeof addTeacherSchema>) {
     setIsLoading(true);
     setError(null);
     setGeneratedId(null);
     setAddedTeacherData(null);
+    setTempPassword(null);
 
     try {
-      const teacherId = generateTeacherId();
-      const joiningDate = Date.now();
-      
-      const newTeacherData: Omit<Teacher, 'id'> = {
-        ...values,
-        dob: formatDate(values.dob, "yyyy-MM-dd"), // Store DOB in a consistent format
-        joiningDate: joiningDate,
-      };
-
-      await addTeacher(teacherId, newTeacherData);
+      const { teacherId, tempPassword: newTempPassword } = await addTeacherWithAuth(values);
       
       setGeneratedId(teacherId);
-      setAddedTeacherData(newTeacherData);
+      setAddedTeacherData(values);
+      setTempPassword(newTempPassword);
       toast({
         title: "Teacher Added Successfully!",
         description: `${values.name} has been added to the system.`,
@@ -164,149 +148,59 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     }
   }
 
-  const copyToClipboard = () => {
-    if (generatedId) {
-      navigator.clipboard.writeText(generatedId);
-      toast({
-        title: "Copied!",
-        description: "Teacher ID copied to clipboard.",
-      });
-    }
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: `Teacher ${type} copied to clipboard.`,
+    });
   };
-
-  const handlePrintLetter = () => {
-    if (!addedTeacherData || !generatedId) return;
-    
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        alert("Please allow pop-ups to print the joining letter.");
-        return;
-    }
-
-    const formattedJoiningDate = addedTeacherData.joiningDate 
-        ? new Date(addedTeacherData.joiningDate).toLocaleDateString('en-GB')
-        : 'N/A';
-
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Joining Letter</title>
-                <style>
-                    body { font-family: 'Poppins', sans-serif; line-height: 1.5; color: #333; margin: 20px; font-size: 11px; }
-                    .container { max-width: 100%; margin: auto; border: 1px solid #eee; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
-                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 10px; margin-bottom: 15px; }
-                    .header img { width: 60px; height: 60px; margin-right: 15px; }
-                    .header h1 { font-size: 20px; color: #4285F4; margin: 0; }
-                    .header p { margin: 0; font-size: 11px; }
-                    .content { font-size: 11px; }
-                    .content h3 { font-size: 15px; margin-top: 15px; }
-                    .content p, .content ul, .content h4 { margin: 8px 0; }
-                    .content ul { padding-left: 20px; }
-                    .footer { text-align: right; margin-top: 25px; font-style: italic; }
-                    .signature-area { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 5px; width: 180px; text-align: center; }
-                    .disclaimer { font-size: 9px; color: #777; margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 8px; }
-                    .details { border-collapse: collapse; width: 100%; margin: 15px 0; }
-                    .details td { padding: 5px; border: 1px solid #ddd; font-size: 11px; }
-                    .details td:first-child { font-weight: bold; width: 30%; background-color: #f9f9f9; }
-                    @media print {
-                        body { background-color: #fff; margin: 0; padding:0; -webkit-print-color-adjust: exact; }
-                        .container { border: none; box-shadow: none; padding: 0; }
-                    }
-                </style>
-                 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <img src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="School Logo" />
-                        <div>
-                            <h1>Hilton Convent School</h1>
-                            <p>Joya Road, Amroha, 244221, Uttar Pradesh</p>
-                        </div>
-                    </div>
-                    <div class="content">
-                        <p style="text-align: right;"><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
-                        
-                        <h3>Subject: Appointment Letter</h3>
-                        
-                        <p>Dear ${addedTeacherData.name},</p>
-                        
-                        <p>We are pleased to offer you the position at Hilton Convent School. We were impressed with your qualifications and experience and believe you will be a valuable asset to our team.</p>
-                        
-                        <p>Your joining date is officially recorded as <strong>${new Date(addedTeacherData.joiningDate).toLocaleString('en-GB')}</strong>. Please find your details below:</p>
-                        
-                        <table class="details">
-                            <tr><td>Teacher ID</td><td>${generatedId}</td></tr>
-                            <tr><td>Full Name</td><td>${addedTeacherData.name}</td></tr>
-                            <tr><td>Email Address</td><td>${addedTeacherData.email}</td></tr>
-                            <tr><td>Role</td><td>${addedTeacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
-                            ${addedTeacherData.role === 'classTeacher' ? `<tr><td>Assigned Class</td><td>${addedTeacherData.classTeacherOf}</td></tr>` : ''}
-                            ${addedTeacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${addedTeacherData.classesTaught?.join(', ')}</td></tr>` : ''}
-                            <tr><td>Primary Subject</td><td>${addedTeacherData.subject}</td></tr>
-                            ${addedTeacherData.qualifications && addedTeacherData.qualifications.length > 0 ? `<tr><td>Qualifications</td><td>${addedTeacherData.qualifications.join(', ')}</td></tr>` : ''}
-                        </table>
-
-                        <h4>Portal Signup Instructions:</h4>
-                        <p>To access the teacher's dashboard, please follow these steps to create your account:</p>
-                        <ul>
-                            <li>Visit the school's portal and select "I am a Teacher".</li>
-                            <li>Click on "Sign up" to go to the registration page.</li>
-                            <li>You will need to enter the following details exactly as they appear on this letter for verification:
-                                <ul>
-                                    <li>Your Full Name: <strong>${addedTeacherData.name}</strong></li>
-                                    <li>Your Teacher ID: <strong>${generatedId}</strong></li>
-                                    <li>Your Registered Email Address: <strong>${addedTeacherData.email}</strong></li>
-                                    <li>Your Joining Date: <strong>${formattedJoiningDate}</strong></li>
-                                </ul>
-                            </li>
-                             <li>Once verified, you will be asked to create a password and your account will be created.</li>
-                            <li>A verification link will be sent to your registered email address. You must verify your email before you can log in.</li>
-                        </ul>
-                        
-                        <p>We look forward to you joining our team.</p>
-                        
-                        <div class="footer">
-                            <div class="signature-area">Principal's Signature & Stamp</div>
-                        </div>
-                    </div>
-                     <div class="disclaimer">
-                        <strong>Note:</strong> This joining letter requires the signature of the principal and the official stamp of the school after printing to be considered valid.
-                    </div>
-                </div>
-            </body>
-        </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-        printWindow.print();
-    }, 500);
-  }
 
   const handleAddAnother = () => {
     setGeneratedId(null);
     setAddedTeacherData(null);
+    setTempPassword(null);
   }
 
-  if (generatedId && addedTeacherData) {
+  if (generatedId && addedTeacherData && tempPassword) {
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20">
             <CheckCircle className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-primary">Teacher Added!</AlertTitle>
+            <AlertTitle className="text-primary">Teacher Added & Account Created!</AlertTitle>
             <AlertDescription className="space-y-4">
-                <p>The teacher has been successfully registered. Please provide them with their unique Teacher ID to complete the signup process.</p>
-                <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
-                    <p className="font-mono text-lg font-bold text-primary">{generatedId}</p>
-                    <Button variant="ghost" size="icon" onClick={copyToClipboard}>
-                        <Copy className="h-5 w-5 text-primary" />
-                    </Button>
+                <p>An account for {addedTeacherData.name} has been created. Please share these credentials with them securely.</p>
+                
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
+                        <div>
+                            <p className="text-xs text-muted-foreground">Email / Username</p>
+                            <p className="font-mono font-semibold text-primary">{addedTeacherData.email}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(addedTeacherData.email, "Email")}>
+                            <Copy className="h-5 w-5 text-primary" />
+                        </Button>
+                    </div>
+                     <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
+                         <div>
+                            <p className="text-xs text-muted-foreground">Temporary Password</p>
+                            <p className="font-mono font-semibold text-primary">{tempPassword}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(tempPassword, "Password")}>
+                            <KeyRound className="h-5 w-5 text-primary" />
+                        </Button>
+                    </div>
                 </div>
-                 <div className="flex gap-2">
-                    <Button onClick={handleAddAnother}>Add Another Teacher</Button>
-                    <Button variant="outline" onClick={handlePrintLetter}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print Joining Letter
+
+                <p className="text-xs text-muted-foreground">
+                    The teacher will be required to change this temporary password upon their first login for security reasons.
+                </p>
+
+                 <div className="flex gap-2 pt-2">
+                    <Button onClick={handleAddAnother}>
+                        <UserPlus className="mr-2" />
+                        Add Another Teacher
                     </Button>
+                    <Button variant="outline" onClick={onTeacherAdded}>View Teacher List</Button>
                  </div>
             </AlertDescription>
         </Alert>
@@ -603,7 +497,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
              </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Add Teacher & Generate ID
+            Add Teacher & Generate Credentials
           </Button>
         </form>
       </Form>

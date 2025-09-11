@@ -15,13 +15,7 @@ export default function TeacherLoginPage() {
           </p>
         </div>
         <LoginForm role="teacher" />
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <Link href="/auth/teacher/signup" className="font-medium text-primary hover:underline">
-            Sign up
-          </Link>
-        </p>
-         <p className="mt-2 text-center text-sm text-muted-foreground">
+         <p className="mt-4 text-center text-sm text-muted-foreground">
             <Link href="/auth/teacher/forgot-password"className="text-xs font-medium text-primary hover:underline">
                 Forgot Password?
             </Link>
