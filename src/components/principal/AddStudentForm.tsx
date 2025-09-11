@@ -69,9 +69,12 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   });
 
   const generateSrn = () => {
-    const year = new Date().getFullYear();
-    const randomNumber = Math.floor(1000 + Math.random() * 9000);
-    return `S${year}${randomNumber}`;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   };
 
   async function onSubmit(values: z.infer<typeof addStudentSchema>) {
@@ -84,9 +87,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       const srn = generateSrn();
       const admissionDate = Date.now();
       
-      const newStudentData: Omit<Student, 'id'> = {
+      const newStudentData: Omit<Student, 'id' | 'srn'> = {
         ...values,
-        srn,
         admissionDate,
       };
 
@@ -99,6 +101,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
         description: `${values.name} has been admitted.`,
       });
       form.reset();
+      onStudentAdded();
     } catch (e: any) {
       setError(`An unexpected error occurred: ${e.message}`);
     } finally {

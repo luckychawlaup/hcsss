@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import * as XLSX from "xlsx";
 import type { Teacher } from "./PrincipalDashboard";
 import {
   Table,
@@ -31,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
-import { Edit, Trash2, Loader2, Info } from "lucide-react";
+import { Edit, Trash2, Loader2, Info, Printer, FileDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -87,6 +88,94 @@ interface TeacherListProps {
   onDeleteTeacher: (id: string) => void;
 }
 
+const handlePrintLetter = (teacherData: Teacher) => {
+    if (!teacherData) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert("Please allow pop-ups to print the joining letter.");
+        return;
+    }
+
+    const formattedJoiningDate = teacherData.joiningDate 
+        ? new Date(teacherData.joiningDate).toLocaleString('en-GB', {
+            year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: true 
+          })
+        : 'N/A';
+
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Joining Letter - ${teacherData.name}</title>
+                <style>
+                    body { font-family: 'Poppins', sans-serif; line-height: 1.6; color: #333; margin: 40px; }
+                    .container { max-width: 800px; margin: auto; }
+                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 20px; margin-bottom: 30px; }
+                    .header img { width: 80px; height: 80px; margin-right: 20px; }
+                    .header h1 { font-size: 28px; color: #4285F4; margin: 0; }
+                    .header p { margin: 0; font-size: 14px; }
+                    .content { font-size: 16px; }
+                    .content p { margin: 15px 0; }
+                    .footer { text-align: right; margin-top: 50px; font-style: italic; }
+                    .details { border-collapse: collapse; width: 100%; margin: 25px 0; }
+                    .details td { padding: 8px; border: 1px solid #ddd; }
+                    .details td:first-child { font-weight: bold; width: 30%; }
+                    @media print {
+                        .no-print { display: none; }
+                    }
+                </style>
+                 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <img src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="School Logo" />
+                        <div>
+                            <h1>Hilton Convent School</h1>
+                            <p>Joya Road, Amroha, 244221, Uttar Pradesh</p>
+                        </div>
+                    </div>
+                    <div class="content">
+                        <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
+                        
+                        <h3>Subject: Appointment Letter</h3>
+                        
+                        <p>Dear ${teacherData.name},</p>
+                        
+                        <p>We are pleased to offer you the position at Hilton Convent School. We were impressed with your qualifications and experience and believe you will be a valuable asset to our team.</p>
+                        
+                        <p>Your joining date is officially recorded as <strong>${formattedJoiningDate}</strong>. Please find your details below:</p>
+                        
+                        <table class="details">
+                            <tr><td>Teacher ID</td><td>${teacherData.id}</td></tr>
+                            <tr><td>Full Name</td><td>${teacherData.name}</td></tr>
+                             <tr><td>Role</td><td>${teacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
+                            ${teacherData.role === 'classTeacher' ? `<tr><td>Assigned Class</td><td>${teacherData.classTeacherOf}</td></tr>` : ''}
+                            ${teacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${teacherData.classesTaught?.join(', ')}</td></tr>` : ''}
+                            <tr><td>Primary Subject</td><td>${teacherData.subject}</td></tr>
+                        </table>
+
+                        <p>Please use the Teacher ID provided above to complete your registration on the school portal.</p>
+                        
+                        <p>We look forward to you joining our team.</p>
+                        
+                        <div class="footer">
+                            <p>Sincerely,</p>
+                            <p><strong>The Principal</strong><br/>Hilton Convent School</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+    }, 500);
+  }
+
 export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeacher }: TeacherListProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -137,6 +226,26 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     }
   }
 
+  const handleExport = () => {
+    const dataToExport = teachers.map(teacher => ({
+        "Teacher ID": teacher.id,
+        "Name": teacher.name,
+        "Role": teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher',
+        "Assignment": teacher.role === 'classTeacher' ? teacher.classTeacherOf : teacher.classesTaught?.join(', '),
+        "Subject": teacher.subject,
+        "Phone Number": teacher.phoneNumber,
+        "DOB": teacher.dob,
+        "Joining Date": new Date(teacher.joiningDate).toLocaleString('en-GB'),
+        "Father's Name": teacher.fatherName,
+        "Address": teacher.address,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Teachers");
+    XLSX.writeFile(workbook, `Teachers_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }
+
 
   if (isLoading) {
     return (
@@ -174,8 +283,10 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
 
   if (teachers.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-md border border-dashed p-8">
-        <p className="text-muted-foreground">No teachers have been added yet.</p>
+        <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
+            <Users className="h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-semibold">No Teachers Found</h3>
+            <p className="text-muted-foreground mt-2">Get started by adding a new teacher to the system.</p>
       </div>
     );
   }
@@ -183,6 +294,12 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
   return (
     <>
     <TooltipProvider>
+        <div className="flex justify-end mb-4">
+             <Button variant="outline" onClick={handleExport}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Export as Excel
+            </Button>
+        </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -222,6 +339,9 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                     {teacher.joiningDate ? formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy') : 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher)}>
+                        <Printer className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
                         <Edit className="h-4 w-4" />
                     </Button>
@@ -241,7 +361,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the teacher's record.
+              This action cannot be undone. This will permanently delete the record for {selectedTeacher?.name}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
