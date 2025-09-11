@@ -6,7 +6,7 @@ import { getAuth } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { getTeacherByAuthId } from '@/lib/firebase/teachers';
 import type { Teacher } from '@/lib/firebase/teachers';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, Shield, Mail, Phone, Home, User } from 'lucide-react';
 import Image from 'next/image';
@@ -33,11 +33,13 @@ function numberToWords(num: number) {
 }
 
 
-export default function SalarySlipPage({ params }: { params: { month: string } }) {
+export default function SalarySlipPage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const auth = getAuth(app);
-  const salaryMonth = params.month.replace('-', ' ');
+  const params = useParams();
+  const month = typeof params.month === 'string' ? params.month : '';
+  const salaryMonth = month.replace('-', ' ');
 
   useEffect(() => {
     async function fetchTeacher() {
@@ -174,3 +176,5 @@ export default function SalarySlipPage({ params }: { params: { month: string } }
     </div>
   );
 }
+
+    
