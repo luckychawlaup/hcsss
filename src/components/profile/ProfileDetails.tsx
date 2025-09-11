@@ -17,12 +17,10 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   User,
-  Users,
   Mail,
   Phone,
   BookOpen,
   Calendar,
-  Heart,
   Home,
   Bus,
   Award,
@@ -35,7 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const DetailItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string | null }) => {
     if (!value) return null;
     return (
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-secondary/50 transition-colors">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             {icon}
             </div>
@@ -50,19 +48,19 @@ const DetailItem = ({ icon, label, value }: { icon: React.ReactNode; label: stri
 function ProfileSkeleton() {
     return (
         <div className="w-full">
-             <div className="bg-primary p-6 text-center text-primary-foreground">
+             <div className="bg-card p-6 text-center">
                 <Skeleton className="h-24 w-24 mx-auto rounded-full border-4 border-background shadow-lg" />
                 <Skeleton className="h-7 w-40 mt-4 mx-auto" />
                 <Skeleton className="h-4 w-56 mt-2 mx-auto" />
             </div>
-             <div className="px-4 py-6 space-y-6">
+             <div className="px-2 py-4 md:px-4 md:py-6 space-y-4">
                 <Card className="shadow-none border-0">
                     <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
+                    <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
                     </CardContent>
                 </Card>
              </div>
@@ -73,19 +71,19 @@ function ProfileSkeleton() {
 function StudentProfile({ student }: { student: Student }) {
     return (
         <div className="w-full">
-             <div className="bg-primary p-6 text-center text-primary-foreground">
+             <div className="bg-card p-6 text-center">
                 <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
                     <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${student.name}`} alt={student.name} />
                     <AvatarFallback>{student.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{student.name}</h1>
-                <p className="text-primary-foreground/80">Class {student.class}-{student.section} | SRN: {student.srn}</p>
+                <p className="text-muted-foreground">Class {student.class}-{student.section} | SRN: {student.srn}</p>
             </div>
       
-            <div className="px-4 py-6 space-y-6">
+            <div className="px-2 py-4 md:px-4 md:py-6 space-y-4">
                 <Card className="shadow-none border-0">
-                <CardHeader><CardTitle>Family Information</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <CardHeader><CardTitle className="text-base">Family Information</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
                     <DetailItem icon={<User size={20} />} label="Father's Name" value={student.fatherName} />
                     <DetailItem icon={<Phone size={20} />} label="Father's Phone" value={student.fatherPhone} />
                     <DetailItem icon={<User size={20} />} label="Mother's Name" value={student.motherName} />
@@ -95,8 +93,8 @@ function StudentProfile({ student }: { student: Student }) {
                 </Card>
 
                 <Card className="shadow-none border-0">
-                <CardHeader><CardTitle>Contact &amp; Other Details</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <CardHeader><CardTitle className="text-base">Contact &amp; Other Details</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
                      <DetailItem icon={<Calendar size={20} />} label="Admission Date" value={new Date(student.admissionDate).toLocaleDateString("en-GB")} />
                     <DetailItem icon={<Home size={20} />} label="Address" value={student.address} />
                     <DetailItem icon={<Bus size={20} />} label="Transport" value={"School Transport"} />
@@ -113,20 +111,20 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
 
     return (
          <div className="w-full">
-             <div className="bg-primary p-6 text-center text-primary-foreground">
+             <div className="bg-card p-6 text-center">
                 <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
                      <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${teacher.name}`} alt={teacher.name} />
                     <AvatarFallback>{teacher.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{teacher.name}</h1>
-                <p className="text-primary-foreground/80 text-xs">Teacher ID: {teacher.authUid}</p>
-                 {teacher.email && <p className="text-sm text-primary-foreground/80 mt-1">{teacher.email}</p>}
+                <p className="text-muted-foreground text-xs">Teacher ID: {teacher.authUid}</p>
+                 {teacher.email && <p className="text-sm text-muted-foreground mt-1">{teacher.email}</p>}
             </div>
       
-            <div className="px-4 py-6 space-y-6">
+            <div className="px-2 py-4 md:px-4 md:py-6 space-y-4">
                 <Card className="shadow-none border-0">
-                    <CardHeader><CardTitle>Professional Information</CardTitle></CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <CardHeader><CardTitle className="text-base">Professional Information</CardTitle></CardHeader>
+                    <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
                         <DetailItem icon={<Briefcase size={20} />} label="Role" value={teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'} />
                         <DetailItem icon={<BookOpen size={20} />} label={roleLabel} value={classAssignment} />
                         <DetailItem icon={<Book size={20} />} label="Primary Subject" value={teacher.subject} />
@@ -135,13 +133,13 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
                 </Card>
 
                 <Card className="shadow-none border-0">
-                    <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <CardHeader><CardTitle className="text-base">Personal Information</CardTitle></CardHeader>
+                    <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
                         <DetailItem icon={<Calendar size={20} />} label="Date of Birth" value={new Date(teacher.dob).toLocaleDateString("en-GB")} />
                         <DetailItem icon={<Phone size={20} />} label="Phone Number" value={teacher.phoneNumber} />
                         <DetailItem icon={<Home size={20} />} label="Address" value={teacher.address} />
                          {teacher.qualifications && teacher.qualifications.length > 0 && (
-                            <div className="sm:col-span-2 flex items-start gap-4">
+                            <div className="sm:col-span-2 flex items-start gap-4 p-4 rounded-lg">
                                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                                     <Award size={20} />
                                 </div>
@@ -211,8 +209,8 @@ export default function ProfileDetails() {
 
   if (!profile) {
     return (
-        <div className="flex items-center justify-center h-96">
-            <p>Could not load user profile. Please try again later.</p>
+        <div className="flex items-center justify-center h-96 p-4 text-center">
+            <p className="text-muted-foreground">Could not load user profile. Please try again later.</p>
         </div>
     )
   }
@@ -226,8 +224,8 @@ export default function ProfileDetails() {
   }
 
   return (
-    <div className="flex items-center justify-center h-96">
-        <p>Your profile could not be loaded. Please contact administration.</p>
+    <div className="flex items-center justify-center h-96 p-4 text-center">
+        <p className="text-muted-foreground">Your profile could not be loaded. Please contact administration.</p>
     </div>
   )
 }

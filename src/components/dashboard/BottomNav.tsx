@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, CalendarPlus, LifeBuoy, User, LogOut } from "lucide-react";
+import { Home, CalendarPlus, LifeBuoy, User, LogOut, MessageSquareQuote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAuth, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
@@ -11,7 +11,7 @@ import { app } from "@/lib/firebase";
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/leave", label: "Leave", icon: CalendarPlus },
-  { href: "/help", label: "Help", icon: LifeBuoy },
+  { href: "/feedback", label: "Feedback", icon: MessageSquareQuote },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
@@ -36,7 +36,7 @@ export default function BottomNav() {
               key={item.label}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
+                "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors w-full h-full",
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-primary"
@@ -49,7 +49,7 @@ export default function BottomNav() {
         })}
         <button
           onClick={handleLogout}
-          className="flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+          className="flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary w-full h-full"
         >
           <LogOut className="h-5 w-5" />
           <span>Logout</span>

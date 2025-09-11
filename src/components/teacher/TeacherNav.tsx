@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, User, LifeBuoy, LogOut, LayoutDashboard, Users, CalendarCheck, BookUp, ClipboardCheck, CalendarPlus, DollarSign } from "lucide-react";
+import { Home, User, LifeBuoy, LogOut, LayoutDashboard, Users, CalendarCheck, BookUp, ClipboardCheck, CalendarPlus, DollarSign, MessageSquareQuote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAuth, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
@@ -29,6 +29,7 @@ const navItems: NavItem[] = [
 
 const secondaryNavItems = [
     { href: "/profile", label: "Profile", icon: User },
+    { href: "/feedback", label: "Feedback", icon: MessageSquareQuote },
     { href: "/help", label: "Help & Support", icon: LifeBuoy },
 ]
 
@@ -111,7 +112,7 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
                 <button
                     onClick={() => setActiveView("dashboard")}
                     className={cn(
-                        "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
+                        "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors w-full h-full",
                         activeView === 'dashboard'
                         ? "text-primary"
                         : "text-muted-foreground hover:text-primary"
@@ -121,9 +122,21 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
                     <span>Home</span>
                 </button>
                  <Link
+                    href="/feedback"
+                    className={cn(
+                        "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors w-full h-full",
+                         pathname === '/feedback'
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-primary"
+                    )}
+                    >
+                    <MessageSquareQuote className="h-5 w-5" />
+                    <span>Feedback</span>
+                </Link>
+                 <Link
                     href="/profile"
                     className={cn(
-                        "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
+                        "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors w-full h-full",
                         pathname === '/profile'
                         ? "text-primary"
                         : "text-muted-foreground hover:text-primary"
@@ -135,7 +148,7 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
                  <Link
                     href="/help"
                     className={cn(
-                        "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
+                        "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors w-full h-full",
                          pathname === '/help'
                         ? "text-primary"
                         : "text-muted-foreground hover:text-primary"
@@ -146,7 +159,7 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
                 </Link>
                  <button
                     onClick={handleLogout}
-                    className="flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+                    className="flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary w-full h-full"
                 >
                     <LogOut className="h-5 w-5" />
                     <span>Logout</span>
