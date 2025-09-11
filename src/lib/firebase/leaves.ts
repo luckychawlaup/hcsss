@@ -23,6 +23,7 @@ export interface LeaveRequest {
   status: "Confirmed" | "Pending" | "Rejected";
   appliedAt: number;
   teacherId?: string;
+  rejectionReason?: string;
 }
 
 // Add a new leave request
@@ -104,10 +105,13 @@ export const getLeaveRequestsForUser = (
 // Update leave status
 export const updateLeaveStatus = async (
   leaveId: string,
-  status: "Confirmed" | "Rejected"
+  status: "Confirmed" | "Rejected",
+  rejectionReason?: string
 ) => {
   const leaveRef = ref(db, `${LEAVES_COLLECTION}/${leaveId}`);
-  await update(leaveRef, { status });
+  const updates: Record<string, any> = { status };
+  if (status === 'Rejected' && rejectionReason) {
+    updates.rejectionReason = rejectionReason;
+  }
+  await update(leaveRef, updates);
 };
-
-    

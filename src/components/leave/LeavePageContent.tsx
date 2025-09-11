@@ -34,6 +34,7 @@ import {
   Loader2,
   Send,
   History,
+  AlertCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ import { getAuth, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getStudentByAuthId, Student } from "@/lib/firebase/students";
 import { addLeaveRequest, getLeaveRequestsForUser, LeaveRequest } from "@/lib/firebase/leaves";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 
 const leaveSchema = z.object({
@@ -284,13 +286,22 @@ export default function LeavePageContent() {
             pastLeaves.map((leave) => (
               <div
                 key={leave.id}
-                className="flex items-start justify-between rounded-lg border p-4"
+                className="flex flex-col gap-2 rounded-lg border p-4"
               >
-                <div className="flex-1 space-y-1">
-                  <p className="font-semibold text-sm">{leave.date}</p>
-                  <p className="text-muted-foreground text-sm">{leave.reason}</p>
+                <div className="flex items-start justify-between">
+                    <div className="flex-1 space-y-1">
+                        <p className="font-semibold text-sm">{leave.date}</p>
+                        <p className="text-muted-foreground text-sm">{leave.reason}</p>
+                    </div>
+                    <Badge variant={getStatusVariant(leave.status)}>{leave.status}</Badge>
                 </div>
-                <Badge variant={getStatusVariant(leave.status)}>{leave.status}</Badge>
+                 {leave.status === 'Rejected' && leave.rejectionReason && (
+                     <Alert variant="destructive" className="mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Rejection Reason</AlertTitle>
+                        <AlertDescription>{leave.rejectionReason}</AlertDescription>
+                    </Alert>
+                )}
               </div>
             ))
           ) : (
@@ -303,5 +314,3 @@ export default function LeavePageContent() {
     </div>
   );
 }
-
-    

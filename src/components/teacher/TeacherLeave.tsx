@@ -11,7 +11,7 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardContent
+  CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,33 +35,42 @@ import {
   Loader2,
   Send,
   History,
+  AlertCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { addLeaveRequest, getLeaveRequestsForUser, LeaveRequest } from "@/lib/firebase/leaves";
+import {
+  addLeaveRequest,
+  getLeaveRequestsForUser,
+  LeaveRequest,
+} from "@/lib/firebase/leaves";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
-
-const leaveSchema = z.object({
-  dateRange: z.object(
-    {
-      from: z.date({ required_error: "Start date is required." }),
-      to: z.date().optional(),
-    },
-    { required_error: "Please select a date or date range." }
-  ),
-  reason: z.string().min(10, "Reason must be at least 10 characters long."),
-  document: z.any().optional(),
-}).refine(data => {
-    if (data.dateRange.to) {
+const leaveSchema = z
+  .object({
+    dateRange: z.object(
+      {
+        from: z.date({ required_error: "Start date is required." }),
+        to: z.date().optional(),
+      },
+      { required_error: "Please select a date or date range." }
+    ),
+    reason: z.string().min(10, "Reason must be at least 10 characters long."),
+    document: z.any().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.dateRange.to) {
         return differenceInDays(data.dateRange.to, data.dateRange.from) <= 30;
+      }
+      return true;
+    },
+    {
+      message: "Leave duration cannot exceed 30 days.",
+      path: ["dateRange"],
     }
-    return true;
-}, {
-    message: "Leave duration cannot exceed 30 days.",
-    path: ["dateRange"],
-});
-
+  );
 
 const getStatusVariant = (status: LeaveRequest["status"]) => {
   switch (status) {
@@ -75,22 +84,21 @@ const getStatusVariant = (status: LeaveRequest["status"]) => {
 };
 
 interface TeacherLeaveProps {
-    teacher: Teacher | null;
+  teacher: Teacher | null;
 }
 
 export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const { toast } = useToast();
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
-  
-  useEffect(() => {
-      if(teacher) {
-        const unsubscribeLeaves = getLeaveRequestsForUser(teacher.id, (leaves) => {
-            setPastLeaves(leaves);
-        });
-        return () => unsubscribeLeaves();
-      }
-  }, [teacher]);
 
+  useEffect(() => {
+    if (teacher) {
+      const unsubscribeLeaves = getLeaveRequestsForUser(teacher.id, (leaves) => {
+        setPastLeaves(leaves);
+      });
+      return () => unsubscribeLeaves();
+    }
+  }, [teacher]);
 
   const form = useForm<z.infer<typeof leaveSchema>>({
     resolver: zodResolver(leaveSchema),
@@ -105,48 +113,58 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const {
     formState: { isSubmitting },
   } = form;
-  
+
   const fromDate = form.watch("dateRange.from");
 
   async function onSubmit(values: z.infer<typeof leaveSchema>) {
-    if(!teacher) {
-        toast({ variant: 'destructive', title: "Error", description: "You must be logged in to apply for leave."});
-        return;
+    if (!teacher) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You must be logged in to apply for leave.",
+      });
+      return;
     }
 
     let dateString = format(values.dateRange.from, "yyyy-MM-dd");
     if (values.dateRange.to) {
-        dateString += ` to ${format(values.dateRange.to, "yyyy-MM-dd")}`;
+      dateString += ` to ${format(values.dateRange.to, "yyyy-MM-dd")}`;
     }
 
-    const newLeave: Omit<LeaveRequest, 'id'> = {
-        userId: teacher.id,
-        userName: teacher.name,
-        userRole: "Teacher",
-        date: dateString,
-        reason: values.reason,
-        status: "Pending",
-        appliedAt: Date.now(),
-        teacherId: teacher.id,
-    }
+    const newLeave: Omit<LeaveRequest, "id"> = {
+      userId: teacher.id,
+      userName: teacher.name,
+      userRole: "Teacher",
+      date: dateString,
+      reason: values.reason,
+      status: "Pending",
+      appliedAt: Date.now(),
+      teacherId: teacher.id,
+    };
 
     try {
-        await addLeaveRequest(newLeave);
-        toast({
-            title: "Leave Application Submitted",
-            description: "Your leave request has been sent for approval.",
-        });
-        form.reset({
-            dateRange: { from: startOfDay(new Date()) },
-            reason: "",
-            document: undefined
-        });
-        const fileInput = document.getElementById('leave-document-teacher') as HTMLInputElement;
-        if (fileInput) {
-            fileInput.value = '';
-        }
-    } catch(error) {
-         toast({ variant: 'destructive', title: "Submission Failed", description: "Could not submit your leave request. Please try again."});
+      await addLeaveRequest(newLeave);
+      toast({
+        title: "Leave Application Submitted",
+        description: "Your leave request has been sent for approval.",
+      });
+      form.reset({
+        dateRange: { from: startOfDay(new Date()) },
+        reason: "",
+        document: undefined,
+      });
+      const fileInput = document.getElementById(
+        "leave-document-teacher"
+      ) as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = "";
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "Could not submit your leave request. Please try again.",
+      });
     }
   }
 
@@ -196,11 +214,16 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                           initialFocus
                           mode="range"
                           defaultMonth={field.value?.from}
-                          selected={{ from: field.value?.from, to: field.value?.to }}
+                          selected={{
+                            from: field.value?.from,
+                            to: field.value?.to,
+                          }}
                           onSelect={field.onChange}
                           numberOfMonths={1}
                           disabled={{ before: startOfDay(new Date()) }}
-                          toDate={fromDate ? addMonths(fromDate, 1) : undefined}
+                          toDate={
+                            fromDate ? addMonths(fromDate, 1) : undefined
+                          }
                         />
                       </PopoverContent>
                     </Popover>
@@ -233,7 +256,11 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                   <FormItem>
                     <FormLabel>Supporting Document (Optional)</FormLabel>
                     <FormControl>
-                       <Input id="leave-document-teacher" type="file" {...form.register('document')} />
+                      <Input
+                        id="leave-document-teacher"
+                        type="file"
+                        {...form.register("document")}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -246,10 +273,10 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                     Submitting...
                   </>
                 ) : (
-                   <>
+                  <>
                     <Send className="mr-2 h-4 w-4" />
                     Submit Request
-                   </>
+                  </>
                 )}
               </Button>
             </form>
@@ -269,13 +296,26 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
             pastLeaves.map((leave) => (
               <div
                 key={leave.id}
-                className="flex items-start justify-between rounded-lg border p-4"
+                className="flex flex-col gap-2 rounded-lg border p-4"
               >
-                <div className="flex-1 space-y-1">
-                  <p className="font-semibold text-sm">{leave.date}</p>
-                  <p className="text-muted-foreground text-sm">{leave.reason}</p>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 space-y-1">
+                    <p className="font-semibold text-sm">{leave.date}</p>
+                    <p className="text-muted-foreground text-sm">
+                      {leave.reason}
+                    </p>
+                  </div>
+                  <Badge variant={getStatusVariant(leave.status)}>
+                    {leave.status}
+                  </Badge>
                 </div>
-                <Badge variant={getStatusVariant(leave.status)}>{leave.status}</Badge>
+                {leave.status === 'Rejected' && leave.rejectionReason && (
+                     <Alert variant="destructive" className="mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Rejection Reason</AlertTitle>
+                        <AlertDescription>{leave.rejectionReason}</AlertDescription>
+                    </Alert>
+                )}
               </div>
             ))
           ) : (
@@ -288,5 +328,3 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     </div>
   );
 }
-
-    
