@@ -20,6 +20,9 @@ import { getStudents, Student } from "@/lib/firebase/students";
 import TeacherStudentList from "./TeacherStudentList";
 import ApproveLeaves from "./ApproveLeaves";
 import { AddHomeworkForm } from "./AddHomeworkForm";
+import { MarkAttendance } from "./MarkAttendance";
+import { TeacherLeave } from "./TeacherLeave";
+import { SalaryDetails } from "./SalaryDetails";
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -54,13 +57,9 @@ export default function TeacherDashboard() {
       const unsubscribeStudents = getStudents((allStudents) => {
         const assignedStudents = allStudents.filter(student => {
             const classSection = `${student.class}-${student.section}`;
-            if (teacher.role === 'classTeacher') {
-                return classSection === teacher.classTeacherOf;
-            }
-            if (teacher.role === 'subjectTeacher' && teacher.classesTaught) {
-                return teacher.classesTaught.includes(classSection);
-            }
-            return false;
+            const isClassTeacher = teacher.role === 'classTeacher' && classSection === teacher.classTeacherOf;
+            const isSubjectTeacher = teacher.role === 'subjectTeacher' && teacher.classesTaught?.includes(classSection);
+            return isClassTeacher || isSubjectTeacher;
         });
         setStudents(assignedStudents);
         setIsLoading(false);
@@ -76,8 +75,6 @@ export default function TeacherDashboard() {
     setIsResending(true);
     try {
       await sendPasswordResetEmail(auth, currentUser.email);
-      // Optimistically update the flag so the banner disappears,
-      // assuming the user will follow the link.
       if(teacher) {
           await updateTeacher(teacher.id, { mustChangePassword: false, tempPassword: "" });
       }
@@ -130,8 +127,8 @@ export default function TeacherDashboard() {
                     <TabsTrigger value="approveLeaves">Approve Leaves</TabsTrigger>
                     <TabsTrigger value="addHomework">Homework</TabsTrigger>
                     <TabsTrigger value="markAttendance">Attendance</TabsTrigger>
-                    <TabsTrigger value="applyLeave">Apply for Leave</TabsTrigger>
-                    <TabsTrigger value="salary">Salary</TabsTrigger>
+                    <TabsTrigger value="applyLeave">My Leave</TabsTrigger>
+                    <TabsTrigger value="salary">Salary Details</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="manageStudents">
@@ -190,14 +187,14 @@ export default function TeacherDashboard() {
                         <CardHeader>
                              <CardTitle className="flex items-center gap-2">
                                 <ClipboardCheck />
-                                Mark Attendance
+                                Mark Student Attendance
                             </CardTitle>
                              <CardDescription>
-                                Mark daily attendance for your classes. (Coming Soon)
+                                Mark daily attendance for your assigned classes.
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <p className="text-muted-foreground">The attendance marking module is under development and will be available soon.</p>
+                            <MarkAttendance teacher={teacher} students={students} isLoading={isLoading} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -210,11 +207,11 @@ export default function TeacherDashboard() {
                                 Apply for Your Leave
                             </CardTitle>
                              <CardDescription>
-                                Apply for your own personal leave. (Coming Soon)
+                                Submit your own leave requests and view your leave history.
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <p className="text-muted-foreground">This feature is under development.</p>
+                           <TeacherLeave teacher={teacher} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -227,11 +224,11 @@ export default function TeacherDashboard() {
                                 Salary & Bank Details
                             </CardTitle>
                              <CardDescription>
-                                View your salary history and manage your bank account details. (Coming Soon)
+                                View your salary history and manage your bank account details.
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <p className="text-muted-foreground">This feature is under development.</p>
+                            <SalaryDetails teacher={teacher} />
                         </CardContent>
                     </Card>
                 </TabsContent>

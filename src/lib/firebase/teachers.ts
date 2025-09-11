@@ -20,7 +20,6 @@ import type { DataSnapshot } from "firebase/database";
 import { format } from "date-fns";
 
 const TEACHERS_COLLECTION = "teachers";
-const REGISTRATIONS_COLLECTION = "registrations";
 
 export interface Teacher {
   id: string; // This will be the auth UID
@@ -40,6 +39,12 @@ export interface Teacher {
   qualifications?: string[];
   tempPassword?: string;
   mustChangePassword?: boolean;
+  bankAccount?: {
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    accountHolderName: string;
+  };
 }
 
 export type TeacherRegistrationData = Omit<
