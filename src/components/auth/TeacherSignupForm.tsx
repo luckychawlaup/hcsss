@@ -80,10 +80,12 @@ export default function TeacherSignupForm() {
       const teacherRecord = await getTeacherById(values.teacherId);
       
       if (!teacherRecord) {
+        await user.delete(); // Clean up created user
         throw new Error("Invalid Teacher ID. Please check the ID provided by the principal.");
       }
 
       if(teacherRecord.authUid) {
+        await user.delete(); // Clean up created user
         throw new Error("This Teacher ID is already linked to an account.");
       }
       
@@ -95,9 +97,7 @@ export default function TeacherSignupForm() {
         teacherRecord.email?.toLowerCase() !== values.email.toLowerCase() ||
         formattedJoiningDate !== providedJoiningDate
       ) {
-        // If details don't match, we should ideally delete the created user
-        // For simplicity, we'll just sign them out and show an error.
-        await auth.signOut();
+        await user.delete(); // Clean up created user
         throw new Error("The details entered do not match our records. Please verify your Name, Email, and Joining Date.");
       }
       // --- End Verification ---
