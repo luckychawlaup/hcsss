@@ -134,7 +134,7 @@ export const getHomeworks = (
   return unsubscribe;
 };
 
-// Get the 5 most recent homework assignments by a specific teacher
+// Get all homework assignments by a specific teacher
 export const getHomeworksByTeacher = (
     teacherId: string,
     callback: (homework: Homework[]) => void
@@ -157,8 +157,9 @@ export const getHomeworksByTeacher = (
         callback(
             allHomework
                 .sort((a, b) => b.assignedAt - a.assignedAt)
-                .slice(0, 5)
         );
     });
     return unsubscribe;
 }
+
+    

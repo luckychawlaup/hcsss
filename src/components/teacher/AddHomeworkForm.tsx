@@ -62,6 +62,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Teacher } from "@/lib/firebase/teachers";
 import { addHomework, getHomeworksByTeacher, deleteHomework, updateHomework } from "@/lib/firebase/homework";
 import type { Homework } from "@/lib/firebase/homework";
+import { ScrollArea } from "../ui/scroll-area";
 
 const homeworkSchema = z.object({
   classSection: z.string({ required_error: "Please select a class." }),
@@ -79,7 +80,7 @@ interface AddHomeworkFormProps {
 
 export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [recentHomework, setRecentHomework] = useState<Homework[]>([]);
+  const [homeworkHistory, setHomeworkHistory] = useState<Homework[]>([]);
   const [editingHomework, setEditingHomework] = useState<Homework | null>(null);
   const [deletingHomework, setDeletingHomework] = useState<Homework | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -117,7 +118,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
   useEffect(() => {
     if (teacher) {
         const unsubscribe = getHomeworksByTeacher(teacher.id, (homeworks) => {
-            setRecentHomework(homeworks);
+            setHomeworkHistory(homeworks);
         });
         return () => unsubscribe();
     }
@@ -368,12 +369,17 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Assigning Homework...
+                  {editingHomework ? "Saving Changes..." : "Assigning Homework..."}
                 </>
               ) : (
-                "Assign Homework"
+                editingHomework ? "Save Changes" : "Assign Homework"
               )}
             </Button>
+             {editingHomework && (
+                <Button type="button" variant="outline" className="w-full" onClick={() => setEditingHomework(null)}>
+                    Cancel Edit
+                </Button>
+            )}
           </form>
         </Form>
       </div>
@@ -382,36 +388,40 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                     <BookCheck />
-                    Recently Assigned
+                    Homework History
                 </CardTitle>
                 <CardDescription>
-                    Your 5 most recent homework assignments.
+                    A complete history of all your assignments.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-                {recentHomework.length > 0 ? (
-                    recentHomework.map(hw => (
-                        <div key={hw.id} className="text-sm p-3 bg-secondary/50 rounded-md">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="font-bold">{hw.subject} - {hw.classSection}</p>
-                                    <p className="text-muted-foreground truncate">{hw.description}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">Due: {hw.dueDate}</p>
+            <CardContent>
+                <ScrollArea className="h-96">
+                    <div className="space-y-2 pr-4">
+                        {homeworkHistory.length > 0 ? (
+                            homeworkHistory.map(hw => (
+                                <div key={hw.id} className="text-sm p-3 bg-secondary/50 rounded-md">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-bold">{hw.subject} - {hw.classSection}</p>
+                                            <p className="text-muted-foreground truncate">{hw.description}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">Due: {hw.dueDate}</p>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingHomework(hw)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteClick(hw)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex gap-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingHomework(hw)}>
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteClick(hw)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">No homework assigned yet.</p>
-                )}
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">No homework assigned yet.</p>
+                        )}
+                    </div>
+                </ScrollArea>
             </CardContent>
         </Card>
       </div>
@@ -531,3 +541,5 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     </div>
   );
 }
+
+    
