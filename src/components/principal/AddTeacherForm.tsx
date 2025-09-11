@@ -20,7 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, UserPlus, KeyRound } from "lucide-react";
+import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, UserPlus, KeyRound, Plus, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import type { Teacher } from "@/lib/firebase/teachers";
