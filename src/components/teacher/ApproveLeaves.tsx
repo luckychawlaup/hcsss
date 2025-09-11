@@ -1,7 +1,6 @@
 
 "use client";
 
-import { format } from "date-fns";
 import type { LeaveRequest } from "@/lib/firebase/leaves";
 import {
   Card,
@@ -136,5 +135,3 @@ export default function ApproveLeaves({
     </div>
   );
 }
-
-    
