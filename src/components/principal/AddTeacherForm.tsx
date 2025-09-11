@@ -272,9 +272,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                 />
             </div>
             
-            <Separator />
-            
             <div className="space-y-6">
+                 <Separator />
                 <FormField
                     control={form.control}
                     name="role"
