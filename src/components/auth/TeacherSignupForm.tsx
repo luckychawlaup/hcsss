@@ -101,8 +101,8 @@ export default function TeacherSignupForm() {
       await sendEmailVerification(user);
 
       toast({
-        title: "Account Created!",
-        description: "We've sent a verification link to your email. Please verify to log in.",
+        title: "Account Created! Please Verify Your Email.",
+        description: "We've sent a verification link to your email. You must verify your email before you can log in.",
       });
 
       router.push("/auth/teacher/login");

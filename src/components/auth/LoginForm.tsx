@@ -29,7 +29,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   password: z.string().min(1, "Password is required."),
-  uid: z.string().optional(),
 });
 
 interface LoginFormProps {
@@ -49,7 +48,6 @@ export default function LoginForm({ role }: LoginFormProps) {
     defaultValues: {
       email: "",
       password: "",
-      uid: "",
     },
   });
 
@@ -67,7 +65,19 @@ export default function LoginForm({ role }: LoginFormProps) {
 
       const user = userCredential.user;
 
-      if (!user.emailVerified && role !== 'principal') {
+      if (role === 'principal') {
+        if (user.uid !== 'hvldHzYq4ZbZlc7nym3ICNaEI1u1' || values.email !== 'principal@hcsss.in') {
+            setError("Invalid credentials for principal account.");
+            await auth.signOut();
+            setIsLoading(false);
+            return;
+        }
+        router.push('/principal');
+        router.refresh();
+        return;
+      }
+      
+      if (!user.emailVerified) {
         setNeedsVerification(true);
         setError("Your email is not verified. Please check your inbox for a verification link.");
         await sendEmailVerification(user);
@@ -78,36 +88,20 @@ export default function LoginForm({ role }: LoginFormProps) {
         setIsLoading(false);
         return;
       }
-      
-      if (role === 'principal') {
-        if (user.uid !== 'hvldHzYq4ZbZlc7nym3ICNaEI1u1' || values.email !== 'principal@hcsss.in') {
-            setError("Invalid credentials for principal account.");
-            await auth.signOut(); // Sign out the incorrectly logged-in user
-            setIsLoading(false);
-            return;
-        }
-        router.push('/principal');
-        router.refresh();
-        return;
-      }
 
       toast({
         title: "Login Successful",
         description: `Welcome back!`,
       });
 
-      // Redirect to the appropriate dashboard
       if (role === 'teacher') {
         document.cookie = "teacher-role=true; path=/; max-age=86400";
         router.push("/teacher");
-      }
-      else {
-         // This covers students
-        document.cookie = "student-role=true; path=/; max-age=86400";
+      } else {
+        document.cookie = "teacher-role=; path=/; max-age=-1"; // Clear teacher cookie for student
         router.push("/");
       }
       router.refresh();
-
 
     } catch (error: any) {
       const errorCode = error.code;
@@ -141,7 +135,7 @@ export default function LoginForm({ role }: LoginFormProps) {
                 <FormControl>
                   <Input
                     type="email"
-                    placeholder={`${role}@example.com`}
+                    placeholder={role === 'principal' ? 'principal@hcsss.in' : `${role}@example.com`}
                     {...field}
                   />
                 </FormControl>
@@ -162,24 +156,9 @@ export default function LoginForm({ role }: LoginFormProps) {
               </FormItem>
             )}
           />
-          {role === 'principal' && (
-             <FormField
-                control={form.control}
-                name="uid"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Principal UID</FormLabel>
-                    <FormControl>
-                    <Input type="password" placeholder="Enter your unique ID" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-          )}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign In as {role.charAt(0).toUpperCase() + role.slice(1)}
+            Sign In
           </Button>
         </form>
       </Form>
