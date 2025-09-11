@@ -22,11 +22,13 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
   useEffect(() => {
     async function fetchTeacher() {
       setIsLoading(true);
-      const teacherData = await getTeacherByAuthId(params.teacherId);
-      if (teacherData) {
-        setTeacher(teacherData);
-        const regKey = await getRegistrationKeyForTeacher(teacherData.email);
-        setRegistrationKey(regKey);
+      if (params.teacherId) {
+          const teacherData = await getTeacherByAuthId(params.teacherId);
+          if (teacherData) {
+            setTeacher(teacherData);
+            const regKey = await getRegistrationKeyForTeacher(teacherData.email);
+            setRegistrationKey(regKey);
+          }
       }
       setIsLoading(false);
     }
@@ -169,5 +171,3 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
     </div>
   );
 }
-
-    

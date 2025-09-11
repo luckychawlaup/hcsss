@@ -136,7 +136,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
             reason: "",
             document: undefined
         });
-        const fileInput = document.getElementById('leave-document') as HTMLInputElement;
+        const fileInput = document.getElementById('leave-document-teacher') as HTMLInputElement;
         if (fileInput) {
             fileInput.value = '';
         }
@@ -228,7 +228,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                   <FormItem>
                     <FormLabel>Supporting Document (Optional)</FormLabel>
                     <FormControl>
-                       <Input id="leave-document" type="file" {...form.register('document')} />
+                       <Input id="leave-document-teacher" type="file" {...form.register('document')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

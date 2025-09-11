@@ -30,10 +30,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
-import { Edit, Trash2, Loader2, Info, Printer, FileDown, Plus, X, UserX } from "lucide-react";
+import { Edit, Trash2, Loader2, Info, Printer, FileDown, Plus, X, UserX, Landmark } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -70,6 +71,12 @@ const editTeacherSchema = z.object({
   classTeacherOf: z.string().optional(),
   classesTaught: z.array(z.string()).optional().default([]),
   joiningDate: z.number(),
+  bankAccount: z.object({
+      accountHolderName: z.string().optional(),
+      accountNumber: z.string().optional(),
+      ifscCode: z.string().optional(),
+      bankName: z.string().optional(),
+  }).optional(),
 }).refine(data => {
     if (data.role === 'classTeacher') return !!data.classTeacherOf;
     return true;
@@ -134,6 +141,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
         dob: new Date(teacher.dob),
         qualifications: teacher.qualifications || [],
         classesTaught: teacher.classesTaught || [],
+        bankAccount: teacher.bankAccount || { accountHolderName: "", accountNumber: "", ifscCode: "", bankName: "" },
     });
     setIsEditOpen(true);
   };
@@ -153,7 +161,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
 
   async function onEditSubmit(values: z.infer<typeof editTeacherSchema>) {
     if(selectedTeacher) {
-        const updatedData = {
+        const updatedData: Partial<Teacher> = {
             ...values,
             dob: formatDate(values.dob, "yyyy-MM-dd"),
         };
@@ -327,15 +335,19 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
       </AlertDialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[800px]">
             <DialogHeader>
                 <DialogTitle>Edit Teacher Details</DialogTitle>
+                 <DialogDescription>
+                    Update the teacher's information below.
+                </DialogDescription>
             </DialogHeader>
             {selectedTeacher && (
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-2">
+                    <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-2 pr-4">
+                        {/* Personal Details */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField
+                             <FormField
                                 control={form.control}
                                 name="name"
                                 render={({ field }) => (
@@ -361,125 +373,11 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                                 </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="dob"
-                                render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Date of Birth</FormLabel>
-                                    <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !field.value && "text-muted-foreground"
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {field.value ? (
-                                            formatDate(field.value, "PPP")
-                                            ) : (
-                                            <span>Pick a date</span>
-                                            )}
-                                        </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        disabled={(date) =>
-                                            date > new Date() || date < new Date("1950-01-01")
-                                        }
-                                        initialFocus
-                                        />
-                                    </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="fatherName"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Father's Name</FormLabel>
-                                    <FormControl>
-                                    <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="motherName"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Mother's Name</FormLabel>
-                                    <FormControl>
-                                    <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="phoneNumber"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Phone Number</FormLabel>
-                                    <FormControl>
-                                    <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="address"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Address</FormLabel>
-                                    <FormControl>
-                                    <Textarea {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
                         </div>
+                        
+                         {/* Academic & Role Details */}
                         <Separator />
-                        <div className="space-y-4">
-                            <FormLabel>Qualifications</FormLabel>
-                            <div className="flex gap-2">
-                                <Input 
-                                    value={qualificationInput}
-                                    onChange={(e) => setQualificationInput(e.target.value)}
-                                    placeholder="e.g., B.Ed, M.Sc. in Physics"
-                                />
-                                <Button type="button" onClick={handleAddQualification}>
-                                    <Plus className="mr-2 h-4 w-4" /> Add
-                                </Button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {qualifications.map((q, index) => (
-                                    <Badge key={index} variant="secondary">
-                                        {q}
-                                        <button type="button" onClick={() => handleRemoveQualification(index)} className="ml-2 rounded-full p-0.5 hover:bg-destructive/20">
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                        <Separator />
+                        <p className="font-semibold text-foreground">Academic & Role Details</p>
                          <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField
@@ -505,7 +403,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                                             <RadioGroup
                                             onValueChange={field.onChange}
                                             defaultValue={field.value}
-                                            className="flex items-center space-x-4"
+                                            className="flex items-center space-x-4 pt-2"
                                             >
                                                 <FormItem className="flex items-center space-x-2 space-y-0">
                                                     <FormControl>
@@ -551,57 +449,108 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                                     )}
                                     />
                             )}
-
-                             {role === "subjectTeacher" && (
-                                <FormField
-                                    control={form.control}
-                                    name="classesTaught"
-                                    render={() => (
-                                        <FormItem>
-                                            <div className="mb-4">
-                                                <FormLabel className="text-base">Classes Taught</FormLabel>
-                                            </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                                {allClassSections.map((item) => (
-                                                    <FormField
-                                                        key={item}
-                                                        control={form.control}
-                                                        name="classesTaught"
-                                                        render={({ field }) => {
-                                                            return (
-                                                            <FormItem
-                                                                key={item}
-                                                                className="flex flex-row items-start space-x-3 space-y-0"
-                                                            >
-                                                                <FormControl>
-                                                                <Checkbox
-                                                                    checked={field.value?.includes(item)}
-                                                                    onCheckedChange={(checked) => {
-                                                                    return checked
-                                                                        ? field.onChange([...(field.value || []), item])
-                                                                        : field.onChange(
-                                                                            field.value?.filter(
-                                                                                (value) => value !== item
-                                                                            )
-                                                                            )
-                                                                    }}
-                                                                />
-                                                                </FormControl>
-                                                                <FormLabel className="font-normal">
-                                                                {item}
-                                                                </FormLabel>
-                                                            </FormItem>
-                                                            )
-                                                        }}
-                                                    />
-                                                ))}
-                                            </div>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            )}
+                             <FormField
+                                control={form.control}
+                                name="classesTaught"
+                                render={() => (
+                                    <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">
+                                                {role === 'classTeacher' ? 'Also Teaches (as Subject Teacher)' : 'Assign Classes to Subject Teacher'}
+                                            </FormLabel>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                            {allClassSections.map((item) => (
+                                                <FormField
+                                                    key={item}
+                                                    control={form.control}
+                                                    name="classesTaught"
+                                                    render={({ field }) => {
+                                                        return (
+                                                        <FormItem
+                                                            key={item}
+                                                            className="flex flex-row items-start space-x-3 space-y-0"
+                                                        >
+                                                            <FormControl>
+                                                            <Checkbox
+                                                                checked={field.value?.includes(item)}
+                                                                onCheckedChange={(checked) => {
+                                                                return checked
+                                                                    ? field.onChange([...(field.value || []), item])
+                                                                    : field.onChange(
+                                                                        field.value?.filter(
+                                                                            (value) => value !== item
+                                                                        )
+                                                                        )
+                                                                }}
+                                                            />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">
+                                                            {item}
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                        )
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
+                        
+                        {/* Bank Details */}
+                        <Separator />
+                        <p className="font-semibold text-foreground flex items-center gap-2"><Landmark/> Bank Account Details</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                             <FormField
+                                control={form.control}
+                                name="bankAccount.accountHolderName"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Account Holder Name</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="bankAccount.accountNumber"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Account Number</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="bankAccount.ifscCode"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>IFSC Code</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="bankAccount.bankName"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Bank Name</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+
+
                         <DialogFooter className="pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdating}>
                                 Cancel
@@ -619,5 +568,3 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     </>
   );
 }
-
-    

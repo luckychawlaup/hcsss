@@ -123,7 +123,7 @@ export const getTeachers = (callback: (teachers: Teacher[]) => void) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         for (const id in data) {
-          teachers.push({ id, ...data[id] });
+          teachers.push({ id, ...data[id], authUid: id });
         }
       }
       callback(teachers);
@@ -210,5 +210,3 @@ export const deleteTeacher = async (teacherId: string) => {
     throw e;
   }
 };
-
-    

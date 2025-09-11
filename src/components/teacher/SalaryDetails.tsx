@@ -38,8 +38,8 @@ import {
 
 const bankAccountSchema = z.object({
   accountHolderName: z.string().min(2, "Account holder name is required."),
-  accountNumber: z.string().min(8, "Valid account number is required."),
-  ifscCode: z.string().length(11, "IFSC code must be 11 characters."),
+  accountNumber: z.string().min(8, "Valid account number is required.").regex(/^\d+$/, "Account number must be numeric."),
+  ifscCode: z.string().length(11, "IFSC code must be 11 characters.").regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC code format."),
   bankName: z.string().min(3, "Bank name is required."),
 });
 
@@ -100,7 +100,7 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
                     Your salary will be credited here.
                 </CardDescription>
             </div>
-            {!isEditing && (
+            {!isEditing && teacher?.id && (
                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                     <Edit className="mr-2 h-4 w-4" /> Edit
                 </Button>
@@ -116,7 +116,7 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
                   <FormItem>
                     <FormLabel>Account Holder Name</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled={!isEditing || isSubmitting} />
+                      <Input {...field} disabled={!isEditing || isSubmitting} placeholder="As per bank records" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -129,7 +129,7 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
                   <FormItem>
                     <FormLabel>Account Number</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled={!isEditing || isSubmitting} />
+                      <Input {...field} disabled={!isEditing || isSubmitting} placeholder="e.g. 123456789012" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -142,7 +142,7 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
                   <FormItem>
                     <FormLabel>IFSC Code</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled={!isEditing || isSubmitting} />
+                      <Input {...field} disabled={!isEditing || isSubmitting} placeholder="e.g. SBIN0001234" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -155,7 +155,7 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
                   <FormItem>
                     <FormLabel>Bank Name</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled={!isEditing || isSubmitting} />
+                      <Input {...field} disabled={!isEditing || isSubmitting} placeholder="e.g. State Bank of India" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

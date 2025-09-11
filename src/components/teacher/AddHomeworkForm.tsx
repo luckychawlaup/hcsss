@@ -134,6 +134,12 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         classSection: "",
         attachment: undefined,
       });
+      
+      const fileInput = document.getElementById('homework-attachment') as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = '';
+        }
+
     } catch (error) {
       toast({
         variant: "destructive",
@@ -161,6 +167,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -260,6 +267,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                       <div className="relative">
                         <Upload className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
+                          id="homework-attachment"
                           type="file"
                           className="pl-9"
                           {...form.register("attachment")}
@@ -271,7 +279,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                 )}
               />
             </div>
-            <Button type="submit" disabled={isSubmitting} className="w-full">
+            <Button type="submit" disabled={isSubmitting || assignedClasses.length === 0} className="w-full">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
