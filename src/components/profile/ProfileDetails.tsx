@@ -158,50 +158,14 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
     )
 }
 
-export default function ProfileDetails() {
-  const [profile, setProfile] = useState<Student | Teacher | null>(null);
-  const [role, setRole] = useState<"student" | "teacher" | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const auth = getAuth(app);
+interface ProfileDetailsProps {
+    profile: Student | Teacher | null;
+    role: "student" | "teacher" | null;
+    isLoading: boolean;
+}
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: AuthUser | null) => {
-        setIsLoading(true);
-        if (user) {
-            try {
-                // Attempt to fetch teacher profile first
-                const teacherProfile = await getTeacherByAuthId(user.uid);
-                if (teacherProfile) {
-                    setProfile(teacherProfile);
-                    setRole('teacher');
-                } else {
-                    // If not a teacher, attempt to fetch student profile
-                    const studentProfile = await getStudentByAuthId(user.uid);
-                    if (studentProfile) {
-                        setProfile(studentProfile);
-                        setRole('student');
-                    } else {
-                        // If neither is found, set profile to null
-                        setProfile(null);
-                        setRole(null);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch profile:", error);
-                setProfile(null);
-                setRole(null);
-            } finally {
-                setIsLoading(false);
-            }
-        } else {
-            setProfile(null);
-            setRole(null);
-            setIsLoading(false);
-        }
-    });
 
-    return () => unsubscribe();
-  }, [auth]);
+export default function ProfileDetails({ profile, role, isLoading }: ProfileDetailsProps) {
 
   if (isLoading) {
     return <ProfileSkeleton />;

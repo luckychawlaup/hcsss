@@ -39,11 +39,8 @@ const MarkAttendance = dynamic(() => import('./MarkAttendance').then(mod => mod.
 const TeacherLeave = dynamic(() => import('./TeacherLeave').then(mod => mod.TeacherLeave), {
   loading: () => <Skeleton className="h-96 w-full" />,
 });
-const SalaryDetails = dynamic(() => import('./SalaryDetails').then(mod => mod.SalaryDetails), {
-  loading: () => <Skeleton className="h-96 w-full" />,
-});
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "applyLeave" | "salary";
+export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "applyLeave";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -246,27 +243,6 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 );
-            case 'salary':
-                 return (
-                    <Card>
-                        <CardHeader>
-                             <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Dashboard
-                            </Button>
-                             <CardTitle className="flex items-center gap-2">
-                                <DollarSign />
-                                Salary & Bank Details
-                            </CardTitle>
-                             <CardDescription>
-                                View your salary history and manage your bank account details.
-                            </CardDescription>
-                        </CardHeader>
-                         <CardContent>
-                            <SalaryDetails teacher={teacher} />
-                        </CardContent>
-                    </Card>
-                );
             default:
                 return (
                     <div className="space-y-6">
@@ -280,7 +256,6 @@ export default function TeacherDashboard() {
                             <NavCard title="My Students" description="View and manage student details" icon={Users} onClick={() => setActiveView("manageStudents")} />
                             <NavCard title="Approve Leaves" description="Review student leave requests" icon={CalendarCheck} onClick={() => setActiveView("approveLeaves")} />
                             <NavCard title="Apply for Leave" description="Request your own personal leave" icon={CalendarPlus} onClick={() => setActiveView("applyLeave")} />
-                            <NavCard title="Salary Details" description="View salary and bank information" icon={DollarSign} onClick={() => setActiveView("salary")} />
                              <NavCard title="Feedback" description="Submit complaints or suggestions" icon={MessageSquareQuote} onClick={() => { window.location.href = '/feedback'; }} />
                             <NavCard title="Help & Support" description="Find answers to your questions" icon={LifeBuoy} onClick={() => { window.location.href = '/help'; }} />
                         </div>
