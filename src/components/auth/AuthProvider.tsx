@@ -56,26 +56,32 @@ export default function AuthProvider({
   const [loading, setLoading] = useState(true);
 
   const isPublicPath = publicPaths.includes(pathname);
+  const isPrincipalPath = pathname.startsWith('/principal');
+  const isTeacherPath = pathname.startsWith('/teacher');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setLoading(true);
-      const principalCookie = document.cookie.includes("principal-role=true");
+    const principalCookie = document.cookie.includes("principal-role=true");
 
-      if (principalCookie) {
+    if (principalCookie) {
         setUser("principal");
-        if(isPublicPath){
+        if (isPublicPath) {
             router.push("/principal");
         }
-      } else if (user) {
-        if (user.emailVerified) {
-          setUser(user);
+        setLoading(false);
+        return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+      if (authUser) {
+        if (authUser.emailVerified) {
+          setUser(authUser);
            if (isPublicPath) {
              const role = getRoleFromCookie();
              if (role === 'teacher') router.push('/teacher');
              else router.push('/');
            }
         } else {
+          // If email is not verified, sign them out.
           signOut(auth);
           setUser(null);
            if (!isPublicPath) {
@@ -84,7 +90,7 @@ export default function AuthProvider({
         }
       } else {
         setUser(null);
-        if (!isPublicPath) {
+        if (!isPublicPath && !isPrincipalPath) {
           router.push("/login");
         }
       }
@@ -92,7 +98,7 @@ export default function AuthProvider({
     });
 
     return () => unsubscribe();
-  }, [auth, router, pathname, isPublicPath]);
+  }, [auth, router, pathname, isPublicPath, isPrincipalPath]);
 
   if (loading) {
     return <Preloader />;
@@ -103,12 +109,33 @@ export default function AuthProvider({
   }
 
   if (user && isPublicPath) {
-    const role = getRoleFromCookie();
-    if(user === "principal" || role === 'principal') router.push('/principal');
-    else if(role === 'teacher') router.push('/teacher');
-    else router.push('/');
+     if (user === "principal") {
+        router.push('/principal');
+     } else {
+        const role = getRoleFromCookie();
+        if (role === 'teacher') router.push('/teacher');
+        else router.push('/');
+     }
     return <Preloader />;
   }
+
+  // Protect routes based on role
+  if (user) {
+      const role = getRoleFromCookie();
+      if(user === "principal" && !isPrincipalPath && !isPublicPath) {
+           router.push('/principal');
+           return <Preloader />;
+      }
+      if(role === 'teacher' && !isTeacherPath && !isPublicPath) {
+          router.push('/teacher');
+          return <Preloader />;
+      }
+       if(role === 'student' && (isTeacherPath || isPrincipalPath)) {
+          router.push('/');
+          return <Preloader />;
+      }
+  }
+
 
   return <>{children}</>;
 }
