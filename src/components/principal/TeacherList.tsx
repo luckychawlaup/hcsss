@@ -90,16 +90,6 @@ interface TeacherListProps {
   onDeleteTeacher: (id: string) => void;
 }
 
-const handlePrintLetter = (teacherData: Teacher) => {
-    if (!teacherData) return;
-    
-    // This is a placeholder function as direct auth manipulation is not possible on client
-    // A real implementation would call a backend function to generate a temporary password
-    // and then construct the letter.
-    console.log("Printing Joining Letter for:", teacherData);
-    alert("Printing functionality would require a secure backend to handle password generation. This is a UI placeholder.");
-}
-
 export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeacher }: TeacherListProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -119,6 +109,17 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     setSelectedTeacher(teacher);
     setIsAlertOpen(true);
   };
+  
+  const handlePrintLetter = (teacherData: Teacher) => {
+    if (!teacherData) return;
+    
+    // This is a placeholder function as direct auth manipulation is not possible on client
+    // A real implementation would call a backend function to generate a temporary password
+    // and then construct the letter.
+    console.log("Printing Joining Letter for:", teacherData);
+    alert("Printing functionality would require a secure backend to handle password generation. This is a UI placeholder.");
+  }
+
 
   const confirmDelete = async () => {
     if (selectedTeacher) {
@@ -279,6 +280,14 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                     {teacher.joiningDate ? formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy') : 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher)}>
+                                <Printer className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                         <TooltipContent>Print Joining Letter</TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
                              <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
