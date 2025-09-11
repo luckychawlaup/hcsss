@@ -62,7 +62,7 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:bg-white print:p-0">
-        <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:flex">
+        <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:hidden">
             <h1 className="text-[12rem] font-bold text-gray-200/50 transform -rotate-45 select-none whitespace-nowrap">
                 Hilton Convent School
             </h1>
@@ -125,14 +125,14 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
 
             <div className="mt-16">
                 <p>Sincerely,</p>
-                <div className="h-16"></div>
-                <p className="font-semibold">Principal</p>
+                <p className="font-semibold mt-8">Principal</p>
                 <p>Hilton Convent School</p>
             </div>
         </main>
         
-        <footer className="mt-16 border-t pt-4 text-center text-xs text-muted-foreground print:hidden">
-            <p>© {new Date().getFullYear()} Hilton Convent School. All rights reserved.</p>
+        <footer className="mt-16 border-t pt-4 text-center text-xs text-muted-foreground">
+             <p>This is a computer-generated document and does not require a signature.</p>
+            <p className="print:hidden">© {new Date().getFullYear()} Hilton Convent School. All rights reserved.</p>
         </footer>
 
       </div>

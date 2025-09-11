@@ -164,23 +164,9 @@ export default function SalarySlipPage({ params }: { params: { month: string } }
                     (In Words: {numberToWords(netSalary)})
                 </p>
             </div>
-
-             <div className="mt-16 text-sm">
-                <div className="flex justify-between items-center">
-                     <div>
-                        <div className="h-12"></div>
-                        <p className="border-t pt-1 font-semibold">Employee's Signature</p>
-                    </div>
-                     <div>
-                        <div className="h-12"></div>
-                        <p className="border-t pt-1 font-semibold">Principal's Signature</p>
-                    </div>
-                </div>
-            </div>
-            
         </main>
         
-        <footer className="mt-8 border-t pt-2 text-center text-xs text-muted-foreground print:hidden">
+        <footer className="mt-8 border-t pt-2 text-center text-xs text-muted-foreground">
             <p>© {new Date().getFullYear()} Hilton Convent School. This is a computer-generated document and does not require a signature.</p>
         </footer>
 
