@@ -120,6 +120,7 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{teacher.name}</h1>
                 <p className="text-primary-foreground/80">Teacher ID: {teacher.id}</p>
+                 {teacher.email && <p className="text-sm text-primary-foreground/80 mt-1">{teacher.email}</p>}
             </div>
       
             <div className="px-4 py-8 space-y-8">
@@ -135,7 +136,7 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
 
                 <Card className="shadow-none border-0">
                     <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-6 sm_grid-cols-2">
+                    <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <DetailItem icon={<Calendar size={20} />} label="Date of Birth" value={new Date(teacher.dob).toLocaleDateString("en-GB")} />
                         <DetailItem icon={<Phone size={20} />} label="Phone Number" value={teacher.phoneNumber} />
                         <DetailItem icon={<Home size={20} />} label="Address" value={teacher.address} />
@@ -160,13 +161,13 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
 }
 
 const getRoleFromCookie = () => {
-    if (typeof document === 'undefined') return null;
+    if (typeof document === 'undefined') return 'student';
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
         const [name, value] = cookie.trim().split('=');
         if (name === 'teacher-role' && value === 'true') return 'teacher';
     }
-    return 'student'; // Default to student if no specific role cookie is found
+    return 'student';
 }
 
 
@@ -194,11 +195,13 @@ export default function ProfileDetails() {
             } catch (error) {
                 console.error("Failed to fetch profile:", error);
                 setProfile(null);
+            } finally {
+                setIsLoading(false);
             }
         } else {
             setProfile(null);
+            setIsLoading(false);
         }
-        setIsLoading(false);
     });
 
     return () => unsubscribe();

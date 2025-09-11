@@ -18,6 +18,7 @@ const TEACHERS_COLLECTION = "teachers";
 export interface Teacher {
   id: string;
   authUid?: string; // To link to Firebase Auth user
+  email?: string;
   name: string;
   dob: string;
   fatherName: string;

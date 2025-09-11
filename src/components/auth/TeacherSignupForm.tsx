@@ -104,8 +104,8 @@ export default function TeacherSignupForm() {
         displayName: values.name,
       });
 
-      // Link Auth UID to teacher record in DB
-      await updateTeacher(values.teacherId, { authUid: user.uid });
+      // Link Auth UID and email to teacher record in DB
+      await updateTeacher(values.teacherId, { authUid: user.uid, email: user.email! });
 
       await sendEmailVerification(user);
 
