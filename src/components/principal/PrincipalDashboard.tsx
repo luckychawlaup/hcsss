@@ -3,39 +3,48 @@
 
 import { useState, useEffect } from "react";
 import Header from "@/components/dashboard/Header";
-import { AddTeacherForm } from "./AddTeacherForm";
-import { TeacherList } from "./TeacherList";
-import { MakeAnnouncementForm } from "./MakeAnnouncementForm";
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardContent
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck } from "lucide-react";
-import { StatCard } from "./StatCard";
+import { getAuth, User, onAuthStateChanged } from "firebase/auth";
+import { app } from "@/lib/firebase";
 import { getTeachers, updateTeacher, deleteTeacher, Teacher } from "@/lib/firebase/teachers";
 import { getStudents, updateStudent, deleteStudent, Student } from "@/lib/firebase/students";
-import { AddStudentForm } from "./AddStudentForm";
-import { StudentList } from "./StudentList";
-import ApproveLeaves from "../teacher/ApproveLeaves";
-import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
+import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatCard } from "./StatCard";
+import dynamic from "next/dynamic";
+
+const AddTeacherForm = dynamic(() => import('./AddTeacherForm').then(mod => mod.AddTeacherForm), {
+    loading: () => <Skeleton className="h-96 w-full" />
+});
+const TeacherList = dynamic(() => import('./TeacherList').then(mod => mod.TeacherList), {
+    loading: () => <Skeleton className="h-64 w-full" />
+});
+const AddStudentForm = dynamic(() => import('./AddStudentForm').then(mod => mod.AddStudentForm), {
+    loading: () => <Skeleton className="h-96 w-full" />
+});
+const StudentList = dynamic(() => import('./StudentList').then(mod => mod.StudentList), {
+    loading: () => <Skeleton className="h-64 w-full" />
+});
+const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
+    loading: () => <Skeleton className="h-48 w-full" />
+});
+const MakeAnnouncementForm = dynamic(() => import('./MakeAnnouncementForm').then(mod => mod.MakeAnnouncementForm), {
+    loading: () => <Skeleton className="h-80 w-full" />
+});
 
 export default function PrincipalDashboard() {
+  const [activeTab, setActiveTab] = useState("manageTeachers");
   const [manageTeachersTab, setManageTeachersTab] = useState("addTeacher");
   const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
-  const [activeTab, setActiveTab] = useState("manageTeachers");
-  
+
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
   const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
   const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
 
   useEffect(() => {
     setIsLoading(true);
@@ -43,8 +52,6 @@ export default function PrincipalDashboard() {
     const unsubStudents = getStudents(setAllStudents);
     const unsubTeachers = getTeachers(setAllTeachers);
     
-    // We can fetch leaves once we have some data, or let subsequent useEffects handle it.
-    // Let's set loading to false after initial listeners are set.
     setIsLoading(false);
 
     return () => {
@@ -98,7 +105,6 @@ export default function PrincipalDashboard() {
   const pendingStudentLeavesCount = studentLeaves.filter(l => l.status === 'Pending').length;
   const pendingTeacherLeavesCount = teacherLeaves.filter(l => l.status === 'Pending').length;
   const totalPendingLeaves = pendingStudentLeavesCount + pendingTeacherLeavesCount;
-
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">

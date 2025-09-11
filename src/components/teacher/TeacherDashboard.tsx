@@ -18,16 +18,30 @@ import { app } from "@/lib/firebase";
 import { getTeacherByAuthId, Teacher, updateTeacher } from "@/lib/firebase/teachers";
 import { getStudents, Student } from "@/lib/firebase/students";
 import { getLeaveRequestsForStudents, LeaveRequest } from "@/lib/firebase/leaves";
-import TeacherStudentList from "./TeacherStudentList";
-import ApproveLeaves from "./ApproveLeaves";
-import { AddHomeworkForm } from "./AddHomeworkForm";
-import { MarkAttendance } from "./MarkAttendance";
-import { TeacherLeave } from "./TeacherLeave";
-import { SalaryDetails } from "./SalaryDetails";
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
+import dynamic from "next/dynamic";
+
+const TeacherStudentList = dynamic(() => import('./TeacherStudentList'), {
+  loading: () => <Skeleton className="h-64 w-full" />,
+});
+const ApproveLeaves = dynamic(() => import('./ApproveLeaves'), {
+  loading: () => <Skeleton className="h-48 w-full" />,
+});
+const AddHomeworkForm = dynamic(() => import('./AddHomeworkForm').then(mod => mod.AddHomeworkForm), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+});
+const MarkAttendance = dynamic(() => import('./MarkAttendance').then(mod => mod.MarkAttendance), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+});
+const TeacherLeave = dynamic(() => import('./TeacherLeave').then(mod => mod.TeacherLeave), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+});
+const SalaryDetails = dynamic(() => import('./SalaryDetails').then(mod => mod.SalaryDetails), {
+  loading: () => <Skeleton className="h-96 w-full" />,
+});
 
 
 export default function TeacherDashboard() {
@@ -59,11 +73,9 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     if (teacher) {
-      // Teachers have access to all students as per the rules
       const unsubscribeStudents = getStudents((students) => {
         setAllStudents(students);
         
-        // Fetch leaves for students assigned to this teacher for the approval tab
         const assignedStudentIds = students.filter(student => {
             const classSection = `${student.class}-${student.section}`;
             const isClassTeacher = teacher.role === 'classTeacher' && classSection === teacher.classTeacherOf;
@@ -81,7 +93,7 @@ export default function TeacherDashboard() {
         setIsLoading(false);
       });
        return () => unsubscribeStudents();
-    } else if (!isLoading && !currentUser) { // If there's no user, stop loading.
+    } else if (!isLoading && !currentUser) {
         setIsLoading(false);
     }
   }, [teacher, currentUser, isLoading]);

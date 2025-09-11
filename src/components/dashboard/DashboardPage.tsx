@@ -1,10 +1,22 @@
 import Header from "@/components/dashboard/Header";
-import FeePayment from "@/components/dashboard/FeePayment";
 import Homework from "@/components/dashboard/Homework";
-import ReportCard from "@/components/dashboard/ReportCard";
-import LeaveApplication from "@/components/dashboard/LeaveApplication";
-import Attendance from "@/components/dashboard/Attendance";
 import BottomNav from "@/components/dashboard/BottomNav";
+import { Skeleton } from "../ui/skeleton";
+import dynamic from "next/dynamic";
+
+const FeePayment = dynamic(() => import('@/components/dashboard/FeePayment'), {
+  loading: () => <Skeleton className="h-28 w-full" />,
+});
+const ReportCard = dynamic(() => import('@/components/dashboard/ReportCard'), {
+  loading: () => <Skeleton className="h-48 w-full" />,
+});
+const LeaveApplication = dynamic(() => import('@/components/dashboard/LeaveApplication'), {
+  loading: () => <Skeleton className="h-48 w-full" />,
+});
+const Attendance = dynamic(() => import('@/components/dashboard/Attendance'), {
+  loading: () => <Skeleton className="h-36 w-full" />,
+});
+
 
 export default function DashboardPage() {
   return (
