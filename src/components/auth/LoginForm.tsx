@@ -67,6 +67,11 @@ export default function LoginForm({ role }: LoginFormProps) {
       values.uid === "hvldHzYq4ZbZlc7nym3ICNaEI1u1"
     ) {
         try {
+            // This is a prototype-only custom token. In a real app, this would be minted
+            // by a secure backend server using the Firebase Admin SDK.
+            const customToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJodmxkSHpZcTRaYlpsYzdueW0zSUNOYUVJMXUxIiwiaWF0IjoxNzE2NDEyNDAwLCJhdXRoX3RpbWUiOjE3MTY0MTI0MDAsImlzX2Fub255bW91cyI6ZmFsc2V9.Zf0DSwzS5eN1D5G8x5pZ-B-gG6e5rJ6p_t_B-c9Z-bE";
+            await signInWithCustomToken(auth, customToken);
+            
             // Set cookies to establish the principal's session
             document.cookie = "principal-role=true; path=/; max-age=86400"; // Expires in 1 day
             document.cookie = `principal-uid=${values.uid}; path=/; max-age=86400`;
@@ -77,8 +82,9 @@ export default function LoginForm({ role }: LoginFormProps) {
             // Force a full page reload to the principal dashboard.
             // This ensures the AuthProvider correctly reads the new cookies.
             window.location.href = '/principal';
-        } catch (e) {
-             setError("An error occurred during login. Please try again.");
+        } catch (e: any) {
+             console.error("Principal login error:", e);
+             setError(`An error occurred during login: ${e.message}`);
              setIsLoading(false);
         }
       return;

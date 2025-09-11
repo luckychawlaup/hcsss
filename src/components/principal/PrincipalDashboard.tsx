@@ -17,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
-import { signInPrincipal } from "@/lib/firebase";
 
 
 // Define the Teacher type, you can expand this as needed
@@ -48,7 +47,6 @@ export default function PrincipalDashboard() {
   useEffect(() => {
     // Only fetch teachers if the user is the principal
     if (isPrincipalUser()) {
-        signInPrincipal(); // Ensure principal is authenticated for DB access
         const unsubscribe = getTeachers((teachers) => {
           setTeachers(teachers as Teacher[]);
           setIsLoading(false);
