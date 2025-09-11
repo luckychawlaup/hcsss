@@ -12,13 +12,16 @@ function ProfilePageSkeleton() {
 export default function ProfilePage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header title="My Profile" showAvatar={false} />
+      <Header title="My Profile" showAvatar={true} />
       <main className="flex-1 pb-24 md:pb-8">
         <Suspense fallback={<ProfilePageSkeleton />}>
           <ProfilePageContent />
         </Suspense>
       </main>
       <div className="md:hidden">
+        {/* We need to determine which nav to show. A role check from a cookie or context is needed. */}
+        {/* For now, let's assume a student might see this page too. */}
+        {/* This logic will be improved with role management. */}
         <BottomNav />
       </div>
     </div>

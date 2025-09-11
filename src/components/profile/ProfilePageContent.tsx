@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged, User as AuthUser } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut, User as AuthUser } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getStudentByAuthId } from "@/lib/firebase/students";
 import { getTeacherByAuthId } from "@/lib/firebase/teachers";
@@ -12,7 +12,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ProfileDetails from "./ProfileDetails";
 import { SalaryDetails } from "../teacher/SalaryDetails";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Wallet } from "lucide-react";
+import { User, Wallet, LogOut } from "lucide-react";
+import { Button } from "../ui/button";
+import { useRouter } from "next/navigation";
 
 function ProfileSkeleton() {
   return (
@@ -35,6 +37,7 @@ export default function ProfilePageContent() {
   const [role, setRole] = useState<"student" | "teacher" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const auth = getAuth(app);
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user: AuthUser | null) => {
@@ -72,6 +75,12 @@ export default function ProfilePageContent() {
     return () => unsubscribe();
   }, [auth]);
 
+  const handleLogout = async () => {
+    await signOut(auth);
+    document.cookie = "teacher-role=; path=/; max-age=-1";
+    router.push("/login");
+  };
+
   if (isLoading) {
     return <ProfileSkeleton />;
   }
@@ -107,6 +116,12 @@ export default function ProfilePageContent() {
             <SalaryDetails teacher={profile as Teacher} />
           </TabsContent>
         </Tabs>
+         <div className="mt-8">
+            <Button variant="outline" className="w-full" onClick={handleLogout}>
+                <LogOut className="mr-2"/>
+                Logout
+            </Button>
+        </div>
       </div>
     );
   }
