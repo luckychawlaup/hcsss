@@ -6,7 +6,7 @@ import { getTeacherByAuthId } from '@/lib/firebase/teachers';
 import type { Teacher } from '@/lib/firebase/teachers';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Loader2, Printer, ClipboardCopy, Info } from 'lucide-react';
+import { Loader2, Printer, ClipboardCopy, Info, Phone, Mail, Shield } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -60,24 +60,45 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:p-0 print:bg-white">
-      <div className="mx-auto max-w-4xl bg-white p-8 sm:p-12 shadow-lg print:shadow-none">
+        <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:flex">
+            <h1 className="text-[12rem] font-bold text-gray-200/50 transform -rotate-45 select-none whitespace-nowrap">
+                Hilton Convent School
+            </h1>
+        </div>
+
+      <div className="mx-auto max-w-4xl bg-white p-8 sm:p-12 shadow-lg print:shadow-none relative z-10">
         
-        <header className="flex items-center justify-between border-b pb-4">
-          <div className="flex items-center gap-4">
-             <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={80} height={80} />
-            <div>
-              <h1 className="text-2xl font-bold text-primary">Hilton Convent School</h1>
-              <p className="text-sm text-muted-foreground">Joya Road, Amroha, 244221, Uttar Pradesh</p>
+        <header className="flex flex-col items-center justify-center border-b pb-4 text-center">
+          <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={100} height={100} />
+          <h1 className="text-3xl font-bold text-primary mt-4">Hilton Convent School</h1>
+          <p className="text-sm text-muted-foreground">Joya Road, Amroha, 244221, Uttar Pradesh</p>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+            <div className="flex items-center gap-1.5">
+                <Mail className="h-3 w-3" />
+                <span>hiltonconventschool@gmail.com</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+                <Phone className="h-3 w-3" />
+                <span>+91 9548322595</span>
+            </div>
+             <div className="flex items-center gap-1.5">
+                <Shield className="h-3 w-3" />
+                <span>CBSE Affiliation: 2131151</span>
             </div>
           </div>
-           <div className="print:hidden">
-                <Button onClick={handlePrint}><Printer className="mr-2"/>Print Letter</Button>
-           </div>
         </header>
 
-        <main className="mt-12 text-lg leading-relaxed">
-            <p className="text-right">{new Date(teacher.joiningDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <div className="flex items-center justify-between mt-8">
+            <div/>
+            <div className="flex flex-col items-end">
+                 <p className="font-semibold">{new Date(teacher.joiningDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                 <div className="print:hidden mt-2">
+                    <Button onClick={handlePrint}><Printer className="mr-2"/>Print Letter</Button>
+                </div>
+            </div>
+        </div>
 
+        <main className="mt-8 text-lg leading-relaxed">
             <div className="mt-8">
                 <p>To,</p>
                 <p className="font-semibold">{teacher.name}</p>
@@ -102,7 +123,8 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
 
             <div className="mt-16">
                 <p>Sincerely,</p>
-                <p className="mt-8 font-semibold">Principal</p>
+                <div className="h-16"></div>
+                <p className="font-semibold">Principal</p>
                 <p>Hilton Convent School</p>
             </div>
         </main>
