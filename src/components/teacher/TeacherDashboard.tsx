@@ -33,7 +33,7 @@ import { Skeleton } from "../ui/skeleton";
 export default function TeacherDashboard() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [teacher, setTeacher] = useState<Teacher | null>(null);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isResending, setIsResending] = useState(false);
@@ -59,21 +59,21 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     if (teacher) {
-      const unsubscribeStudents = getStudents((allStudents) => {
-        const assignedStudents = allStudents.filter(student => {
+      // Teachers have access to all students as per the rules
+      const unsubscribeStudents = getStudents((students) => {
+        setAllStudents(students);
+        
+        // Fetch leaves for students assigned to this teacher for the approval tab
+        const assignedStudentIds = students.filter(student => {
             const classSection = `${student.class}-${student.section}`;
             const isClassTeacher = teacher.role === 'classTeacher' && classSection === teacher.classTeacherOf;
             const isSubjectTeacher = teacher.role === 'subjectTeacher' && teacher.classesTaught?.includes(classSection);
             return isClassTeacher || isSubjectTeacher;
-        });
-        setStudents(assignedStudents);
+        }).map(s => s.id);
         
-        if (assignedStudents.length > 0) {
-            const studentIds = assignedStudents.map(s => s.id);
-            const unsubscribeLeaves = getLeaveRequestsForStudents(studentIds, (studentLeaves) => {
-                setLeaves(studentLeaves);
-            });
-            // This nested unsubscribe will be handled by the outer effect's cleanup
+        if (assignedStudentIds.length > 0) {
+            const unsubscribeLeaves = getLeaveRequestsForStudents(assignedStudentIds, setLeaves);
+            return () => unsubscribeLeaves();
         } else {
             setLeaves([]);
         }
@@ -81,10 +81,10 @@ export default function TeacherDashboard() {
         setIsLoading(false);
       });
        return () => unsubscribeStudents();
-    } else if (!currentUser) { // If there's no user, stop loading.
+    } else if (!isLoading && !currentUser) { // If there's no user, stop loading.
         setIsLoading(false);
     }
-  }, [teacher, currentUser]);
+  }, [teacher, currentUser, isLoading]);
 
   const handleResendEmail = async () => {
     if (!currentUser?.email) return;
@@ -131,7 +131,7 @@ export default function TeacherDashboard() {
         )}
 
         <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Your Students" value={isLoading ? '...' : students.length.toString()} icon={Users} />
+            <StatCard title="Total Students" value={isLoading ? '...' : allStudents.length.toString()} icon={Users} />
             <StatCard title="Class Teacher Of" value={teacher?.role === 'classTeacher' ? (teacher.classTeacherOf || 'N/A') : 'N/A'} icon={Users} />
             <StatCard title="Pending Leaves" value={isLoading ? '...' : pendingLeavesCount.toString()} icon={CalendarCheck} />
             <StatCard title="Assignments Due" value="3" icon={ClipboardCheck} />
@@ -160,7 +160,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <TeacherStudentList students={students} isLoading={isLoading} />
+                             <TeacherStudentList students={allStudents} isLoading={isLoading} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -211,7 +211,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <MarkAttendance teacher={teacher} students={students} isLoading={isLoading} />
+                            <MarkAttendance teacher={teacher} students={allStudents} isLoading={isLoading} />
                         </CardContent>
                     </Card>
                 </TabsContent>
