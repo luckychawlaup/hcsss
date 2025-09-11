@@ -51,7 +51,9 @@ const generateTempPassword = () => {
 
 // Function to add a teacher and create their auth account
 export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'authUid' | 'joiningDate'>) => {
-  const adminAuth = getAuth(); // This simulation assumes the principal is an admin
+  // IMPORTANT: This function simulates an admin-level action on the client.
+  // In a real production environment, this should be a secure backend Cloud Function.
+  const adminAuth = getAuth();
   const tempPassword = generateTempPassword();
 
   try {
@@ -60,29 +62,30 @@ export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'auth
     const user = userCredential.user;
     const authUid = user.uid;
 
-    // Step 2: Send verification email
+    // Step 2: Send verification email to the newly created user
     await sendEmailVerification(user);
 
-    // Step 3: Prepare the teacher data for the database
+    // Step 3: Prepare the teacher data for the Realtime Database
     const dbData = {
       ...teacherData,
       authUid: authUid,
       dob: format(teacherData.dob as unknown as Date, "yyyy-MM-dd"),
       joiningDate: Date.now(),
       mustChangePassword: true, // Flag for first-time login
-      tempPassword: tempPassword,
+      tempPassword: tempPassword, // Temporarily store for joining letter
     };
 
-    // Step 4: Save the teacher's profile in the Realtime Database using their UID as the key
+    // Step 4: Save the teacher's profile in the Realtime Database, keyed by their new authUid
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${authUid}`);
     await set(teacherRef, dbData);
 
+    // Return the new ID and temporary password to be displayed to the principal
     return { teacherId: authUid, tempPassword };
 
   } catch (error: any) {
     console.error("Error creating teacher with auth: ", error);
-    // If there's an error, we should ideally clean up (e.g., delete the created auth user)
-    // This part is complex to handle robustly on the client-side.
+    // This is a critical failure. A robust implementation would include cleanup logic,
+    // like deleting the created user if the database write fails.
     throw new Error(`Failed to add teacher: ${error.message}`);
   }
 };
