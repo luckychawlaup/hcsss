@@ -20,15 +20,14 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, UserPlus, KeyRound, Plus, X } from "lucide-react";
+import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, UserPlus, Plus, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
-import { registerTeacher } from "@/lib/firebase/teachers";
+import { addTeacherWithAuth, Teacher } from "@/lib/firebase/teachers";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "../ui/checkbox";
-import { Badge } from "../ui/badge";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -71,8 +70,7 @@ interface AddTeacherFormProps {
 export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
-  const [addedTeacherName, setAddedTeacherName] = useState<string | null>(null);
+  const [addedTeacher, setAddedTeacher] = useState<Teacher | null>(null);
   const [qualificationInput, setQualificationInput] = useState("");
   const { toast } = useToast();
 
@@ -111,20 +109,17 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   async function onSubmit(values: z.infer<typeof addTeacherSchema>) {
     setIsLoading(true);
     setError(null);
-    setGeneratedKey(null);
-    setAddedTeacherName(null);
+    setAddedTeacher(null);
 
     try {
-      const registrationKey = await registerTeacher(values);
-      
-      setGeneratedKey(registrationKey);
-      setAddedTeacherName(values.name);
+      const newTeacher = await addTeacherWithAuth(values);
+      setAddedTeacher(newTeacher);
       toast({
         title: "Teacher Registered Successfully!",
-        description: `${values.name} has been registered. Please provide them with their registration key.`,
+        description: `An account for ${values.name} has been created.`,
       });
       form.reset();
-      // Do not call onTeacherAdded() here to allow principal to copy the key.
+      // onTeacherAdded is called via button click in success message
     } catch (e: any) {
       setError(`An unexpected error occurred: ${e.message}`);
     } finally {
@@ -132,38 +127,36 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     }
   }
 
-  const copyToClipboard = () => {
-    if (generatedKey) {
-      navigator.clipboard.writeText(generatedKey);
+  const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text);
       toast({
         title: "Copied!",
-        description: "Registration Key copied to clipboard.",
+        description: "Credentials copied to clipboard.",
       });
-    }
   };
 
   const handleAddAnother = () => {
-    setGeneratedKey(null);
-    setAddedTeacherName(null);
+    setAddedTeacher(null);
   }
 
-  if (generatedKey && addedTeacherName) {
+  if (addedTeacher) {
+    const credentials = `Email: ${addedTeacher.email}\nTemporary Password: ${addedTeacher.tempPassword}`;
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20">
             <CheckCircle className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-primary">Teacher Registered!</AlertTitle>
+            <AlertTitle className="text-primary">Teacher Registered & Account Created!</AlertTitle>
             <AlertDescription className="space-y-4">
-                <p>A registration record for {addedTeacherName} has been created. Please share the following unique **Registration Key** with them so they can create their account.</p>
+                <p>An account for <strong>{addedTeacher.name}</strong> has been created. Please share the following credentials with them securely. They will be required to change their password upon first login.</p>
                 
                 <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
-                    <p className="font-mono text-lg font-bold text-primary">{generatedKey}</p>
-                    <Button variant="ghost" size="icon" onClick={copyToClipboard}>
+                    <pre className="text-sm font-mono text-primary whitespace-pre-wrap">{credentials}</pre>
+                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(credentials)}>
                         <Copy className="h-5 w-5 text-primary" />
                     </Button>
                 </div>
                 
                 <p className="text-xs text-muted-foreground">
-                    The teacher will need this key, their full name, and their email address to complete the registration on the teacher login page.
+                    A verification link has also been sent to their email address. They must verify their email before they can log in.
                 </p>
 
                  <div className="flex gap-2 pt-2">
@@ -467,7 +460,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
              </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Register Teacher
+            Add Teacher & Generate Credentials
           </Button>
         </form>
       </Form>

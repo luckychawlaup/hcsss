@@ -1,0 +1,302 @@
+
+"use client";
+
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { format } from "date-fns";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { Loader2, CalendarIcon, Upload, BookCheck } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import type { Teacher } from "@/lib/firebase/teachers";
+import { addHomework, getHomeworksByTeacher } from "@/lib/firebase/homework";
+import type { Homework } from "@/lib/firebase/homework";
+
+const homeworkSchema = z.object({
+  classSection: z.string({ required_error: "Please select a class." }),
+  subject: z.string().min(2, "Subject is required."),
+  description: z
+    .string()
+    .min(10, "Description must be at least 10 characters."),
+  dueDate: z.date({ required_error: "Due date is required." }),
+  attachment: z.any().optional(),
+});
+
+interface AddHomeworkFormProps {
+  teacher: Teacher | null;
+}
+
+export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recentHomework, setRecentHomework] = useState<Homework[]>([]);
+  const { toast } = useToast();
+
+  const assignedClasses =
+    teacher?.role === "classTeacher"
+      ? [teacher.classTeacherOf]
+      : teacher?.classesTaught || [];
+
+  const form = useForm<z.infer<typeof homeworkSchema>>({
+    resolver: zodResolver(homeworkSchema),
+    defaultValues: {
+      subject: teacher?.subject || "",
+      description: "",
+    },
+  });
+
+  useEffect(() => {
+    if (teacher) {
+        const unsubscribe = getHomeworksByTeacher(teacher.id, (homeworks) => {
+            setRecentHomework(homeworks);
+        });
+        return () => unsubscribe();
+    }
+  }, [teacher]);
+
+  async function onSubmit(values: z.infer<typeof homeworkSchema>) {
+    if (!teacher) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Not logged in or teacher profile not found.",
+      });
+      return;
+    }
+    setIsSubmitting(true);
+
+    try {
+      const homeworkData: Omit<Homework, "id" | "attachmentUrl"> = {
+        teacherId: teacher.id,
+        teacherName: teacher.name,
+        classSection: values.classSection,
+        subject: values.subject,
+        description: values.description,
+        dueDate: format(values.dueDate, "yyyy-MM-dd"),
+        assignedAt: Date.now(),
+      };
+
+      const file = values.attachment?.[0];
+
+      await addHomework(homeworkData, file);
+
+      toast({
+        title: "Homework Assigned!",
+        description: `Homework for ${values.classSection} has been posted.`,
+      });
+      form.reset({
+        subject: teacher?.subject || "",
+        description: "",
+        classSection: "",
+        attachment: undefined,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "Could not post the homework. Please try again.",
+      });
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="lg:col-span-2">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="classSection"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a class" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {assignedClasses.map((cs) => (
+                          <SelectItem key={cs} value={cs!}>
+                            {cs}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="subject"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Mathematics" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Homework Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Enter all the details for the homework assignment..."
+                      rows={5}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Due Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="attachment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Attachment (Optional)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Upload className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="file"
+                          className="pl-9"
+                          {...form.register("attachment")}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Assigning Homework...
+                </>
+              ) : (
+                "Assign Homework"
+              )}
+            </Button>
+          </form>
+        </Form>
+      </div>
+      <div>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                    <BookCheck />
+                    Recently Assigned
+                </CardTitle>
+                <CardDescription>
+                    Your 5 most recent homework assignments.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {recentHomework.length > 0 ? (
+                    recentHomework.map(hw => (
+                        <div key={hw.id} className="text-sm p-3 bg-secondary/50 rounded-md">
+                            <p className="font-bold">{hw.subject} - {hw.classSection}</p>
+                            <p className="text-muted-foreground truncate">{hw.description}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Due: {hw.dueDate}</p>
+                        </div>
+                    ))
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No homework assigned yet.</p>
+                )}
+            </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

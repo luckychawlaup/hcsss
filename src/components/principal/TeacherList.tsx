@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
-import { Edit, Trash2, Loader2, Info, Printer, FileDown, Plus, X, UserX, KeyRound } from "lucide-react";
+import { Edit, Trash2, Loader2, Info, Printer, FileDown, Plus, X, UserX } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -156,7 +156,7 @@ const handlePrintLetter = (teacherData: Teacher) => {
                             ${teacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${teacherData.classesTaught?.join(', ')}</td></tr>` : ''}
                             <tr><td>Primary Subject</td><td>${teacherData.subject}</td></tr>
                             ${teacherData.qualifications && teacherData.qualifications.length > 0 ? `<tr><td>Qualifications</td><td>${teacherData.qualifications.join(', ')}</td></tr>` : ''}
-                             ${teacherData.tempPassword ? `<tr><td>Temporary Password</td><td><strong>${teacherData.tempPassword}</strong></td></tr>` : ''}
+                            ${teacherData.tempPassword ? `<tr><td>Temporary Password</td><td><strong>${teacherData.tempPassword}</strong></td></tr>` : ''}
                         </table>
 
                         <h4>Portal Login Instructions:</h4>
@@ -165,7 +165,7 @@ const handlePrintLetter = (teacherData: Teacher) => {
                             <li><strong>Step 1: Verify Your Email.</strong> Check your inbox for an email with the subject "Verify your email for Hilton Convent School". Click the link inside this email to verify your account. You must do this before you can log in.</li>
                             <li><strong>Step 2: Log In.</strong> Visit the school's portal and select "I am a Teacher".</li>
                             <li>Use your registered email address (<strong>${teacherData.email}</strong>) and the temporary password provided above to log in.</li>
-                            <li><strong>Step 3: Change Your Password.</strong> Upon your first login, the system will require you to change your password. A password reset link will be automatically sent to your registered email. Please check your inbox and follow the link to set a new, permanent password for your account.</li>
+                            <li><strong>Step 3: Change Your Password.</strong> Upon your first login, you will be required to change your password. A password reset link will be automatically sent to your registered email. Please check your inbox and follow the link to set a new, permanent password for your account.</li>
                         </ul>
                         
                         <p>We look forward to you joining our team.</p>

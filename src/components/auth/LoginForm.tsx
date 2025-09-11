@@ -9,6 +9,7 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -24,8 +25,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getTeacherByAuthId, updateTeacher } from "@/lib/firebase/teachers";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -40,6 +41,7 @@ export default function LoginForm({ role }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
+  const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth(app);
@@ -56,6 +58,7 @@ export default function LoginForm({ role }: LoginFormProps) {
     setIsLoading(true);
     setError(null);
     setNeedsVerification(false);
+    setNeedsPasswordChange(false);
 
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -63,35 +66,52 @@ export default function LoginForm({ role }: LoginFormProps) {
         values.email,
         values.password
       );
-
       const user = userCredential.user;
 
-      if (role === 'principal') {
-        if (user.uid !== 'hvldHzYq4ZbZlc7nym3ICNaEI1u1' || values.email !== 'principal@hcsss.in') {
-            setError("Invalid credentials for principal account.");
-            await auth.signOut();
-            setIsLoading(false);
-            return;
+      if (role === "principal") {
+        if (
+          user.uid !== "hvldHzYq4ZbZlc7nym3ICNaEI1u1" ||
+          values.email !== "principal@hcsss.in"
+        ) {
+          setError("Invalid credentials for principal account.");
+          await auth.signOut();
+          setIsLoading(false);
+          return;
         }
-        router.push('/principal');
+        router.push("/principal");
         router.refresh();
         return;
       }
-      
+
       if (!user.emailVerified) {
         setNeedsVerification(true);
-        setError("Your email is not verified. A new verification link has been sent to your inbox.");
+        setError(
+          "Your email is not verified. A new verification link has been sent to your inbox."
+        );
         await sendEmailVerification(user);
         toast({
           title: "Verification Email Sent",
-          description: "Please check your inbox to verify your email address before logging in.",
+          description:
+            "Please check your inbox to verify your email address before logging in.",
         });
         await auth.signOut();
         setIsLoading(false);
         return;
       }
 
-      if (role === 'teacher') {
+      if (role === "teacher") {
+        const teacherProfile = await getTeacherByAuthId(user.uid);
+        if (teacherProfile?.mustChangePassword) {
+          setNeedsPasswordChange(true);
+          setError(
+            "This is your first login. For security, you must change your temporary password. A password reset link has been sent to your email."
+          );
+          await sendPasswordResetEmail(auth, user.email!);
+          await updateTeacher(user.uid, { mustChangePassword: false, tempPassword: "" });
+          await auth.signOut();
+          setIsLoading(false);
+          return;
+        }
         document.cookie = "teacher-role=true; path=/; max-age=86400";
         router.push("/teacher");
       } else {
@@ -103,16 +123,20 @@ export default function LoginForm({ role }: LoginFormProps) {
         title: "Login Successful",
         description: `Welcome back!`,
       });
-      
-      router.refresh();
 
+      router.refresh();
     } catch (error: any) {
       const errorCode = error.code;
       let errorMessage = "An unknown error occurred.";
-      if (errorCode === "auth/user-not-found" || errorCode === "auth/wrong-password" || errorCode === "auth/invalid-credential") {
+      if (
+        errorCode === "auth/user-not-found" ||
+        errorCode === "auth/wrong-password" ||
+        errorCode === "auth/invalid-credential"
+      ) {
         errorMessage = "Invalid email or password. Please try again.";
       } else if (errorCode === "auth/too-many-requests") {
-        errorMessage = "Too many failed login attempts. Please try again later.";
+        errorMessage =
+          "Too many failed login attempts. Please try again later.";
       }
       setError(errorMessage);
       setIsLoading(false);
@@ -122,8 +146,22 @@ export default function LoginForm({ role }: LoginFormProps) {
   return (
     <>
       {error && (
-        <Alert variant="destructive" className="mb-4">
+        <Alert
+          variant={needsPasswordChange ? "default" : "destructive"}
+          className={
+            needsPasswordChange
+              ? "bg-primary/10 border-primary/20"
+              : ""
+          }
+        >
           <AlertCircle className="h-4 w-4" />
+          <AlertTitle>
+            {needsVerification
+              ? "Email Verification Required"
+              : needsPasswordChange
+              ? "Password Change Required"
+              : "Login Failed"}
+          </AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -138,7 +176,11 @@ export default function LoginForm({ role }: LoginFormProps) {
                 <FormControl>
                   <Input
                     type="email"
-                    placeholder={role === 'principal' ? 'principal@hcsss.in' : `${role}@example.com`}
+                    placeholder={
+                      role === "principal"
+                        ? "principal@hcsss.in"
+                        : `${role}@example.com`
+                    }
                     {...field}
                   />
                 </FormControl>

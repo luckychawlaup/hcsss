@@ -11,7 +11,7 @@ import {
     CardContent
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, ClipboardCheck, CalendarCheck } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import { getAuth, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
@@ -19,6 +19,8 @@ import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
 import { getStudents, Student } from "@/lib/firebase/students";
 import TeacherStudentList from "./TeacherStudentList";
 import ApproveLeaves from "./ApproveLeaves";
+import { AddHomeworkForm } from "./AddHomeworkForm";
+
 
 export default function TeacherDashboard() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -46,11 +48,12 @@ export default function TeacherDashboard() {
     if (teacher) {
       const unsubscribeStudents = getStudents((allStudents) => {
         const assignedStudents = allStudents.filter(student => {
+            const classSection = `${student.class}-${student.section}`;
             if (teacher.role === 'classTeacher') {
-                return `${student.class}-${student.section}` === teacher.classTeacherOf;
+                return classSection === teacher.classTeacherOf;
             }
             if (teacher.role === 'subjectTeacher' && teacher.classesTaught) {
-                return teacher.classesTaught.includes(`${student.class}-${student.section}`);
+                return teacher.classesTaught.includes(classSection);
             }
             return false;
         });
@@ -78,9 +81,10 @@ export default function TeacherDashboard() {
 
         <div className="mx-auto w-full max-w-6xl">
             <Tabs defaultValue="manageStudents">
-                 <TabsList className="grid w-full grid-cols-3 md:w-1/2 lg:w-1/2">
+                 <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="manageStudents">Manage Students</TabsTrigger>
                     <TabsTrigger value="approveLeaves">Approve Leaves</TabsTrigger>
+                    <TabsTrigger value="addHomework">Add Homework</TabsTrigger>
                     <TabsTrigger value="markAttendance">Mark Attendance</TabsTrigger>
                 </TabsList>
                 <TabsContent value="manageStudents">
@@ -111,7 +115,23 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <ApproveLeaves students={students} />
+                            <ApproveLeaves assignedStudents={students} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="addHomework">
+                    <Card className="mt-4">
+                        <CardHeader>
+                             <CardTitle className="flex items-center gap-2">
+                                <BookUp />
+                                Assign Homework
+                            </CardTitle>
+                             <CardDescription>
+                                Create and assign homework to your classes. You can also add attachments.
+                            </CardDescription>
+                        </CardHeader>
+                         <CardContent>
+                            <AddHomeworkForm teacher={teacher} />
                         </CardContent>
                     </Card>
                 </TabsContent>
