@@ -83,7 +83,7 @@ export default function LoginForm({ role }: LoginFormProps) {
         return;
       }
       
-      if (!user.emailVerified) {
+      if (!user.emailVerified && role !== 'principal') {
         setNeedsVerification(true);
         setError(
           "Your email is not verified. A new verification link has been sent to your inbox."
