@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter, usePathname } from "next/navigation";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 import Image from "next/image";
 
 const publicPaths = [
@@ -29,7 +29,7 @@ function Preloader() {
                 <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={100} height={100} />
                 <h1 className="text-2xl font-bold text-primary mt-4">Hilton Convent School</h1>
                 <p className="text-muted-foreground">Loading, please wait...</p>
-                 <Skeleton className="h-2 w-48 mt-4" />
+                 <Loader2 className="h-8 w-8 animate-spin text-primary mt-4" />
             </div>
         </div>
     );
