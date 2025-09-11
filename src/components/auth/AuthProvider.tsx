@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -31,6 +32,17 @@ function Preloader() {
     );
 }
 
+const getRoleFromCookie = () => {
+    if (typeof document === 'undefined') return null;
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'principal-role' && value === 'true') return 'principal';
+        if (name === 'teacher-role' && value === 'true') return 'teacher';
+    }
+    return 'student'; // Default to student if no specific role cookie is found
+}
+
 
 export default function AuthProvider({
   children,
@@ -40,7 +52,7 @@ export default function AuthProvider({
   const auth = getAuth(app);
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | "principal" | null>(null);
   const [loading, setLoading] = useState(true);
 
   const isPublicPath = publicPaths.includes(pathname);
@@ -48,17 +60,21 @@ export default function AuthProvider({
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setLoading(true);
-      // Check for hardcoded principal login first
-      const isPrincipal = document.cookie.includes("principal-role=true");
-      if (isPrincipal) {
-        setUser({} as User); // Set a dummy user object for principal
-        setLoading(false);
-        return;
-      }
+      const principalCookie = document.cookie.includes("principal-role=true");
 
-      if (user) {
+      if (principalCookie) {
+        setUser("principal");
+        if(isPublicPath){
+            router.push("/principal");
+        }
+      } else if (user) {
         if (user.emailVerified) {
           setUser(user);
+           if (isPublicPath) {
+             const role = getRoleFromCookie();
+             if (role === 'teacher') router.push('/teacher');
+             else router.push('/');
+           }
         } else {
           signOut(auth);
           setUser(null);
@@ -81,21 +97,18 @@ export default function AuthProvider({
   if (loading) {
     return <Preloader />;
   }
-
+  
   if (!user && !isPublicPath) {
-     // Redirect is handled in the effect, this is a fallback.
     return <Preloader />;
   }
-  
+
   if (user && isPublicPath) {
-    const isPrincipal = document.cookie.includes("principal-role=true");
-    const isTeacher = document.cookie.includes("teacher-role=true");
-    if(isPrincipal) router.push('/principal');
-    else if(isTeacher) router.push('/teacher');
+    const role = getRoleFromCookie();
+    if(user === "principal" || role === 'principal') router.push('/principal');
+    else if(role === 'teacher') router.push('/teacher');
     else router.push('/');
     return <Preloader />;
   }
-
 
   return <>{children}</>;
 }

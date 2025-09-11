@@ -1,10 +1,11 @@
+
 "use client";
 
 import Link from "next/link";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Bell, User } from "lucide-react";
+import { Bell, User, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +14,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { getAuth, signOut } from "firebase/auth";
+import { app } from "@/lib/firebase";
 
 
 interface HeaderProps {
@@ -23,10 +26,24 @@ interface HeaderProps {
 
 export default function Header({ title, showAvatar = true }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = getAuth(app);
   const isTeacher = pathname.startsWith('/teacher');
+  const isPrincipal = pathname.startsWith('/principal');
 
   // Determine notification link based on role
   const noticesLink = isTeacher ? "/teacher/announcements" : "/notices";
+
+  const handleLogout = async () => {
+    if(isPrincipal) {
+        document.cookie = "principal-role=; path=/; max-age=-1";
+    } else {
+        await signOut(auth);
+        document.cookie = "teacher-role=; path=/; max-age=-1";
+    }
+    router.push("/login");
+    router.refresh();
+  }
 
 
   return (
@@ -38,12 +55,14 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
         </h1>
       </Link>
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="rounded-full" asChild>
-          <Link href={noticesLink}>
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notifications</span>
-          </Link>
-        </Button>
+        {!isPrincipal && (
+          <Button variant="ghost" size="icon" className="rounded-full" asChild>
+            <Link href={noticesLink}>
+              <Bell className="h-5 w-5" />
+              <span className="sr-only">Notifications</span>
+            </Link>
+          </Button>
+        )}
         {showAvatar && (
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -67,8 +86,18 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
                     <span>Profile</span>
                 </DropdownMenuItem>
                 </Link>
+                 <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                </DropdownMenuItem>
             </DropdownMenuContent>
             </DropdownMenu>
+        )}
+        {isPrincipal && (
+            <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+            </Button>
         )}
       </div>
     </header>
