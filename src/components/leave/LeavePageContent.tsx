@@ -128,14 +128,18 @@ export default function LeavePageContent() {
         toast({ variant: 'destructive', title: "Error", description: "You must be logged in to apply for leave."});
         return;
     }
+    
+    let dateString = format(values.dateRange.from, "yyyy-MM-dd");
+    if (values.dateRange.to) {
+        dateString += ` to ${format(values.dateRange.to, "yyyy-MM-dd")}`;
+    }
 
     const newLeave: Omit<LeaveRequest, 'id'> = {
         userId: currentStudent.id,
         userName: currentStudent.name,
         class: `${currentStudent.class}-${currentStudent.section}`,
         userRole: "Student",
-        dateFrom: format(values.dateRange.from, "yyyy-MM-dd"),
-        dateTo: values.dateRange.to ? format(values.dateRange.to, "yyyy-MM-dd") : undefined,
+        date: dateString,
         reason: values.reason,
         status: "Pending",
         appliedAt: Date.now(),
@@ -283,10 +287,7 @@ export default function LeavePageContent() {
                 className="flex items-start justify-between rounded-lg border p-4"
               >
                 <div className="flex-1 space-y-1">
-                  <p className="font-semibold text-sm">
-                    {format(new Date(leave.dateFrom), "MMM dd, yyyy")}
-                    {leave.dateTo && ` - ${format(new Date(leave.dateTo), "MMM dd, yyyy")}`}
-                  </p>
+                  <p className="font-semibold text-sm">{leave.date}</p>
                   <p className="text-muted-foreground text-sm">{leave.reason}</p>
                 </div>
                 <Badge variant={getStatusVariant(leave.status)}>{leave.status}</Badge>
@@ -302,3 +303,5 @@ export default function LeavePageContent() {
     </div>
   );
 }
+
+    

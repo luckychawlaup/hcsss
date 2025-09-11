@@ -14,6 +14,7 @@ import {
   orderByChild,
   equalTo,
   limitToLast,
+  set,
 } from "firebase/database";
 
 const HOMEWORK_COLLECTION = "homework";
@@ -21,7 +22,7 @@ const storage = getStorage();
 
 export interface Homework {
   id: string;
-  teacherId: string;
+  assignedBy: string; // auth uid of the teacher
   teacherName: string;
   classSection: string; // e.g., "10-A"
   subject: string;
@@ -38,20 +39,23 @@ export const addHomework = async (
 ) => {
   const homeworkRef = dbRef(db, HOMEWORK_COLLECTION);
   const newHomeworkRef = push(homeworkRef);
+  const newHomeworkId = newHomeworkRef.key;
 
   let finalHomeworkData: Omit<Homework, "id"> = { ...homeworkData };
 
-  if (attachment) {
+  if (attachment && newHomeworkId) {
     const fileRef = storageRef(
       storage,
-      `homework/${newHomeworkRef.key}/${attachment.name}`
+      `homework/${newHomeworkId}/${attachment.name}`
     );
     await uploadBytes(fileRef, attachment);
     const downloadURL = await getDownloadURL(fileRef);
     finalHomeworkData.attachmentUrl = downloadURL;
   }
+  
+  if (!newHomeworkId) throw new Error("Failed to generate homework ID.");
 
-  await push(homeworkRef, finalHomeworkData);
+  await set(dbRef(db, `${HOMEWORK_COLLECTION}/${newHomeworkId}`), finalHomeworkData);
 };
 
 // Get all homework for a specific classSection with real-time updates
@@ -87,7 +91,7 @@ export const getHomeworksByTeacher = (
     const homeworkRef = dbRef(db, HOMEWORK_COLLECTION);
     const homeworkQuery = query(
         homeworkRef,
-        orderByChild('teacherId'),
+        orderByChild('assignedBy'),
         equalTo(teacherId)
     );
 
@@ -107,3 +111,5 @@ export const getHomeworksByTeacher = (
     });
     return unsubscribe;
 }
+
+    

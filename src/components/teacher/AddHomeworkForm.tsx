@@ -110,8 +110,8 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     setIsSubmitting(true);
 
     try {
-      const homeworkData: Omit<Homework, "id" | "attachmentUrl"> = {
-        teacherId: teacher.id,
+      const homeworkData = {
+        assignedBy: teacher.id,
         teacherName: teacher.name,
         classSection: values.classSection,
         subject: values.subject,
@@ -321,3 +321,5 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     </div>
   );
 }
+
+    

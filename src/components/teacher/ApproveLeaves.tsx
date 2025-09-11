@@ -58,10 +58,7 @@ const LeaveCard = ({
       </div>
     </CardHeader>
     <CardContent>
-      <p className="font-semibold text-sm">
-        {format(new Date(leave.dateFrom), "MMM dd, yyyy")}
-        {leave.dateTo && ` - ${format(new Date(leave.dateTo), "MMM dd, yyyy")}`}
-      </p>
+      <p className="font-semibold text-sm">{leave.date}</p>
       <p className="text-muted-foreground mt-2">{leave.reason}</p>
     </CardContent>
     {leave.status === "Pending" && (
@@ -139,3 +136,5 @@ export default function ApproveLeaves({
     </div>
   );
 }
+
+    

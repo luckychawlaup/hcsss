@@ -18,11 +18,11 @@ export interface LeaveRequest {
   userName: string;
   userRole: "Student" | "Teacher";
   class?: string; // For students
-  dateFrom: string;
-  dateTo?: string;
+  date: string;
   reason: string;
   status: "Confirmed" | "Pending" | "Rejected";
   appliedAt: number;
+  teacherId?: string;
 }
 
 // Add a new leave request
@@ -109,3 +109,5 @@ export const updateLeaveStatus = async (
   const leaveRef = ref(db, `${LEAVES_COLLECTION}/${leaveId}`);
   await update(leaveRef, { status });
 };
+
+    
