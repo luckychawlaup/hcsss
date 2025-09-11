@@ -35,12 +35,14 @@ function Preloader() {
     );
 }
 
-const getRoleFromCookie = () => {
-    if (typeof document === 'undefined') return 'student'; // Default to student on server
+const getRoleFromCookie = (): 'teacher' | 'student' => {
+    if (typeof document === 'undefined') return 'student'; // Default for SSR
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
         const [name, value] = cookie.trim().split('=');
-        if (name === 'teacher-role' && value === 'true') return 'teacher';
+        if (name === 'teacher-role' && value === 'true') {
+            return 'teacher';
+        }
     }
     return 'student'; // Default to student
 }
@@ -67,6 +69,7 @@ export default function AuthProvider({
         const role = getRoleFromCookie();
         
         if (isPublicPath) {
+            // If on a public page (like login) but already authenticated, redirect
             if (isPrincipal) {
                 router.replace('/principal');
             } else if (role === 'teacher') {
@@ -74,26 +77,27 @@ export default function AuthProvider({
             } else {
                 router.replace('/');
             }
-        } else if (isPrincipal) {
-            if (!pathname.startsWith('/principal')) {
-                router.replace('/principal');
-            } else {
-                setLoading(false);
-            }
-        } else if (role === 'teacher') {
-            if (!pathname.startsWith('/teacher')) {
-                router.replace('/teacher');
-            } else {
-                setLoading(false);
-            }
-        } else if (role === 'student') {
-            if (pathname.startsWith('/teacher') || pathname.startsWith('/principal')) {
-                router.replace('/');
-            } else {
-                setLoading(false);
-            }
         } else {
-            setLoading(false);
+            // If on a protected page, enforce role-based access
+            if (isPrincipal) {
+                if (!pathname.startsWith('/principal')) {
+                    router.replace('/principal');
+                } else {
+                    setLoading(false);
+                }
+            } else if (role === 'teacher') {
+                if (!pathname.startsWith('/teacher')) {
+                    router.replace('/teacher');
+                } else {
+                    setLoading(false);
+                }
+            } else { // Assumed student
+                if (pathname.startsWith('/teacher') || pathname.startsWith('/principal')) {
+                    router.replace('/');
+                } else {
+                    setLoading(false);
+                }
+            }
         }
       } else {
         setUser(null);

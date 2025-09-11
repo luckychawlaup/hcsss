@@ -17,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
-import { getAuth } from "firebase/auth";
 import type { Teacher } from "@/lib/firebase/teachers";
 import type { Student } from "@/lib/firebase/students";
 import { getStudents, deleteStudent, updateStudent } from "@/lib/firebase/students";
@@ -26,38 +25,10 @@ import { StudentList } from "./StudentList";
 import ApproveLeaves from "../teacher/ApproveLeaves";
 
 
-export default function PrincipalDashboard() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
+export default function PrincipalDashboard({ allStudents, allTeachers }: { allStudents: Student[], allTeachers: Teacher[]}) {
   const [manageTeachersTab, setManageTeachersTab] = useState("addTeacher");
   const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
   const [activeTab, setActiveTab] = useState("manageTeachers");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
-  const auth = getAuth();
-  const isPrincipal = auth.currentUser?.uid === "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
-
-  useEffect(() => {
-    if (isPrincipal) {
-        const unsubscribeTeachers = getTeachers((teachers) => {
-          setTeachers(teachers);
-          setIsLoading(false);
-        });
-
-        const unsubscribeStudents = getStudents((students) => {
-            setStudents(students);
-            setIsLoadingStudents(false);
-        });
-
-        return () => {
-            unsubscribeTeachers();
-            unsubscribeStudents();
-        };
-    } else {
-        setIsLoading(false);
-        setIsLoadingStudents(false);
-    }
-  }, [isPrincipal]);
 
   const handleTeacherAdded = () => {
     setManageTeachersTab("viewTeachers");
@@ -90,8 +61,8 @@ export default function PrincipalDashboard() {
       <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
         
         <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Students" value={students.length.toString()} icon={GraduationCap} />
-          <StatCard title="Total Teachers" value={teachers.length.toString()} icon={Users} />
+          <StatCard title="Total Students" value={allStudents.length.toString()} icon={GraduationCap} />
+          <StatCard title="Total Teachers" value={allTeachers.length.toString()} icon={Users} />
           <StatCard title="New Admissions" value="45" icon={UserPlus} />
           <StatCard title="Pending Leaves" value="8" icon={CalendarCheck} />
         </div>
@@ -129,7 +100,7 @@ export default function PrincipalDashboard() {
                                         Register New Teacher
                                     </CardTitle>
                                     <CardDescription>
-                                        Fill out the form below to register a new teacher. A unique registration key will be generated for them to create their account.
+                                       Fill out the form below to register a new teacher. A unique registration key will be generated for them to create their account.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="px-1">
@@ -148,8 +119,8 @@ export default function PrincipalDashboard() {
                                 </CardHeader>
                                 <CardContent className="px-1">
                                     <TeacherList 
-                                        teachers={teachers} 
-                                        isLoading={isLoading}
+                                        teachers={allTeachers} 
+                                        isLoading={false}
                                         onUpdateTeacher={handleTeacherUpdated}
                                         onDeleteTeacher={handleTeacherDeleted}
                                     />
@@ -203,8 +174,8 @@ export default function PrincipalDashboard() {
                             </CardHeader>
                             <CardContent className="px-1">
                                <StudentList
-                                    students={students}
-                                    isLoading={isLoadingStudents}
+                                    students={allStudents}
+                                    isLoading={false}
                                     onUpdateStudent={handleStudentUpdated}
                                     onDeleteStudent={handleStudentDeleted}
                                 />
@@ -227,7 +198,7 @@ export default function PrincipalDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ApproveLeaves allStudents={students} allTeachers={teachers} isPrincipalView={true} />
+                  <ApproveLeaves allStudents={allStudents} allTeachers={allTeachers} isPrincipalView={true} />
                 </CardContent>
               </Card>
             </TabsContent>

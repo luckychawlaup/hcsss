@@ -107,12 +107,12 @@ export default function LoginForm({ role }: LoginFormProps) {
             "This is your first login. For security, you must change your temporary password. A password reset link has been sent to your email."
           );
           await sendPasswordResetEmail(auth, user.email!);
-          await updateTeacher(user.uid, { mustChangePassword: false, tempPassword: "" });
+          await updateTeacher(teacherProfile.id, { mustChangePassword: false, tempPassword: "" });
           await auth.signOut();
           setIsLoading(false);
           return;
         }
-        document.cookie = "teacher-role=true; path=/; max-age=86400";
+        document.cookie = "teacher-role=true; path=/; max-age=86400"; // Set cookie for 1 day
         router.push("/teacher");
       } else {
         document.cookie = "teacher-role=; path=/; max-age=-1"; // Clear teacher cookie for student

@@ -12,14 +12,14 @@ import {
   get,
   update,
   remove,
-  query,
-  equalTo,
-  orderByChild,
+  push,
 } from "firebase/database";
 import type { DataSnapshot } from "firebase/database";
 import { format } from "date-fns";
 
 const TEACHERS_COLLECTION = "teachers";
+const REGISTRATIONS_COLLECTION = "registrations";
+
 
 export interface Teacher {
   id: string; // This will be the auth UID
@@ -49,51 +49,63 @@ export interface Teacher {
 
 export type TeacherRegistrationData = Omit<
   Teacher,
-  "id" | "authUid" | "joiningDate"
->;
+  "id" | "authUid" | "joiningDate" | "dob"
+> & {
+    dob: Date;
+};
 
-// Principal action: Register teacher details, create auth user, and generate temp password
-export const addTeacherWithAuth = async (
+// Principal action: Creates a registration entry with a key.
+export const registerTeacherDetails = async (
   teacherData: TeacherRegistrationData
 ) => {
-  const auth = getFirebaseAuth();
-  const tempPassword = Math.random().toString(36).slice(-8);
+  const registrationKey = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const registrationRef = ref(db, `${REGISTRATIONS_COLLECTION}/${registrationKey}`);
+  
+  await set(registrationRef, {
+    ...teacherData,
+    dob: format(teacherData.dob, "yyyy-MM-dd"),
+    registrationKey: registrationKey,
+  });
 
-  try {
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      teacherData.email,
-      tempPassword
-    );
-    const user = userCredential.user;
-
-    await sendEmailVerification(user);
-
-    const finalTeacherData: Omit<Teacher, "id"> = {
-      ...teacherData,
-      dob: format(teacherData.dob as unknown as Date, "yyyy-MM-dd"),
-      joiningDate: Date.now(),
-      authUid: user.uid,
-      tempPassword: tempPassword,
-      mustChangePassword: true,
-    };
-
-    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${user.uid}`);
-    await set(teacherRef, finalTeacherData);
-
-    return {
-      ...finalTeacherData,
-      id: user.uid,
-    };
-  } catch (error: any) {
-    // Handle specific auth errors if needed
-    console.error("Error creating teacher auth user:", error);
-    if (error.code === 'auth/email-already-in-use') {
-        throw new Error("This email is already registered. Please use a different email.");
-    }
-    throw new Error("Failed to create teacher account.");
-  }
+  return { registrationKey, email: teacherData.email };
 };
+
+// Teacher action: Verify details and claim account
+export const verifyAndClaimTeacherAccount = async (data: {
+    authUid: string;
+    email: string;
+    name: string;
+    registrationKey: string;
+}) => {
+    const regRef = ref(db, `${REGISTRATIONS_COLLECTION}/${data.registrationKey}`);
+    const snapshot = await get(regRef);
+
+    if (!snapshot.exists()) {
+        return { success: false, message: "Invalid Registration Key." };
+    }
+
+    const regData = snapshot.val();
+    if (regData.email.toLowerCase() !== data.email.toLowerCase()) {
+        return { success: false, message: "Email does not match the registered details." };
+    }
+    if (regData.name.toLowerCase() !== data.name.toLowerCase()) {
+        return { success: false, message: "Name does not match the registered details." };
+    }
+
+    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${data.authUid}`);
+    const finalTeacherData: Omit<Teacher, 'id' | 'registrationKey'> = {
+        ...regData,
+        joiningDate: Date.now(),
+        authUid: data.authUid,
+    };
+    delete finalTeacherData.registrationKey; // remove key from final object
+
+    await set(teacherRef, finalTeacherData); // Create teacher record
+    await remove(regRef); // Delete registration entry
+
+    return { success: true, message: "Account claimed successfully."};
+}
+
 
 // Get all teachers with real-time updates
 export const getTeachers = (callback: (teachers: Teacher[]) => void) => {
@@ -143,7 +155,6 @@ export const updateTeacher = async (
 ) => {
   try {
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
-    // Ensure tempPassword is removed if it's an empty string
     if (updatedData.tempPassword === "") {
         delete updatedData.tempPassword;
     }
@@ -157,8 +168,6 @@ export const updateTeacher = async (
 // Delete a teacher from DB. Auth user deletion would need a backend function.
 export const deleteTeacher = async (teacherId: string) => {
   try {
-    // Note: This only deletes the DB record, not the Firebase Auth user.
-    // A cloud function would be needed to delete the auth user.
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
     await remove(teacherRef);
   } catch (e) {

@@ -93,100 +93,12 @@ interface TeacherListProps {
 const handlePrintLetter = (teacherData: Teacher) => {
     if (!teacherData) return;
     
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        alert("Please allow pop-ups to print the joining letter.");
-        return;
-    }
-
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Joining Letter - ${teacherData.name}</title>
-                 <style>
-                    body { font-family: 'Poppins', sans-serif; line-height: 1.5; color: #333; margin: 20px; font-size: 11px; }
-                    .container { max-width: 100%; margin: auto; border: 1px solid #eee; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
-                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 10px; margin-bottom: 15px; }
-                    .header img { width: 60px; height: 60px; margin-right: 15px; }
-                    .header h1 { font-size: 20px; color: #4285F4; margin: 0; }
-                    .header p { margin: 0; font-size: 11px; }
-                    .content { font-size: 11px; }
-                    .content h3 { font-size: 15px; margin-top: 15px; }
-                    .content p, .content ul, .content h4 { margin: 8px 0; }
-                    .content ul { padding-left: 20px; }
-                    .footer { text-align: right; margin-top: 25px; font-style: italic; }
-                    .signature-area { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 5px; width: 180px; text-align: center; }
-                    .disclaimer { font-size: 9px; color: #777; margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 8px; }
-                    .details { border-collapse: collapse; width: 100%; margin: 15px 0; }
-                    .details td { padding: 5px; border: 1px solid #ddd; font-size: 11px; }
-                    .details td:first-child { font-weight: bold; width: 30%; background-color: #f9f9f9; }
-                    @media print {
-                        body { background-color: #fff; margin: 0; padding:0; -webkit-print-color-adjust: exact; }
-                        .container { border: none; box-shadow: none; padding: 0; }
-                    }
-                </style>
-                 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <img src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="School Logo" />
-                        <div>
-                            <h1>Hilton Convent School</h1>
-                            <p>Joya Road, Amroha, 244221, Uttar Pradesh</p>
-                        </div>
-                    </div>
-                    <div class="content">
-                        <p style="text-align: right;"><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
-                        
-                        <h3>Subject: Appointment Letter</h3>
-                        
-                        <p>Dear ${teacherData.name},</p>
-                        
-                        <p>We are pleased to offer you the position at Hilton Convent School. We were impressed with your qualifications and experience and believe you will be a valuable asset to our team.</p>
-                        
-                        <p>Your joining date is officially recorded as <strong>${new Date(teacherData.joiningDate).toLocaleDateString('en-GB')}</strong>. Please find your details below:</p>
-                        
-                        <table class="details">
-                            <tr><td>Teacher ID (Auth UID)</td><td>${teacherData.id}</td></tr>
-                            <tr><td>Full Name</td><td>${teacherData.name}</td></tr>
-                             <tr><td>Email Address</td><td>${teacherData.email}</td></tr>
-                            <tr><td>Role</td><td>${teacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
-                            ${teacherData.role === 'classTeacher' ? `<tr><td>Assigned Class</td><td>${teacherData.classTeacherOf}</td></tr>` : ''}
-                            ${teacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${teacherData.classesTaught?.join(', ')}</td></tr>` : ''}
-                            <tr><td>Primary Subject</td><td>${teacherData.subject}</td></tr>
-                            ${teacherData.qualifications && teacherData.qualifications.length > 0 ? `<tr><td>Qualifications</td><td>${teacherData.qualifications.join(', ')}</td></tr>` : ''}
-                            ${teacherData.tempPassword ? `<tr><td>Temporary Password</td><td><strong>${teacherData.tempPassword}</strong></td></tr>` : ''}
-                        </table>
-
-                        <h4>Portal Login Instructions:</h4>
-                        <p>To access the teacher's dashboard, please follow these steps:</p>
-                        <ul>
-                            <li><strong>Step 1: Verify Your Email.</strong> Check your inbox for an email with the subject "Verify your email for Hilton Convent School". Click the link inside this email to verify your account. You must do this before you can log in.</li>
-                            <li><strong>Step 2: Log In.</strong> Visit the school's portal and select "I am a Teacher".</li>
-                            <li>Use your registered email address (<strong>${teacherData.email}</strong>) and the temporary password provided above to log in.</li>
-                            <li><strong>Step 3: Change Your Password.</strong> Upon your first login, you will be required to change your password. A password reset link will be automatically sent to your registered email. Please check your inbox and follow the link to set a new, permanent password for your account.</li>
-                        </ul>
-                        
-                        <p>We look forward to you joining our team.</p>
-                        
-                        <div class="footer">
-                             <div class="signature-area">Principal's Signature & Stamp</div>
-                        </div>
-                    </div>
-                     <div class="disclaimer">
-                        <strong>Note:</strong> This joining letter requires the signature of the principal and the official stamp of the school after printing to be considered valid.
-                    </div>
-                </div>
-            </body>
-        </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-        printWindow.print();
-    }, 500);
-  }
+    // This is a placeholder function as direct auth manipulation is not possible on client
+    // A real implementation would call a backend function to generate a temporary password
+    // and then construct the letter.
+    console.log("Printing Joining Letter for:", teacherData);
+    alert("Printing functionality would require a secure backend to handle password generation. This is a UI placeholder.");
+}
 
 export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeacher }: TeacherListProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -369,14 +281,6 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                     {teacher.joiningDate ? formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy') : 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher)}>
-                                <Printer className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                         <TooltipContent>Print Joining Letter</TooltipContent>
-                    </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
                              <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
