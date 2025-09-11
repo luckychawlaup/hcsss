@@ -24,6 +24,8 @@ import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy } from "lucide-re
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import type { Teacher } from "./PrincipalDashboard";
+import { addTeacher } from "@/lib/firebase/teachers";
+
 
 const addTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -38,7 +40,7 @@ const addTeacherSchema = z.object({
 });
 
 interface AddTeacherFormProps {
-    onTeacherAdded: (teacher: Teacher) => void;
+    onTeacherAdded: () => void;
 }
 
 export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
@@ -73,28 +75,21 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     setGeneratedId(null);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
       const teacherId = generateTeacherId();
       
-      const teachers: Teacher[] = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const newTeacherData: Teacher = {
-        id: teacherId,
+      const newTeacherData: Omit<Teacher, 'id'> = {
         ...values,
         dob: format(values.dob, "yyyy-MM-dd"), // Store DOB in a consistent format
       };
-      
-      teachers.push(newTeacherData);
-      localStorage.setItem("teachers", JSON.stringify(teachers));
 
-      console.log("New Teacher Data:", newTeacherData);
+      await addTeacher(teacherId, newTeacherData);
       
       setGeneratedId(teacherId);
       toast({
         title: "Teacher Added Successfully!",
         description: `${values.name} has been added to the system.`,
       });
-      onTeacherAdded(newTeacherData); // Notify parent component
+      onTeacherAdded();
       form.reset();
     } catch (e: any) {
       setError("An unexpected error occurred. Please try again.");

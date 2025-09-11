@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import type { Teacher } from "./PrincipalDashboard";
 import {
   Table,
@@ -10,13 +11,142 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
+import { Skeleton } from "../ui/skeleton";
+import { Edit, Trash2, Loader2 } from "lucide-react";
+import { AddTeacherForm } from "./AddTeacherForm";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { format } from "date-fns";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
+import { Input } from "../ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Calendar } from "../ui/calendar";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+import { Textarea } from "../ui/textarea";
+
+const editTeacherSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  dob: z.date({ required_error: "Date of birth is required." }),
+  fatherName: z.string().min(2, "Father's name is required."),
+  motherName: z.string().min(2, "Mother's name is required."),
+  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
+  address: z.string().min(10, "Address is too short."),
+  subject: z.string().min(2, "Subject is required."),
+  classTaught: z.string().min(1, "Class taught is required."),
+  classTeacherOf: z.string().optional(),
+});
 
 interface TeacherListProps {
   teachers: Teacher[];
+  isLoading: boolean;
+  onUpdateTeacher: (id: string, data: Partial<Teacher>) => void;
+  onDeleteTeacher: (id: string) => void;
 }
 
-export function TeacherList({ teachers }: TeacherListProps) {
+export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeacher }: TeacherListProps) {
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const form = useForm<z.infer<typeof editTeacherSchema>>({
+    resolver: zodResolver(editTeacherSchema),
+  });
+
+  const { formState: { isSubmitting: isUpdating }, reset } = form;
+
+  const handleDeleteClick = (teacher: Teacher) => {
+    setSelectedTeacher(teacher);
+    setIsAlertOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (selectedTeacher) {
+      setIsDeleting(true);
+      await onDeleteTeacher(selectedTeacher.id);
+      setIsDeleting(false);
+      setIsAlertOpen(false);
+      setSelectedTeacher(null);
+    }
+  };
+
+  const handleEditClick = (teacher: Teacher) => {
+    setSelectedTeacher(teacher);
+    reset({
+        ...teacher,
+        dob: new Date(teacher.dob)
+    });
+    setIsEditOpen(true);
+  };
+
+  async function onEditSubmit(values: z.infer<typeof editTeacherSchema>) {
+    if(selectedTeacher) {
+        const updatedData = {
+            ...values,
+            dob: format(values.dob, "yyyy-MM-dd"),
+        };
+        await onUpdateTeacher(selectedTeacher.id, updatedData);
+        setIsEditOpen(false);
+        setSelectedTeacher(null);
+    }
+  }
+
+
+  if (isLoading) {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Teacher ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Subject</TableHead>
+              <TableHead>Class Teacher</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...Array(5)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-12 rounded-full" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                <TableCell className="text-right flex justify-end gap-2">
+                  <Skeleton className="h-8 w-8" />
+                  <Skeleton className="h-8 w-8" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
   if (teachers.length === 0) {
     return (
       <div className="flex items-center justify-center rounded-md border border-dashed p-8">
@@ -26,35 +156,234 @@ export function TeacherList({ teachers }: TeacherListProps) {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Teacher ID</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Subject</TableHead>
-            <TableHead>Class Teacher</TableHead>
-            <TableHead>Phone</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {teachers.map((teacher) => (
-            <TableRow key={teacher.id}>
-              <TableCell className="font-mono">{teacher.id}</TableCell>
-              <TableCell className="font-medium">{teacher.name}</TableCell>
-              <TableCell>{teacher.subject}</TableCell>
-              <TableCell>
-                {teacher.classTeacherOf ? (
-                  <Badge variant="secondary">{teacher.classTeacherOf}</Badge>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </TableCell>
-              <TableCell>{teacher.phoneNumber}</TableCell>
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Teacher ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Subject</TableHead>
+              <TableHead>Class Teacher</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {teachers.map((teacher) => (
+              <TableRow key={teacher.id}>
+                <TableCell className="font-mono">{teacher.id}</TableCell>
+                <TableCell className="font-medium">{teacher.name}</TableCell>
+                <TableCell>{teacher.subject}</TableCell>
+                <TableCell>
+                  {teacher.classTeacherOf ? (
+                    <Badge variant="secondary">{teacher.classTeacherOf}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+                <TableCell>{teacher.phoneNumber}</TableCell>
+                <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(teacher)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the teacher's record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+                <DialogTitle>Edit Teacher Details</DialogTitle>
+            </DialogHeader>
+            {selectedTeacher && (
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Full Name</FormLabel>
+                                    <FormControl>
+                                    <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="dob"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Date of Birth</FormLabel>
+                                    <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {field.value ? (
+                                            format(field.value, "PPP")
+                                            ) : (
+                                            <span>Pick a date</span>
+                                            )}
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        disabled={(date) =>
+                                            date > new Date() || date < new Date("1950-01-01")
+                                        }
+                                        initialFocus
+                                        />
+                                    </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="fatherName"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Father's Name</FormLabel>
+                                    <FormControl>
+                                    <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="motherName"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Mother's Name</FormLabel>
+                                    <FormControl>
+                                    <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="phoneNumber"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Phone Number</FormLabel>
+                                    <FormControl>
+                                    <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Address</FormLabel>
+                                    <FormControl>
+                                    <Textarea {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="subject"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Primary Subject Taught</FormLabel>
+                                    <FormControl>
+                                    <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="classTaught"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Classes Taught</FormLabel>
+                                    <FormControl>
+                                    <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="classTeacherOf"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Class Teacher of (Optional)</FormLabel>
+                                    <FormControl>
+                                    <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                        <DialogFooter className="pt-4">
+                            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdating}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isUpdating}>
+                                {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save Changes
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

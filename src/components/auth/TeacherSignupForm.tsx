@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getTeacherById } from "@/lib/firebase/teachers";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -67,9 +68,8 @@ export default function TeacherSignupForm() {
 
     try {
       // --- Verification Step ---
-      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const teacherRecord = teachers.find((t: any) => t.id === values.teacherId);
-
+      const teacherRecord = await getTeacherById(values.teacherId);
+      
       if (!teacherRecord) {
         setError("Invalid Teacher ID. Please check the ID provided by the principal.");
         setIsLoading(false);
@@ -108,7 +108,7 @@ export default function TeacherSignupForm() {
 
     } catch (error: any) {
         const errorCode = error.code;
-        let errorMessage = "An unknown error occurred.";
+        let errorMessage = "An unknown error occurred. Please try again.";
         if (errorCode === 'auth/email-already-in-use') {
             errorMessage = "This email is already registered. Please try logging in.";
         }

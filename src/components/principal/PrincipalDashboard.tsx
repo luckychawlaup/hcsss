@@ -15,9 +15,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Users, GraduationCap, Eye } from "lucide-react";
 import { StatCard } from "./StatCard";
+import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
+import type { DocumentData } from "firebase/firestore";
 
 // Define the Teacher type, you can expand this as needed
-export interface Teacher {
+export interface Teacher extends DocumentData {
   id: string;
   name: string;
   dob: string;
@@ -34,19 +36,30 @@ export interface Teacher {
 export default function PrincipalDashboard() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [activeTab, setActiveTab] = useState("addTeacher");
+   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Load teachers from localStorage when the component mounts
-    const storedTeachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-    setTeachers(storedTeachers);
+   useEffect(() => {
+    const unsubscribe = getTeachers((teachers) => {
+      setTeachers(teachers as Teacher[]);
+      setIsLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
-  const handleTeacherAdded = (newTeacher: Teacher) => {
-    const updatedTeachers = [...teachers, newTeacher];
-    setTeachers(updatedTeachers);
+  const handleTeacherAdded = () => {
     // Switch to the view teachers tab after adding a new one
     setActiveTab("viewTeachers");
   };
+
+  const handleTeacherUpdated = async (teacherId: string, updatedData: Partial<Teacher>) => {
+    await updateTeacher(teacherId, updatedData);
+  }
+
+  const handleTeacherDeleted = async (teacherId: string) => {
+    await deleteTeacher(teacherId);
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -95,7 +108,12 @@ export default function PrincipalDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <TeacherList teachers={teachers} />
+                           <TeacherList 
+                             teachers={teachers} 
+                             isLoading={isLoading}
+                             onUpdateTeacher={handleTeacherUpdated}
+                             onDeleteTeacher={handleTeacherDeleted}
+                           />
                         </CardContent>
                     </Card>
                 </TabsContent>
