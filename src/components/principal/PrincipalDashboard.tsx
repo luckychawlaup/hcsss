@@ -25,13 +25,13 @@ import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
 
-export default function PrincipalDashboard({ allStudents: initialStudents, allTeachers: initialTeachers }: { allStudents: Student[], allTeachers: Teacher[]}) {
+export default function PrincipalDashboard() {
   const [manageTeachersTab, setManageTeachersTab] = useState("addTeacher");
   const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
   const [activeTab, setActiveTab] = useState("manageTeachers");
   
-  const [allStudents, setAllStudents] = useState<Student[]>(initialStudents);
-  const [allTeachers, setAllTeachers] = useState<Teacher[]>(initialTeachers);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
   const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
   const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,23 +43,13 @@ export default function PrincipalDashboard({ allStudents: initialStudents, allTe
     const unsubStudents = getStudents(setAllStudents);
     const unsubTeachers = getTeachers(setAllTeachers);
     
-    // Once we have teachers and students, we can fetch leaves
-    if (allStudents.length > 0) {
-        const allStudentIds = allStudents.map((s) => s.id);
-        const unsubStudentLeaves = getLeaveRequestsForStudents(allStudentIds, setStudentLeaves);
-    }
-      
-    if (allTeachers.length > 0) {
-         const allTeacherIds = allTeachers.map((t) => t.id);
-         const unsubTeacherLeaves = getLeaveRequestsForTeachers(allTeacherIds, setTeacherLeaves);
-    }
-    
+    // We can fetch leaves once we have some data, or let subsequent useEffects handle it.
+    // Let's set loading to false after initial listeners are set.
     setIsLoading(false);
 
     return () => {
       unsubStudents();
       unsubTeachers();
-      // unsub leaves will be handled inside their respective logic if needed
     };
 
   }, []);
