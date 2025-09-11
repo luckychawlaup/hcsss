@@ -36,7 +36,7 @@ const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
   teacherId: z.string().length(8, "Teacher ID must be exactly 8 characters."),
-  dob: z.date({ required_error: "Date of birth is required." }),
+  joiningDate: z.date({ required_error: "Date of joining is required." }),
   password: z.string().min(8, "Password must be at least 8 characters long."),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -76,14 +76,15 @@ export default function TeacherSignupForm() {
         return;
       }
       
-      const formattedDob = format(values.dob, "yyyy-MM-dd");
-      if (teacherRecord.name.toLowerCase() !== values.name.toLowerCase() || teacherRecord.dob !== formattedDob) {
-        setError("The details entered do not match our records. Please verify your Name and Date of Birth.");
+      const formattedJoiningDate = new Date(teacherRecord.joiningDate).toDateString();
+      const providedJoiningDate = values.joiningDate.toDateString();
+
+      if (teacherRecord.name.toLowerCase() !== values.name.toLowerCase() || formattedJoiningDate !== providedJoiningDate) {
+        setError("The details entered do not match our records. Please verify your Name and Joining Date.");
         setIsLoading(false);
         return;
       }
       // --- End Verification ---
-
 
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -132,7 +133,7 @@ export default function TeacherSignupForm() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name</FormLabel>
+                <FormLabel>Full Name (as on Joining Letter)</FormLabel>
                 <FormControl>
                   <Input placeholder="John Doe" {...field} />
                 </FormControl>
@@ -168,10 +169,10 @@ export default function TeacherSignupForm() {
           />
            <FormField
                 control={form.control}
-                name="dob"
+                name="joiningDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Date of Birth</FormLabel>
+                    <FormLabel>Date of Joining</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -196,9 +197,6 @@ export default function TeacherSignupForm() {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
                           initialFocus
                         />
                       </PopoverContent>

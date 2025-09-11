@@ -182,10 +182,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     }
 
     const formattedJoiningDate = addedTeacherData.joiningDate 
-        ? new Date(addedTeacherData.joiningDate).toLocaleString('en-GB', {
-            year: 'numeric', month: 'long', day: 'numeric',
-            hour: '2-digit', minute: '2-digit', hour12: true 
-          })
+        ? new Date(addedTeacherData.joiningDate).toLocaleDateString('en-GB')
         : 'N/A';
 
     printWindow.document.write(`
@@ -200,7 +197,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     .header h1 { font-size: 28px; color: #4285F4; margin: 0; }
                     .header p { margin: 0; font-size: 14px; }
                     .content { font-size: 16px; }
-                    .content p { margin: 15px 0; }
+                    .content p, .content ul { margin: 15px 0; }
+                    .content ul { padding-left: 20px; }
                     .footer { text-align: right; margin-top: 60px; font-style: italic; }
                     .signature-area { margin-top: 80px; border-top: 1px solid #ccc; padding-top: 10px; width: 250px; text-align: center; }
                     .disclaimer { font-size: 12px; color: #777; margin-top: 40px; border-top: 1px dashed #ccc; padding-top: 15px; }
@@ -228,7 +226,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         
                         <p>We are pleased to offer you the position at Hilton Convent School. We were impressed with your qualifications and experience and believe you will be a valuable asset to our team.</p>
                         
-                        <p>Your joining date is officially recorded as <strong>${formattedJoiningDate}</strong>. Please find your details below:</p>
+                        <p>Your joining date is officially recorded as <strong>${new Date(addedTeacherData.joiningDate).toLocaleDateString('en-GB')}</strong>. Please find your details below:</p>
                         
                         <table class="details">
                             <tr><td>Teacher ID</td><td>${generatedId}</td></tr>
@@ -240,7 +238,21 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                             ${addedTeacherData.qualifications && addedTeacherData.qualifications.length > 0 ? `<tr><td>Qualifications</td><td>${addedTeacherData.qualifications.join(', ')}</td></tr>` : ''}
                         </table>
 
-                        <p>Please use the Teacher ID provided above to complete your registration on the school portal.</p>
+                        <h4>Portal Signup Instructions:</h4>
+                        <p>To access the teacher's dashboard, please follow these steps to create your account:</p>
+                        <ul>
+                            <li>Visit the school's portal and select "I am a Teacher".</li>
+                            <li>Click on "Sign up" to go to the registration page.</li>
+                            <li>You will need to enter the following details exactly as they appear on this letter for verification:
+                                <ul>
+                                    <li>Your Full Name: <strong>${addedTeacherData.name}</strong></li>
+                                    <li>Your Teacher ID: <strong>${generatedId}</strong></li>
+                                    <li>Your Joining Date: <strong>${formattedJoiningDate}</strong></li>
+                                </ul>
+                            </li>
+                             <li>Once verified, you will be asked to create a password and your account will be created.</li>
+                            <li>A verification link will be sent to your registered email address. You must verify your email before you can log in.</li>
+                        </ul>
                         
                         <p>We look forward to you joining our team.</p>
                         

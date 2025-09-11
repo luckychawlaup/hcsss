@@ -86,17 +86,10 @@ export default function LoginForm({ role }: LoginFormProps) {
             setIsLoading(false);
             return;
         }
-         // Set cookie to establish the principal's session
-        document.cookie = "principal-role=true; path=/; max-age=86400"; // Expires in 1 day
-        toast({
-            title: "Login Successful",
-            description: "Welcome, Principal! Redirecting...",
-        });
         router.push('/principal');
         router.refresh();
         return;
       }
-
 
       toast({
         title: "Login Successful",
