@@ -20,7 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy } from "lucide-react";
+import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, Printer } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import type { Teacher } from "./PrincipalDashboard";
@@ -67,6 +67,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedId, setGeneratedId] = useState<string | null>(null);
+  const [addedTeacherData, setAddedTeacherData] = useState<Omit<Teacher, 'id'> | null>(null);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof addTeacherSchema>>({
@@ -95,6 +96,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     setIsLoading(true);
     setError(null);
     setGeneratedId(null);
+    setAddedTeacherData(null);
 
     try {
       const teacherId = generateTeacherId();
@@ -107,6 +109,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
       await addTeacher(teacherId, newTeacherData);
       
       setGeneratedId(teacherId);
+      setAddedTeacherData(newTeacherData);
       toast({
         title: "Teacher Added Successfully!",
         description: `${values.name} has been added to the system.`,
@@ -130,11 +133,85 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     }
   };
 
-  const handleAddAnother = () => {
-    setGeneratedId(null);
+  const handlePrintLetter = () => {
+    if (!addedTeacherData || !generatedId) return;
+
+    const printWindow = window.open('', '_blank');
+    printWindow?.document.write(`
+        <html>
+            <head>
+                <title>Joining Letter</title>
+                <style>
+                    body { font-family: 'Poppins', sans-serif; line-height: 1.6; color: #333; margin: 40px; }
+                    .container { max-width: 800px; margin: auto; }
+                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 20px; margin-bottom: 30px; }
+                    .header img { width: 80px; height: 80px; margin-right: 20px; }
+                    .header h1 { font-size: 28px; color: #4285F4; margin: 0; }
+                    .header p { margin: 0; font-size: 14px; }
+                    .content { font-size: 16px; }
+                    .content p { margin: 15px 0; }
+                    .footer { text-align: right; margin-top: 50px; font-style: italic; }
+                    .details { border-collapse: collapse; width: 100%; margin: 25px 0; }
+                    .details td { padding: 8px; border: 1px solid #ddd; }
+                    .details td:first-child { font-weight: bold; width: 30%; }
+                </style>
+                 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <img src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="School Logo" />
+                        <div>
+                            <h1>Hilton Convent School</h1>
+                            <p>Joya Road, Amroha, 244221, Uttar Pradesh</p>
+                        </div>
+                    </div>
+                    <div class="content">
+                        <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
+                        
+                        <h3>Subject: Appointment Letter</h3>
+                        
+                        <p>Dear ${addedTeacherData.name},</p>
+                        
+                        <p>We are pleased to offer you the position at Hilton Convent School. We were impressed with your qualifications and experience and believe you will be a valuable asset to our team.</p>
+                        
+                        <p>Please find your details below:</p>
+                        
+                        <table class="details">
+                            <tr><td>Teacher ID</td><td>${generatedId}</td></tr>
+                            <tr><td>Full Name</td><td>${addedTeacherData.name}</td></tr>
+                             <tr><td>Role</td><td>${addedTeacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
+                            ${addedTeacherData.role === 'classTeacher' ? `<tr><td>Assigned Class</td><td>${addedTeacherData.classTeacherOf}</td></tr>` : ''}
+                            <tr><td>Primary Subject</td><td>${addedTeacherData.subject}</td></tr>
+                        </table>
+
+                        <p>Please use the Teacher ID provided above to complete your registration on the school portal.</p>
+                        
+                        <p>We look forward to you joining our team.</p>
+                        
+                        <div class="footer">
+                            <p>Sincerely,</p>
+                            <p><strong>The Principal</strong><br/>Hilton Convent School</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+        </html>
+    `);
+    printWindow?.document.close();
+    printWindow?.focus();
+    // Use timeout to ensure content is loaded before printing
+    setTimeout(() => {
+        printWindow?.print();
+    }, 500);
   }
 
-  if (generatedId) {
+  const handleAddAnother = () => {
+    setGeneratedId(null);
+    setAddedTeacherData(null);
+  }
+
+  if (generatedId && addedTeacherData) {
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20">
             <CheckCircle className="h-4 w-4 text-primary" />
@@ -147,7 +224,13 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <Copy className="h-5 w-5 text-primary" />
                     </Button>
                 </div>
-                 <Button onClick={handleAddAnother}>Add Another Teacher</Button>
+                 <div className="flex gap-2">
+                    <Button onClick={handleAddAnother}>Add Another Teacher</Button>
+                    <Button variant="outline" onClick={handlePrintLetter}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print Joining Letter
+                    </Button>
+                 </div>
             </AlertDescription>
         </Alert>
     )
@@ -163,6 +246,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
       )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                     control={form.control}
@@ -271,9 +355,10 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     )}
                 />
             </div>
+
+            <Separator />
             
-            <div className="space-y-6">
-                 <Separator />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                     control={form.control}
                     name="role"
@@ -358,9 +443,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         )}
                     />
                 )}
-
-            </div>
-          
+              </div>
+          </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Teacher & Generate ID
@@ -370,3 +454,5 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     </>
   );
 }
+
+    
