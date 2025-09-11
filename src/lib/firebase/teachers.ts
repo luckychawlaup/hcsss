@@ -1,4 +1,5 @@
 
+
 import { db } from "@/lib/firebase";
 import {
   ref,
@@ -122,3 +123,4 @@ export const deleteTeacher = async (teacherId: string) => {
     throw e;
   }
 };
+

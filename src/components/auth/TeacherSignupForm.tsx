@@ -67,19 +67,24 @@ export default function TeacherSignupForm() {
     setError(null);
 
     try {
-      // --- Verification Step ---
+      // --- Step 1: Create the user in Firebase Auth ---
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+      
+      const user = userCredential.user;
+
+      // --- Step 2: Verify the provided details against the database record ---
       const teacherRecord = await getTeacherById(values.teacherId);
       
       if (!teacherRecord) {
-        setError("Invalid Teacher ID. Please check the ID provided by the principal.");
-        setIsLoading(false);
-        return;
+        throw new Error("Invalid Teacher ID. Please check the ID provided by the principal.");
       }
 
       if(teacherRecord.authUid) {
-        setError("This Teacher ID is already linked to an account.");
-        setIsLoading(false);
-        return;
+        throw new Error("This Teacher ID is already linked to an account.");
       }
       
       const formattedJoiningDate = new Date(teacherRecord.joiningDate).toDateString();
@@ -90,20 +95,15 @@ export default function TeacherSignupForm() {
         teacherRecord.email?.toLowerCase() !== values.email.toLowerCase() ||
         formattedJoiningDate !== providedJoiningDate
       ) {
-        setError("The details entered do not match our records. Please verify your Name, Email, and Joining Date.");
-        setIsLoading(false);
-        return;
+        // If details don't match, we should ideally delete the created user
+        // For simplicity, we'll just sign them out and show an error.
+        await auth.signOut();
+        throw new Error("The details entered do not match our records. Please verify your Name, Email, and Joining Date.");
       }
       // --- End Verification ---
 
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        values.email,
-        values.password
-      );
-      
-      const user = userCredential.user;
 
+      // --- Step 3: Link Auth UID and update profile ---
       await updateProfile(user, {
         displayName: values.name,
       });
@@ -121,13 +121,11 @@ export default function TeacherSignupForm() {
       router.push("/auth/teacher/login");
 
     } catch (error: any) {
-        const errorCode = error.code;
         let errorMessage = "An unknown error occurred. Please try again.";
-        if (errorCode === 'auth/email-already-in-use') {
+        if (error.code === 'auth/email-already-in-use') {
             errorMessage = "This email is already registered. Please try logging in.";
-        }
-        if (errorCode === 'permission-denied') {
-            errorMessage = "Verification failed. Ensure your Teacher ID and other details are correct. You may not have permission to register.";
+        } else if (error.message) {
+            errorMessage = error.message;
         }
         setError(errorMessage);
         setIsLoading(false);

@@ -1,4 +1,5 @@
 
+
 import { db } from "@/lib/firebase";
 import {
   ref,
@@ -14,7 +15,6 @@ import {
 } from "firebase/database";
 
 const STUDENTS_COLLECTION = "students";
-const LEAVES_COLLECTION = "leaves";
 
 export interface Student {
   id: string;
@@ -31,19 +31,6 @@ export interface Student {
   motherPhone?: string;
   studentPhone?: string;
 }
-
-export interface LeaveRequest {
-  id: string;
-  studentId: string;
-  studentName: string;
-  class: string;
-  dateFrom: string;
-  dateTo?: string;
-  reason: string;
-  status: "Confirmed" | "Pending" | "Rejected";
-  appliedAt: number;
-}
-
 
 // Add or update a student with a specific ID (SRN)
 export const addStudent = async (srn: string, studentData: Omit<Student, 'id' | 'srn'>) => {
@@ -133,33 +120,4 @@ export const deleteStudent = async (srn: string) => {
     console.error("Error deleting student document: ", e);
     throw e;
   }
-};
-
-// Listen for all leave requests for a set of students
-export const getLeaveRequestsForStudents = (
-  studentIds: string[],
-  callback: (leaves: LeaveRequest[]) => void
-) => {
-  const leavesRef = ref(db, LEAVES_COLLECTION);
-  const leavesQuery = query(leavesRef, orderByChild('appliedAt'));
-
-  const unsubscribe = onValue(leavesQuery, (snapshot) => {
-    const allLeaves: LeaveRequest[] = [];
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      for (const id in data) {
-        if (studentIds.includes(data[id].studentId)) {
-          allLeaves.push({ id, ...data[id] });
-        }
-      }
-    }
-    callback(allLeaves.sort((a, b) => b.appliedAt - a.appliedAt));
-  });
-  return unsubscribe;
-};
-
-// Update leave status
-export const updateLeaveStatus = async (leaveId: string, status: "Confirmed" | "Rejected") => {
-  const leaveRef = ref(db, `${LEAVES_COLLECTION}/${leaveId}`);
-  await update(leaveRef, { status });
 };

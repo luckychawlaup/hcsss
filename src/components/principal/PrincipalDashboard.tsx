@@ -29,7 +29,7 @@ import ApproveLeaves from "../teacher/ApproveLeaves";
 export default function PrincipalDashboard() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [activeTab, setActiveTab] = useState("addTeacher");
+  const [activeTab, setActiveTab] = useState("manageTeachers");
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const auth = getAuth();
@@ -91,11 +91,11 @@ export default function PrincipalDashboard() {
           <StatCard title="Total Students" value={students.length.toString()} icon={GraduationCap} />
           <StatCard title="Total Teachers" value={teachers.length.toString()} icon={Users} />
           <StatCard title="New Admissions" value="45" icon={UserPlus} />
-          <StatCard title="Pending Leaves" value="8" icon={UserPlus} />
+          <StatCard title="Pending Leaves" value="8" icon={CalendarCheck} />
         </div>
 
         <div className="mx-auto w-full max-w-6xl">
-          <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="addTeacher">
+          <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="manageTeachers">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="manageTeachers">Manage Teachers</TabsTrigger>
               <TabsTrigger value="manageStudents">Manage Students</TabsTrigger>
@@ -221,11 +221,11 @@ export default function PrincipalDashboard() {
                     Review Leave Applications
                   </CardTitle>
                   <CardDescription>
-                    Review and approve or reject leave applications from all students.
+                    Review and approve or reject leave applications from all students and teachers.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ApproveLeaves students={students} isPrincipalView={true} />
+                  <ApproveLeaves allStudents={students} allTeachers={teachers} isPrincipalView={true} />
                 </CardContent>
               </Card>
             </TabsContent>

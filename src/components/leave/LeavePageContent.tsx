@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -37,6 +38,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { getAuth, User } from "firebase/auth";
+import { app } from "@/lib/firebase";
+import { getStudentByAuthId, Student } from "@/lib/firebase/students";
+import { addLeaveRequest, getLeaveRequestsForUser, LeaveRequest } from "@/lib/firebase/leaves";
+
 
 const leaveSchema = z.object({
   dateRange: z.object(
@@ -59,42 +65,6 @@ const leaveSchema = z.object({
 });
 
 
-type LeaveRequest = {
-  id: number;
-  dateFrom: string;
-  dateTo?: string;
-  reason: string;
-  status: "Confirmed" | "Pending" | "Rejected";
-};
-
-const pastLeavesData: LeaveRequest[] = [
-  {
-    id: 1,
-    dateFrom: "2024-07-10",
-    dateTo: "2024-07-11",
-    reason: "Family function.",
-    status: "Confirmed",
-  },
-  {
-    id: 2,
-    dateFrom: "2024-06-05",
-    reason: "Not feeling well.",
-    status: "Confirmed",
-  },
-  {
-    id: 3,
-    dateFrom: "2024-05-20",
-    reason: "Out of station for a wedding.",
-    status: "Rejected",
-  },
-    {
-    id: 4,
-    dateFrom: "2024-08-01",
-    reason: "Personal work.",
-    status: "Pending",
-  },
-];
-
 const getStatusVariant = (status: LeaveRequest["status"]) => {
   switch (status) {
     case "Confirmed":
@@ -109,7 +79,33 @@ const getStatusVariant = (status: LeaveRequest["status"]) => {
 
 export default function LeavePageContent() {
   const { toast } = useToast();
-  const [pastLeaves, setPastLeaves] = useState(pastLeavesData);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
+  const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
+  const auth = getAuth(app);
+
+
+  useEffect(() => {
+    const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
+        if(user) {
+            setCurrentUser(user);
+            const studentProfile = await getStudentByAuthId(user.uid);
+            setCurrentStudent(studentProfile);
+            if (studentProfile) {
+               const unsubscribeLeaves = getLeaveRequestsForUser(studentProfile.id, (leaves) => {
+                   setPastLeaves(leaves);
+               });
+               // This will be cleaned up on component unmount if needed, or when user changes
+            }
+        } else {
+            setCurrentUser(null);
+            setCurrentStudent(null);
+        }
+    });
+
+    return () => unsubscribeAuth();
+  }, [auth]);
+
 
   const form = useForm<z.infer<typeof leaveSchema>>({
     resolver: zodResolver(leaveSchema),
@@ -128,31 +124,40 @@ export default function LeavePageContent() {
   const fromDate = form.watch("dateRange.from");
 
   async function onSubmit(values: z.infer<typeof leaveSchema>) {
-    console.log(values);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    // Add to past leaves list
-    const newLeave: LeaveRequest = {
-        id: pastLeaves.length + 1,
+    if(!currentUser || !currentStudent) {
+        toast({ variant: 'destructive', title: "Error", description: "You must be logged in to apply for leave."});
+        return;
+    }
+
+    const newLeave: Omit<LeaveRequest, 'id'> = {
+        userId: currentStudent.id,
+        userName: currentStudent.name,
+        class: `${currentStudent.class}-${currentStudent.section}`,
+        userRole: "Student",
         dateFrom: format(values.dateRange.from, "yyyy-MM-dd"),
         dateTo: values.dateRange.to ? format(values.dateRange.to, "yyyy-MM-dd") : undefined,
         reason: values.reason,
-        status: "Pending"
+        status: "Pending",
+        appliedAt: Date.now(),
     }
-    setPastLeaves([newLeave, ...pastLeaves]);
 
-    toast({
-      title: "Leave Application Submitted",
-      description: "Your leave request has been sent for approval.",
-    });
-    form.reset({
-        dateRange: { from: startOfDay(new Date()) },
-        reason: "",
-        document: undefined
-    });
-    const fileInput = document.getElementById('leave-document') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
+    try {
+        await addLeaveRequest(newLeave);
+        toast({
+            title: "Leave Application Submitted",
+            description: "Your leave request has been sent for approval.",
+        });
+        form.reset({
+            dateRange: { from: startOfDay(new Date()) },
+            reason: "",
+            document: undefined
+        });
+        const fileInput = document.getElementById('leave-document') as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    } catch(error) {
+         toast({ variant: 'destructive', title: "Submission Failed", description: "Could not submit your leave request. Please try again."});
     }
   }
 
