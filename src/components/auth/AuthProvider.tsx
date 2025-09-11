@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged, User, signOut } from "firebase/auth";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter, usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,7 +40,7 @@ const getRoleFromCookie = () => {
         if (name === 'principal-role' && value === 'true') return 'principal';
         if (name === 'teacher-role' && value === 'true') return 'teacher';
     }
-    return 'student'; // Default to student if no specific role cookie is found
+    return 'student'; // Default to student
 }
 
 
@@ -56,84 +56,77 @@ export default function AuthProvider({
   const [loading, setLoading] = useState(true);
 
   const isPublicPath = publicPaths.includes(pathname);
-  const isPrincipalPath = pathname.startsWith('/principal');
-  const isTeacherPath = pathname.startsWith('/teacher');
-
+  
   useEffect(() => {
+    // 1. Check for principal cookie first. This is a non-Firebase auth user.
     const principalCookie = document.cookie.includes("principal-role=true");
-
     if (principalCookie) {
         setUser("principal");
-        if (isPublicPath) {
-            router.push("/principal");
-        }
         setLoading(false);
-        return;
+        return; // Stop further checks
     }
 
+    // 2. If not principal, check for Firebase auth user (student/teacher)
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
-      if (authUser) {
-        if (authUser.emailVerified) {
-          setUser(authUser);
-           if (isPublicPath) {
-             const role = getRoleFromCookie();
-             if (role === 'teacher') router.push('/teacher');
-             else router.push('/');
-           }
-        } else {
-          // If email is not verified, sign them out.
-          signOut(auth);
-          setUser(null);
-           if (!isPublicPath) {
-             router.push("/login");
-           }
-        }
+      if (authUser && authUser.emailVerified) {
+        setUser(authUser);
       } else {
         setUser(null);
-        if (!isPublicPath && !isPrincipalPath) {
-          router.push("/login");
-        }
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [auth, router, pathname, isPublicPath, isPrincipalPath]);
+  }, [auth]);
 
+  // While loading, show preloader
   if (loading) {
     return <Preloader />;
   }
-  
-  if (!user && !isPublicPath) {
-    return <Preloader />;
-  }
 
+  const role = getRoleFromCookie();
+  const isPrincipalPath = pathname.startsWith('/principal');
+  const isTeacherPath = pathname.startsWith('/teacher');
+  const isStudentPath = !isPrincipalPath && !isTeacherPath && !isPublicPath;
+
+
+  // --- REDIRECTION LOGIC ---
+
+  // 1. If user is logged in but on a public path, redirect them to their dashboard
   if (user && isPublicPath) {
-     if (user === "principal") {
-        router.push('/principal');
-     } else {
-        const role = getRoleFromCookie();
-        if (role === 'teacher') router.push('/teacher');
-        else router.push('/');
-     }
-    return <Preloader />;
+      if (user === "principal") {
+          router.replace('/principal');
+          return <Preloader />;
+      }
+      if (role === 'teacher') {
+          router.replace('/teacher');
+          return <Preloader />;
+      }
+      // Student is the default
+      router.replace('/');
+      return <Preloader />;
   }
-
-  // Protect routes based on role
+  
+  // 2. If user is NOT logged in and trying to access a protected path, redirect to login
+  if (!user && !isPublicPath) {
+      router.replace('/login');
+      return <Preloader />;
+  }
+  
+  // 3. Role-based route protection
   if (user) {
-      const role = getRoleFromCookie();
-      if(user === "principal" && !isPrincipalPath && !isPublicPath) {
-           router.push('/principal');
-           return <Preloader />;
-      }
-      if(role === 'teacher' && !isTeacherPath && !isPublicPath) {
-          router.push('/teacher');
-          return <Preloader />;
-      }
-       if(role === 'student' && (isTeacherPath || isPrincipalPath)) {
-          router.push('/');
-          return <Preloader />;
-      }
+    if (user === "principal" && !isPrincipalPath) {
+        router.replace('/principal');
+        return <Preloader />;
+    }
+    if (role === 'teacher' && !isTeacherPath) {
+        router.replace('/teacher');
+        return <Preloader />;
+    }
+    if (role === 'student' && (isTeacherPath || isPrincipalPath)) {
+        router.replace('/');
+        return <Preloader />;
+    }
   }
 
 
