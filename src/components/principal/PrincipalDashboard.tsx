@@ -83,16 +83,20 @@ export default function PrincipalDashboard() {
 
    useEffect(() => {
     if (allStudents.length > 0) {
-      const allStudentIds = allStudents.map((s) => s.id);
-      const unsub = getLeaveRequestsForStudents(allStudentIds, setStudentLeaves);
+      const studentIds = allStudents.map((s) => s.id);
+      const unsub = getLeaveRequestsForStudents(studentIds, (leaves) => {
+        setStudentLeaves(leaves);
+      });
       return () => unsub();
     }
   }, [allStudents]);
 
   useEffect(() => {
     if (allTeachers.length > 0) {
-      const allTeacherIds = allTeachers.map((t) => t.id);
-      const unsub = getLeaveRequestsForTeachers(allTeacherIds, setTeacherLeaves);
+      const teacherIds = allTeachers.map((t) => t.id);
+      const unsub = getLeaveRequestsForTeachers(teacherIds, (leaves) => {
+        setTeacherLeaves(leaves);
+      });
       return () => unsub();
     }
   }, [allTeachers]);
