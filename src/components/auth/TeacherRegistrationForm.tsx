@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { verifyAndClaimTeacherAccount } from "@/lib/firebase/teachers";
+import Link from "next/link";
 
 const registrationSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -122,7 +123,7 @@ export default function TeacherRegistrationForm() {
             name="registrationKey"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Registration Key</FormLabel>
+                <FormLabel>One-Time Registration Key</FormLabel>
                 <FormControl>
                   <Input placeholder="Provided by the school" {...field} />
                 </FormControl>
@@ -135,7 +136,7 @@ export default function TeacherRegistrationForm() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name (as registered by school)</FormLabel>
+                <FormLabel>Full Name (as registered)</FormLabel>
                 <FormControl>
                   <Input placeholder="John Doe" {...field} />
                 </FormControl>
@@ -148,7 +149,7 @@ export default function TeacherRegistrationForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email Address (as registered by school)</FormLabel>
+                <FormLabel>Email Address (as registered)</FormLabel>
                 <FormControl>
                   <Input type="email" placeholder="teacher@example.com" {...field} />
                 </FormControl>
@@ -186,8 +187,16 @@ export default function TeacherRegistrationForm() {
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Register Account
           </Button>
+            <p className="text-center text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <Link href="/auth/teacher/login" className="font-medium text-primary hover:underline">
+                    Sign In
+                </Link>
+            </p>
         </form>
       </Form>
     </>
   );
 }
+
+    

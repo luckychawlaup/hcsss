@@ -105,7 +105,9 @@ export const verifyAndClaimTeacherAccount = async (data: {
     delete finalTeacherData.registrationKey; // remove key from final object
 
     await set(teacherRef, finalTeacherData); // Create teacher record
-    await remove(regRef); // Delete registration entry
+    
+    // We don't delete the registration record anymore, so we can retrieve the key later.
+    // await remove(regRef); 
 
     return { success: true, message: "Account claimed successfully."};
 }
@@ -152,6 +154,24 @@ export const getTeacherByAuthId = async (
   }
 };
 
+// Get the registration key for a teacher's email
+export const getRegistrationKeyForTeacher = async (email: string): Promise<string | null> => {
+    try {
+        const registrationsRef = query(ref(db, REGISTRATIONS_COLLECTION), orderByChild('email'), equalTo(email));
+        const snapshot = await get(registrationsRef);
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            const key = Object.keys(data)[0];
+            return data[key].registrationKey;
+        }
+        return null;
+    } catch (e) {
+        console.error("Error getting registration key:", e);
+        return null;
+    }
+}
+
+
 // Update a teacher's details
 export const updateTeacher = async (
   teacherId: string,
@@ -172,6 +192,17 @@ export const updateTeacher = async (
 // Delete a teacher from DB. Auth user deletion would need a backend function.
 export const deleteTeacher = async (teacherId: string) => {
   try {
+    // Also remove their registration record if it exists
+    const teacherData = await getTeacherByAuthId(teacherId);
+    if (teacherData?.email) {
+        const registrationsRef = query(ref(db, REGISTRATIONS_COLLECTION), orderByChild('email'), equalTo(teacherData.email));
+        const snapshot = await get(registrationsRef);
+        if (snapshot.exists()) {
+            const keyToDelete = Object.keys(snapshot.val())[0];
+            const regRef = ref(db, `${REGISTRATIONS_COLLECTION}/${keyToDelete}`);
+            await remove(regRef);
+        }
+    }
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
     await remove(teacherRef);
   } catch (e) {
@@ -179,3 +210,5 @@ export const deleteTeacher = async (teacherId: string) => {
     throw e;
   }
 };
+
+    

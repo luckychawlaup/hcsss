@@ -4,6 +4,7 @@
 import { useState } from "react";
 import * as XLSX from "xlsx";
 import type { Teacher } from "@/lib/firebase/teachers";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -96,6 +97,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [qualificationInput, setQualificationInput] = useState("");
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof editTeacherSchema>>({
     resolver: zodResolver(editTeacherSchema),
@@ -110,14 +112,8 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     setIsAlertOpen(true);
   };
   
-  const handlePrintLetter = (teacherData: Teacher) => {
-    if (!teacherData) return;
-    
-    // This is a placeholder function as direct auth manipulation is not possible on client
-    // A real implementation would call a backend function to generate a temporary password
-    // and then construct the letter.
-    console.log("Printing Joining Letter for:", teacherData);
-    alert("Printing functionality would require a secure backend to handle password generation. This is a UI placeholder.");
+  const handlePrintLetter = (teacherId: string) => {
+    router.push(`/principal/joining-letter/${teacherId}`);
   }
 
 
@@ -282,7 +278,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                 <TableCell className="text-right">
                     <Tooltip>
                         <TooltipTrigger asChild>
-                             <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher)}>
+                             <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher.id)}>
                                 <Printer className="h-4 w-4" />
                             </Button>
                         </TooltipTrigger>
@@ -623,3 +619,5 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     </>
   );
 }
+
+    
