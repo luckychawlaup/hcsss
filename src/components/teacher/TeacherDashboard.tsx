@@ -22,6 +22,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Users, ClipboardCheck, CalendarCheck, BookUp, DollarSign, CalendarPlus, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import dynamic from "next/dynamic";
+import TeacherNav from "./TeacherNav";
 
 const TeacherStudentList = dynamic(() => import('./TeacherStudentList'), {
   loading: () => <Skeleton className="h-64 w-full" />,
@@ -42,7 +43,7 @@ const SalaryDetails = dynamic(() => import('./SalaryDetails').then(mod => mod.Sa
   loading: () => <Skeleton className="h-96 w-full" />,
 });
 
-type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "applyLeave" | "salary";
+export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "applyLeave" | "salary";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -289,28 +290,31 @@ export default function TeacherDashboard() {
    };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header title="Teacher Dashboard" showAvatar={true} />
-      <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
-        
-        {teacher?.mustChangePassword && (
-            <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Action Required: Change Your Password</AlertTitle>
-                <AlertDescription>
-                   You are currently logged in with a temporary password. For your security, please change it immediately. A password reset link was sent to your email.
-                   <Button onClick={handleResendEmail} disabled={isResending} variant="link" className="p-0 h-auto ml-2 text-destructive-foreground underline">
-                        {isResending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Resend Password Reset Email
-                    </Button>
-                </AlertDescription>
-            </Alert>
-        )}
+    <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
+      <TeacherNav activeView={activeView} setActiveView={setActiveView} />
+      <div className="flex flex-1 flex-col">
+        <Header title="Teacher Dashboard" showAvatar={true} />
+        <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
+            
+            {teacher?.mustChangePassword && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Action Required: Change Your Password</AlertTitle>
+                    <AlertDescription>
+                    You are currently logged in with a temporary password. For your security, please change it immediately. A password reset link was sent to your email.
+                    <Button onClick={handleResendEmail} disabled={isResending} variant="link" className="p-0 h-auto ml-2 text-destructive-foreground underline">
+                            {isResending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Resend Password Reset Email
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            )}
 
-        <div className="mx-auto w-full max-w-6xl">
-           {renderContent()}
-        </div>
-      </main>
+            <div className="mx-auto w-full max-w-6xl">
+            {renderContent()}
+            </div>
+        </main>
+      </div>
     </div>
   );
 }
