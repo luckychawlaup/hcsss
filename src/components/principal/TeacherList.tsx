@@ -32,7 +32,6 @@ import {
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 import { Edit, Trash2, Loader2 } from "lucide-react";
-import { AddTeacherForm } from "./AddTeacherForm";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -44,6 +43,13 @@ import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Textarea } from "../ui/textarea";
+import { Separator } from "../ui/separator";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+
+
+const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
+const sections = ["A", "B"];
 
 const editTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -52,9 +58,22 @@ const editTeacherSchema = z.object({
   motherName: z.string().min(2, "Mother's name is required."),
   phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
   address: z.string().min(10, "Address is too short."),
+  role: z.enum(["classTeacher", "subjectTeacher"], { required_error: "You must select a role."}),
   subject: z.string().min(2, "Subject is required."),
-  classTaught: z.string().min(1, "Class taught is required."),
   classTeacherOf: z.string().optional(),
+  classesTaught: z.string().optional(),
+}).refine(data => {
+    if (data.role === 'classTeacher') return !!data.classTeacherOf;
+    return true;
+}, {
+    message: "Please select a class for the Class Teacher.",
+    path: ["classTeacherOf"],
+}).refine(data => {
+    if (data.role === 'subjectTeacher') return !!data.classesTaught && data.classesTaught.length > 0;
+    return true;
+}, {
+    message: "Please specify the classes taught.",
+    path: ["classesTaught"],
 });
 
 interface TeacherListProps {
@@ -74,7 +93,8 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     resolver: zodResolver(editTeacherSchema),
   });
 
-  const { formState: { isSubmitting: isUpdating }, reset } = form;
+  const { formState: { isSubmitting: isUpdating }, reset, watch } = form;
+  const role = watch("role");
 
   const handleDeleteClick = (teacher: Teacher) => {
     setSelectedTeacher(teacher);
@@ -121,8 +141,8 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
             <TableRow>
               <TableHead>Teacher ID</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Role</TableHead>
               <TableHead>Subject</TableHead>
-              <TableHead>Class Teacher</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -133,7 +153,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-6 w-12 rounded-full" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                 <TableCell className="text-right flex justify-end gap-2">
                   <Skeleton className="h-8 w-8" />
@@ -163,8 +183,8 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
             <TableRow>
               <TableHead>Teacher ID</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Role / Assignment</TableHead>
               <TableHead>Subject</TableHead>
-              <TableHead>Class Teacher</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -174,14 +194,14 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
               <TableRow key={teacher.id}>
                 <TableCell className="font-mono">{teacher.id}</TableCell>
                 <TableCell className="font-medium">{teacher.name}</TableCell>
-                <TableCell>{teacher.subject}</TableCell>
                 <TableCell>
-                  {teacher.classTeacherOf ? (
-                    <Badge variant="secondary">{teacher.classTeacherOf}</Badge>
+                  {teacher.role === 'classTeacher' ? (
+                    <Badge variant="secondary">Class Teacher: {teacher.classTeacherOf}</Badge>
                   ) : (
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground">Subject Teacher</span>
                   )}
                 </TableCell>
+                <TableCell>{teacher.subject}</TableCell>
                 <TableCell>{teacher.phoneNumber}</TableCell>
                 <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
@@ -330,12 +350,45 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                                 </FormItem>
                                 )}
                             />
+                        </div>
+                        <Separator />
+                         <div className="space-y-6">
+                            <FormField
+                                control={form.control}
+                                name="role"
+                                render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <FormLabel>Select Role</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        className="flex items-center space-x-4"
+                                        >
+                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="classTeacher" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">Class Teacher</FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="subjectTeacher" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">Subject Teacher</FormLabel>
+                                            </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
                             <FormField
                                 control={form.control}
                                 name="subject"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Primary Subject Taught</FormLabel>
+                                    <FormLabel>Primary Subject</FormLabel>
                                     <FormControl>
                                     <Input {...field} />
                                     </FormControl>
@@ -343,32 +396,48 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                                 </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="classTaught"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Classes Taught</FormLabel>
-                                    <FormControl>
-                                    <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="classTeacherOf"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Class Teacher of (Optional)</FormLabel>
-                                    <FormControl>
-                                    <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
+
+                            {role === "classTeacher" && (
+                                <FormField
+                                    control={form.control}
+                                    name="classTeacherOf"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Class Teacher Of</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a class and section" />
+                                            </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {classes.map(c => sections.map(s => (
+                                                    <SelectItem key={`${c}-${s}`} value={`${c}-${s}`}>{`${c} - Section ${s}`}</SelectItem>
+                                                )))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
+                            )}
+
+                            {role === "subjectTeacher" && (
+                                <FormField
+                                    control={form.control}
+                                    name="classesTaught"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Classes Taught</FormLabel>
+                                        <FormControl>
+                                        <Input placeholder="e.g., 9-A, 9-B, 10-A" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                            )}
+
                         </div>
                         <DialogFooter className="pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdating}>

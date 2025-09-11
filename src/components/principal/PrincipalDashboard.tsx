@@ -18,6 +18,7 @@ import { UserPlus, Users, GraduationCap, Eye, Megaphone } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
 import type { DocumentData } from "firebase/firestore";
+import { Separator } from "../ui/separator";
 
 // Define the Teacher type, you can expand this as needed
 export interface Teacher extends DocumentData {
@@ -28,9 +29,10 @@ export interface Teacher extends DocumentData {
   motherName: string;
   phoneNumber: string;
   address: string;
+  role: "classTeacher" | "subjectTeacher";
   subject: string;
-  classTaught: string;
   classTeacherOf?: string;
+  classesTaught?: string;
 }
 
 
@@ -129,7 +131,7 @@ export default function PrincipalDashboard() {
                              <CardDescription>
                                 This feature is coming soon.
                             </CardDescription>
-                        </CardHeader>
+                        </Header>
                          <CardContent>
                             <p className="text-muted-foreground">The ability to add and manage students will be available here shortly.</p>
                         </CardContent>
@@ -145,7 +147,7 @@ export default function PrincipalDashboard() {
                              <CardDescription>
                                 Publish an announcement to students, teachers, or both.
                             </CardDescription>
-                        </CardHeader>
+                        </Header>
                          <CardContent>
                             <MakeAnnouncementForm />
                         </CardContent>
