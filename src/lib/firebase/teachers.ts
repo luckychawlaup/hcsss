@@ -1,3 +1,4 @@
+
 import { db } from "@/lib/firebase";
 import {
   ref,
@@ -6,15 +7,28 @@ import {
   get,
   update,
   remove,
-  query,
-  orderByChild,
 } from "firebase/database";
 import type { DataSnapshot } from "firebase/database";
 
 const TEACHERS_COLLECTION = "teachers";
 
+export interface Teacher {
+  id: string;
+  name: string;
+  dob: string;
+  fatherName: string;
+  motherName: string;
+  phoneNumber: string;
+  address: string;
+  role: "classTeacher" | "subjectTeacher";
+  subject: string;
+  joiningDate: number;
+  classTeacherOf?: string;
+  classesTaught?: string[];
+}
+
 // Add or update a teacher with a specific ID
-export const addTeacher = async (teacherId: string, teacherData: Omit<any, 'id'>) => {
+export const addTeacher = async (teacherId: string, teacherData: Omit<Teacher, 'id'>) => {
   try {
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
     await set(teacherRef, teacherData);
@@ -25,10 +39,10 @@ export const addTeacher = async (teacherId: string, teacherData: Omit<any, 'id'>
 };
 
 // Get all teachers with real-time updates
-export const getTeachers = (callback: (teachers: any[]) => void) => {
+export const getTeachers = (callback: (teachers: Teacher[]) => void) => {
   const teachersRef = ref(db, TEACHERS_COLLECTION);
   const unsubscribe = onValue(teachersRef, (snapshot: DataSnapshot) => {
-    const teachers: any[] = [];
+    const teachers: Teacher[] = [];
     if (snapshot.exists()) {
       const data = snapshot.val();
       for (const id in data) {
@@ -44,7 +58,7 @@ export const getTeachers = (callback: (teachers: any[]) => void) => {
 };
 
 // Get a single teacher by ID
-export const getTeacherById = async (teacherId: string) => {
+export const getTeacherById = async (teacherId: string): Promise<Teacher | null> => {
     try {
         const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
         const snapshot = await get(teacherRef);
@@ -62,7 +76,7 @@ export const getTeacherById = async (teacherId: string) => {
 
 
 // Update a teacher's details
-export const updateTeacher = async (teacherId: string, updatedData: Partial<any>) => {
+export const updateTeacher = async (teacherId: string, updatedData: Partial<Teacher>) => {
   try {
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
     await update(teacherRef, updatedData);
