@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Header from "@/components/dashboard/Header";
 import { AddTeacherForm } from "./AddTeacherForm";
 import { TeacherList } from "./TeacherList";
+import { MakeAnnouncementForm } from "./MakeAnnouncementForm";
 import {
     Card,
     CardHeader,
@@ -13,7 +14,7 @@ import {
     CardContent
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Users, GraduationCap, Eye } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
 import type { DocumentData } from "firebase/firestore";
@@ -75,10 +76,11 @@ export default function PrincipalDashboard() {
 
         <div className="mx-auto w-full max-w-6xl">
             <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="addTeacher">
-                 <TabsList className="grid w-full grid-cols-3 md:w-1/2 lg:w-1/3">
+                 <TabsList className="grid w-full grid-cols-4 md:w-2/3 lg:w-1/2">
                     <TabsTrigger value="addTeacher">Add Teacher</TabsTrigger>
                     <TabsTrigger value="viewTeachers">View Teachers</TabsTrigger>
                     <TabsTrigger value="addStudent">Manage Students</TabsTrigger>
+                     <TabsTrigger value="makeAnnouncement">Announcements</TabsTrigger>
                 </TabsList>
                 <TabsContent value="addTeacher">
                     <Card className="mt-4">
@@ -130,6 +132,22 @@ export default function PrincipalDashboard() {
                         </CardHeader>
                          <CardContent>
                             <p className="text-muted-foreground">The ability to add and manage students will be available here shortly.</p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="makeAnnouncement">
+                    <Card className="mt-4">
+                        <CardHeader>
+                             <CardTitle className="flex items-center gap-2">
+                                <Megaphone />
+                                Make an Announcement
+                            </CardTitle>
+                             <CardDescription>
+                                Publish an announcement to students, teachers, or both.
+                            </CardDescription>
+                        </CardHeader>
+                         <CardContent>
+                            <MakeAnnouncementForm />
                         </CardContent>
                     </Card>
                 </TabsContent>

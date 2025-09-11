@@ -1,3 +1,4 @@
+"use client";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -12,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { usePathname } from "next/navigation";
+
 
 interface HeaderProps {
     title?: string;
@@ -19,6 +22,13 @@ interface HeaderProps {
 }
 
 export default function Header({ title, showAvatar = true }: HeaderProps) {
+  const pathname = usePathname();
+  const isTeacher = pathname.startsWith('/teacher');
+
+  // Determine notification link based on role
+  const noticesLink = isTeacher ? "/teacher/announcements" : "/notices";
+
+
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between gap-4 border-b bg-card/80 px-4 shadow-sm backdrop-blur-sm sm:px-6">
       <Link href="/" className="flex items-center gap-3">
@@ -29,7 +39,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
       </Link>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="rounded-full" asChild>
-          <Link href="/notices">
+          <Link href={noticesLink}>
             <Bell className="h-5 w-5" />
             <span className="sr-only">Notifications</span>
           </Link>
@@ -41,8 +51,8 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
                 <Avatar className="h-12 w-12">
                     <AvatarImage
                     src="https://picsum.photos/100/100"
-                    alt="Student Avatar"
-                    data-ai-hint="student avatar"
+                    alt="User Avatar"
+                    data-ai-hint="teacher avatar"
                     />
                     <AvatarFallback>SS</AvatarFallback>
                 </Avatar>

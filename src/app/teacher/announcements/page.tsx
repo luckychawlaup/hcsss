@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from "react";
 import Header from "@/components/dashboard/Header";
-import BottomNav from "@/components/dashboard/BottomNav";
 import {
   Card,
   CardHeader,
@@ -46,14 +45,14 @@ function AnnouncementSkeleton() {
     )
 }
 
-export default function NoticesPage() {
-  const [notices, setNotices] = useState<Announcement[]>([]);
+export default function TeacherAnnouncementsPage() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsLoading(true);
-    const unsubscribe = getAnnouncements("students", (announcements) => {
-      setNotices(announcements);
+    const unsubscribe = getAnnouncements("teachers", (announcements) => {
+      setAnnouncements(announcements);
       setIsLoading(false);
     });
 
@@ -62,8 +61,8 @@ export default function NoticesPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header title="Notices" />
-      <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
+      <Header title="Announcements" />
+      <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-4xl space-y-6">
           {isLoading ? (
             <>
@@ -71,39 +70,38 @@ export default function NoticesPage() {
                 <AnnouncementSkeleton />
                 <AnnouncementSkeleton />
             </>
-          ) : notices.length === 0 ? (
+          ) : announcements.length === 0 ? (
              <Card className="flex items-center justify-center p-8">
-                 <p className="text-muted-foreground">No notices have been published yet.</p>
+                 <p className="text-muted-foreground">No announcements have been published for you yet.</p>
              </Card>
           ) : (
-            notices.map((notice) => (
-              <Card key={notice.id}>
+            announcements.map((announcement) => (
+              <Card key={announcement.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle>{notice.title}</CardTitle>
+                      <CardTitle>{announcement.title}</CardTitle>
                       <CardDescription>
-                        {new Date(notice.createdAt).toLocaleDateString("en-GB", {
+                        {new Date(announcement.createdAt).toLocaleDateString("en-GB", {
                           day: "numeric",
                           month: "long",
                           year: "numeric",
                         })}
                       </CardDescription>
                     </div>
-                    <Badge variant={getCategoryVariant(notice.category)}>
-                      {notice.category}
+                    <Badge variant={getCategoryVariant(announcement.category)}>
+                      {announcement.category}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">{notice.content}</p>
+                  <p className="text-muted-foreground">{announcement.content}</p>
                 </CardContent>
               </Card>
             ))
           )}
         </div>
       </main>
-      <BottomNav />
     </div>
   );
 }
