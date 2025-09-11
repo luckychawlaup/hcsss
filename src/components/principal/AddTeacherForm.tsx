@@ -20,15 +20,16 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, Printer } from "lucide-react";
+import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, Printer, Plus, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
-import type { Teacher } from "./PrincipalDashboard";
+import type { Teacher } from "@/lib/firebase/teachers";
 import { addTeacher, getTeachers } from "@/lib/firebase/teachers";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "../ui/checkbox";
+import { Badge } from "../ui/badge";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -45,6 +46,7 @@ const addTeacherSchema = z.object({
   address: z.string().min(10, "Address is too short."),
   role: z.enum(["classTeacher", "subjectTeacher"], { required_error: "You must select a role."}),
   subject: z.string().min(2, "Subject is required."),
+  qualifications: z.array(z.string()).optional().default([]),
   classTeacherOf: z.string().optional(),
   classesTaught: z.array(z.string()).optional().default([]),
 }).refine(data => {
@@ -72,6 +74,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [addedTeacherData, setAddedTeacherData] = useState<Omit<Teacher, 'id'> | null>(null);
   const [assignedClasses, setAssignedClasses] = useState<string[]>([]);
+  const [qualificationInput, setQualificationInput] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -95,12 +98,27 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
       phoneNumber: "",
       address: "",
       subject: "",
+      qualifications: [],
       classTeacherOf: "",
       classesTaught: [],
     },
   });
   
   const role = form.watch("role");
+  const qualifications = form.watch("qualifications", []);
+
+  const handleAddQualification = () => {
+    if (qualificationInput.trim()) {
+        form.setValue("qualifications", [...qualifications, qualificationInput.trim()]);
+        setQualificationInput("");
+    }
+  }
+
+  const handleRemoveQualification = (index: number) => {
+    const newQualifications = [...qualifications];
+    newQualifications.splice(index, 1);
+    form.setValue("qualifications", newQualifications);
+  }
 
   const generateTeacherId = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -176,17 +194,19 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                 <title>Joining Letter</title>
                 <style>
                     body { font-family: 'Poppins', sans-serif; line-height: 1.6; color: #333; margin: 40px; }
-                    .container { max-width: 800px; margin: auto; }
+                    .container { max-width: 800px; margin: auto; border: 1px solid #eee; padding: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
                     .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 20px; margin-bottom: 30px; }
                     .header img { width: 80px; height: 80px; margin-right: 20px; }
                     .header h1 { font-size: 28px; color: #4285F4; margin: 0; }
                     .header p { margin: 0; font-size: 14px; }
                     .content { font-size: 16px; }
                     .content p { margin: 15px 0; }
-                    .footer { text-align: right; margin-top: 50px; font-style: italic; }
+                    .footer { text-align: right; margin-top: 60px; font-style: italic; }
+                    .signature-area { margin-top: 80px; border-top: 1px solid #ccc; padding-top: 10px; width: 250px; text-align: center; }
+                    .disclaimer { font-size: 12px; color: #777; margin-top: 40px; border-top: 1px dashed #ccc; padding-top: 15px; }
                     .details { border-collapse: collapse; width: 100%; margin: 25px 0; }
-                    .details td { padding: 8px; border: 1px solid #ddd; }
-                    .details td:first-child { font-weight: bold; width: 30%; }
+                    .details td { padding: 10px; border: 1px solid #ddd; }
+                    .details td:first-child { font-weight: bold; width: 30%; background-color: #f9f9f9; }
                 </style>
                  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
             </head>
@@ -200,7 +220,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         </div>
                     </div>
                     <div class="content">
-                        <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
+                        <p style="text-align: right;"><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
                         
                         <h3>Subject: Appointment Letter</h3>
                         
@@ -213,10 +233,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <table class="details">
                             <tr><td>Teacher ID</td><td>${generatedId}</td></tr>
                             <tr><td>Full Name</td><td>${addedTeacherData.name}</td></tr>
-                             <tr><td>Role</td><td>${addedTeacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
+                            <tr><td>Role</td><td>${addedTeacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
                             ${addedTeacherData.role === 'classTeacher' ? `<tr><td>Assigned Class</td><td>${addedTeacherData.classTeacherOf}</td></tr>` : ''}
                             ${addedTeacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${addedTeacherData.classesTaught?.join(', ')}</td></tr>` : ''}
                             <tr><td>Primary Subject</td><td>${addedTeacherData.subject}</td></tr>
+                            ${addedTeacherData.qualifications && addedTeacherData.qualifications.length > 0 ? `<tr><td>Qualifications</td><td>${addedTeacherData.qualifications.join(', ')}</td></tr>` : ''}
                         </table>
 
                         <p>Please use the Teacher ID provided above to complete your registration on the school portal.</p>
@@ -224,9 +245,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <p>We look forward to you joining our team.</p>
                         
                         <div class="footer">
-                            <p>Sincerely,</p>
-                            <p><strong>The Principal</strong><br/>Hilton Convent School</p>
+                            <div class="signature-area">Principal's Signature & Stamp</div>
                         </div>
+                    </div>
+                     <div class="disclaimer">
+                        <strong>Note:</strong> This joining letter requires the signature of the principal and the official stamp of the school after printing to be considered valid.
                     </div>
                 </div>
             </body>
@@ -234,7 +257,6 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     `);
     printWindow.document.close();
     printWindow.focus();
-    // Use timeout to ensure content is loaded before printing
     setTimeout(() => {
         printWindow.print();
     }, 500);
@@ -388,6 +410,32 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     )}
                 />
             </div>
+            
+            <Separator />
+            
+            <div className="space-y-4">
+                <FormLabel>Qualifications</FormLabel>
+                <div className="flex gap-2">
+                    <Input 
+                        value={qualificationInput}
+                        onChange={(e) => setQualificationInput(e.target.value)}
+                        placeholder="e.g., B.Ed, M.Sc. in Physics"
+                    />
+                    <Button type="button" onClick={handleAddQualification}>
+                        <Plus className="mr-2 h-4 w-4" /> Add
+                    </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {qualifications.map((q, index) => (
+                        <Badge key={index} variant="secondary">
+                            {q}
+                            <button type="button" onClick={() => handleRemoveQualification(index)} className="ml-2 rounded-full p-0.5 hover:bg-destructive/20">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    ))}
+                </div>
+            </div>
 
             <Separator />
             
@@ -528,5 +576,3 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     </>
   );
 }
-
-    

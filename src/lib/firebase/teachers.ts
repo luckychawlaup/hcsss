@@ -25,6 +25,7 @@ export interface Teacher {
   joiningDate: number;
   classTeacherOf?: string;
   classesTaught?: string[];
+  qualifications?: string[];
 }
 
 // Add or update a teacher with a specific ID

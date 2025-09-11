@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import * as XLSX from "xlsx";
-import type { Teacher } from "./PrincipalDashboard";
+import type { Teacher } from "@/lib/firebase/teachers";
 import {
   Table,
   TableBody,
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
-import { Edit, Trash2, Loader2, Info, Printer, FileDown } from "lucide-react";
+import { Edit, Trash2, Loader2, Info, Printer, FileDown, Plus, X, UserX } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -64,6 +64,7 @@ const editTeacherSchema = z.object({
   address: z.string().min(10, "Address is too short."),
   role: z.enum(["classTeacher", "subjectTeacher"], { required_error: "You must select a role."}),
   subject: z.string().min(2, "Subject is required."),
+  qualifications: z.array(z.string()).optional().default([]),
   classTeacherOf: z.string().optional(),
   classesTaught: z.array(z.string()).optional().default([]),
   joiningDate: z.number(),
@@ -108,19 +109,21 @@ const handlePrintLetter = (teacherData: Teacher) => {
         <html>
             <head>
                 <title>Joining Letter - ${teacherData.name}</title>
-                <style>
+                 <style>
                     body { font-family: 'Poppins', sans-serif; line-height: 1.6; color: #333; margin: 40px; }
-                    .container { max-width: 800px; margin: auto; }
+                    .container { max-width: 800px; margin: auto; border: 1px solid #eee; padding: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
                     .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 20px; margin-bottom: 30px; }
                     .header img { width: 80px; height: 80px; margin-right: 20px; }
                     .header h1 { font-size: 28px; color: #4285F4; margin: 0; }
                     .header p { margin: 0; font-size: 14px; }
                     .content { font-size: 16px; }
                     .content p { margin: 15px 0; }
-                    .footer { text-align: right; margin-top: 50px; font-style: italic; }
+                    .footer { text-align: right; margin-top: 60px; font-style: italic; }
+                    .signature-area { margin-top: 80px; border-top: 1px solid #ccc; padding-top: 10px; width: 250px; text-align: center; }
+                    .disclaimer { font-size: 12px; color: #777; margin-top: 40px; border-top: 1px dashed #ccc; padding-top: 15px; }
                     .details { border-collapse: collapse; width: 100%; margin: 25px 0; }
-                    .details td { padding: 8px; border: 1px solid #ddd; }
-                    .details td:first-child { font-weight: bold; width: 30%; }
+                    .details td { padding: 10px; border: 1px solid #ddd; }
+                    .details td:first-child { font-weight: bold; width: 30%; background-color: #f9f9f9; }
                     @media print {
                         .no-print { display: none; }
                     }
@@ -137,7 +140,7 @@ const handlePrintLetter = (teacherData: Teacher) => {
                         </div>
                     </div>
                     <div class="content">
-                        <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
+                        <p style="text-align: right;"><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
                         
                         <h3>Subject: Appointment Letter</h3>
                         
@@ -150,10 +153,11 @@ const handlePrintLetter = (teacherData: Teacher) => {
                         <table class="details">
                             <tr><td>Teacher ID</td><td>${teacherData.id}</td></tr>
                             <tr><td>Full Name</td><td>${teacherData.name}</td></tr>
-                             <tr><td>Role</td><td>${teacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
+                            <tr><td>Role</td><td>${teacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
                             ${teacherData.role === 'classTeacher' ? `<tr><td>Assigned Class</td><td>${teacherData.classTeacherOf}</td></tr>` : ''}
                             ${teacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${teacherData.classesTaught?.join(', ')}</td></tr>` : ''}
                             <tr><td>Primary Subject</td><td>${teacherData.subject}</td></tr>
+                            ${teacherData.qualifications && teacherData.qualifications.length > 0 ? `<tr><td>Qualifications</td><td>${teacherData.qualifications.join(', ')}</td></tr>` : ''}
                         </table>
 
                         <p>Please use the Teacher ID provided above to complete your registration on the school portal.</p>
@@ -161,9 +165,11 @@ const handlePrintLetter = (teacherData: Teacher) => {
                         <p>We look forward to you joining our team.</p>
                         
                         <div class="footer">
-                            <p>Sincerely,</p>
-                            <p><strong>The Principal</strong><br/>Hilton Convent School</p>
+                             <div class="signature-area">Principal's Signature & Stamp</div>
                         </div>
+                    </div>
+                     <div class="disclaimer">
+                        <strong>Note:</strong> This joining letter requires the signature of the principal and the official stamp of the school after printing to be considered valid.
                     </div>
                 </div>
             </body>
@@ -181,13 +187,15 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [qualificationInput, setQualificationInput] = useState("");
 
   const form = useForm<z.infer<typeof editTeacherSchema>>({
     resolver: zodResolver(editTeacherSchema),
   });
 
-  const { formState: { isSubmitting: isUpdating }, reset, watch } = form;
+  const { formState: { isSubmitting: isUpdating }, reset, watch, setValue } = form;
   const role = watch("role");
+  const qualifications = watch("qualifications", []);
 
   const handleDeleteClick = (teacher: Teacher) => {
     setSelectedTeacher(teacher);
@@ -209,10 +217,24 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     reset({
         ...teacher,
         dob: new Date(teacher.dob),
+        qualifications: teacher.qualifications || [],
         classesTaught: teacher.classesTaught || [],
     });
     setIsEditOpen(true);
   };
+  
+  const handleAddQualification = () => {
+    if (qualificationInput.trim()) {
+        setValue("qualifications", [...qualifications, qualificationInput.trim()]);
+        setQualificationInput("");
+    }
+  }
+
+  const handleRemoveQualification = (index: number) => {
+    const newQualifications = [...qualifications];
+    newQualifications.splice(index, 1);
+    setValue("qualifications", newQualifications);
+  }
 
   async function onEditSubmit(values: z.infer<typeof editTeacherSchema>) {
     if(selectedTeacher) {
@@ -235,6 +257,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
         "Subject": teacher.subject,
         "Phone Number": teacher.phoneNumber,
         "DOB": teacher.dob,
+        "Qualifications": teacher.qualifications?.join(', '),
         "Joining Date": new Date(teacher.joiningDate).toLocaleString('en-GB'),
         "Father's Name": teacher.fatherName,
         "Address": teacher.address,
@@ -284,7 +307,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
   if (teachers.length === 0) {
     return (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
-            <Users className="h-12 w-12 text-muted-foreground" />
+            <UserX className="h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-semibold">No Teachers Found</h3>
             <p className="text-muted-foreground mt-2">Get started by adding a new teacher to the system.</p>
       </div>
@@ -491,6 +514,30 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                             />
                         </div>
                         <Separator />
+                        <div className="space-y-4">
+                            <FormLabel>Qualifications</FormLabel>
+                            <div className="flex gap-2">
+                                <Input 
+                                    value={qualificationInput}
+                                    onChange={(e) => setQualificationInput(e.target.value)}
+                                    placeholder="e.g., B.Ed, M.Sc. in Physics"
+                                />
+                                <Button type="button" onClick={handleAddQualification}>
+                                    <Plus className="mr-2 h-4 w-4" /> Add
+                                </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {qualifications.map((q, index) => (
+                                    <Badge key={index} variant="secondary">
+                                        {q}
+                                        <button type="button" onClick={() => handleRemoveQualification(index)} className="ml-2 rounded-full p-0.5 hover:bg-destructive/20">
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                        <Separator />
                          <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField
@@ -630,5 +677,3 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     </>
   );
 }
-
-    
