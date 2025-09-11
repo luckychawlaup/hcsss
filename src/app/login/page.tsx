@@ -9,7 +9,7 @@ export default function RoleSelectionPage() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center justify-center mb-12">
           <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary-foreground mb-4">
-            <Image src="/logo.png" alt="Hilton Convent School Logo" width={80} height={80} />
+            <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={80} height={80} />
           </div>
           <h1 className="text-3xl font-bold text-center text-primary">Hilton Convent School</h1>
           <p className="text-center text-muted-foreground mt-2">
