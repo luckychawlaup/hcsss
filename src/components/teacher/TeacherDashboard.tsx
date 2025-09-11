@@ -11,15 +11,18 @@ import {
     CardContent
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, DollarSign, Banknote, CalendarPlus } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, DollarSign, Banknote, CalendarPlus, AlertCircle, Loader2 } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
-import { getAuth, User } from "firebase/auth";
+import { getAuth, User, sendPasswordResetEmail } from "firebase/auth";
 import { app } from "@/lib/firebase";
-import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
+import { getTeacherByAuthId, Teacher, updateTeacher } from "@/lib/firebase/teachers";
 import { getStudents, Student } from "@/lib/firebase/students";
 import TeacherStudentList from "./TeacherStudentList";
 import ApproveLeaves from "./ApproveLeaves";
 import { AddHomeworkForm } from "./AddHomeworkForm";
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import { Button } from "../ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function TeacherDashboard() {
@@ -27,7 +30,9 @@ export default function TeacherDashboard() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isResending, setIsResending] = useState(false);
   const auth = getAuth(app);
+  const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -66,12 +71,51 @@ export default function TeacherDashboard() {
     }
   }, [teacher]);
 
+  const handleResendEmail = async () => {
+    if (!currentUser?.email) return;
+    setIsResending(true);
+    try {
+      await sendPasswordResetEmail(auth, currentUser.email);
+      // Optimistically update the flag so the banner disappears,
+      // assuming the user will follow the link.
+      if(teacher) {
+          await updateTeacher(teacher.id, { mustChangePassword: false, tempPassword: "" });
+      }
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Please check your inbox to set a new password.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send password reset email. Please try again.",
+      });
+    } finally {
+      setIsResending(false);
+    }
+  }
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header title="Teacher Dashboard" showAvatar={true} />
       <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
         
+        {teacher?.mustChangePassword && (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Action Required: Change Your Password</AlertTitle>
+                <AlertDescription>
+                   You are currently logged in with a temporary password. For your security, please change it immediately. A password reset link was sent to your email.
+                   <Button onClick={handleResendEmail} disabled={isResending} variant="link" className="p-0 h-auto ml-2 text-destructive-foreground underline">
+                        {isResending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Resend Password Reset Email
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        )}
+
         <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Your Students" value={isLoading ? '...' : students.length.toString()} icon={Users} />
             <StatCard title="Class Teacher Of" value={teacher?.role === 'classTeacher' ? (teacher.classTeacherOf || 'N/A') : 'N/A'} icon={Users} />
