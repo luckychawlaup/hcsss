@@ -82,7 +82,7 @@ export default function LoginForm({ role }: LoginFormProps) {
         router.refresh();
         return;
       }
-
+      
       if (!user.emailVerified) {
         setNeedsVerification(true);
         setError(

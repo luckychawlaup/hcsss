@@ -29,7 +29,7 @@ export default function TeacherStudentList({ students, isLoading }: TeacherStude
   const filteredStudents = useMemo(() => {
     return students.filter(student =>
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.srn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.srn && student.srn.toLowerCase().includes(searchTerm.toLowerCase())) ||
       `${student.class}-${student.section}`.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [students, searchTerm]);

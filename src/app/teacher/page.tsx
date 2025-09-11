@@ -1,3 +1,4 @@
+
 import TeacherDashboard from "@/components/teacher/TeacherDashboard";
 import AuthProvider from "@/components/auth/AuthProvider";
 

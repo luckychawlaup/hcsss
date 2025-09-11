@@ -35,12 +35,10 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   const noticesLink = isTeacher ? "/teacher/announcements" : "/notices";
 
   const handleLogout = async () => {
-    if(isPrincipal) {
-        document.cookie = "principal-role=; path=/; max-age=-1";
-    } else {
-        await signOut(auth);
-        document.cookie = "teacher-role=; path=/; max-age=-1";
-    }
+    await signOut(auth);
+    // Clear role-specific cookies
+    document.cookie = "teacher-role=; path=/; max-age=-1";
+    document.cookie = "principal-role=; path=/; max-age=-1"; // Example if you had one
     router.push("/login");
     router.refresh();
   }
@@ -63,7 +61,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
             </Link>
           </Button>
         )}
-        {showAvatar && (
+        {showAvatar && !isPrincipal && (
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <button className="hidden items-center gap-3 focus:outline-none md:flex">

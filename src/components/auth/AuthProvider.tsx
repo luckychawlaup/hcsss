@@ -14,7 +14,7 @@ const publicPaths = [
     "/auth/teacher/login",
     "/auth/principal/login",
     "/auth/student/signup",
-    "/auth/teacher/signup",
+    "/auth/teacher/register",
     "/auth/student/forgot-password",
     "/auth/teacher/forgot-password",
 ];

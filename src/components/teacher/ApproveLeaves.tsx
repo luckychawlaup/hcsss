@@ -116,12 +116,12 @@ export default function ApproveLeaves({
 
   useEffect(() => {
     setIsLoading(true);
-    let unsubStudents: () => void;
-    let unsubTeachers: () => void;
+    let unsubStudents: (() => void) | undefined;
+    let unsubTeachers: (() => void) | undefined;
 
     if (isPrincipalView) {
-      const allStudentIds = allStudents.map((s) => s.id);
-      if (allStudentIds.length > 0) {
+      if (allStudents.length > 0) {
+        const allStudentIds = allStudents.map((s) => s.id);
         unsubStudents = getLeaveRequestsForStudents(
           allStudentIds,
           (leaves) => {
@@ -129,18 +129,23 @@ export default function ApproveLeaves({
             setIsLoading(false);
           }
         );
+      } else {
+        setStudentLeaves([]);
+        setIsLoading(false);
       }
       
-      const allTeacherIds = allTeachers.map((t) => t.id);
-      if (allTeacherIds.length > 0) {
+      if (allTeachers.length > 0) {
+         const allTeacherIds = allTeachers.map((t) => t.id);
          unsubTeachers = getLeaveRequestsForTeachers(allTeacherIds, (leaves) => {
             setTeacherLeaves(leaves);
          });
+      } else {
+        setTeacherLeaves([]);
       }
 
     } else { // Teacher's view
-      const studentIds = assignedStudents.map((s) => s.id);
-      if (studentIds.length > 0) {
+      if (assignedStudents.length > 0) {
+        const studentIds = assignedStudents.map((s) => s.id);
         unsubStudents = getLeaveRequestsForStudents(
           studentIds,
           (leaves) => {

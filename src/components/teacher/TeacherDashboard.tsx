@@ -11,7 +11,7 @@ import {
     CardContent
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, ClipboardCheck, CalendarCheck, BookUp } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, DollarSign, Banknote, CalendarPlus } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import { getAuth, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
@@ -74,19 +74,22 @@ export default function TeacherDashboard() {
         
         <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Your Students" value={isLoading ? '...' : students.length.toString()} icon={Users} />
-            <StatCard title="Class Teacher" value={teacher?.role === 'classTeacher' ? (teacher.classTeacherOf || 'N/A') : 'N/A'} icon={Users} />
+            <StatCard title="Class Teacher Of" value={teacher?.role === 'classTeacher' ? (teacher.classTeacherOf || 'N/A') : 'N/A'} icon={Users} />
             <StatCard title="Pending Leaves" value="2" icon={CalendarCheck} />
             <StatCard title="Assignments Due" value="3" icon={ClipboardCheck} />
         </div>
 
         <div className="mx-auto w-full max-w-6xl">
             <Tabs defaultValue="manageStudents">
-                 <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="manageStudents">Manage Students</TabsTrigger>
+                 <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 lg:grid-cols-6">
+                    <TabsTrigger value="manageStudents">Students</TabsTrigger>
                     <TabsTrigger value="approveLeaves">Approve Leaves</TabsTrigger>
-                    <TabsTrigger value="addHomework">Add Homework</TabsTrigger>
-                    <TabsTrigger value="markAttendance">Mark Attendance</TabsTrigger>
+                    <TabsTrigger value="addHomework">Homework</TabsTrigger>
+                    <TabsTrigger value="markAttendance">Attendance</TabsTrigger>
+                    <TabsTrigger value="applyLeave">Apply for Leave</TabsTrigger>
+                    <TabsTrigger value="salary">Salary</TabsTrigger>
                 </TabsList>
+
                 <TabsContent value="manageStudents">
                     <Card className="mt-4">
                         <CardHeader>
@@ -103,6 +106,7 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
                  <TabsContent value="approveLeaves">
                     <Card className="mt-4">
                         <CardHeader>
@@ -119,6 +123,7 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
                  <TabsContent value="addHomework">
                     <Card className="mt-4">
                         <CardHeader>
@@ -135,6 +140,7 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
                 <TabsContent value="markAttendance">
                     <Card className="mt-4">
                         <CardHeader>
@@ -143,14 +149,49 @@ export default function TeacherDashboard() {
                                 Mark Attendance
                             </CardTitle>
                              <CardDescription>
-                                Mark daily attendance for your classes.
+                                Mark daily attendance for your classes. (Coming Soon)
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <p className="text-muted-foreground">The attendance marking module is coming soon.</p>
+                            <p className="text-muted-foreground">The attendance marking module is under development and will be available soon.</p>
                         </CardContent>
                     </Card>
                 </TabsContent>
+                
+                 <TabsContent value="applyLeave">
+                    <Card className="mt-4">
+                        <CardHeader>
+                             <CardTitle className="flex items-center gap-2">
+                                <CalendarPlus />
+                                Apply for Your Leave
+                            </CardTitle>
+                             <CardDescription>
+                                Apply for your own personal leave. (Coming Soon)
+                            </CardDescription>
+                        </CardHeader>
+                         <CardContent>
+                            <p className="text-muted-foreground">This feature is under development.</p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                 <TabsContent value="salary">
+                    <Card className="mt-4">
+                        <CardHeader>
+                             <CardTitle className="flex items-center gap-2">
+                                <DollarSign />
+                                Salary & Bank Details
+                            </CardTitle>
+                             <CardDescription>
+                                View your salary history and manage your bank account details. (Coming Soon)
+                            </CardDescription>
+                        </CardHeader>
+                         <CardContent>
+                            <p className="text-muted-foreground">This feature is under development.</p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
             </Tabs>
         </div>
       </main>

@@ -64,9 +64,12 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
   const { toast } = useToast();
 
   const assignedClasses =
-    teacher?.role === "classTeacher"
+    (teacher?.role === "classTeacher" && teacher.classTeacherOf
       ? [teacher.classTeacherOf]
-      : teacher?.classesTaught || [];
+      : []
+    ).concat(teacher?.classesTaught || [])
+    .filter((value, index, self) => self.indexOf(value) === index); // Unique classes
+
 
   const form = useForm<z.infer<typeof homeworkSchema>>({
     resolver: zodResolver(homeworkSchema),
