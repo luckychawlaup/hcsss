@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format as formatDate } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -119,10 +119,12 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
 
     try {
       const teacherId = generateTeacherId();
+      const joiningDate = Date.now();
       
       const newTeacherData: Omit<Teacher, 'id'> = {
         ...values,
-        dob: format(values.dob, "yyyy-MM-dd"), // Store DOB in a consistent format
+        dob: formatDate(values.dob, "yyyy-MM-dd"), // Store DOB in a consistent format
+        joiningDate: joiningDate,
       };
 
       await addTeacher(teacherId, newTeacherData);
@@ -154,9 +156,21 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
 
   const handlePrintLetter = () => {
     if (!addedTeacherData || !generatedId) return;
-
+    
     const printWindow = window.open('', '_blank');
-    printWindow?.document.write(`
+    if (!printWindow) {
+        alert("Please allow pop-ups to print the joining letter.");
+        return;
+    }
+
+    const formattedJoiningDate = addedTeacherData.joiningDate 
+        ? new Date(addedTeacherData.joiningDate).toLocaleString('en-GB', {
+            year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: true 
+          })
+        : 'N/A';
+
+    printWindow.document.write(`
         <html>
             <head>
                 <title>Joining Letter</title>
@@ -194,7 +208,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         
                         <p>We are pleased to offer you the position at Hilton Convent School. We were impressed with your qualifications and experience and believe you will be a valuable asset to our team.</p>
                         
-                        <p>Please find your details below:</p>
+                        <p>Your joining date is officially recorded as <strong>${formattedJoiningDate}</strong>. Please find your details below:</p>
                         
                         <table class="details">
                             <tr><td>Teacher ID</td><td>${generatedId}</td></tr>
@@ -218,11 +232,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             </body>
         </html>
     `);
-    printWindow?.document.close();
-    printWindow?.focus();
+    printWindow.document.close();
+    printWindow.focus();
     // Use timeout to ensure content is loaded before printing
     setTimeout(() => {
-        printWindow?.print();
+        printWindow.print();
     }, 500);
   }
 
@@ -298,7 +312,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                             >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {field.value ? (
-                                format(field.value, "PPP")
+                                formatDate(field.value, "PPP")
                                 ) : (
                                 <span>Pick a date</span>
                                 )}
@@ -514,3 +528,5 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     </>
   );
 }
+
+    

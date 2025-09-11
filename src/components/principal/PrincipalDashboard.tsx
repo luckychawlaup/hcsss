@@ -31,6 +31,7 @@ export interface Teacher {
   address: string;
   role: "classTeacher" | "subjectTeacher";
   subject: string;
+  joiningDate: number;
   classTeacherOf?: string;
   classesTaught?: string[];
 }
@@ -40,11 +41,12 @@ export default function PrincipalDashboard() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [activeTab, setActiveTab] = useState("addTeacher");
   const [isLoading, setIsLoading] = useState(true);
+  const auth = getAuth();
+  const isPrincipal = auth.currentUser?.uid === "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
 
   useEffect(() => {
-    const auth = getAuth();
     // Only fetch teachers if the user is the principal
-    if (auth.currentUser?.uid === "hvldHzYq4ZbZlc7nym3ICNaEI1u1") {
+    if (isPrincipal) {
         const unsubscribe = getTeachers((teachers) => {
           setTeachers(teachers as Teacher[]);
           setIsLoading(false);
@@ -55,7 +57,7 @@ export default function PrincipalDashboard() {
     } else {
         setIsLoading(false);
     }
-  }, []);
+  }, [isPrincipal]);
 
   const handleTeacherAdded = () => {
     // Switch to the view teachers tab after adding a new one
@@ -169,3 +171,5 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
+
+    

@@ -31,11 +31,11 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
-import { Edit, Trash2, Loader2 } from "lucide-react";
+import { Edit, Trash2, Loader2, Info } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format as formatDate } from "date-fns";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -47,6 +47,7 @@ import { Separator } from "../ui/separator";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -64,6 +65,7 @@ const editTeacherSchema = z.object({
   subject: z.string().min(2, "Subject is required."),
   classTeacherOf: z.string().optional(),
   classesTaught: z.array(z.string()).optional().default([]),
+  joiningDate: z.number(),
 }).refine(data => {
     if (data.role === 'classTeacher') return !!data.classTeacherOf;
     return true;
@@ -127,7 +129,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     if(selectedTeacher) {
         const updatedData = {
             ...values,
-            dob: format(values.dob, "yyyy-MM-dd"),
+            dob: formatDate(values.dob, "yyyy-MM-dd"),
         };
         await onUpdateTeacher(selectedTeacher.id, updatedData);
         setIsEditOpen(false);
@@ -145,7 +147,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
               <TableHead>Teacher ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Subject</TableHead>
+              <TableHead>Joining Date</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -180,6 +182,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
 
   return (
     <>
+    <TooltipProvider>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -188,7 +191,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
               <TableHead>Name</TableHead>
               <TableHead>Role / Assignment</TableHead>
               <TableHead>Subject</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead>Joining Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -201,11 +204,23 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                   {teacher.role === 'classTeacher' ? (
                     <Badge variant="secondary">Class Teacher: {teacher.classTeacherOf}</Badge>
                   ) : (
-                    <span className="text-muted-foreground">Subject Teacher</span>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Badge variant="outline" className="cursor-pointer">
+                                Subject Teacher
+                                <Info className="ml-1.5 h-3 w-3" />
+                            </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Teaches: {teacher.classesTaught?.join(', ')}</p>
+                        </TooltipContent>
+                    </Tooltip>
                   )}
                 </TableCell>
                 <TableCell>{teacher.subject}</TableCell>
-                <TableCell>{teacher.phoneNumber}</TableCell>
+                <TableCell>
+                    {teacher.joiningDate ? formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy') : 'N/A'}
+                </TableCell>
                 <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
                         <Edit className="h-4 w-4" />
@@ -219,6 +234,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
           </TableBody>
         </Table>
       </div>
+      </TooltipProvider>
 
        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
@@ -278,7 +294,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                                         >
                                             <CalendarIcon className="mr-2 h-4 w-4" />
                                             {field.value ? (
-                                            format(field.value, "PPP")
+                                            formatDate(field.value, "PPP")
                                             ) : (
                                             <span>Pick a date</span>
                                             )}
@@ -494,3 +510,5 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     </>
   );
 }
+
+    
