@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfDay } from "date-fns";
 import {
   Form,
   FormControl,
@@ -110,6 +110,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     defaultValues: {
       subject: teacher?.subject || "",
       description: "",
+      dueDate: new Date(),
     },
   });
 
@@ -138,6 +139,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         subject: teacher?.subject || "",
         description: "",
         classSection: "",
+        dueDate: new Date(),
         attachment: undefined,
       });
     }
@@ -194,6 +196,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         subject: teacher?.subject || "",
         description: "",
         classSection: "",
+        dueDate: new Date(),
         attachment: undefined,
       });
       
@@ -334,7 +337,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
+                          disabled={(date) => date < startOfDay(new Date())}
                           initialFocus
                         />
                       </PopoverContent>
@@ -492,7 +495,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                                     </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date()} initialFocus />
+                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < startOfDay(new Date())} initialFocus />
                                 </PopoverContent>
                                 </Popover>
                                 <FormMessage />
@@ -541,5 +544,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     </div>
   );
 }
+
+    
 
     

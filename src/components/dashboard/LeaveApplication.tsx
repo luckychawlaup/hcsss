@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -154,7 +155,7 @@ export default function LeaveApplication() {
                           defaultMonth={field.value?.from}
                           selected={{ from: field.value?.from, to: field.value?.to }}
                           onSelect={field.onChange}
-                          numberOfMonths={2}
+                          numberOfMonths={1}
                         />
                       </PopoverContent>
                     </Popover>
@@ -219,3 +220,5 @@ export default function LeaveApplication() {
     </>
   );
 }
+
+    
