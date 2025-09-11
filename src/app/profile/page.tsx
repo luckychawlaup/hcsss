@@ -1,7 +1,6 @@
+
 import Header from "@/components/dashboard/Header";
 import ProfilePageContent from "@/components/profile/ProfilePageContent";
-import BottomNav from "@/components/dashboard/BottomNav";
-import TeacherNav from "@/components/teacher/TeacherNav";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -18,12 +17,6 @@ export default function ProfilePage() {
           <ProfilePageContent />
         </Suspense>
       </main>
-      <div className="md:hidden">
-        {/* We need to determine which nav to show. A role check from a cookie or context is needed. */}
-        {/* For now, let's assume a student might see this page too. */}
-        {/* This logic will be improved with role management. */}
-        <BottomNav />
-      </div>
     </div>
   );
 }

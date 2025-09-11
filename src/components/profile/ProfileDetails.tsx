@@ -1,11 +1,6 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged, User as AuthUser } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getStudentByAuthId } from "@/lib/firebase/students";
-import { getTeacherByAuthId } from "@/lib/firebase/teachers";
 import type { Student } from "@/lib/firebase/students";
 import type { Teacher } from "@/lib/firebase/teachers";
 import {
@@ -17,15 +12,14 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   User,
-  Mail,
   Phone,
-  BookOpen,
   Calendar,
   Home,
   Bus,
   Award,
   Book,
   Briefcase,
+  BookOpen,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,7 +39,7 @@ const DetailItem = ({ icon, label, value }: { icon: React.ReactNode; label: stri
     );
 };
 
-function ProfileSkeleton() {
+export function ProfileSkeleton() {
     return (
         <div className="w-full">
              <div className="bg-card p-6 text-center">
@@ -68,7 +62,7 @@ function ProfileSkeleton() {
     )
 }
 
-function StudentProfile({ student }: { student: Student }) {
+export function StudentProfile({ student }: { student: Student }) {
     return (
         <div className="w-full">
              <div className="bg-card p-6 text-center">
@@ -80,32 +74,32 @@ function StudentProfile({ student }: { student: Student }) {
                 <p className="text-muted-foreground">Class {student.class}-{student.section} | SRN: {student.srn}</p>
             </div>
       
-            <div className="px-2 py-4 md:px-4 md:py-6 space-y-4">
-                <Card className="shadow-none border-0">
-                <CardHeader><CardTitle className="text-base">Family Information</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
-                    <DetailItem icon={<User size={20} />} label="Father's Name" value={student.fatherName} />
-                    <DetailItem icon={<Phone size={20} />} label="Father's Phone" value={student.fatherPhone} />
-                    <DetailItem icon={<User size={20} />} label="Mother's Name" value={student.motherName} />
-                    <DetailItem icon={<Phone size={20} />} label="Mother's Phone" value={student.motherPhone} />
-                    <DetailItem icon={<Phone size={20} />} label="Student's Phone" value={student.studentPhone} />
-                </CardContent>
+            <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+                <Card>
+                    <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><User /> Family Information</CardTitle></CardHeader>
+                    <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
+                        <DetailItem icon={<User size={20} />} label="Father's Name" value={student.fatherName} />
+                        <DetailItem icon={<Phone size={20} />} label="Father's Phone" value={student.fatherPhone} />
+                        <DetailItem icon={<User size={20} />} label="Mother's Name" value={student.motherName} />
+                        <DetailItem icon={<Phone size={20} />} label="Mother's Phone" value={student.motherPhone} />
+                        <DetailItem icon={<Phone size={20} />} label="Student's Phone" value={student.studentPhone} />
+                    </CardContent>
                 </Card>
 
-                <Card className="shadow-none border-0">
-                <CardHeader><CardTitle className="text-base">Contact &amp; Other Details</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
-                     <DetailItem icon={<Calendar size={20} />} label="Admission Date" value={new Date(student.admissionDate).toLocaleDateString("en-GB")} />
-                    <DetailItem icon={<Home size={20} />} label="Address" value={student.address} />
-                    <DetailItem icon={<Bus size={20} />} label="Transport" value={"School Transport"} />
-                </CardContent>
+                <Card>
+                    <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><Home /> Contact &amp; Other Details</CardTitle></CardHeader>
+                    <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
+                        <DetailItem icon={<Calendar size={20} />} label="Admission Date" value={new Date(student.admissionDate).toLocaleDateString("en-GB")} />
+                        <DetailItem icon={<Home size={20} />} label="Address" value={student.address} />
+                        <DetailItem icon={<Bus size={20} />} label="Transport" value={"School Transport"} />
+                    </CardContent>
                 </Card>
             </div>
         </div>
     )
 }
 
-function TeacherProfile({ teacher }: { teacher: Teacher }) {
+export function TeacherProfile({ teacher }: { teacher: Teacher }) {
     const classAssignment = teacher.role === 'classTeacher' ? teacher.classTeacherOf : teacher.classesTaught?.join(', ');
     const roleLabel = teacher.role === 'classTeacher' ? 'Class Teacher Of' : 'Teaches Classes';
 
@@ -121,9 +115,9 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
                  {teacher.email && <p className="text-sm text-muted-foreground mt-1">{teacher.email}</p>}
             </div>
       
-            <div className="px-2 py-4 md:px-4 md:py-6 space-y-4">
-                <Card className="shadow-none border-0">
-                    <CardHeader><CardTitle className="text-base">Professional Information</CardTitle></CardHeader>
+            <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+                <Card>
+                    <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><Briefcase /> Professional Information</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
                         <DetailItem icon={<Briefcase size={20} />} label="Role" value={teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'} />
                         <DetailItem icon={<BookOpen size={20} />} label={roleLabel} value={classAssignment} />
@@ -132,8 +126,8 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-none border-0">
-                    <CardHeader><CardTitle className="text-base">Personal Information</CardTitle></CardHeader>
+                <Card>
+                    <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><User /> Personal Information</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
                         <DetailItem icon={<Calendar size={20} />} label="Date of Birth" value={new Date(teacher.dob).toLocaleDateString("en-GB")} />
                         <DetailItem icon={<Phone size={20} />} label="Phone Number" value={teacher.phoneNumber} />
@@ -156,40 +150,4 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
             </div>
         </div>
     )
-}
-
-interface ProfileDetailsProps {
-    profile: Student | Teacher | null;
-    role: "student" | "teacher" | null;
-    isLoading: boolean;
-}
-
-
-export default function ProfileDetails({ profile, role, isLoading }: ProfileDetailsProps) {
-
-  if (isLoading) {
-    return <ProfileSkeleton />;
-  }
-
-  if (!profile) {
-    return (
-        <div className="flex items-center justify-center h-96 p-4 text-center">
-            <p className="text-muted-foreground">Could not load user profile. Please try again later.</p>
-        </div>
-    )
-  }
-
-  if (role === 'teacher') {
-    return <TeacherProfile teacher={profile as Teacher} />;
-  }
-  
-  if (role === 'student') {
-    return <StudentProfile student={profile as Student} />;
-  }
-
-  return (
-    <div className="flex items-center justify-center h-96 p-4 text-center">
-        <p className="text-muted-foreground">Your profile could not be loaded. Please contact administration.</p>
-    </div>
-  )
 }
