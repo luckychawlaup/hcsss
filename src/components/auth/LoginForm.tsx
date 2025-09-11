@@ -84,7 +84,7 @@ export default function LoginForm({ role }: LoginFormProps) {
       
       if (!user.emailVerified) {
         setNeedsVerification(true);
-        setError("Your email is not verified. Please check your inbox for a verification link.");
+        setError("Your email is not verified. A new verification link has been sent to your inbox.");
         await sendEmailVerification(user);
         toast({
           title: "Verification Email Sent",
