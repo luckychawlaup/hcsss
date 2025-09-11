@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import {
   Form,
   FormControl,
@@ -36,12 +36,31 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { Loader2, CalendarIcon, Upload, BookCheck } from "lucide-react";
+import { Loader2, CalendarIcon, Upload, BookCheck, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Teacher } from "@/lib/firebase/teachers";
-import { addHomework, getHomeworksByTeacher } from "@/lib/firebase/homework";
+import { addHomework, getHomeworksByTeacher, deleteHomework, updateHomework } from "@/lib/firebase/homework";
 import type { Homework } from "@/lib/firebase/homework";
 
 const homeworkSchema = z.object({
@@ -61,6 +80,10 @@ interface AddHomeworkFormProps {
 export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recentHomework, setRecentHomework] = useState<Homework[]>([]);
+  const [editingHomework, setEditingHomework] = useState<Homework | null>(null);
+  const [deletingHomework, setDeletingHomework] = useState<Homework | null>(null);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  
   const { toast } = useToast();
 
   const assignedClasses = useMemo(() => {
@@ -89,6 +112,8 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     },
   });
 
+  const { reset } = form;
+
   useEffect(() => {
     if (teacher) {
         const unsubscribe = getHomeworksByTeacher(teacher.id, (homeworks) => {
@@ -97,6 +122,26 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         return () => unsubscribe();
     }
   }, [teacher]);
+
+   useEffect(() => {
+    if (editingHomework) {
+      reset({
+        classSection: editingHomework.classSection,
+        subject: editingHomework.subject,
+        description: editingHomework.description,
+        dueDate: parseISO(editingHomework.dueDate),
+        attachment: undefined,
+      });
+    } else {
+      reset({
+        subject: teacher?.subject || "",
+        description: "",
+        classSection: "",
+        attachment: undefined,
+      });
+    }
+  }, [editingHomework, reset, teacher]);
+
 
   async function onSubmit(values: z.infer<typeof homeworkSchema>) {
     if (!teacher) {
@@ -110,24 +155,40 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     setIsSubmitting(true);
 
     try {
-      const homeworkData = {
-        assignedBy: teacher.id,
-        teacherName: teacher.name,
-        classSection: values.classSection,
-        subject: values.subject,
-        description: values.description,
-        dueDate: format(values.dueDate, "yyyy-MM-dd"),
-        assignedAt: Date.now(),
-      };
-
       const file = values.attachment?.[0];
+      
+      if(editingHomework) {
+        // Update existing homework
+        const updatedData = {
+            classSection: values.classSection,
+            subject: values.subject,
+            description: values.description,
+            dueDate: format(values.dueDate, "yyyy-MM-dd"),
+        }
+        await updateHomework(editingHomework.id, updatedData, file);
+        toast({
+            title: "Homework Updated!",
+            description: `Homework for ${values.classSection} has been updated.`,
+        });
+        setEditingHomework(null);
+      } else {
+        // Add new homework
+        const homeworkData = {
+            assignedBy: teacher.id,
+            teacherName: teacher.name,
+            classSection: values.classSection,
+            subject: values.subject,
+            description: values.description,
+            dueDate: format(values.dueDate, "yyyy-MM-dd"),
+            assignedAt: Date.now(),
+        };
+        await addHomework(homeworkData, file);
+        toast({
+            title: "Homework Assigned!",
+            description: `Homework for ${values.classSection} has been posted.`,
+        });
+      }
 
-      await addHomework(homeworkData, file);
-
-      toast({
-        title: "Homework Assigned!",
-        description: `Homework for ${values.classSection} has been posted.`,
-      });
       form.reset({
         subject: teacher?.subject || "",
         description: "",
@@ -149,6 +210,30 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
       console.error(error);
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  const handleDeleteClick = (homework: Homework) => {
+    setDeletingHomework(homework);
+    setIsDeleteAlertOpen(true);
+  }
+
+  const confirmDelete = async () => {
+    if(!deletingHomework) return;
+    try {
+        await deleteHomework(deletingHomework.id);
+        toast({
+            title: "Homework Deleted",
+            description: "The homework assignment has been successfully removed."
+        });
+        setIsDeleteAlertOpen(false);
+        setDeletingHomework(null);
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Deletion Failed",
+            description: "Could not delete the homework assignment. Please try again."
+        });
     }
   }
 
@@ -303,13 +388,25 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                     Your 5 most recent homework assignments.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-2">
                 {recentHomework.length > 0 ? (
                     recentHomework.map(hw => (
                         <div key={hw.id} className="text-sm p-3 bg-secondary/50 rounded-md">
-                            <p className="font-bold">{hw.subject} - {hw.classSection}</p>
-                            <p className="text-muted-foreground truncate">{hw.description}</p>
-                            <p className="text-xs text-muted-foreground mt-1">Due: {hw.dueDate}</p>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="font-bold">{hw.subject} - {hw.classSection}</p>
+                                    <p className="text-muted-foreground truncate">{hw.description}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Due: {hw.dueDate}</p>
+                                </div>
+                                <div className="flex gap-1">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingHomework(hw)}>
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteClick(hw)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     ))
                 ) : (
@@ -318,8 +415,119 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
             </CardContent>
         </Card>
       </div>
+
+       <Dialog open={!!editingHomework} onOpenChange={(isOpen) => !isOpen && setEditingHomework(null)}>
+            <DialogContent>
+                 <DialogHeader>
+                    <DialogTitle>Edit Homework</DialogTitle>
+                    <DialogDescription>
+                        Update the details for this homework assignment.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="classSection"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Class</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {assignedClasses.map((cs) => (<SelectItem key={cs} value={cs!}>{cs}</SelectItem>))}
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="subject"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Subject</FormLabel>
+                                <FormControl><Input {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl><Textarea {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="dueDate"
+                            render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>Due Date</FormLabel>
+                                <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
+                                    </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date()} initialFocus />
+                                </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="attachment"
+                            render={() => (
+                            <FormItem>
+                                <FormLabel>New Attachment (Optional)</FormLabel>
+                                <FormControl>
+                                <Input type="file" {...form.register("attachment")} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEditingHomework(null)} disabled={isSubmitting}>Cancel</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save Changes
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will permanently delete the homework for {deletingHomework?.classSection} ({deletingHomework?.subject}). This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }
-
-    
