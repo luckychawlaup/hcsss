@@ -23,7 +23,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { Loader2, Landmark, Wallet, Edit, Save } from "lucide-react";
+import { Loader2, Landmark, Wallet, Edit, Save, WalletCards } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateTeacher } from "@/lib/firebase/teachers";
 import {
@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Link from "next/link";
 
 
 const bankAccountSchema = z.object({
@@ -192,6 +193,7 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
                             <TableHead>Month</TableHead>
                             <TableHead>Amount</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -200,6 +202,14 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
                                 <TableCell>{record.month}</TableCell>
                                 <TableCell>{record.amount}</TableCell>
                                 <TableCell className="text-green-600">{record.status}</TableCell>
+                                <TableCell className="text-right">
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={`/teacher/salary-slip/${record.month.replace(' ','-')}`}>
+                                            <WalletCards className="mr-2" />
+                                            View Slip
+                                        </Link>
+                                    </Button>
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
