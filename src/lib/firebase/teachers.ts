@@ -1,48 +1,44 @@
 import { db } from "@/lib/firebase";
 import {
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  getDocs,
-  getDoc,
-  deleteDoc,
-  updateDoc,
-  onSnapshot,
+  ref,
+  set,
+  onValue,
+  get,
+  update,
+  remove,
   query,
-} from "firebase/firestore";
-import type { DocumentData } from "firebase/firestore";
+  orderByChild,
+} from "firebase/database";
+import type { DataSnapshot } from "firebase/database";
 
 const TEACHERS_COLLECTION = "teachers";
 
-// Add a new teacher with a specific ID
-export const addTeacher = async (teacherId: string, teacherData: Omit<DocumentData, 'id'>) => {
+// Add or update a teacher with a specific ID
+export const addTeacher = async (teacherId: string, teacherData: Omit<any, 'id'>) => {
   try {
-    if (!db) {
-        throw new Error("Firestore database is not available. Please check your Firebase configuration.");
-    }
-    const teacherRef = doc(db, TEACHERS_COLLECTION, teacherId);
-    await setDoc(teacherRef, teacherData);
+    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
+    await set(teacherRef, teacherData);
   } catch (e: any) {
     console.error("Error adding document: ", e.message);
-    // Re-throw a more user-friendly error
     throw new Error(`Failed to add teacher. Please ensure your Firebase configuration is correct and the service is available. Original error: ${e.message}`);
   }
 };
 
 // Get all teachers with real-time updates
-export const getTeachers = (callback: (teachers: DocumentData[]) => void) => {
-  const q = query(collection(db, TEACHERS_COLLECTION));
-  const unsubscribe = onSnapshot(q, (querySnapshot) => {
-    const teachers: DocumentData[] = [];
-    querySnapshot.forEach((doc) => {
-      teachers.push({ id: doc.id, ...doc.data() });
-    });
+export const getTeachers = (callback: (teachers: any[]) => void) => {
+  const teachersRef = ref(db, TEACHERS_COLLECTION);
+  const unsubscribe = onValue(teachersRef, (snapshot: DataSnapshot) => {
+    const teachers: any[] = [];
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      for (const id in data) {
+        teachers.push({ id, ...data[id] });
+      }
+    }
     callback(teachers);
   }, (error) => {
-      console.error("Error fetching teachers: ", error);
-      // You could also have a callback for errors to update the UI
-      callback([]); // Return empty array on error
+    console.error("Error fetching teachers: ", error);
+    callback([]); // Return empty array on error
   });
   return unsubscribe; // Return the unsubscribe function to clean up the listener
 };
@@ -50,10 +46,10 @@ export const getTeachers = (callback: (teachers: DocumentData[]) => void) => {
 // Get a single teacher by ID
 export const getTeacherById = async (teacherId: string) => {
     try {
-        const teacherRef = doc(db, TEACHERS_COLLECTION, teacherId);
-        const docSnap = await getDoc(teacherRef);
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() };
+        const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
+        const snapshot = await get(teacherRef);
+        if (snapshot.exists()) {
+            return { id: snapshot.key, ...snapshot.val() };
         } else {
             console.log("No such document!");
             return null;
@@ -66,10 +62,10 @@ export const getTeacherById = async (teacherId: string) => {
 
 
 // Update a teacher's details
-export const updateTeacher = async (teacherId: string, updatedData: Partial<DocumentData>) => {
+export const updateTeacher = async (teacherId: string, updatedData: Partial<any>) => {
   try {
-    const teacherRef = doc(db, TEACHERS_COLLECTION, teacherId);
-    await updateDoc(teacherRef, updatedData);
+    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
+    await update(teacherRef, updatedData);
   } catch (e) {
     console.error("Error updating document: ", e);
     throw e;
@@ -79,8 +75,8 @@ export const updateTeacher = async (teacherId: string, updatedData: Partial<Docu
 // Delete a teacher
 export const deleteTeacher = async (teacherId: string) => {
   try {
-    const teacherRef = doc(db, TEACHERS_COLLECTION, teacherId);
-    await deleteDoc(teacherRef);
+    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
+    await remove(teacherRef);
   } catch (e) {
     console.error("Error deleting document: ", e);
     throw e;

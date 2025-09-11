@@ -51,10 +51,7 @@ export function MakeAnnouncementForm() {
     setError(null);
 
     try {
-      await addAnnouncement({
-        ...values,
-        createdAt: new Date(),
-      });
+      await addAnnouncement(values as any);
       toast({
         title: "Announcement Published!",
         description: "Your announcement has been successfully published.",

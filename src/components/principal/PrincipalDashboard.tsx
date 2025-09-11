@@ -17,10 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
-import type { DocumentData } from "firebase/firestore";
 
 // Define the Teacher type, you can expand this as needed
-export interface Teacher extends DocumentData {
+export interface Teacher {
   id: string;
   name: string;
   dob: string;

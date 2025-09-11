@@ -1,9 +1,10 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
+  apiKey: "AIzaSyA5BScSQ_PjDjpAfIBHCeo5grpSr2i04eM",
   authDomain: "hilton-convent-school.firebaseapp.com",
+  databaseURL: "https://hilton-convent-school-default-rtdb.firebaseio.com",
   projectId: "hilton-convent-school",
   storageBucket: "hilton-convent-school.appspot.com",
   messagingSenderId: "438196355297",
@@ -13,6 +14,6 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+const db = getDatabase(app);
 
 export { app, db };

@@ -1,14 +1,14 @@
-
 import { db } from "@/lib/firebase";
 import {
-  collection,
-  addDoc,
-  onSnapshot,
+  ref,
+  push,
+  onValue,
   query,
-  orderBy,
-  where,
-  QueryConstraint,
-} from "firebase/firestore";
+  orderByChild,
+  equalTo,
+  get,
+  DataSnapshot,
+} from "firebase/database";
 import type { DocumentData } from "firebase/firestore";
 
 const ANNOUNCEMENTS_COLLECTION = "announcements";
@@ -19,13 +19,17 @@ export interface Announcement extends DocumentData {
   content: string;
   category: string;
   target: "students" | "teachers" | "both";
-  createdAt: Date;
+  createdAt: number; // Use timestamp for ordering
 }
 
 // Add a new announcement
 export const addAnnouncement = async (announcementData: Omit<Announcement, 'id'>) => {
   try {
-    await addDoc(collection(db, ANNOUNCEMENTS_COLLECTION), announcementData);
+    const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
+    await push(announcementsRef, { 
+        ...announcementData,
+        createdAt: Date.now() // Store as a server timestamp
+    });
   } catch (e) {
     console.error("Error adding document: ", e);
     throw e;
@@ -37,23 +41,29 @@ export const getAnnouncements = (
     target: "students" | "teachers",
     callback: (announcements: Announcement[]) => void
 ) => {
-  const constraints: QueryConstraint[] = [
-      where("target", "in", [target, "both"]),
-      orderBy("createdAt", "desc")
-  ];
-  const q = query(collection(db, ANNOUNCEMENTS_COLLECTION), ...constraints);
+  const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
   
-  const unsubscribe = onSnapshot(q, (querySnapshot) => {
-    const announcements: Announcement[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      announcements.push({ 
-          id: doc.id, 
-          ...data,
-          createdAt: data.createdAt.toDate() // Convert Firestore Timestamp to JS Date
-      } as Announcement);
-    });
-    callback(announcements);
+  // RTDB queries are less flexible than Firestore. We fetch all and filter client-side for "both" case.
+  const announcementsQuery = query(announcementsRef, orderByChild('createdAt'));
+
+  const unsubscribe = onValue(announcementsQuery, (snapshot: DataSnapshot) => {
+    const allAnnouncements: Announcement[] = [];
+    if(snapshot.exists()) {
+        const data = snapshot.val();
+         for (const id in data) {
+            allAnnouncements.push({ id, ...data[id] });
+        }
+    }
+    
+    // Filter announcements for the target audience
+    const filtered = allAnnouncements.filter(
+        (ann) => ann.target === target || ann.target === "both"
+    );
+
+    // Sort by most recent
+    const sorted = filtered.sort((a, b) => b.createdAt - a.createdAt);
+
+    callback(sorted);
   });
   return unsubscribe; // Return the unsubscribe function to clean up the listener
 };
