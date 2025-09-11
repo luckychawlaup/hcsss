@@ -9,7 +9,6 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   sendEmailVerification,
-  sendPasswordResetEmail,
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -24,9 +23,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getTeacherByAuthId, updateTeacher } from "@/lib/firebase/teachers";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 
 const loginSchema = z.object({
@@ -42,7 +40,6 @@ export default function LoginForm({ role }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
-  const [passwordResetRequired, setPasswordResetRequired] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth(app);
@@ -59,7 +56,6 @@ export default function LoginForm({ role }: LoginFormProps) {
     setIsLoading(true);
     setError(null);
     setNeedsVerification(false);
-    setPasswordResetRequired(false);
 
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -96,16 +92,6 @@ export default function LoginForm({ role }: LoginFormProps) {
       }
 
       if (role === 'teacher') {
-         const teacherProfile = await getTeacherByAuthId(user.uid);
-         if (teacherProfile?.mustChangePassword) {
-            await sendPasswordResetEmail(auth, user.email!);
-            // Clear the temporary password and the flag from the database
-            await updateTeacher(teacherProfile.id, { mustChangePassword: false, tempPassword: "" });
-            setPasswordResetRequired(true);
-            await auth.signOut();
-            setIsLoading(false);
-            return;
-         }
         document.cookie = "teacher-role=true; path=/; max-age=86400";
         router.push("/teacher");
       } else {
@@ -132,19 +118,6 @@ export default function LoginForm({ role }: LoginFormProps) {
       setIsLoading(false);
     }
   }
-  
-  if (passwordResetRequired) {
-    return (
-        <Alert variant="default" className="bg-primary/10 border-primary/20">
-            <CheckCircle className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-primary">First-Time Login: Password Change Required</AlertTitle>
-            <AlertDescription>
-                For your security, a password reset link has been sent to your email. Please use it to set a new password before logging in again.
-            </AlertDescription>
-        </Alert>
-    )
-  }
-
 
   return (
     <>

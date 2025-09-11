@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,8 +23,7 @@ import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, UserPlus, KeyRound, Plus, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
-import type { Teacher } from "@/lib/firebase/teachers";
-import { addTeacherWithAuth, getTeachers } from "@/lib/firebase/teachers";
+import { registerTeacher } from "@/lib/firebase/teachers";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -72,23 +71,10 @@ interface AddTeacherFormProps {
 export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generatedId, setGeneratedId] = useState<string | null>(null);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
-  const [addedTeacherData, setAddedTeacherData] = useState<Omit<Teacher, 'id' | 'authUid' | 'joiningDate' | 'tempPassword'> | null>(null);
-  const [assignedClasses, setAssignedClasses] = useState<string[]>([]);
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [addedTeacherName, setAddedTeacherName] = useState<string | null>(null);
   const [qualificationInput, setQualificationInput] = useState("");
   const { toast } = useToast();
-
-  useEffect(() => {
-    const unsubscribe = getTeachers((teachers) => {
-        const assigned = teachers
-            .filter(t => t.role === 'classTeacher' && t.classTeacherOf)
-            .map(t => t.classTeacherOf as string);
-        setAssignedClasses(assigned);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   const form = useForm<z.infer<typeof addTeacherSchema>>({
     resolver: zodResolver(addTeacherSchema),
@@ -125,23 +111,20 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   async function onSubmit(values: z.infer<typeof addTeacherSchema>) {
     setIsLoading(true);
     setError(null);
-    setGeneratedId(null);
-    setAddedTeacherData(null);
-    setTempPassword(null);
+    setGeneratedKey(null);
+    setAddedTeacherName(null);
 
     try {
-      const { teacherId, tempPassword: newTempPassword } = await addTeacherWithAuth(values);
+      const registrationKey = await registerTeacher(values);
       
-      setGeneratedId(teacherId);
-      setAddedTeacherData(values);
-      setTempPassword(newTempPassword);
+      setGeneratedKey(registrationKey);
+      setAddedTeacherName(values.name);
       toast({
-        title: "Teacher Added Successfully!",
-        description: `${values.name} has been added and their account has been created.`,
+        title: "Teacher Registered Successfully!",
+        description: `${values.name} has been registered. Please provide them with their registration key.`,
       });
       form.reset();
-      // Do not call onTeacherAdded() here to prevent premature tab switching.
-      // The user can choose to add another or view the list.
+      // Do not call onTeacherAdded() here to allow principal to copy the key.
     } catch (e: any) {
       setError(`An unexpected error occurred: ${e.message}`);
     } finally {
@@ -149,60 +132,38 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     }
   }
 
-  const copyToClipboard = (text: string, type: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: `Teacher ${type} copied to clipboard.`,
-    });
+  const copyToClipboard = () => {
+    if (generatedKey) {
+      navigator.clipboard.writeText(generatedKey);
+      toast({
+        title: "Copied!",
+        description: "Registration Key copied to clipboard.",
+      });
+    }
   };
 
   const handleAddAnother = () => {
-    setGeneratedId(null);
-    setAddedTeacherData(null);
-    setTempPassword(null);
+    setGeneratedKey(null);
+    setAddedTeacherName(null);
   }
 
-  if (generatedId && addedTeacherData && tempPassword) {
+  if (generatedKey && addedTeacherName) {
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20">
             <CheckCircle className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-primary">Teacher Added & Account Created!</AlertTitle>
+            <AlertTitle className="text-primary">Teacher Registered!</AlertTitle>
             <AlertDescription className="space-y-4">
-                <p>An account for {addedTeacherData.name} has been created. Please share these credentials with them securely.</p>
+                <p>A registration record for {addedTeacherName} has been created. Please share the following unique **Registration Key** with them so they can create their account.</p>
                 
-                <div className="space-y-2">
-                     <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
-                        <div>
-                            <p className="text-xs text-muted-foreground">Teacher ID (Auth UID)</p>
-                            <p className="font-mono font-semibold text-primary break-all">{generatedId}</p>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(generatedId, "ID")}>
-                            <Copy className="h-5 w-5 text-primary" />
-                        </Button>
-                    </div>
-                    <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
-                        <div>
-                            <p className="text-xs text-muted-foreground">Email / Username</p>
-                            <p className="font-mono font-semibold text-primary">{addedTeacherData.email}</p>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(addedTeacherData.email, "Email")}>
-                            <Copy className="h-5 w-5 text-primary" />
-                        </Button>
-                    </div>
-                     <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
-                         <div>
-                            <p className="text-xs text-muted-foreground">Temporary Password</p>
-                            <p className="font-mono font-semibold text-primary">{tempPassword}</p>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(tempPassword, "Password")}>
-                            <KeyRound className="h-5 w-5 text-primary" />
-                        </Button>
-                    </div>
+                <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
+                    <p className="font-mono text-lg font-bold text-primary">{generatedKey}</p>
+                    <Button variant="ghost" size="icon" onClick={copyToClipboard}>
+                        <Copy className="h-5 w-5 text-primary" />
+                    </Button>
                 </div>
-
+                
                 <p className="text-xs text-muted-foreground">
-                    The teacher will be required to change this temporary password upon their first login for security reasons.
+                    The teacher will need this key, their full name, and their email address to complete the registration on the teacher login page.
                 </p>
 
                  <div className="flex gap-2 pt-2">
@@ -442,9 +403,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                                             <SelectItem 
                                                 key={cs} 
                                                 value={cs}
-                                                disabled={assignedClasses.includes(cs)}
                                             >
-                                                {cs} {assignedClasses.includes(cs) && "(Assigned)"}
+                                                {cs}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -507,7 +467,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
              </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Add Teacher & Generate Credentials
+            Register Teacher
           </Button>
         </form>
       </Form>

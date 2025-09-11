@@ -1,5 +1,4 @@
 
-
 import { db } from "@/lib/firebase";
 import {
   ref,
@@ -8,16 +7,15 @@ import {
   get,
   update,
   remove,
+  query,
+  equalTo,
+  orderByChild,
 } from "firebase/database";
 import type { DataSnapshot } from "firebase/database";
 import { format } from "date-fns";
 
-// NOTE: These functions are intended for a simulated admin environment.
-// In a production app, creating/deleting auth users should be handled
-// by a secure backend (e.g., Cloud Functions) and not directly on the client.
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-
 const TEACHERS_COLLECTION = "teachers";
+const REGISTRATIONS_COLLECTION = "registrations";
 
 export interface Teacher {
   id: string; // This will be the auth UID
@@ -35,57 +33,64 @@ export interface Teacher {
   classTeacherOf?: string;
   classesTaught?: string[];
   qualifications?: string[];
-  mustChangePassword?: boolean;
-  tempPassword?: string;
 }
 
-const generateTempPassword = () => {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let password = '';
-    for (let i = 0; i < 8; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
+export type TeacherRegistrationData = Omit<Teacher, 'id' | 'authUid' | 'joiningDate'>;
+
+// Step 1 (Principal): Register teacher details and generate a key
+export const registerTeacher = async (teacherData: TeacherRegistrationData) => {
+  const registrationKey = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const registrationRef = ref(db, `${REGISTRATIONS_COLLECTION}/${registrationKey}`);
+  
+  const dataToSave = {
+    ...teacherData,
+    dob: format(teacherData.dob as unknown as Date, "yyyy-MM-dd"),
+    joiningDate: Date.now(),
+  };
+
+  await set(registrationRef, dataToSave);
+  return registrationKey;
 };
 
 
-// Function to add a teacher and create their auth account
-export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'authUid' | 'joiningDate' | 'tempPassword'>) => {
-  const adminAuth = getAuth();
-  const tempPassword = generateTempPassword();
+// Step 2 (Teacher): Verify details and claim account
+interface ClaimAccountPayload {
+  registrationKey: string;
+  name: string;
+  email: string;
+  authUid: string;
+}
+export const verifyAndClaimTeacherAccount = async (payload: ClaimAccountPayload) => {
+  const { registrationKey, name, email, authUid } = payload;
+  const registrationRef = ref(db, `${REGISTRATIONS_COLLECTION}/${registrationKey}`);
+  const snapshot = await get(registrationRef);
 
-  try {
-    // Step 1: Create the user in Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(adminAuth, teacherData.email, tempPassword);
-    const user = userCredential.user;
-    const authUid = user.uid;
-
-    // Step 2: Send verification email to the newly created user
-    await sendEmailVerification(user);
-
-    // Step 3: Prepare the teacher data for the Realtime Database
-    const dbData: Omit<Teacher, 'id'> = {
-      ...teacherData,
-      authUid: authUid,
-      dob: format(teacherData.dob as unknown as Date, "yyyy-MM-dd"),
-      joiningDate: Date.now(),
-      mustChangePassword: true, // Flag for first-time login
-      tempPassword: tempPassword, // Temporarily store for joining letter
-    };
-
-    // Step 4: Save the teacher's profile in the Realtime Database, keyed by their new authUid
-    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${authUid}`);
-    await set(teacherRef, dbData);
-
-    // Return the new ID (authUid) and temporary password to be displayed to the principal
-    return { teacherId: authUid, tempPassword };
-
-  } catch (error: any) {
-    console.error("Error creating teacher with auth: ", error);
-    // This is a critical failure. A robust implementation would include cleanup logic,
-    // like deleting the created user if the database write fails.
-    throw new Error(`Failed to add teacher: ${error.message}`);
+  if (!snapshot.exists()) {
+    return { success: false, message: "Invalid Registration Key. Please check the key provided by the school." };
   }
+
+  const registrationData = snapshot.val();
+
+  if (registrationData.name.toLowerCase() !== name.toLowerCase()) {
+    return { success: false, message: "The name entered does not match the registered name. Please check your details." };
+  }
+
+  if (registrationData.email.toLowerCase() !== email.toLowerCase()) {
+    return { success: false, message: "The email entered does not match the registered email. Please check your details." };
+  }
+
+  // Verification successful, create official teacher record
+  const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${authUid}`);
+  const finalTeacherData: Omit<Teacher, 'id'> = {
+    ...registrationData,
+    authUid: authUid,
+  };
+  await set(teacherRef, finalTeacherData);
+
+  // Clean up registration entry
+  await remove(registrationRef);
+
+  return { success: true, message: "Account claimed successfully." };
 };
 
 
@@ -139,6 +144,8 @@ export const updateTeacher = async (teacherId: string, updatedData: Partial<Teac
 // Delete a teacher from DB. Auth user deletion would need a backend function.
 export const deleteTeacher = async (teacherId: string) => {
   try {
+    // Note: This only deletes the DB record, not the Firebase Auth user.
+    // A cloud function would be needed to delete the auth user.
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
     await remove(teacherRef);
   } catch (e) {

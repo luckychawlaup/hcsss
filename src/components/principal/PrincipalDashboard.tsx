@@ -126,10 +126,10 @@ export default function PrincipalDashboard() {
                                 <CardHeader className="px-1 pt-6">
                                      <CardTitle className="flex items-center gap-2 text-xl">
                                         <UserPlus />
-                                        Add New Teacher
+                                        Register New Teacher
                                     </CardTitle>
                                     <CardDescription>
-                                        Fill out the form below to register a new teacher in the system. A unique 8-digit Teacher ID will be generated.
+                                        Fill out the form below to register a new teacher. A unique registration key will be generated for them to create their account.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="px-1">
