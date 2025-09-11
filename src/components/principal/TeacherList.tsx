@@ -57,6 +57,7 @@ const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
 const editTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
+  email: z.string().email("Please enter a valid email address."),
   dob: z.date({ required_error: "Date of birth is required." }),
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
@@ -107,24 +108,24 @@ const handlePrintLetter = (teacherData: Teacher) => {
             <head>
                 <title>Joining Letter - ${teacherData.name}</title>
                  <style>
-                    body { font-family: 'Poppins', sans-serif; line-height: 1.5; color: #333; margin: 20px; }
-                    .container { max-width: 100%; margin: auto; border: 1px solid #eee; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
-                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 15px; margin-bottom: 20px; }
-                    .header img { width: 70px; height: 70px; margin-right: 20px; }
-                    .header h1 { font-size: 24px; color: #4285F4; margin: 0; }
-                    .header p { margin: 0; font-size: 12px; }
-                    .content { font-size: 14px; }
-                    .content h3 { font-size: 18px; }
-                    .content p, .content ul, .content h4 { margin: 10px 0; }
+                    body { font-family: 'Poppins', sans-serif; line-height: 1.5; color: #333; margin: 20px; font-size: 12px; }
+                    .container { max-width: 100%; margin: auto; border: 1px solid #eee; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 10px; margin-bottom: 15px; }
+                    .header img { width: 60px; height: 60px; margin-right: 15px; }
+                    .header h1 { font-size: 20px; color: #4285F4; margin: 0; }
+                    .header p { margin: 0; font-size: 11px; }
+                    .content { font-size: 12px; }
+                    .content h3 { font-size: 16px; margin-top: 15px; }
+                    .content p, .content ul, .content h4 { margin: 8px 0; }
                     .content ul { padding-left: 20px; }
-                    .footer { text-align: right; margin-top: 40px; font-style: italic; }
-                    .signature-area { margin-top: 60px; border-top: 1px solid #ccc; padding-top: 8px; width: 220px; text-align: center; }
-                    .disclaimer { font-size: 10px; color: #777; margin-top: 30px; border-top: 1px dashed #ccc; padding-top: 10px; }
-                    .details { border-collapse: collapse; width: 100%; margin: 20px 0; }
-                    .details td { padding: 8px; border: 1px solid #ddd; font-size: 13px; }
+                    .footer { text-align: right; margin-top: 30px; font-style: italic; }
+                    .signature-area { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 5px; width: 200px; text-align: center; }
+                    .disclaimer { font-size: 9px; color: #777; margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 8px; }
+                    .details { border-collapse: collapse; width: 100%; margin: 15px 0; }
+                    .details td { padding: 6px; border: 1px solid #ddd; font-size: 12px; }
                     .details td:first-child { font-weight: bold; width: 30%; background-color: #f9f9f9; }
                     @media print {
-                        body { background-color: #fff; margin: 0; }
+                        body { background-color: #fff; margin: 0; -webkit-print-color-adjust: exact; }
                         .container { border: none; box-shadow: none; padding: 0; }
                     }
                 </style>
@@ -153,6 +154,7 @@ const handlePrintLetter = (teacherData: Teacher) => {
                         <table class="details">
                             <tr><td>Teacher ID</td><td>${teacherData.id}</td></tr>
                             <tr><td>Full Name</td><td>${teacherData.name}</td></tr>
+                             <tr><td>Email Address</td><td>${teacherData.email}</td></tr>
                             <tr><td>Role</td><td>${teacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
                             ${teacherData.role === 'classTeacher' ? `<tr><td>Assigned Class</td><td>${teacherData.classTeacherOf}</td></tr>` : ''}
                             ${teacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${teacherData.classesTaught?.join(', ')}</td></tr>` : ''}
@@ -169,6 +171,7 @@ const handlePrintLetter = (teacherData: Teacher) => {
                                 <ul>
                                     <li>Your Full Name: <strong>${teacherData.name}</strong></li>
                                     <li>Your Teacher ID: <strong>${teacherData.id}</strong></li>
+                                     <li>Your Registered Email Address: <strong>${teacherData.email}</strong></li>
                                     <li>Your Joining Date: <strong>${formattedJoiningDate}</strong></li>
                                 </ul>
                             </li>
@@ -266,6 +269,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     const dataToExport = teachers.map(teacher => ({
         "Teacher ID": teacher.id,
         "Name": teacher.name,
+        "Email": teacher.email,
         "Role": teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher',
         "Assignment": teacher.role === 'classTeacher' ? teacher.classTeacherOf : teacher.classesTaught?.join(', '),
         "Subject": teacher.subject,
@@ -426,6 +430,19 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Full Name</FormLabel>
+                                    <FormControl>
+                                    <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email Address</FormLabel>
                                     <FormControl>
                                     <Input {...field} />
                                     </FormControl>
@@ -691,5 +708,3 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     </>
   );
 }
-
-    

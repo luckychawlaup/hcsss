@@ -238,6 +238,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <table class="details">
                             <tr><td>Teacher ID</td><td>${generatedId}</td></tr>
                             <tr><td>Full Name</td><td>${addedTeacherData.name}</td></tr>
+                            <tr><td>Email Address</td><td>${addedTeacherData.email}</td></tr>
                             <tr><td>Role</td><td>${addedTeacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
                             ${addedTeacherData.role === 'classTeacher' ? `<tr><td>Assigned Class</td><td>${addedTeacherData.classTeacherOf}</td></tr>` : ''}
                             ${addedTeacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${addedTeacherData.classesTaught?.join(', ')}</td></tr>` : ''}
@@ -253,8 +254,8 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                             <li>You will need to enter the following details exactly as they appear on this letter for verification:
                                 <ul>
                                     <li>Your Full Name: <strong>${addedTeacherData.name}</strong></li>
-                                     <li>Your Email Address: <strong>${addedTeacherData.email}</strong></li>
                                     <li>Your Teacher ID: <strong>${generatedId}</strong></li>
+                                    <li>Your Registered Email Address: <strong>${addedTeacherData.email}</strong></li>
                                     <li>Your Joining Date: <strong>${formattedJoiningDate}</strong></li>
                                 </ul>
                             </li>

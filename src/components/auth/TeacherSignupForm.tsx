@@ -109,7 +109,7 @@ export default function TeacherSignupForm() {
       });
 
       // Link Auth UID and email to teacher record in DB
-      await updateTeacher(values.teacherId, { authUid: user.uid });
+      await updateTeacher(values.teacherId, { authUid: user.uid, email: user.email! });
 
       await sendEmailVerification(user);
 
@@ -175,7 +175,7 @@ export default function TeacherSignupForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email Address</FormLabel>
+                <FormLabel>Registered Email Address</FormLabel>
                 <FormControl>
                   <Input type="email" placeholder="teacher@example.com" {...field} />
                 </FormControl>
