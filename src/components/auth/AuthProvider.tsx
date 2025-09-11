@@ -5,6 +5,34 @@ import { getAuth, onAuthStateChanged, User, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter, usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { GraduationCap } from "lucide-react";
+
+const publicPaths = [
+    "/login",
+    "/auth/student/login",
+    "/auth/teacher/login",
+    "/auth/principal/login",
+    "/auth/student/signup",
+    "/auth/teacher/signup",
+    "/auth/student/forgot-password",
+    "/auth/teacher/forgot-password",
+];
+
+function Preloader() {
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+            <div className="flex flex-col items-center justify-center gap-4">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <GraduationCap className="h-10 w-10" />
+                </div>
+                <h1 className="text-2xl font-bold text-primary">Hilton Convent School</h1>
+                <p className="text-muted-foreground">Loading, please wait...</p>
+                 <Skeleton className="h-2 w-48 mt-4" />
+            </div>
+        </div>
+    );
+}
+
 
 export default function AuthProvider({
   children,
@@ -17,8 +45,11 @@ export default function AuthProvider({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isPublicPath = publicPaths.includes(pathname);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setLoading(true);
       // Check for hardcoded principal login first
       const isPrincipal = document.cookie.includes("principal-role=true");
       if (isPrincipal) {
@@ -31,44 +62,42 @@ export default function AuthProvider({
         if (user.emailVerified) {
           setUser(user);
         } else {
-          // Immediately sign out unverified users and redirect to login
           signOut(auth);
-          router.push("/login");
+          setUser(null);
+           if (!isPublicPath) {
+             router.push("/login");
+           }
         }
       } else {
         setUser(null);
-        router.push("/login");
+        if (!isPublicPath) {
+          router.push("/login");
+        }
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [auth, router, pathname]);
+  }, [auth, router, pathname, isPublicPath]);
 
   if (loading) {
-    return (
-        <div className="flex min-h-screen w-full flex-col bg-background p-8">
-            <div className="flex items-center justify-between">
-                <Skeleton className="h-12 w-48" />
-                <Skeleton className="h-12 w-12 rounded-full" />
-            </div>
-            <div className="mt-8 space-y-6">
-                <Skeleton className="h-40 w-full" />
-                <Skeleton className="h-24 w-full" />
-                <div className="grid grid-cols-2 gap-6">
-                    <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-48 w-full" />
-                </div>
-            </div>
-        </div>
-    );
+    return <Preloader />;
   }
 
-  // Fallback for principal who doesn't have a firebase user object
-  if (!user && !document.cookie.includes("principal-role=true")) {
+  if (!user && !isPublicPath) {
      // Redirect is handled in the effect, this is a fallback.
-    return null;
+    return <Preloader />;
   }
+  
+  if (user && isPublicPath) {
+    const isPrincipal = document.cookie.includes("principal-role=true");
+    const isTeacher = document.cookie.includes("teacher-role=true");
+    if(isPrincipal) router.push('/principal');
+    else if(isTeacher) router.push('/teacher');
+    else router.push('/');
+    return <Preloader />;
+  }
+
 
   return <>{children}</>;
 }
