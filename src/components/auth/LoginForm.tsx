@@ -70,6 +70,13 @@ export default function LoginForm({ role }: LoginFormProps) {
       router.refresh();
       return;
     }
+     // Handle case where principal login details are incorrect
+    if (role === "principal") {
+        setError("Invalid email or password for principal.");
+        setIsLoading(false);
+        return;
+    }
+
 
     try {
       const userCredential = await signInWithEmailAndPassword(
