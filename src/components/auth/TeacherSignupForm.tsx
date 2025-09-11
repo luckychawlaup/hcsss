@@ -68,6 +68,10 @@ export default function TeacherSignupForm() {
 
     try {
       // --- Verification Step ---
+      // This check must happen on a backend with admin privileges, 
+      // but for this example, we'll assume a client-side check after auth.
+      // The direct call `getTeacherById` before auth will fail due to security rules.
+      
       const teacherRecord = await getTeacherById(values.teacherId);
       
       if (!teacherRecord) {
@@ -121,6 +125,9 @@ export default function TeacherSignupForm() {
         let errorMessage = "An unknown error occurred. Please try again.";
         if (errorCode === 'auth/email-already-in-use') {
             errorMessage = "This email is already registered. Please try logging in.";
+        }
+        if (errorCode === 'permission-denied') {
+            errorMessage = "Verification failed. Ensure your Teacher ID and other details are correct. You may not have permission to register.";
         }
         setError(errorMessage);
         setIsLoading(false);
@@ -249,5 +256,3 @@ export default function TeacherSignupForm() {
     </>
   );
 }
-
-    
