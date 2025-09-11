@@ -16,19 +16,60 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck } from "lucide-react";
 import { StatCard } from "./StatCard";
-import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
 import type { Teacher } from "@/lib/firebase/teachers";
 import type { Student } from "@/lib/firebase/students";
-import { getStudents, deleteStudent, updateStudent } from "@/lib/firebase/students";
+import { updateStudent, deleteStudent } from "@/lib/firebase/students";
+import { updateTeacher, deleteTeacher } from "@/lib/firebase/teachers";
 import { AddStudentForm } from "./AddStudentForm";
 import { StudentList } from "./StudentList";
 import ApproveLeaves from "../teacher/ApproveLeaves";
-
+import type { LeaveRequest } from "@/lib/firebase/leaves";
+import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
+import { Skeleton } from "../ui/skeleton";
 
 export default function PrincipalDashboard({ allStudents, allTeachers }: { allStudents: Student[], allTeachers: Teacher[]}) {
   const [manageTeachersTab, setManageTeachersTab] = useState("addTeacher");
   const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
   const [activeTab, setActiveTab] = useState("manageTeachers");
+  const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
+  const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
+  const [isLoadingLeaves, setIsLoadingLeaves] = useState(true);
+
+  useEffect(() => {
+    setIsLoadingLeaves(true);
+    let unsubStudents: (() => void) | undefined;
+    let unsubTeachers: (() => void) | undefined;
+    
+    if (allStudents.length > 0) {
+        const allStudentIds = allStudents.map((s) => s.id);
+        unsubStudents = getLeaveRequestsForStudents(
+          allStudentIds,
+          (leaves) => {
+            setStudentLeaves(leaves);
+            setIsLoadingLeaves(false);
+          }
+        );
+      } else {
+        setStudentLeaves([]);
+        setIsLoadingLeaves(false);
+      }
+      
+      if (allTeachers.length > 0) {
+         const allTeacherIds = allTeachers.map((t) => t.id);
+         unsubTeachers = getLeaveRequestsForTeachers(allTeacherIds, (leaves) => {
+            setTeacherLeaves(leaves);
+         });
+      } else {
+        setTeacherLeaves([]);
+      }
+
+      return () => {
+      if (unsubStudents) unsubStudents();
+      if (unsubTeachers) unsubTeachers();
+    };
+
+  }, [allStudents, allTeachers]);
+
 
   const handleTeacherAdded = () => {
     setManageTeachersTab("viewTeachers");
@@ -54,6 +95,10 @@ export default function PrincipalDashboard({ allStudents, allTeachers }: { allSt
       await deleteStudent(studentId);
   };
 
+  const pendingStudentLeavesCount = studentLeaves.filter(l => l.status === 'Pending').length;
+  const pendingTeacherLeavesCount = teacherLeaves.filter(l => l.status === 'Pending').length;
+  const totalPendingLeaves = pendingStudentLeavesCount + pendingTeacherLeavesCount;
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -64,7 +109,7 @@ export default function PrincipalDashboard({ allStudents, allTeachers }: { allSt
           <StatCard title="Total Students" value={allStudents.length.toString()} icon={GraduationCap} />
           <StatCard title="Total Teachers" value={allTeachers.length.toString()} icon={Users} />
           <StatCard title="New Admissions" value="45" icon={UserPlus} />
-          <StatCard title="Pending Leaves" value="8" icon={CalendarCheck} />
+          <StatCard title="Pending Leaves" value={totalPendingLeaves.toString()} icon={CalendarCheck} />
         </div>
 
         <div className="mx-auto w-full max-w-6xl">
@@ -198,7 +243,20 @@ export default function PrincipalDashboard({ allStudents, allTeachers }: { allSt
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ApproveLeaves allStudents={allStudents} allTeachers={allTeachers} isPrincipalView={true} />
+                    {isLoadingLeaves ? <Skeleton className="h-48 w-full" /> : (
+                        <Tabs defaultValue="students">
+                            <TabsList>
+                                <TabsTrigger value="students">Student Leaves ({pendingStudentLeavesCount})</TabsTrigger>
+                                <TabsTrigger value="teachers">Teacher Leaves ({pendingTeacherLeavesCount})</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="students" className="mt-4">
+                                <ApproveLeaves leaves={studentLeaves} title="Students" />
+                            </TabsContent>
+                            <TabsContent value="teachers" className="mt-4">
+                                <ApproveLeaves leaves={teacherLeaves} title="Teachers" />
+                            </TabsContent>
+                        </Tabs>
+                    )}
                 </CardContent>
               </Card>
             </TabsContent>

@@ -1,16 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import type { Student } from "@/lib/firebase/students";
-import type { Teacher } from "@/lib/firebase/teachers";
-import {
-  getLeaveRequestsForStudents,
-  getLeaveRequestsForTeachers,
-  updateLeaveStatus,
-  LeaveRequest,
-} from "@/lib/firebase/leaves";
+import type { LeaveRequest } from "@/lib/firebase/leaves";
 import {
   Card,
   CardContent,
@@ -21,16 +13,13 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "../ui/skeleton";
 import { ThumbsUp, ThumbsDown, CalendarX2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { updateLeaveStatus } from "@/lib/firebase/leaves";
 
 interface ApproveLeavesProps {
-  assignedStudents?: Student[];
-  allStudents?: Student[];
-  allTeachers?: Teacher[];
-  isPrincipalView?: boolean;
+  leaves: LeaveRequest[];
+  title: string;
 }
 
 const getStatusVariant = (status: LeaveRequest["status"]) => {
@@ -104,66 +93,10 @@ const NoLeavesMessage = ({ message }: { message: string }) => (
 )
 
 export default function ApproveLeaves({
-  assignedStudents = [],
-  allStudents = [],
-  allTeachers = [],
-  isPrincipalView = false,
+  leaves,
+  title,
 }: ApproveLeavesProps) {
-  const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
-  const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-
-  useEffect(() => {
-    setIsLoading(true);
-    let unsubStudents: (() => void) | undefined;
-    let unsubTeachers: (() => void) | undefined;
-
-    if (isPrincipalView) {
-      if (allStudents.length > 0) {
-        const allStudentIds = allStudents.map((s) => s.id);
-        unsubStudents = getLeaveRequestsForStudents(
-          allStudentIds,
-          (leaves) => {
-            setStudentLeaves(leaves);
-            setIsLoading(false);
-          }
-        );
-      } else {
-        setStudentLeaves([]);
-        setIsLoading(false);
-      }
-      
-      if (allTeachers.length > 0) {
-         const allTeacherIds = allTeachers.map((t) => t.id);
-         unsubTeachers = getLeaveRequestsForTeachers(allTeacherIds, (leaves) => {
-            setTeacherLeaves(leaves);
-         });
-      } else {
-        setTeacherLeaves([]);
-      }
-
-    } else { // Teacher's view
-      if (assignedStudents.length > 0) {
-        const studentIds = assignedStudents.map((s) => s.id);
-        unsubStudents = getLeaveRequestsForStudents(
-          studentIds,
-          (leaves) => {
-            setStudentLeaves(leaves);
-            setIsLoading(false);
-          }
-        );
-      } else {
-        setIsLoading(false);
-        setStudentLeaves([]);
-      }
-    }
-
-    return () => {
-      if (unsubStudents) unsubStudents();
-      if (unsubTeachers) unsubTeachers();
-    };
-  }, [assignedStudents, allStudents, allTeachers, isPrincipalView]);
 
   const handleUpdateStatus = async (
     leaveId: string,
@@ -184,70 +117,25 @@ export default function ApproveLeaves({
     }
   };
   
-  const pendingStudentLeaves = studentLeaves.filter(leave => leave.status === 'Pending');
-  const pendingTeacherLeaves = teacherLeaves.filter(leave => leave.status === 'Pending');
+  const pendingLeaves = leaves.filter(leave => leave.status === 'Pending');
 
-  if (isLoading) {
-    return <Skeleton className="h-48 w-full" />;
+  if (leaves.length === 0) {
+      return <NoLeavesMessage message={`${title} haven't requested any leave yet.`} />
   }
 
-  if (!isPrincipalView) {
-      if(studentLeaves.length === 0) {
-          return <NoLeavesMessage message="Your students haven't requested any leave yet." />
-      }
-      if(pendingStudentLeaves.length === 0) {
-           return <NoLeavesMessage message="All Clear! There are no pending leave requests to review." />
-      }
-    return (
-      <div className="space-y-4">
-        {pendingStudentLeaves.map((leave) => (
-          <LeaveCard
-            key={leave.id}
-            leave={leave}
-            onUpdateStatus={handleUpdateStatus}
-          />
-        ))}
-      </div>
-    );
+  if (pendingLeaves.length === 0) {
+        return <NoLeavesMessage message={`All Clear! There are no pending leave requests from ${title} to review.`} />
   }
 
-  // Principal's View
   return (
-    <Tabs defaultValue="students">
-        <TabsList>
-            <TabsTrigger value="students">Student Leaves ({pendingStudentLeaves.length})</TabsTrigger>
-            <TabsTrigger value="teachers">Teacher Leaves ({pendingTeacherLeaves.length})</TabsTrigger>
-        </TabsList>
-        <TabsContent value="students" className="mt-4">
-             {studentLeaves.length === 0 ? <NoLeavesMessage message="No student has requested leave yet."/> 
-             : pendingStudentLeaves.length === 0 ? <NoLeavesMessage message="All pending student leaves have been reviewed."/> 
-             : (
-                 <div className="space-y-4">
-                    {pendingStudentLeaves.map((leave) => (
-                        <LeaveCard
-                            key={leave.id}
-                            leave={leave}
-                            onUpdateStatus={handleUpdateStatus}
-                        />
-                    ))}
-                </div>
-             )}
-        </TabsContent>
-        <TabsContent value="teachers" className="mt-4">
-              {teacherLeaves.length === 0 ? <NoLeavesMessage message="No teacher has requested leave yet."/> 
-             : pendingTeacherLeaves.length === 0 ? <NoLeavesMessage message="All pending teacher leaves have been reviewed."/> 
-             : (
-                 <div className="space-y-4">
-                    {pendingTeacherLeaves.map((leave) => (
-                        <LeaveCard
-                            key={leave.id}
-                            leave={leave}
-                            onUpdateStatus={handleUpdateStatus}
-                        />
-                    ))}
-                </div>
-             )}
-        </TabsContent>
-    </Tabs>
+    <div className="space-y-4">
+    {pendingLeaves.map((leave) => (
+        <LeaveCard
+        key={leave.id}
+        leave={leave}
+        onUpdateStatus={handleUpdateStatus}
+        />
+    ))}
+    </div>
   );
 }

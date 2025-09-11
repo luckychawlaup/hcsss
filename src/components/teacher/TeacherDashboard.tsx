@@ -17,6 +17,7 @@ import { getAuth, User, sendPasswordResetEmail, onAuthStateChanged } from "fireb
 import { app } from "@/lib/firebase";
 import { getTeacherByAuthId, Teacher, updateTeacher } from "@/lib/firebase/teachers";
 import { getStudents, Student } from "@/lib/firebase/students";
+import { getLeaveRequestsForStudents, LeaveRequest } from "@/lib/firebase/leaves";
 import TeacherStudentList from "./TeacherStudentList";
 import ApproveLeaves from "./ApproveLeaves";
 import { AddHomeworkForm } from "./AddHomeworkForm";
@@ -26,12 +27,14 @@ import { SalaryDetails } from "./SalaryDetails";
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "../ui/skeleton";
 
 
 export default function TeacherDashboard() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isResending, setIsResending] = useState(false);
   const auth = getAuth(app);
@@ -39,6 +42,7 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      setIsLoading(true);
       if (user) {
         setCurrentUser(user);
         const teacherProfile = await getTeacherByAuthId(user.uid);
@@ -46,6 +50,7 @@ export default function TeacherDashboard() {
       } else {
         setCurrentUser(null);
         setTeacher(null);
+        setIsLoading(false);
       }
     });
 
@@ -62,13 +67,24 @@ export default function TeacherDashboard() {
             return isClassTeacher || isSubjectTeacher;
         });
         setStudents(assignedStudents);
+        
+        if (assignedStudents.length > 0) {
+            const studentIds = assignedStudents.map(s => s.id);
+            const unsubscribeLeaves = getLeaveRequestsForStudents(studentIds, (studentLeaves) => {
+                setLeaves(studentLeaves);
+            });
+            // This nested unsubscribe will be handled by the outer effect's cleanup
+        } else {
+            setLeaves([]);
+        }
+        
         setIsLoading(false);
       });
        return () => unsubscribeStudents();
-    } else {
+    } else if (!currentUser) { // If there's no user, stop loading.
         setIsLoading(false);
     }
-  }, [teacher]);
+  }, [teacher, currentUser]);
 
   const handleResendEmail = async () => {
     if (!currentUser?.email) return;
@@ -93,6 +109,7 @@ export default function TeacherDashboard() {
     }
   }
 
+  const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -116,7 +133,7 @@ export default function TeacherDashboard() {
         <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Your Students" value={isLoading ? '...' : students.length.toString()} icon={Users} />
             <StatCard title="Class Teacher Of" value={teacher?.role === 'classTeacher' ? (teacher.classTeacherOf || 'N/A') : 'N/A'} icon={Users} />
-            <StatCard title="Pending Leaves" value="2" icon={CalendarCheck} />
+            <StatCard title="Pending Leaves" value={isLoading ? '...' : pendingLeavesCount.toString()} icon={CalendarCheck} />
             <StatCard title="Assignments Due" value="3" icon={ClipboardCheck} />
         </div>
 
@@ -160,7 +177,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <ApproveLeaves assignedStudents={students} />
+                            {isLoading ? <Skeleton className="h-48 w-full" /> : <ApproveLeaves leaves={leaves} title="your students" />}
                         </CardContent>
                     </Card>
                 </TabsContent>
