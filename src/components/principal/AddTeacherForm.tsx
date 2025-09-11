@@ -28,10 +28,13 @@ import { addTeacher } from "@/lib/firebase/teachers";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "../ui/checkbox";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
+const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
+
 
 const addTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -43,7 +46,7 @@ const addTeacherSchema = z.object({
   role: z.enum(["classTeacher", "subjectTeacher"], { required_error: "You must select a role."}),
   subject: z.string().min(2, "Subject is required."),
   classTeacherOf: z.string().optional(),
-  classesTaught: z.string().optional(),
+  classesTaught: z.array(z.string()).optional().default([]),
 }).refine(data => {
     if (data.role === 'classTeacher') return !!data.classTeacherOf;
     return true;
@@ -51,10 +54,10 @@ const addTeacherSchema = z.object({
     message: "Please select a class for the Class Teacher.",
     path: ["classTeacherOf"],
 }).refine(data => {
-    if (data.role === 'subjectTeacher') return !!data.classesTaught && data.classesTaught.length > 0;
+    if (data.role === 'subjectTeacher') return data.classesTaught && data.classesTaught.length > 0;
     return true;
 }, {
-    message: "Please specify the classes taught.",
+    message: "Please select at least one class.",
     path: ["classesTaught"],
 });
 
@@ -80,7 +83,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
       address: "",
       subject: "",
       classTeacherOf: "",
-      classesTaught: "",
+      classesTaught: [],
     },
   });
   
@@ -117,7 +120,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
       onTeacherAdded();
       form.reset();
     } catch (e: any) {
-      setError("An unexpected error occurred. Please try again.");
+      setError(`An unexpected error occurred: ${e.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -182,6 +185,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                             <tr><td>Full Name</td><td>${addedTeacherData.name}</td></tr>
                              <tr><td>Role</td><td>${addedTeacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
                             ${addedTeacherData.role === 'classTeacher' ? `<tr><td>Assigned Class</td><td>${addedTeacherData.classTeacherOf}</td></tr>` : ''}
+                            ${addedTeacherData.role === 'subjectTeacher' ? `<tr><td>Classes Taught</td><td>${addedTeacherData.classesTaught?.join(', ')}</td></tr>` : ''}
                             <tr><td>Primary Subject</td><td>${addedTeacherData.subject}</td></tr>
                         </table>
 
@@ -246,7 +250,6 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
       )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                     control={form.control}
@@ -361,6 +364,19 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                     control={form.control}
+                    name="subject"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Primary Subject</FormLabel>
+                        <FormControl>
+                        <Input placeholder="e.g., Mathematics" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
                     name="role"
                     render={({ field }) => (
                     <FormItem className="space-y-3">
@@ -389,21 +405,9 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     </FormItem>
                     )}
                 />
-                 <FormField
-                    control={form.control}
-                    name="subject"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Primary Subject</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g., Mathematics" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+              </div>
 
-                {role === "classTeacher" && (
+               {role === "classTeacher" && (
                      <FormField
                         control={form.control}
                         name="classTeacherOf"
@@ -417,9 +421,9 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {classes.map(c => sections.map(s => (
-                                        <SelectItem key={`${c}-${s}`} value={`${c}-${s}`}>{`${c} - Section ${s}`}</SelectItem>
-                                    )))}
+                                    {allClassSections.map(cs => (
+                                        <SelectItem key={cs} value={cs}>{cs}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -429,22 +433,54 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                 )}
 
                  {role === "subjectTeacher" && (
-                     <FormField
+                    <FormField
                         control={form.control}
                         name="classesTaught"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Classes Taught</FormLabel>
-                            <FormControl>
-                            <Input placeholder="e.g., 9-A, 9-B, 10-A" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
+                        render={() => (
+                            <FormItem>
+                                <div className="mb-4">
+                                    <FormLabel className="text-base">Classes Taught</FormLabel>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                    {allClassSections.map((item) => (
+                                        <FormField
+                                            key={item}
+                                            control={form.control}
+                                            name="classesTaught"
+                                            render={({ field }) => {
+                                                return (
+                                                <FormItem
+                                                    key={item}
+                                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                                >
+                                                    <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value?.includes(item)}
+                                                        onCheckedChange={(checked) => {
+                                                        return checked
+                                                            ? field.onChange([...(field.value || []), item])
+                                                            : field.onChange(
+                                                                field.value?.filter(
+                                                                    (value) => value !== item
+                                                                )
+                                                                )
+                                                        }}
+                                                    />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">
+                                                    {item}
+                                                    </FormLabel>
+                                                </FormItem>
+                                                )
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
                         )}
                     />
                 )}
-              </div>
-          </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Teacher & Generate ID
@@ -454,5 +490,3 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     </>
   );
 }
-
-    

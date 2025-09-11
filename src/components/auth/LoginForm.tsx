@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,6 +9,7 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  signInAnonymously,
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -61,13 +63,19 @@ export default function LoginForm({ role }: LoginFormProps) {
       values.email === "principal@hcsss.com" &&
       values.password === "000000"
     ) {
-      document.cookie = "principal-role=true; path=/; max-age=86400"; // Expires in 1 day
-      toast({
-        title: "Login Successful",
-        description: "Welcome, Principal!",
-      });
-      router.push("/principal");
-      router.refresh();
+        try {
+            await signInAnonymously(auth);
+            document.cookie = "principal-role=true; path=/; max-age=86400"; // Expires in 1 day
+            toast({
+                title: "Login Successful",
+                description: "Welcome, Principal!",
+            });
+            router.push("/principal");
+            router.refresh();
+        } catch (e) {
+             setError("Could not sign in as principal. Please check Firebase connection.");
+             setIsLoading(false);
+        }
       return;
     }
      // Handle case where principal login details are incorrect

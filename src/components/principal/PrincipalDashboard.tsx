@@ -17,8 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
-import { getAuth } from "firebase/auth";
-import { app } from "@/lib/firebase";
+
 
 // Define the Teacher type, you can expand this as needed
 export interface Teacher {
@@ -32,7 +31,7 @@ export interface Teacher {
   role: "classTeacher" | "subjectTeacher";
   subject: string;
   classTeacherOf?: string;
-  classesTaught?: string;
+  classesTaught?: string[];
 }
 
 const isPrincipalUser = () => {
