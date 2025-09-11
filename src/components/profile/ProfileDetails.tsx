@@ -160,17 +160,6 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
     )
 }
 
-const getRoleFromCookie = () => {
-    if (typeof document === 'undefined') return 'student';
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'teacher-role' && value === 'true') return 'teacher';
-    }
-    return 'student';
-}
-
-
 export default function ProfileDetails() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
   const [role, setRole] = useState<"student" | "teacher" | null>(null);
@@ -178,28 +167,37 @@ export default function ProfileDetails() {
   const auth = getAuth(app);
 
   useEffect(() => {
-    const determinedRole = getRoleFromCookie();
-    setRole(determinedRole);
-
     const unsubscribe = onAuthStateChanged(auth, async (user: AuthUser | null) => {
         setIsLoading(true);
         if (user) {
             try {
-                if (determinedRole === 'teacher') {
-                    const teacherProfile = await getTeacherByAuthId(user.uid);
+                // Attempt to fetch teacher profile first
+                const teacherProfile = await getTeacherByAuthId(user.uid);
+                if (teacherProfile) {
                     setProfile(teacherProfile);
+                    setRole('teacher');
                 } else {
+                    // If not a teacher, attempt to fetch student profile
                     const studentProfile = await getStudentByAuthId(user.uid);
-                    setProfile(studentProfile);
+                    if (studentProfile) {
+                        setProfile(studentProfile);
+                        setRole('student');
+                    } else {
+                        // If neither is found, set profile to null
+                        setProfile(null);
+                        setRole(null);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch profile:", error);
                 setProfile(null);
+                setRole(null);
             } finally {
                 setIsLoading(false);
             }
         } else {
             setProfile(null);
+            setRole(null);
             setIsLoading(false);
         }
     });
@@ -219,11 +217,11 @@ export default function ProfileDetails() {
     )
   }
 
-  if (role === 'teacher' && profile) {
+  if (role === 'teacher') {
     return <TeacherProfile teacher={profile as Teacher} />;
   }
   
-  if (role === 'student' && profile) {
+  if (role === 'student') {
     return <StudentProfile student={profile as Student} />;
   }
 
@@ -233,3 +231,5 @@ export default function ProfileDetails() {
     </div>
   )
 }
+
+    
