@@ -2,7 +2,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA5BScSQ_PjDjpAfIBHCeo5grpSr2i04eM",
+  apiKey: "YOUR_API_KEY_HERE",
   authDomain: "hilton-convent-school.firebaseapp.com",
   projectId: "hilton-convent-school",
   storageBucket: "hilton-convent-school.appspot.com",

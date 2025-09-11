@@ -18,11 +18,15 @@ const TEACHERS_COLLECTION = "teachers";
 // Add a new teacher with a specific ID
 export const addTeacher = async (teacherId: string, teacherData: Omit<DocumentData, 'id'>) => {
   try {
+    if (!db) {
+        throw new Error("Firestore database is not available. Please check your Firebase configuration.");
+    }
     const teacherRef = doc(db, TEACHERS_COLLECTION, teacherId);
     await setDoc(teacherRef, teacherData);
-  } catch (e) {
-    console.error("Error adding document: ", e);
-    throw e;
+  } catch (e: any) {
+    console.error("Error adding document: ", e.message);
+    // Re-throw a more user-friendly error
+    throw new Error(`Failed to add teacher. Please ensure your Firebase configuration is correct and the service is available. Original error: ${e.message}`);
   }
 };
 
@@ -35,6 +39,10 @@ export const getTeachers = (callback: (teachers: DocumentData[]) => void) => {
       teachers.push({ id: doc.id, ...doc.data() });
     });
     callback(teachers);
+  }, (error) => {
+      console.error("Error fetching teachers: ", error);
+      // You could also have a callback for errors to update the UI
+      callback([]); // Return empty array on error
   });
   return unsubscribe; // Return the unsubscribe function to clean up the listener
 };
