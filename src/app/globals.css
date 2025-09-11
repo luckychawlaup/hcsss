@@ -86,3 +86,13 @@
     user-select: none;
   }
 }
+
+@media print {
+  @page {
+    size: auto;
+    margin: 1cm;
+  }
+  body {
+    margin: 0;
+  }
+}

@@ -61,14 +61,14 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:p-0 print:bg-white">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:bg-white print:p-0">
         <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:flex">
             <h1 className="text-[12rem] font-bold text-gray-200/50 transform -rotate-45 select-none whitespace-nowrap">
                 Hilton Convent School
             </h1>
         </div>
 
-      <div className="mx-auto max-w-4xl bg-white p-8 sm:p-12 shadow-lg print:shadow-none relative z-10">
+      <div className="mx-auto max-w-4xl bg-white p-8 sm:p-12 shadow-lg print:shadow-none relative z-10 print:border-none">
         
         <header className="flex flex-col items-center justify-center border-b pb-4 text-center">
           <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={100} height={100} />
