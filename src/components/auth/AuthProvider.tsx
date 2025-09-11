@@ -5,7 +5,7 @@ import { getAuth, onAuthStateChanged, User, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter, usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GraduationCap } from "lucide-react";
+import Image from "next/image";
 
 const publicPaths = [
     "/login",
@@ -22,8 +22,8 @@ function Preloader() {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
             <div className="flex flex-col items-center justify-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    <GraduationCap className="h-10 w-10" />
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
+                    <Image src="/logo.png" alt="Hilton Convent School Logo" width={80} height={80} />
                 </div>
                 <h1 className="text-2xl font-bold text-primary">Hilton Convent School</h1>
                 <p className="text-muted-foreground">Loading, please wait...</p>

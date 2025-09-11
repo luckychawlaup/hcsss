@@ -1,7 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Bell, User } from "lucide-react";
+import { Bell, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,8 +21,8 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between gap-4 border-b bg-card/80 px-4 shadow-sm backdrop-blur-sm sm:px-6">
       <Link href="/" className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <GraduationCap className="h-7 w-7" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <Image src="/logo.png" alt="Hilton Convent School Logo" width={48} height={48} />
         </div>
         <h1 className="text-xl font-bold text-foreground sm:text-2xl font-headline">
           {title || "Hilton Convent"}

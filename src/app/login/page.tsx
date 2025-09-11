@@ -1,14 +1,15 @@
 
 import Link from "next/link";
-import { GraduationCap, User, Briefcase, School } from "lucide-react";
+import Image from "next/image";
+import { User, Briefcase, School } from "lucide-react";
 
 export default function RoleSelectionPage() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center justify-center mb-12">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
-            <GraduationCap className="h-8 w-8" />
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary-foreground mb-4">
+            <Image src="/logo.png" alt="Hilton Convent School Logo" width={80} height={80} />
           </div>
           <h1 className="text-3xl font-bold text-center text-primary">Hilton Convent School</h1>
           <p className="text-center text-muted-foreground mt-2">
