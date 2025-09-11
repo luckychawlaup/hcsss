@@ -16,10 +16,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck } from "lucide-react";
 import { StatCard } from "./StatCard";
-import type { Teacher } from "@/lib/firebase/teachers";
-import type { Student } from "@/lib/firebase/students";
-import { updateStudent, deleteStudent } from "@/lib/firebase/students";
-import { updateTeacher, deleteTeacher } from "@/lib/firebase/teachers";
+import { getTeachers, updateTeacher, deleteTeacher, Teacher } from "@/lib/firebase/teachers";
+import { getStudents, updateStudent, deleteStudent, Student } from "@/lib/firebase/students";
 import { AddStudentForm } from "./AddStudentForm";
 import { StudentList } from "./StudentList";
 import ApproveLeaves from "../teacher/ApproveLeaves";
@@ -27,48 +25,60 @@ import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
 
-export default function PrincipalDashboard({ allStudents, allTeachers }: { allStudents: Student[], allTeachers: Teacher[]}) {
+export default function PrincipalDashboard({ allStudents: initialStudents, allTeachers: initialTeachers }: { allStudents: Student[], allTeachers: Teacher[]}) {
   const [manageTeachersTab, setManageTeachersTab] = useState("addTeacher");
   const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
   const [activeTab, setActiveTab] = useState("manageTeachers");
+  
+  const [allStudents, setAllStudents] = useState<Student[]>(initialStudents);
+  const [allTeachers, setAllTeachers] = useState<Teacher[]>(initialTeachers);
   const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
   const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
-  const [isLoadingLeaves, setIsLoadingLeaves] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
 
   useEffect(() => {
-    setIsLoadingLeaves(true);
-    let unsubStudents: (() => void) | undefined;
-    let unsubTeachers: (() => void) | undefined;
+    setIsLoading(true);
+
+    const unsubStudents = getStudents(setAllStudents);
+    const unsubTeachers = getTeachers(setAllTeachers);
     
+    // Once we have teachers and students, we can fetch leaves
     if (allStudents.length > 0) {
         const allStudentIds = allStudents.map((s) => s.id);
-        unsubStudents = getLeaveRequestsForStudents(
-          allStudentIds,
-          (leaves) => {
-            setStudentLeaves(leaves);
-            setIsLoadingLeaves(false);
-          }
-        );
-      } else {
-        setStudentLeaves([]);
-        setIsLoadingLeaves(false);
-      }
+        const unsubStudentLeaves = getLeaveRequestsForStudents(allStudentIds, setStudentLeaves);
+    }
       
-      if (allTeachers.length > 0) {
+    if (allTeachers.length > 0) {
          const allTeacherIds = allTeachers.map((t) => t.id);
-         unsubTeachers = getLeaveRequestsForTeachers(allTeacherIds, (leaves) => {
-            setTeacherLeaves(leaves);
-         });
-      } else {
-        setTeacherLeaves([]);
-      }
+         const unsubTeacherLeaves = getLeaveRequestsForTeachers(allTeacherIds, setTeacherLeaves);
+    }
+    
+    setIsLoading(false);
 
-      return () => {
-      if (unsubStudents) unsubStudents();
-      if (unsubTeachers) unsubTeachers();
+    return () => {
+      unsubStudents();
+      unsubTeachers();
+      // unsub leaves will be handled inside their respective logic if needed
     };
 
-  }, [allStudents, allTeachers]);
+  }, []);
+
+   useEffect(() => {
+    if (allStudents.length > 0) {
+      const allStudentIds = allStudents.map((s) => s.id);
+      const unsub = getLeaveRequestsForStudents(allStudentIds, setStudentLeaves);
+      return () => unsub();
+    }
+  }, [allStudents]);
+
+  useEffect(() => {
+    if (allTeachers.length > 0) {
+      const allTeacherIds = allTeachers.map((t) => t.id);
+      const unsub = getLeaveRequestsForTeachers(allTeacherIds, setTeacherLeaves);
+      return () => unsub();
+    }
+  }, [allTeachers]);
 
 
   const handleTeacherAdded = () => {
@@ -106,10 +116,10 @@ export default function PrincipalDashboard({ allStudents, allTeachers }: { allSt
       <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
         
         <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Students" value={allStudents.length.toString()} icon={GraduationCap} />
-          <StatCard title="Total Teachers" value={allTeachers.length.toString()} icon={Users} />
+          <StatCard title="Total Students" value={isLoading ? '...' : allStudents.length.toString()} icon={GraduationCap} />
+          <StatCard title="Total Teachers" value={isLoading ? '...' : allTeachers.length.toString()} icon={Users} />
           <StatCard title="New Admissions" value="45" icon={UserPlus} />
-          <StatCard title="Pending Leaves" value={totalPendingLeaves.toString()} icon={CalendarCheck} />
+          <StatCard title="Pending Leaves" value={isLoading ? '...' : totalPendingLeaves.toString()} icon={CalendarCheck} />
         </div>
 
         <div className="mx-auto w-full max-w-6xl">
@@ -165,7 +175,7 @@ export default function PrincipalDashboard({ allStudents, allTeachers }: { allSt
                                 <CardContent className="px-1">
                                     <TeacherList 
                                         teachers={allTeachers} 
-                                        isLoading={false}
+                                        isLoading={isLoading}
                                         onUpdateTeacher={handleTeacherUpdated}
                                         onDeleteTeacher={handleTeacherDeleted}
                                     />
@@ -220,7 +230,7 @@ export default function PrincipalDashboard({ allStudents, allTeachers }: { allSt
                             <CardContent className="px-1">
                                <StudentList
                                     students={allStudents}
-                                    isLoading={false}
+                                    isLoading={isLoading}
                                     onUpdateStudent={handleStudentUpdated}
                                     onDeleteStudent={handleStudentDeleted}
                                 />
@@ -243,7 +253,7 @@ export default function PrincipalDashboard({ allStudents, allTeachers }: { allSt
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isLoadingLeaves ? <Skeleton className="h-48 w-full" /> : (
+                    {isLoading ? <Skeleton className="h-48 w-full" /> : (
                         <Tabs defaultValue="students">
                             <TabsList>
                                 <TabsTrigger value="students">Student Leaves ({pendingStudentLeavesCount})</TabsTrigger>

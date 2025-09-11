@@ -1,4 +1,5 @@
 
+
 import { db } from "@/lib/firebase";
 import {
   getAuth as getFirebaseAuth,
@@ -13,6 +14,9 @@ import {
   update,
   remove,
   push,
+  query,
+  orderByChild,
+  equalTo,
 } from "firebase/database";
 import type { DataSnapshot } from "firebase/database";
 import { format } from "date-fns";
@@ -138,7 +142,7 @@ export const getTeacherByAuthId = async (
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${authUid}`);
     const snapshot = await get(teacherRef);
     if (snapshot.exists()) {
-      return { id: snapshot.key, ...snapshot.val() };
+      return { id: snapshot.key, authUid: snapshot.key, ...snapshot.val() };
     } else {
       return null;
     }
