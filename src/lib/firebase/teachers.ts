@@ -65,7 +65,7 @@ export const getTeachers = (callback: (teachers: Teacher[]) => void) => {
 // Get a single teacher by ID
 export const getTeacherById = async (teacherId: string): Promise<Teacher | null> => {
     try {
-        const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
+        const teacherRef = ref(db, `${TEACHERS_COLlection}/${teacherId}`);
         const snapshot = await get(teacherRef);
         if (snapshot.exists()) {
             return { id: snapshot.key, ...snapshot.val() };
@@ -83,15 +83,16 @@ export const getTeacherById = async (teacherId: string): Promise<Teacher | null>
 export const getTeacherByAuthId = async (authUid: string): Promise<Teacher | null> => {
     try {
         const teachersRef = ref(db, TEACHERS_COLLECTION);
-        const q = query(teachersRef, orderByChild('authUid'), equalTo(authUid));
-        const snapshot = await get(q);
+        const snapshot = await get(teachersRef);
         if (snapshot.exists()) {
-            const data = snapshot.val();
-            const teacherId = Object.keys(data)[0];
-            return { id: teacherId, ...data[teacherId] };
-        } else {
-            return null;
+            const allTeachers = snapshot.val();
+            for (const teacherId in allTeachers) {
+                if (allTeachers[teacherId].authUid === authUid) {
+                    return { id: teacherId, ...allTeachers[teacherId] };
+                }
+            }
         }
+        return null; // No teacher found with that authUid
     } catch (e) {
         console.error("Error getting teacher document by auth UID:", e);
         throw e;

@@ -82,15 +82,16 @@ export const getStudentById = async (srn: string): Promise<Student | null> => {
 export const getStudentByAuthId = async (authUid: string): Promise<Student | null> => {
     try {
         const studentsRef = ref(db, STUDENTS_COLLECTION);
-        const q = query(studentsRef, orderByChild('authUid'), equalTo(authUid));
-        const snapshot = await get(q);
+        const snapshot = await get(studentsRef);
         if (snapshot.exists()) {
-            const data = snapshot.val();
-            const studentId = Object.keys(data)[0];
-            return { id: studentId, srn: studentId, ...data[studentId] };
-        } else {
-            return null;
+            const allStudents = snapshot.val();
+            for (const studentId in allStudents) {
+                if (allStudents[studentId].authUid === authUid) {
+                    return { id: studentId, srn: studentId, ...allStudents[studentId] };
+                }
+            }
         }
+        return null;
     } catch (e) {
         console.error("Error getting student document by auth UID:", e);
         throw e;
