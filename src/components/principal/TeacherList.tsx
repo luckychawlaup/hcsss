@@ -107,24 +107,25 @@ const handlePrintLetter = (teacherData: Teacher) => {
             <head>
                 <title>Joining Letter - ${teacherData.name}</title>
                  <style>
-                    body { font-family: 'Poppins', sans-serif; line-height: 1.6; color: #333; margin: 40px; }
-                    .container { max-width: 800px; margin: auto; border: 1px solid #eee; padding: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
-                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 20px; margin-bottom: 30px; }
-                    .header img { width: 80px; height: 80px; margin-right: 20px; }
-                    .header h1 { font-size: 28px; color: #4285F4; margin: 0; }
-                    .header p { margin: 0; font-size: 14px; }
-                    .content { font-size: 16px; }
-                    .content p, .content ul, .content h4 { margin: 15px 0; }
+                    body { font-family: 'Poppins', sans-serif; line-height: 1.5; color: #333; margin: 20px; }
+                    .container { max-width: 100%; margin: auto; border: 1px solid #eee; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 15px; margin-bottom: 20px; }
+                    .header img { width: 70px; height: 70px; margin-right: 20px; }
+                    .header h1 { font-size: 24px; color: #4285F4; margin: 0; }
+                    .header p { margin: 0; font-size: 12px; }
+                    .content { font-size: 14px; }
+                    .content h3 { font-size: 18px; }
+                    .content p, .content ul, .content h4 { margin: 10px 0; }
                     .content ul { padding-left: 20px; }
-                    .footer { text-align: right; margin-top: 60px; font-style: italic; }
-                    .signature-area { margin-top: 80px; border-top: 1px solid #ccc; padding-top: 10px; width: 250px; text-align: center; }
-                    .disclaimer { font-size: 12px; color: #777; margin-top: 40px; border-top: 1px dashed #ccc; padding-top: 15px; }
-                    .details { border-collapse: collapse; width: 100%; margin: 25px 0; }
-                    .details td { padding: 10px; border: 1px solid #ddd; }
+                    .footer { text-align: right; margin-top: 40px; font-style: italic; }
+                    .signature-area { margin-top: 60px; border-top: 1px solid #ccc; padding-top: 8px; width: 220px; text-align: center; }
+                    .disclaimer { font-size: 10px; color: #777; margin-top: 30px; border-top: 1px dashed #ccc; padding-top: 10px; }
+                    .details { border-collapse: collapse; width: 100%; margin: 20px 0; }
+                    .details td { padding: 8px; border: 1px solid #ddd; font-size: 13px; }
                     .details td:first-child { font-weight: bold; width: 30%; background-color: #f9f9f9; }
                     @media print {
                         body { background-color: #fff; margin: 0; }
-                        .container { border: none; box-shadow: none; }
+                        .container { border: none; box-shadow: none; padding: 0; }
                     }
                 </style>
                  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
@@ -690,3 +691,5 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
     </>
   );
 }
+
+    
