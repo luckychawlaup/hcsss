@@ -1,3 +1,4 @@
+
 import TeacherSignupForm from "@/components/auth/TeacherSignupForm";
 import Link from "next/link";
 
@@ -12,7 +13,7 @@ export default function TeacherSignupPage() {
             <TeacherSignupForm />
             <p className="mt-4 text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <Link href="/login" className="font-medium text-primary hover:underline">
+                <Link href="/auth/teacher/login" className="font-medium text-primary hover:underline">
                 Sign In
                 </Link>
             </p>

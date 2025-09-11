@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -103,7 +104,7 @@ export default function TeacherSignupForm() {
         description: "We've sent a verification link to your email. Please verify to log in.",
       });
 
-      router.push("/login");
+      router.push("/auth/teacher/login");
 
     } catch (error: any) {
         const errorCode = error.code;
