@@ -39,6 +39,7 @@ const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
 const addTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
+  email: z.string().email("Please enter a valid email address."),
   dob: z.date({ required_error: "Date of birth is required." }),
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
@@ -93,6 +94,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     resolver: zodResolver(addTeacherSchema),
     defaultValues: {
       name: "",
+      email: "",
       fatherName: "",
       motherName: "",
       phoneNumber: "",
@@ -190,24 +192,24 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
             <head>
                 <title>Joining Letter</title>
                 <style>
-                    body { font-family: 'Poppins', sans-serif; line-height: 1.5; color: #333; margin: 20px; }
-                    .container { max-width: 100%; margin: auto; border: 1px solid #eee; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
-                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 15px; margin-bottom: 20px; }
-                    .header img { width: 70px; height: 70px; margin-right: 20px; }
-                    .header h1 { font-size: 24px; color: #4285F4; margin: 0; }
-                    .header p { margin: 0; font-size: 12px; }
-                    .content { font-size: 14px; }
-                    .content h3 { font-size: 18px; }
-                    .content p, .content ul, .content h4 { margin: 10px 0; }
+                    body { font-family: 'Poppins', sans-serif; line-height: 1.5; color: #333; margin: 20px; font-size: 12px; }
+                    .container { max-width: 100%; margin: auto; border: 1px solid #eee; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+                    .header { display: flex; align-items: center; border-bottom: 2px solid #4285F4; padding-bottom: 10px; margin-bottom: 15px; }
+                    .header img { width: 60px; height: 60px; margin-right: 15px; }
+                    .header h1 { font-size: 20px; color: #4285F4; margin: 0; }
+                    .header p { margin: 0; font-size: 11px; }
+                    .content { font-size: 12px; }
+                    .content h3 { font-size: 16px; margin-top: 15px; }
+                    .content p, .content ul, .content h4 { margin: 8px 0; }
                     .content ul { padding-left: 20px; }
-                    .footer { text-align: right; margin-top: 40px; font-style: italic; }
-                    .signature-area { margin-top: 60px; border-top: 1px solid #ccc; padding-top: 8px; width: 220px; text-align: center; }
-                    .disclaimer { font-size: 10px; color: #777; margin-top: 30px; border-top: 1px dashed #ccc; padding-top: 10px; }
-                    .details { border-collapse: collapse; width: 100%; margin: 20px 0; }
-                    .details td { padding: 8px; border: 1px solid #ddd; font-size: 13px; }
+                    .footer { text-align: right; margin-top: 30px; font-style: italic; }
+                    .signature-area { margin-top: 50px; border-top: 1px solid #ccc; padding-top: 5px; width: 200px; text-align: center; }
+                    .disclaimer { font-size: 9px; color: #777; margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 8px; }
+                    .details { border-collapse: collapse; width: 100%; margin: 15px 0; }
+                    .details td { padding: 6px; border: 1px solid #ddd; font-size: 12px; }
                     .details td:first-child { font-weight: bold; width: 30%; background-color: #f9f9f9; }
                     @media print {
-                        body { background-color: #fff; margin: 0; }
+                        body { background-color: #fff; margin: 0; -webkit-print-color-adjust: exact; }
                         .container { border: none; box-shadow: none; padding: 0; }
                     }
                 </style>
@@ -251,6 +253,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                             <li>You will need to enter the following details exactly as they appear on this letter for verification:
                                 <ul>
                                     <li>Your Full Name: <strong>${addedTeacherData.name}</strong></li>
+                                     <li>Your Email Address: <strong>${addedTeacherData.email}</strong></li>
                                     <li>Your Teacher ID: <strong>${generatedId}</strong></li>
                                     <li>Your Joining Date: <strong>${formattedJoiningDate}</strong></li>
                                 </ul>
@@ -333,6 +336,19 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     </FormItem>
                     )}
                 />
+                 <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                        <Input placeholder="teacher@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
                 <FormField
                     control={form.control}
                     name="dob"
@@ -374,6 +390,19 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                     </FormItem>
                     )}
                 />
+                <FormField
+                    control={form.control}
+                    name="phoneNumber"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                        <Input placeholder="+91 12345 67890" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
                  <FormField
                     control={form.control}
                     name="fatherName"
@@ -402,22 +431,9 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                 />
                  <FormField
                     control={form.control}
-                    name="phoneNumber"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                        <Input placeholder="+91 12345 67890" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
                     name="address"
                     render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-2">
                         <FormLabel>Address</FormLabel>
                         <FormControl>
                         <Textarea placeholder="Enter full address" {...field} />
@@ -593,5 +609,3 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     </>
   );
 }
-
-    

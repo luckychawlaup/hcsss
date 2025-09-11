@@ -68,10 +68,6 @@ export default function TeacherSignupForm() {
 
     try {
       // --- Verification Step ---
-      // This check must happen on a backend with admin privileges, 
-      // but for this example, we'll assume a client-side check after auth.
-      // The direct call `getTeacherById` before auth will fail due to security rules.
-      
       const teacherRecord = await getTeacherById(values.teacherId);
       
       if (!teacherRecord) {
@@ -89,8 +85,12 @@ export default function TeacherSignupForm() {
       const formattedJoiningDate = new Date(teacherRecord.joiningDate).toDateString();
       const providedJoiningDate = values.joiningDate.toDateString();
 
-      if (teacherRecord.name.toLowerCase() !== values.name.toLowerCase() || formattedJoiningDate !== providedJoiningDate) {
-        setError("The details entered do not match our records. Please verify your Name and Joining Date.");
+      if (
+        teacherRecord.name.toLowerCase() !== values.name.toLowerCase() || 
+        teacherRecord.email?.toLowerCase() !== values.email.toLowerCase() ||
+        formattedJoiningDate !== providedJoiningDate
+      ) {
+        setError("The details entered do not match our records. Please verify your Name, Email, and Joining Date.");
         setIsLoading(false);
         return;
       }
@@ -109,7 +109,7 @@ export default function TeacherSignupForm() {
       });
 
       // Link Auth UID and email to teacher record in DB
-      await updateTeacher(values.teacherId, { authUid: user.uid, email: user.email! });
+      await updateTeacher(values.teacherId, { authUid: user.uid });
 
       await sendEmailVerification(user);
 
