@@ -7,6 +7,9 @@ import {
   get,
   update,
   remove,
+  query,
+  orderByChild,
+  equalTo,
 } from "firebase/database";
 import type { DataSnapshot } from "firebase/database";
 
@@ -15,6 +18,7 @@ const STUDENTS_COLLECTION = "students";
 export interface Student {
   id: string;
   srn: string;
+  authUid?: string; // To link to Firebase Auth user
   name: string;
   fatherName: string;
   motherName: string;
@@ -74,6 +78,25 @@ export const getStudentById = async (srn: string): Promise<Student | null> => {
     }
 }
 
+// Get a single student by Auth UID
+export const getStudentByAuthId = async (authUid: string): Promise<Student | null> => {
+    try {
+        const studentsRef = ref(db, STUDENTS_COLLECTION);
+        const q = query(studentsRef, orderByChild('authUid'), equalTo(authUid));
+        const snapshot = await get(q);
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            const studentId = Object.keys(data)[0];
+            return { id: studentId, srn: studentId, ...data[studentId] };
+        } else {
+            return null;
+        }
+    } catch (e) {
+        console.error("Error getting student document by auth UID:", e);
+        throw e;
+    }
+}
+
 
 // Update a student's details
 export const updateStudent = async (srn: string, updatedData: Partial<Student>) => {
@@ -96,3 +119,5 @@ export const deleteStudent = async (srn: string) => {
     throw e;
   }
 };
+
+    

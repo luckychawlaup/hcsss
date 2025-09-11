@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getStudentById, updateStudent } from "@/lib/firebase/students";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -66,6 +67,29 @@ export default function SignupForm() {
     setError(null);
 
     try {
+       // --- Verification Step ---
+      const studentRecord = await getStudentById(values.studentId);
+       if (!studentRecord) {
+        setError("Invalid Student ID. Please check the ID provided by the school.");
+        setIsLoading(false);
+        return;
+      }
+
+      if(studentRecord.authUid) {
+        setError("This Student ID is already linked to an account.");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Simple name check, can be made more robust
+      if (studentRecord.name.toLowerCase() !== values.name.toLowerCase()) {
+        setError("The details entered do not match our records. Please verify your Name and Student ID.");
+        setIsLoading(false);
+        return;
+      }
+      // --- End Verification ---
+
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         values.email,
@@ -77,6 +101,9 @@ export default function SignupForm() {
       await updateProfile(user, {
         displayName: values.name,
       });
+
+      // Link Auth UID to student record in DB
+      await updateStudent(values.studentId, { authUid: user.uid });
 
       await sendEmailVerification(user);
 
@@ -113,7 +140,7 @@ export default function SignupForm() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name</FormLabel>
+                <FormLabel>Full Name (as on school record)</FormLabel>
                 <FormControl>
                   <Input placeholder="John Doe" {...field} />
                 </FormControl>
@@ -126,7 +153,7 @@ export default function SignupForm() {
             name="studentId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Student ID</FormLabel>
+                <FormLabel>Student ID (SRN)</FormLabel>
                 <FormControl>
                   <Input placeholder="e.g. 12345678" {...field} />
                 </FormControl>
@@ -223,3 +250,5 @@ export default function SignupForm() {
     </>
   );
 }
+
+    

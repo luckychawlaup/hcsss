@@ -30,7 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getTeacherById } from "@/lib/firebase/teachers";
+import { getTeacherById, updateTeacher } from "@/lib/firebase/teachers";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -75,6 +75,12 @@ export default function TeacherSignupForm() {
         setIsLoading(false);
         return;
       }
+
+      if(teacherRecord.authUid) {
+        setError("This Teacher ID is already linked to an account.");
+        setIsLoading(false);
+        return;
+      }
       
       const formattedJoiningDate = new Date(teacherRecord.joiningDate).toDateString();
       const providedJoiningDate = values.joiningDate.toDateString();
@@ -97,6 +103,9 @@ export default function TeacherSignupForm() {
       await updateProfile(user, {
         displayName: values.name,
       });
+
+      // Link Auth UID to teacher record in DB
+      await updateTeacher(values.teacherId, { authUid: user.uid });
 
       await sendEmailVerification(user);
 
@@ -240,3 +249,5 @@ export default function TeacherSignupForm() {
     </>
   );
 }
+
+    
