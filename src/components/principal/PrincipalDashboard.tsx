@@ -29,6 +29,8 @@ import ApproveLeaves from "../teacher/ApproveLeaves";
 export default function PrincipalDashboard() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [manageTeachersTab, setManageTeachersTab] = useState("addTeacher");
+  const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
   const [activeTab, setActiveTab] = useState("manageTeachers");
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
@@ -58,7 +60,7 @@ export default function PrincipalDashboard() {
   }, [isPrincipal]);
 
   const handleTeacherAdded = () => {
-    setActiveTab("viewTeachers");
+    setManageTeachersTab("viewTeachers");
   };
 
   const handleTeacherUpdated = async (teacherId: string, updatedData: Partial<Teacher>) => {
@@ -70,7 +72,7 @@ export default function PrincipalDashboard() {
   };
 
   const handleStudentAdded = () => {
-     setActiveTab("manageStudents");
+     setManageStudentsTab("viewStudents");
   };
 
   const handleStudentUpdated = async (studentId: string, updatedData: Partial<Student>) => {
@@ -115,7 +117,7 @@ export default function PrincipalDashboard() {
                     </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Tabs defaultValue="addTeacher" className="w-full">
+                        <Tabs value={manageTeachersTab} onValueChange={setManageTeachersTab} className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
                                 <TabsTrigger value="addTeacher">Add Teacher</TabsTrigger>
                                 <TabsTrigger value="viewTeachers">View Teachers</TabsTrigger>
@@ -170,7 +172,7 @@ export default function PrincipalDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                   <Tabs defaultValue="addStudent" className="w-full">
+                   <Tabs value={manageStudentsTab} onValueChange={setManageStudentsTab} className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="addStudent">Add Student</TabsTrigger>
                             <TabsTrigger value="viewStudents">View Students</TabsTrigger>
@@ -186,7 +188,7 @@ export default function PrincipalDashboard() {
                                 </CardDescription>
                             </CardHeader>
                              <CardContent className="px-1">
-                                <AddStudentForm onStudentAdded={() => setActiveTab('viewStudents')} />
+                                <AddStudentForm onStudentAdded={handleStudentAdded} />
                             </CardContent>
                         </TabsContent>
                         <TabsContent value="viewStudents">
