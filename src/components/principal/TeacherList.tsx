@@ -52,7 +52,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-const sections = ["A", "B"];
+const sections = ["A", "B", "C", "D"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
 const editTeacherSchema = z.object({
@@ -123,7 +123,8 @@ const handlePrintLetter = (teacherData: Teacher) => {
                     .details td { padding: 10px; border: 1px solid #ddd; }
                     .details td:first-child { font-weight: bold; width: 30%; background-color: #f9f9f9; }
                     @media print {
-                        .no-print { display: none; }
+                        body { background-color: #fff; margin: 0; }
+                        .container { border: none; box-shadow: none; }
                     }
                 </style>
                  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
@@ -146,7 +147,7 @@ const handlePrintLetter = (teacherData: Teacher) => {
                         
                         <p>We are pleased to offer you the position at Hilton Convent School. We were impressed with your qualifications and experience and believe you will be a valuable asset to our team.</p>
                         
-                        <p>Your joining date is officially recorded as <strong>${formattedJoiningDate}</strong>. Please find your details below:</p>
+                        <p>Your joining date is officially recorded as <strong>${new Date(teacherData.joiningDate).toLocaleString('en-GB')}</strong>. Please find your details below:</p>
                         
                         <table class="details">
                             <tr><td>Teacher ID</td><td>${teacherData.id}</td></tr>
