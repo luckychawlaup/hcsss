@@ -9,7 +9,6 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   sendEmailVerification,
-  signInWithCustomToken,
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -59,44 +58,6 @@ export default function LoginForm({ role }: LoginFormProps) {
     setError(null);
     setNeedsVerification(false);
 
-    // Hardcoded Principal Login
-    if (
-      role === "principal" &&
-      values.email === "principal@hcsss.in" &&
-      values.password === "z5fnZMNj2rpfnEQX" &&
-      values.uid === "hvldHzYq4ZbZlc7nym3ICNaEI1u1"
-    ) {
-        try {
-            // This is a prototype-only custom token. In a real app, this would be minted
-            // by a secure backend server using the Firebase Admin SDK.
-            const customToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJodmxkSHpZcTRaYlpsYzdueW0zSUNOYUVJMXUxIiwiaWF0IjoxNzE2NDEyNDAwLCJhdXRoX3RpbWUiOjE3MTY0MTI0MDAsImlzX2Fub255bW91cyI6ZmFsc2V9.Zf0DSwzS5eN1D5G8x5pZ-B-gG6e5rJ6p_t_B-c9Z-bE";
-            await signInWithCustomToken(auth, customToken);
-            
-            // Set cookies to establish the principal's session
-            document.cookie = "principal-role=true; path=/; max-age=86400"; // Expires in 1 day
-            document.cookie = `principal-uid=${values.uid}; path=/; max-age=86400`;
-            toast({
-                title: "Login Successful",
-                description: "Welcome, Principal! Redirecting...",
-            });
-            // Force a full page reload to the principal dashboard.
-            // This ensures the AuthProvider correctly reads the new cookies.
-            window.location.href = '/principal';
-        } catch (e: any) {
-             console.error("Principal login error:", e);
-             setError(`An error occurred during login: ${e.message}`);
-             setIsLoading(false);
-        }
-      return;
-    }
-     // Handle case where principal login details are incorrect
-    if (role === "principal") {
-        setError("Invalid email, password, or UID for principal.");
-        setIsLoading(false);
-        return;
-    }
-
-
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -106,10 +67,9 @@ export default function LoginForm({ role }: LoginFormProps) {
 
       const user = userCredential.user;
 
-      if (!user.emailVerified) {
+      if (!user.emailVerified && role !== 'principal') {
         setNeedsVerification(true);
         setError("Your email is not verified. Please check your inbox for a verification link.");
-        // Resend verification email
         await sendEmailVerification(user);
         toast({
           title: "Verification Email Sent",
@@ -118,6 +78,25 @@ export default function LoginForm({ role }: LoginFormProps) {
         setIsLoading(false);
         return;
       }
+      
+      if (role === 'principal') {
+        if (user.uid !== 'hvldHzYq4ZbZlc7nym3ICNaEI1u1' || values.email !== 'principal@hcsss.in') {
+            setError("Invalid credentials for principal account.");
+            await auth.signOut(); // Sign out the incorrectly logged-in user
+            setIsLoading(false);
+            return;
+        }
+         // Set cookie to establish the principal's session
+        document.cookie = "principal-role=true; path=/; max-age=86400"; // Expires in 1 day
+        toast({
+            title: "Login Successful",
+            description: "Welcome, Principal! Redirecting...",
+        });
+        router.push('/principal');
+        router.refresh();
+        return;
+      }
+
 
       toast({
         title: "Login Successful",

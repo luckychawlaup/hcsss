@@ -19,6 +19,9 @@ const publicPaths = [
     "/auth/teacher/forgot-password",
 ];
 
+const principalUID = "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
+
+
 function Preloader() {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
@@ -37,7 +40,6 @@ const getRoleFromCookie = () => {
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
         const [name, value] = cookie.trim().split('=');
-        if (name === 'principal-role' && value === 'true') return 'principal';
         if (name === 'teacher-role' && value === 'true') return 'teacher';
     }
     return 'student'; // Default to student
@@ -52,38 +54,28 @@ export default function AuthProvider({
   const auth = getAuth(app);
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | "principal" | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const isPublicPath = publicPaths.includes(pathname);
-    const principalCookie = document.cookie.includes("principal-role=true");
 
-    // 1. Handle Principal Session
-    if (principalCookie) {
-        setUser("principal");
-        if (isPublicPath) {
-            router.replace('/principal');
-        } else if (!pathname.startsWith('/principal')) {
-             router.replace('/principal');
-        } else {
-            setLoading(false);
-        }
-        return;
-    }
-
-    // 2. Handle Firebase Auth Session (Students & Teachers)
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
-      if (authUser && authUser.emailVerified) {
+      if (authUser) {
         setUser(authUser);
+        const isPrincipal = authUser.uid === principalUID;
         const role = getRoleFromCookie();
         
         if (isPublicPath) {
-            if (role === 'teacher') {
+            if (isPrincipal) {
+                router.replace('/principal');
+            } else if (role === 'teacher') {
                 router.replace('/teacher');
             } else {
                 router.replace('/');
             }
+        } else if (isPrincipal && !pathname.startsWith('/principal')) {
+             router.replace('/principal');
         } else if (role === 'teacher' && !pathname.startsWith('/teacher')) {
             router.replace('/teacher');
         } else if (role === 'student' && (pathname.startsWith('/teacher') || pathname.startsWith('/principal'))) {
