@@ -10,6 +10,7 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
   updateProfile,
+  UserCredential
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -66,9 +67,9 @@ export default function TeacherSignupForm() {
     setIsLoading(true);
     setError(null);
 
-    let userCredential;
+    let userCredential: UserCredential | null = null;
     try {
-      // Step 1: Create the user in Firebase Auth. This is the only way to get an auth object.
+      // Step 1: Create the user in Firebase Auth.
       userCredential = await createUserWithEmailAndPassword(
         auth,
         values.email,
@@ -77,7 +78,7 @@ export default function TeacherSignupForm() {
       
       const user = userCredential.user;
 
-      // Step 2: Now that the user is created and authenticated, verify the provided details against the database record.
+      // Step 2: Now that the user is created and authenticated, verify their provided details against the database record.
       const teacherRecord = await getTeacherById(values.teacherId);
       
       // Verification checks
@@ -87,14 +88,16 @@ export default function TeacherSignupForm() {
       if(teacherRecord.authUid) {
         throw new Error("This Teacher ID is already linked to an account.");
       }
-      const formattedJoiningDate = new Date(teacherRecord.joiningDate).toDateString();
-      const providedJoiningDate = values.joiningDate.toDateString();
+      
+      const formattedJoiningDateFromRecord = new Date(teacherRecord.joiningDate).toDateString();
+      const formattedJoiningDateFromForm = values.joiningDate.toDateString();
 
-      if (
-        teacherRecord.name.toLowerCase() !== values.name.toLowerCase() || 
-        teacherRecord.email?.toLowerCase() !== values.email.toLowerCase() ||
-        formattedJoiningDate !== providedJoiningDate
-      ) {
+      const detailsMatch = 
+        teacherRecord.name.toLowerCase() === values.name.toLowerCase() && 
+        teacherRecord.email?.toLowerCase() === values.email.toLowerCase() &&
+        formattedJoiningDateFromRecord === formattedJoiningDateFromForm;
+
+      if (!detailsMatch) {
         throw new Error("The details entered do not match our records. Please verify your Name, Email, and Joining Date.");
       }
 
@@ -104,7 +107,7 @@ export default function TeacherSignupForm() {
       });
 
       // Link Auth UID to teacher record in DB. This is the "account claim".
-      await updateTeacher(values.teacherId, { authUid: user.uid });
+      await updateTeacher(values.teacherId, { authUid: user.uid, email: values.email });
 
       await sendEmailVerification(user);
 
