@@ -18,7 +18,7 @@ import { UserPlus, Users, GraduationCap, Eye, Megaphone } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
 import type { DocumentData } from "firebase/firestore";
-import { Separator } from "../ui/separator";
+import { Separator } from "@/components/ui/separator";
 
 // Define the Teacher type, you can expand this as needed
 export interface Teacher extends DocumentData {
