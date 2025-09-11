@@ -1,26 +1,29 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { getAuth } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { getTeacherByAuthId } from '@/lib/firebase/teachers';
 import type { Teacher } from '@/lib/firebase/teachers';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, Shield, Mail, Phone, Home, User } from 'lucide-react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { getSalarySlipById, SalarySlip } from '@/lib/firebase/salary';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 }
 
 function numberToWords(num: number) {
+    if (num === null || num === undefined) return "";
     const a = ['','one ','two ','three ','four ', 'five ','six ','seven ','eight ','nine ','ten ','eleven ','twelve ','thirteen ','fourteen ','fifteen ','sixteen ','seventeen ','eighteen ','nineteen '];
     const b = ['', '', 'twenty','thirty','forty','fifty', 'sixty','seventy','eighty','ninety'];
     
-    if ((num = num.toString()).length > 9) return 'overflow';
+    if ((num.toString()).length > 9) return 'overflow';
     const n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
     if (!n) return '';
     let str = '';
@@ -28,51 +31,47 @@ function numberToWords(num: number) {
     str += (n[2] != '00') ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'lakh ' : '';
     str += (n[3] != '00') ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'thousand ' : '';
     str += (n[4] != '0') ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'hundred ' : '';
-    str += (n[5] != '00') ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) + 'only' : '';
+    str += (n[5] != '00') ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
+    if (str.trim() === '') return 'Zero';
+    str = str.trim() + ' only';
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-
-export default function SalarySlipPage() {
+function SalarySlipContent() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
+  const [salarySlip, setSalarySlip] = useState<SalarySlip | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const auth = getAuth(app);
   const params = useParams();
+  const searchParams = useSearchParams();
   const month = typeof params.month === 'string' ? params.month : '';
+  const slipId = searchParams.get('slipId');
   const salaryMonth = month.replace('-', ' ');
 
   useEffect(() => {
-    async function fetchTeacher() {
+    async function fetchData() {
       setIsLoading(true);
       const user = auth.currentUser;
-      if (user) {
+      if (user && slipId) {
           const teacherData = await getTeacherByAuthId(user.uid);
-          if (teacherData) {
+          const slipData = await getSalarySlipById(slipId);
+          if (teacherData && slipData && slipData.teacherId === user.uid) {
             setTeacher(teacherData);
+            setSalarySlip(slipData);
           }
       }
       setIsLoading(false);
     }
 
-    fetchTeacher();
-  }, [auth]);
+    fetchData();
+  }, [auth, slipId]);
 
   const handlePrint = () => {
     window.print();
   };
   
-  // Dummy data for salary slip
-  const salaryDetails = {
-    basic: 30000,
-    hra: 12000,
-    specialAllowance: 8000,
-    providentFund: 2400,
-    professionalTax: 200,
-    tds: 1500,
-  }
-
-  const totalEarnings = salaryDetails.basic + salaryDetails.hra + salaryDetails.specialAllowance;
-  const totalDeductions = salaryDetails.providentFund + salaryDetails.professionalTax + salaryDetails.tds;
+  const totalEarnings = (salarySlip?.basicSalary ?? 0) + (salarySlip?.earnings?.reduce((acc, earn) => acc + earn.amount, 0) ?? 0);
+  const totalDeductions = salarySlip?.deductions?.reduce((acc, ded) => acc + ded.amount, 0) ?? 0;
   const netSalary = totalEarnings - totalDeductions;
 
   if (isLoading) {
@@ -83,7 +82,7 @@ export default function SalarySlipPage() {
     );
   }
 
-  if (!teacher) {
+  if (!teacher || !salarySlip) {
     notFound();
   }
 
@@ -132,9 +131,13 @@ export default function SalarySlipPage() {
                 <div className="border rounded-lg p-4">
                      <h3 className="font-semibold text-green-600 mb-3">Earnings</h3>
                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Basic Salary</span><span>{formatCurrency(salaryDetails.basic)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">House Rent Allowance (HRA)</span><span>{formatCurrency(salaryDetails.hra)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Special Allowance</span><span>{formatCurrency(salaryDetails.specialAllowance)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Basic Salary</span><span>{formatCurrency(salarySlip.basicSalary)}</span></div>
+                        {salarySlip.earnings?.map((item, index) => (
+                            <div key={index} className="flex justify-between">
+                                <span className="text-muted-foreground">{item.name}</span>
+                                <span>{formatCurrency(item.amount)}</span>
+                            </div>
+                        ))}
                      </div>
                      <Separator className="my-3"/>
                      <div className="flex justify-between font-bold text-sm">
@@ -145,9 +148,15 @@ export default function SalarySlipPage() {
                  <div className="border rounded-lg p-4">
                      <h3 className="font-semibold text-red-600 mb-3">Deductions</h3>
                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Provident Fund (PF)</span><span>{formatCurrency(salaryDetails.providentFund)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Professional Tax</span><span>{formatCurrency(salaryDetails.professionalTax)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">TDS</span><span>{formatCurrency(salaryDetails.tds)}</span></div>
+                        {salarySlip.deductions?.map((item, index) => (
+                             <div key={index} className="flex justify-between">
+                                <span className="text-muted-foreground">{item.name}</span>
+                                <span>{formatCurrency(item.amount)}</span>
+                            </div>
+                        ))}
+                        {(!salarySlip.deductions || salarySlip.deductions.length === 0) && (
+                            <p className='text-sm text-muted-foreground'>No deductions</p>
+                        )}
                      </div>
                      <Separator className="my-3"/>
                      <div className="flex justify-between font-bold text-sm">
@@ -162,19 +171,27 @@ export default function SalarySlipPage() {
                     <span>Net Salary</span>
                     <span>{formatCurrency(netSalary)}</span>
                 </div>
-                <p className="text-right text-sm font-medium mt-2">
+                <p className="text-right text-sm font-medium mt-2 capitalize">
                     (In Words: {numberToWords(netSalary)})
                 </p>
             </div>
         </main>
         
         <footer className="mt-8 border-t pt-2 text-center text-xs text-muted-foreground">
-            <p>© {new Date().getFullYear()} Hilton Convent School. This is a computer-generated document and does not require a signature.</p>
+             <p>This is a computer-generated document and does not require a signature.</p>
         </footer>
 
       </div>
     </div>
   );
+}
+
+export default function SalarySlipPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+      <SalarySlipContent />
+    </Suspense>
+  )
 }
 
     

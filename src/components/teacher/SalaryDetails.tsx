@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Teacher } from "@/lib/firebase/teachers";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,9 +23,10 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { Loader2, Landmark, Wallet, Edit, Save, WalletCards } from "lucide-react";
+import { Loader2, Landmark, Wallet, Edit, Save, WalletCards, BadgeInfo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateTeacher } from "@/lib/firebase/teachers";
+import { getSalarySlipsForTeacher, SalarySlip } from "@/lib/firebase/salary";
 import {
   Table,
   TableBody,
@@ -35,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
+import { Badge } from "../ui/badge";
 
 
 const bankAccountSchema = z.object({
@@ -44,19 +46,21 @@ const bankAccountSchema = z.object({
   bankName: z.string().min(3, "Bank name is required."),
 });
 
-const salaryHistory = [
-    { month: "July 2024", amount: "₹50,000", status: "Paid"},
-    { month: "June 2024", amount: "₹50,000", status: "Paid"},
-    { month: "May 2024", amount: "₹50,000", status: "Paid"},
-];
-
 interface SalaryDetailsProps {
   teacher: Teacher | null;
 }
 
 export function SalaryDetails({ teacher }: SalaryDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [salaryHistory, setSalaryHistory] = useState<SalarySlip[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (teacher) {
+        const unsubscribe = getSalarySlipsForTeacher(teacher.id, setSalaryHistory);
+        return () => unsubscribe();
+    }
+  }, [teacher]);
 
   const form = useForm<z.infer<typeof bankAccountSchema>>({
     resolver: zodResolver(bankAccountSchema),
@@ -191,27 +195,37 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Month</TableHead>
-                            <TableHead>Amount</TableHead>
+                            <TableHead>Net Salary</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {salaryHistory.map(record => (
-                             <TableRow key={record.month}>
-                                <TableCell>{record.month}</TableCell>
-                                <TableCell>{record.amount}</TableCell>
-                                <TableCell className="text-green-600">{record.status}</TableCell>
-                                <TableCell className="text-right">
-                                    <Button asChild variant="outline" size="sm">
-                                        <Link href={`/teacher/salary-slip/${record.month.replace(' ','-')}`}>
-                                            <WalletCards className="mr-2" />
-                                            View Slip
-                                        </Link>
-                                    </Button>
+                        {salaryHistory.length > 0 ? (
+                            salaryHistory.map(record => (
+                                <TableRow key={record.id}>
+                                    <TableCell>{record.month}</TableCell>
+                                    <TableCell>₹{record.netSalary.toLocaleString('en-IN')}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={record.status === "Paid" ? "default" : "secondary"}>{record.status}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button asChild variant="outline" size="sm">
+                                            <Link href={`/teacher/salary-slip/${record.month.replace(' ','-')}?slipId=${record.id}`}>
+                                                <WalletCards className="mr-2" />
+                                                View Slip
+                                            </Link>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                             <TableRow>
+                                <TableCell colSpan={4} className="text-center h-24">
+                                    No salary slips have been generated for you yet.
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        )}
                     </TableBody>
                 </Table>
             </CardContent>
@@ -219,3 +233,5 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
     </div>
   );
 }
+
+    

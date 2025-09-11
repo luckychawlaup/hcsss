@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
+import GenerateSalary from "./GenerateSalary";
 
 const AddTeacherForm = dynamic(() => import('./AddTeacherForm').then(mod => mod.AddTeacherForm), {
     loading: () => <Skeleton className="h-96 w-full" />
@@ -37,7 +38,7 @@ const MakeAnnouncementForm = dynamic(() => import('./MakeAnnouncementForm').then
 });
 
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -300,6 +301,27 @@ export default function PrincipalDashboard() {
                         </CardContent>
                     </Card>
               );
+          case 'managePayroll':
+              return (
+                    <Card>
+                        <CardHeader>
+                             <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <DollarSign />
+                                Manage Payroll
+                            </CardTitle>
+                            <CardDescription>
+                                Generate and manage salary slips for teachers.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <GenerateSalary teachers={allTeachers} isLoading={isLoading} />
+                        </CardContent>
+                    </Card>
+              );
           default:
               return (
                 <div className="space-y-6">
@@ -313,6 +335,7 @@ export default function PrincipalDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <NavCard title="Manage Teachers" description="Add, view, and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
                         <NavCard title="Manage Students" description="Admit, view, and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
+                        <NavCard title="Manage Payroll" description="Generate salary slips for teachers" icon={DollarSign} onClick={() => setActiveView("managePayroll")} />
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                     </div>
@@ -333,3 +356,5 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
+
+    
