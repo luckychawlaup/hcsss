@@ -15,7 +15,7 @@ import { format } from "date-fns";
 // NOTE: These functions are intended for a simulated admin environment.
 // In a production app, creating/deleting auth users should be handled
 // by a secure backend (e.g., Cloud Functions) and not directly on the client.
-import { getAuth, createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, deleteUser, sendEmailVerification } from "firebase/auth";
 
 const TEACHERS_COLLECTION = "teachers";
 
@@ -60,7 +60,10 @@ export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'auth
     const user = userCredential.user;
     const authUid = user.uid;
 
-    // Step 2: Prepare the teacher data for the database
+    // Step 2: Send verification email
+    await sendEmailVerification(user);
+
+    // Step 3: Prepare the teacher data for the database
     const dbData = {
       ...teacherData,
       authUid: authUid,
@@ -70,7 +73,7 @@ export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'auth
       tempPassword: tempPassword,
     };
 
-    // Step 3: Save the teacher's profile in the Realtime Database using their UID as the key
+    // Step 4: Save the teacher's profile in the Realtime Database using their UID as the key
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${authUid}`);
     await set(teacherRef, dbData);
 

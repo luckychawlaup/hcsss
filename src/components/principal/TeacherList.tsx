@@ -162,11 +162,10 @@ const handlePrintLetter = (teacherData: Teacher) => {
                         <h4>Portal Login Instructions:</h4>
                         <p>To access the teacher's dashboard, please follow these steps:</p>
                         <ul>
-                            <li>Visit the school's portal and select "I am a Teacher".</li>
+                            <li><strong>Step 1: Verify Your Email.</strong> Check your inbox for an email with the subject "Verify your email for Hilton Convent School". Click the link inside this email to verify your account. You must do this before you can log in.</li>
+                            <li><strong>Step 2: Log In.</strong> Visit the school's portal and select "I am a Teacher".</li>
                             <li>Use your registered email address (<strong>${teacherData.email}</strong>) and the temporary password provided above to log in.</li>
-                            <li><strong>Important:</strong> Upon your first login, the system will require you to change your password. A password reset link will be automatically sent to your registered email.</li>
-                            <li>Please check your inbox and follow the link to set a new, permanent password for your account.</li>
-                            <li>Once you have set your new password, you can log in as usual.</li>
+                            <li><strong>Step 3: Change Your Password.</strong> Upon your first login, the system will require you to change your password. A password reset link will be automatically sent to your registered email. Please check your inbox and follow the link to set a new, permanent password for your account.</li>
                         </ul>
                         
                         <p>We look forward to you joining our team.</p>
