@@ -60,7 +60,7 @@ export default function AuthProvider({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const isPublicPath = publicPaths.includes(pathname);
+    const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
 
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
       if (authUser) {
@@ -86,7 +86,7 @@ export default function AuthProvider({
                     setLoading(false);
                 }
             } else if (role === 'teacher') {
-                if (!pathname.startsWith('/teacher')) {
+                if (!pathname.startsWith('/teacher') || pathname.startsWith('/principal')) {
                     router.replace('/teacher');
                 } else {
                     setLoading(false);
