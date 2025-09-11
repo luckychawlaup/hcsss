@@ -15,7 +15,7 @@ import { format } from "date-fns";
 // NOTE: These functions are intended for a simulated admin environment.
 // In a production app, creating/deleting auth users should be handled
 // by a secure backend (e.g., Cloud Functions) and not directly on the client.
-import { getAuth, createUserWithEmailAndPassword, deleteUser, sendEmailVerification } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 
 const TEACHERS_COLLECTION = "teachers";
 
@@ -50,9 +50,7 @@ const generateTempPassword = () => {
 
 
 // Function to add a teacher and create their auth account
-export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'authUid' | 'joiningDate'>) => {
-  // IMPORTANT: This function simulates an admin-level action on the client.
-  // In a real production environment, this should be a secure backend Cloud Function.
+export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'authUid' | 'joiningDate' | 'tempPassword'>) => {
   const adminAuth = getAuth();
   const tempPassword = generateTempPassword();
 
@@ -66,7 +64,7 @@ export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'auth
     await sendEmailVerification(user);
 
     // Step 3: Prepare the teacher data for the Realtime Database
-    const dbData = {
+    const dbData: Omit<Teacher, 'id'> = {
       ...teacherData,
       authUid: authUid,
       dob: format(teacherData.dob as unknown as Date, "yyyy-MM-dd"),
@@ -79,7 +77,7 @@ export const addTeacherWithAuth = async (teacherData: Omit<Teacher, 'id' | 'auth
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${authUid}`);
     await set(teacherRef, dbData);
 
-    // Return the new ID and temporary password to be displayed to the principal
+    // Return the new ID (authUid) and temporary password to be displayed to the principal
     return { teacherId: authUid, tempPassword };
 
   } catch (error: any) {

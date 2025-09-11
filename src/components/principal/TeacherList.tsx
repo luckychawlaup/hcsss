@@ -148,7 +148,7 @@ const handlePrintLetter = (teacherData: Teacher) => {
                         <p>Your joining date is officially recorded as <strong>${new Date(teacherData.joiningDate).toLocaleDateString('en-GB')}</strong>. Please find your details below:</p>
                         
                         <table class="details">
-                            <tr><td>Teacher ID</td><td>${teacherData.id}</td></tr>
+                            <tr><td>Teacher ID (Auth UID)</td><td>${teacherData.id}</td></tr>
                             <tr><td>Full Name</td><td>${teacherData.name}</td></tr>
                              <tr><td>Email Address</td><td>${teacherData.email}</td></tr>
                             <tr><td>Role</td><td>${teacherData.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}</td></tr>
@@ -345,7 +345,7 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
           <TableBody>
             {teachers.map((teacher) => (
               <TableRow key={teacher.id}>
-                <TableCell className="font-mono">{teacher.id}</TableCell>
+                <TableCell className="font-mono text-xs max-w-xs truncate">{teacher.id}</TableCell>
                 <TableCell className="font-medium">{teacher.name}</TableCell>
                 <TableCell>
                   {teacher.role === 'classTeacher' ? (

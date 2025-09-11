@@ -74,7 +74,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
-  const [addedTeacherData, setAddedTeacherData] = useState<Omit<Teacher, 'id' | 'authUid'> | null>(null);
+  const [addedTeacherData, setAddedTeacherData] = useState<Omit<Teacher, 'id' | 'authUid' | 'joiningDate' | 'tempPassword'> | null>(null);
   const [assignedClasses, setAssignedClasses] = useState<string[]>([]);
   const [qualificationInput, setQualificationInput] = useState("");
   const { toast } = useToast();
@@ -137,10 +137,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
       setTempPassword(newTempPassword);
       toast({
         title: "Teacher Added Successfully!",
-        description: `${values.name} has been added to the system.`,
+        description: `${values.name} has been added and their account has been created.`,
       });
-      onTeacherAdded();
       form.reset();
+      // Do not call onTeacherAdded() here to prevent premature tab switching.
+      // The user can choose to add another or view the list.
     } catch (e: any) {
       setError(`An unexpected error occurred: ${e.message}`);
     } finally {
@@ -171,6 +172,15 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                 <p>An account for {addedTeacherData.name} has been created. Please share these credentials with them securely.</p>
                 
                 <div className="space-y-2">
+                     <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
+                        <div>
+                            <p className="text-xs text-muted-foreground">Teacher ID (Auth UID)</p>
+                            <p className="font-mono font-semibold text-primary break-all">{generatedId}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(generatedId, "ID")}>
+                            <Copy className="h-5 w-5 text-primary" />
+                        </Button>
+                    </div>
                     <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
                         <div>
                             <p className="text-xs text-muted-foreground">Email / Username</p>

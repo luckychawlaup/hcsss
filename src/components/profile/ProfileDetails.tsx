@@ -119,7 +119,7 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
                     <AvatarFallback>{teacher.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{teacher.name}</h1>
-                <p className="text-primary-foreground/80">Teacher ID: {teacher.id}</p>
+                <p className="text-primary-foreground/80 text-xs">Teacher ID: {teacher.id}</p>
                  {teacher.email && <p className="text-sm text-primary-foreground/80 mt-1">{teacher.email}</p>}
             </div>
       
