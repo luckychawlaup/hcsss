@@ -67,18 +67,18 @@ export default function LoginForm({ role }: LoginFormProps) {
       values.uid === "hvldHzYq4ZbZlc7nym3ICNaEI1u1"
     ) {
         try {
-            // In a real app, you'd generate a custom token on a secure server
-            // For this prototype, we'll simulate it by setting a cookie and refreshing
+            // Set cookies to establish the principal's session
             document.cookie = "principal-role=true; path=/; max-age=86400"; // Expires in 1 day
             document.cookie = `principal-uid=${values.uid}; path=/; max-age=86400`;
             toast({
                 title: "Login Successful",
-                description: "Welcome, Principal!",
+                description: "Welcome, Principal! Redirecting...",
             });
-            router.push("/principal");
-            router.refresh();
+            // Force a full page reload to the principal dashboard.
+            // This ensures the AuthProvider correctly reads the new cookies.
+            window.location.href = '/principal';
         } catch (e) {
-             setError("Could not sign in as principal. Please check Firebase connection.");
+             setError("An error occurred during login. Please try again.");
              setIsLoading(false);
         }
       return;
