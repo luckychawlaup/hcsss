@@ -8,9 +8,7 @@ export default function PrincipalLoginPage() {
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center justify-center mb-8">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary-foreground mb-4">
-             <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={64} height={64} />
-          </div>
+          <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={80} height={80} className="mb-4" />
           <h1 className="text-3xl font-bold text-center text-primary">Principal Dashboard</h1>
           <p className="text-center text-muted-foreground mt-2">
             Sign in to the administrative portal.

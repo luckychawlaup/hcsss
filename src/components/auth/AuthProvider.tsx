@@ -22,10 +22,8 @@ function Preloader() {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
             <div className="flex flex-col items-center justify-center gap-4">
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
-                    <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={80} height={80} />
-                </div>
-                <h1 className="text-2xl font-bold text-primary">Hilton Convent School</h1>
+                <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={100} height={100} />
+                <h1 className="text-2xl font-bold text-primary mt-4">Hilton Convent School</h1>
                 <p className="text-muted-foreground">Loading, please wait...</p>
                  <Skeleton className="h-2 w-48 mt-4" />
             </div>

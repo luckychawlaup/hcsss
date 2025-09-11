@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,9 +22,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between gap-4 border-b bg-card/80 px-4 shadow-sm backdrop-blur-sm sm:px-6">
       <Link href="/" className="flex items-center gap-3">
-        <div className="flex h-16 w-16 items-center justify-center">
-          <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={48} height={48} />
-        </div>
+        <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={56} height={56} />
         <h1 className="text-xl font-bold text-foreground sm:text-2xl font-headline">
           {title || "Hilton Convent"}
         </h1>
