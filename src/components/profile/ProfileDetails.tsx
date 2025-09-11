@@ -50,12 +50,12 @@ const DetailItem = ({ icon, label, value }: { icon: React.ReactNode; label: stri
 function ProfileSkeleton() {
     return (
         <div className="w-full">
-             <div className="bg-primary p-8 text-center text-primary-foreground">
-                <Skeleton className="h-28 w-28 mx-auto rounded-full border-4 border-background shadow-lg" />
-                <Skeleton className="h-8 w-48 mt-4 mx-auto" />
-                <Skeleton className="h-4 w-64 mt-2 mx-auto" />
+             <div className="bg-primary p-6 text-center text-primary-foreground">
+                <Skeleton className="h-24 w-24 mx-auto rounded-full border-4 border-background shadow-lg" />
+                <Skeleton className="h-7 w-40 mt-4 mx-auto" />
+                <Skeleton className="h-4 w-56 mt-2 mx-auto" />
             </div>
-             <div className="px-4 py-8 space-y-8">
+             <div className="px-4 py-6 space-y-6">
                 <Card className="shadow-none border-0">
                     <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
                     <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -73,8 +73,8 @@ function ProfileSkeleton() {
 function StudentProfile({ student }: { student: Student }) {
     return (
         <div className="w-full">
-             <div className="bg-primary p-8 text-center text-primary-foreground">
-                <Avatar className="h-28 w-28 mx-auto border-4 border-background shadow-lg">
+             <div className="bg-primary p-6 text-center text-primary-foreground">
+                <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
                     <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${student.name}`} alt={student.name} />
                     <AvatarFallback>{student.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
@@ -82,7 +82,7 @@ function StudentProfile({ student }: { student: Student }) {
                 <p className="text-primary-foreground/80">Class {student.class}-{student.section} | SRN: {student.srn}</p>
             </div>
       
-            <div className="px-4 py-8 space-y-8">
+            <div className="px-4 py-6 space-y-6">
                 <Card className="shadow-none border-0">
                 <CardHeader><CardTitle>Family Information</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -113,8 +113,8 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
 
     return (
          <div className="w-full">
-             <div className="bg-primary p-8 text-center text-primary-foreground">
-                <Avatar className="h-28 w-28 mx-auto border-4 border-background shadow-lg">
+             <div className="bg-primary p-6 text-center text-primary-foreground">
+                <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
                      <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${teacher.name}`} alt={teacher.name} />
                     <AvatarFallback>{teacher.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
@@ -123,7 +123,7 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
                  {teacher.email && <p className="text-sm text-primary-foreground/80 mt-1">{teacher.email}</p>}
             </div>
       
-            <div className="px-4 py-8 space-y-8">
+            <div className="px-4 py-6 space-y-6">
                 <Card className="shadow-none border-0">
                     <CardHeader><CardTitle>Professional Information</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">

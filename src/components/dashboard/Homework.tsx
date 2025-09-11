@@ -71,24 +71,24 @@ export default function Homework() {
         {isLoading ? (
           <HomeworkSkeleton />
         ) : (
-          <div className="overflow-x-auto -mx-6">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-6">Subject</TableHead>
+                  <TableHead className="pl-0 sm:pl-6">Subject</TableHead>
                   <TableHead>Assignment</TableHead>
                   <TableHead>Due</TableHead>
-                  <TableHead className="text-right pr-6">File</TableHead>
+                  <TableHead className="text-right pr-0 sm:pr-6">File</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {homeworks.length > 0 ? (
                   homeworks.map((hw, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-medium pl-6">{hw.subject}</TableCell>
+                      <TableCell className="font-medium pl-0 sm:pl-6">{hw.subject}</TableCell>
                       <TableCell>{hw.description}</TableCell>
                       <TableCell>{hw.dueDate.split("-")[2]}/{hw.dueDate.split("-")[1]}</TableCell>
-                      <TableCell className="text-right pr-6">
+                      <TableCell className="text-right pr-0 sm:pr-6">
                         {hw.attachmentUrl ? (
                           <Button variant="ghost" size="icon" asChild>
                             <a href={hw.attachmentUrl} target="_blank" rel="noopener noreferrer">

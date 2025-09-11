@@ -242,11 +242,10 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
                 Export as Excel
             </Button>
         </div>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Teacher ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Role / Assignment</TableHead>
               <TableHead>Subject</TableHead>
@@ -257,7 +256,6 @@ export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeac
           <TableBody>
             {teachers.map((teacher) => (
               <TableRow key={teacher.id}>
-                <TableCell className="font-mono text-xs max-w-xs truncate">{teacher.id}</TableCell>
                 <TableCell className="font-medium">{teacher.name}</TableCell>
                 <TableCell>
                   {teacher.role === 'classTeacher' ? (

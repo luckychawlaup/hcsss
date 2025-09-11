@@ -114,11 +114,11 @@ export default function PrincipalDashboard() {
 
         <div className="mx-auto w-full max-w-6xl">
           <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="manageTeachers">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="manageTeachers">Manage Teachers</TabsTrigger>
-              <TabsTrigger value="manageStudents">Manage Students</TabsTrigger>
-              <TabsTrigger value="viewLeaves">View Leaves</TabsTrigger>
-              <TabsTrigger value="makeAnnouncement">Announcements</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+              <TabsTrigger value="manageTeachers">Teachers</TabsTrigger>
+              <TabsTrigger value="manageStudents">Students</TabsTrigger>
+              <TabsTrigger value="viewLeaves">Leaves</TabsTrigger>
+              <TabsTrigger value="makeAnnouncement">Announce</TabsTrigger>
             </TabsList>
             
             <TabsContent value="manageTeachers">

@@ -139,13 +139,13 @@ export default function TeacherDashboard() {
 
         <div className="mx-auto w-full max-w-6xl">
             <Tabs defaultValue="manageStudents">
-                 <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 lg:grid-cols-6">
+                 <TabsList className="grid w-full grid-cols-3 sm:grid-cols-3 lg:grid-cols-6">
                     <TabsTrigger value="manageStudents">Students</TabsTrigger>
-                    <TabsTrigger value="approveLeaves">Approve Leaves</TabsTrigger>
+                    <TabsTrigger value="approveLeaves">Leaves</TabsTrigger>
                     <TabsTrigger value="addHomework">Homework</TabsTrigger>
                     <TabsTrigger value="markAttendance">Attendance</TabsTrigger>
                     <TabsTrigger value="applyLeave">My Leave</TabsTrigger>
-                    <TabsTrigger value="salary">Salary Details</TabsTrigger>
+                    <TabsTrigger value="salary">Salary</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="manageStudents">
