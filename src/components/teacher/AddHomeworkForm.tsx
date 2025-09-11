@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -63,12 +63,22 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
   const [recentHomework, setRecentHomework] = useState<Homework[]>([]);
   const { toast } = useToast();
 
-  const assignedClasses =
-    (teacher?.role === "classTeacher" && teacher.classTeacherOf
-      ? [teacher.classTeacherOf]
-      : []
-    ).concat(teacher?.classesTaught || [])
-    .filter((value, index, self) => self.indexOf(value) === index); // Unique classes
+  const assignedClasses = useMemo(() => {
+    if (!teacher) return [];
+    
+    const classes = new Set<string>();
+    
+    if (teacher.classTeacherOf) {
+        classes.add(teacher.classTeacherOf);
+    }
+
+    if (teacher.classesTaught) {
+        teacher.classesTaught.forEach(c => classes.add(c));
+    }
+    
+    return Array.from(classes).sort();
+
+  }, [teacher]);
 
 
   const form = useForm<z.infer<typeof homeworkSchema>>({
@@ -154,7 +164,7 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a class" />
+                          <SelectValue placeholder="Select a class to assign homework" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

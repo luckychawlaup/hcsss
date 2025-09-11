@@ -54,12 +54,6 @@ const addTeacherSchema = z.object({
 }, {
     message: "Please select a class for the Class Teacher.",
     path: ["classTeacherOf"],
-}).refine(data => {
-    if (data.role === 'subjectTeacher') return data.classesTaught && data.classesTaught.length > 0;
-    return true;
-}, {
-    message: "Please select at least one class.",
-    path: ["classesTaught"],
 });
 
 
@@ -92,6 +86,7 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   
   const role = form.watch("role");
   const qualifications = form.watch("qualifications", []);
+  const classTeacherOfValue = form.watch("classTeacherOf");
 
   const handleAddQualification = () => {
     if (qualificationInput.trim()) {
@@ -384,11 +379,11 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                             name="classTeacherOf"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Class Teacher Of</FormLabel>
+                                <FormLabel>Class Teacher Of (Primary Class)</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select an available class" />
+                                        <SelectValue placeholder="Select a class" />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
@@ -406,57 +401,62 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                                 </FormItem>
                             )}
                             />
-                    )}
-
-                    {role === "subjectTeacher" && (
-                        <FormField
-                            control={form.control}
-                            name="classesTaught"
-                            render={() => (
-                                <FormItem>
-                                    <div className="mb-4">
-                                        <FormLabel className="text-base">Classes Taught</FormLabel>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                        {allClassSections.map((item) => (
-                                            <FormField
-                                                key={item}
-                                                control={form.control}
-                                                name="classesTaught"
-                                                render={({ field }) => {
-                                                    return (
-                                                    <FormItem
-                                                        key={item}
-                                                        className="flex flex-row items-start space-x-3 space-y-0"
-                                                    >
-                                                        <FormControl>
-                                                        <Checkbox
-                                                            checked={field.value?.includes(item)}
-                                                            onCheckedChange={(checked) => {
-                                                            return checked
-                                                                ? field.onChange([...(field.value || []), item])
-                                                                : field.onChange(
-                                                                    field.value?.filter(
-                                                                        (value) => value !== item
-                                                                    )
-                                                                    )
-                                                            }}
-                                                        />
-                                                        </FormControl>
-                                                        <FormLabel className="font-normal">
-                                                        {item}
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                    )
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
+                )}
+                
+                {role && (
+                     <FormField
+                        control={form.control}
+                        name="classesTaught"
+                        render={() => (
+                            <FormItem>
+                                <div className="mb-4">
+                                    <FormLabel className="text-base">
+                                        {role === 'classTeacher' ? 'Also Teaches (as Subject Teacher)' : 'Assign Classes to Subject Teacher'}
+                                    </FormLabel>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                    {allClassSections.map((item) => {
+                                        const isClassTeacherOf = role === 'classTeacher' && item === classTeacherOfValue;
+                                        return (
+                                        <FormField
+                                            key={item}
+                                            control={form.control}
+                                            name="classesTaught"
+                                            render={({ field }) => {
+                                                return (
+                                                <FormItem
+                                                    key={item}
+                                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                                >
+                                                    <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value?.includes(item)}
+                                                        disabled={isClassTeacherOf}
+                                                        onCheckedChange={(checked) => {
+                                                        return checked
+                                                            ? field.onChange([...(field.value || []), item])
+                                                            : field.onChange(
+                                                                field.value?.filter(
+                                                                    (value) => value !== item
+                                                                )
+                                                                )
+                                                        }}
+                                                    />
+                                                    </FormControl>
+                                                    <FormLabel className={cn("font-normal", isClassTeacherOf && "text-muted-foreground")}>
+                                                    {item}
+                                                    </FormLabel>
+                                                </FormItem>
+                                                )
+                                            }}
+                                        />
+                                    )})}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
              </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
