@@ -159,6 +159,17 @@ function TeacherProfile({ teacher }: { teacher: Teacher }) {
     )
 }
 
+const getRoleFromCookie = () => {
+    if (typeof document === 'undefined') return null;
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'teacher-role' && value === 'true') return 'teacher';
+    }
+    return 'student'; // Default to student if no specific role cookie is found
+}
+
+
 export default function ProfileDetails() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
   const [role, setRole] = useState<"student" | "teacher" | null>(null);
@@ -166,28 +177,26 @@ export default function ProfileDetails() {
   const auth = getAuth(app);
 
   useEffect(() => {
+    const determinedRole = getRoleFromCookie();
+    setRole(determinedRole);
+
     const unsubscribe = onAuthStateChanged(auth, async (user: AuthUser | null) => {
         setIsLoading(true);
         if (user) {
-            // Check if user is a teacher first
-            const teacherProfile = await getTeacherByAuthId(user.uid);
-            if (teacherProfile) {
-                setProfile(teacherProfile);
-                setRole("teacher");
-            } else {
-                // If not a teacher, check if they are a student
-                const studentProfile = await getStudentByAuthId(user.uid);
-                if (studentProfile) {
-                    setProfile(studentProfile);
-                    setRole("student");
+            try {
+                if (determinedRole === 'teacher') {
+                    const teacherProfile = await getTeacherByAuthId(user.uid);
+                    setProfile(teacherProfile);
                 } else {
-                    setProfile(null);
-                    setRole(null);
+                    const studentProfile = await getStudentByAuthId(user.uid);
+                    setProfile(studentProfile);
                 }
+            } catch (error) {
+                console.error("Failed to fetch profile:", error);
+                setProfile(null);
             }
         } else {
             setProfile(null);
-            setRole(null);
         }
         setIsLoading(false);
     });
@@ -207,19 +216,17 @@ export default function ProfileDetails() {
     )
   }
 
-  if (role === 'teacher') {
+  if (role === 'teacher' && profile) {
     return <TeacherProfile teacher={profile as Teacher} />;
   }
   
-  if (role === 'student') {
+  if (role === 'student' && profile) {
     return <StudentProfile student={profile as Student} />;
   }
 
   return (
     <div className="flex items-center justify-center h-96">
-        <p>Your profile is not configured correctly.</p>
+        <p>Your profile could not be loaded. Please contact administration.</p>
     </div>
   )
 }
-
-    

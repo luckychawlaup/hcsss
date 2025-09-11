@@ -65,7 +65,7 @@ export const getTeachers = (callback: (teachers: Teacher[]) => void) => {
 // Get a single teacher by ID
 export const getTeacherById = async (teacherId: string): Promise<Teacher | null> => {
     try {
-        const teacherRef = ref(db, `${TEACHERS_COLlection}/${teacherId}`);
+        const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
         const snapshot = await get(teacherRef);
         if (snapshot.exists()) {
             return { id: snapshot.key, ...snapshot.val() };
