@@ -17,6 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { getTeachers, deleteTeacher, updateTeacher } from "@/lib/firebase/teachers";
+import { getAuth } from "firebase/auth";
+import { app } from "@/lib/firebase";
 
 // Define the Teacher type, you can expand this as needed
 export interface Teacher {
@@ -33,19 +35,29 @@ export interface Teacher {
   classesTaught?: string;
 }
 
+const isPrincipalUser = () => {
+    if (typeof document === 'undefined') return false;
+    return document.cookie.includes("principal-role=true");
+}
+
 export default function PrincipalDashboard() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [activeTab, setActiveTab] = useState("addTeacher");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = getTeachers((teachers) => {
-      setTeachers(teachers as Teacher[]);
-      setIsLoading(false);
-    });
+    // Only fetch teachers if the user is the principal
+    if (isPrincipalUser()) {
+        const unsubscribe = getTeachers((teachers) => {
+          setTeachers(teachers as Teacher[]);
+          setIsLoading(false);
+        });
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
+    } else {
+        setIsLoading(false);
+    }
   }, []);
 
   const handleTeacherAdded = () => {
