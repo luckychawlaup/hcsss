@@ -9,7 +9,7 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   sendEmailVerification,
-  signInAnonymously,
+  signInWithCustomToken,
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -30,6 +30,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   password: z.string().min(1, "Password is required."),
+  uid: z.string().optional(),
 });
 
 interface LoginFormProps {
@@ -49,6 +50,7 @@ export default function LoginForm({ role }: LoginFormProps) {
     defaultValues: {
       email: "",
       password: "",
+      uid: "",
     },
   });
 
@@ -60,12 +62,15 @@ export default function LoginForm({ role }: LoginFormProps) {
     // Hardcoded Principal Login
     if (
       role === "principal" &&
-      values.email === "principal@hcsss.com" &&
-      values.password === "000000"
+      values.email === "principal@hcsss.in" &&
+      values.password === "z5fnZMNj2rpfnEQX" &&
+      values.uid === "hvldHzYq4ZbZlc7nym3ICNaEI1u1"
     ) {
         try {
-            await signInAnonymously(auth);
+            // In a real app, you'd generate a custom token on a secure server
+            // For this prototype, we'll simulate it by setting a cookie and refreshing
             document.cookie = "principal-role=true; path=/; max-age=86400"; // Expires in 1 day
+            document.cookie = `principal-uid=${values.uid}; path=/; max-age=86400`;
             toast({
                 title: "Login Successful",
                 description: "Welcome, Principal!",
@@ -80,7 +85,7 @@ export default function LoginForm({ role }: LoginFormProps) {
     }
      // Handle case where principal login details are incorrect
     if (role === "principal") {
-        setError("Invalid email or password for principal.");
+        setError("Invalid email, password, or UID for principal.");
         setIsLoading(false);
         return;
     }
@@ -120,6 +125,7 @@ export default function LoginForm({ role }: LoginFormProps) {
       }
       else {
          // This covers students
+        document.cookie = "student-role=true; path=/; max-age=86400";
         router.push("/");
       }
       router.refresh();
@@ -178,6 +184,21 @@ export default function LoginForm({ role }: LoginFormProps) {
               </FormItem>
             )}
           />
+          {role === 'principal' && (
+             <FormField
+                control={form.control}
+                name="uid"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Principal UID</FormLabel>
+                    <FormControl>
+                    <Input type="password" placeholder="Enter your unique ID" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+          )}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign In as {role.charAt(0).toUpperCase() + role.slice(1)}

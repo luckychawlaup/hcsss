@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,7 +24,7 @@ import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, Printer } from "
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import type { Teacher } from "./PrincipalDashboard";
-import { addTeacher } from "@/lib/firebase/teachers";
+import { addTeacher, getTeachers } from "@/lib/firebase/teachers";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -71,7 +71,20 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [addedTeacherData, setAddedTeacherData] = useState<Omit<Teacher, 'id'> | null>(null);
+  const [assignedClasses, setAssignedClasses] = useState<string[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Fetch all teachers to check for existing class teacher assignments
+    const unsubscribe = getTeachers((teachers) => {
+        const assigned = teachers
+            .filter(t => t.role === 'classTeacher' && t.classTeacherOf)
+            .map(t => t.classTeacherOf as string);
+        setAssignedClasses(assigned);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const form = useForm<z.infer<typeof addTeacherSchema>>({
     resolver: zodResolver(addTeacherSchema),
@@ -90,9 +103,12 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const role = form.watch("role");
 
   const generateTeacherId = () => {
-    const prefix = "TCHR";
-    const randomNumber = Math.floor(1000 + Math.random() * 9000).toString();
-    return `${prefix}${randomNumber}`;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   };
 
   async function onSubmit(values: z.infer<typeof addTeacherSchema>) {
@@ -361,126 +377,134 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
 
             <Separator />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                    control={form.control}
-                    name="subject"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Primary Subject</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g., Mathematics" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                    <FormItem className="space-y-3">
-                        <FormLabel>Select Role</FormLabel>
-                        <FormControl>
-                            <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex items-center space-x-4"
-                            >
-                                <FormItem className="flex items-center space-x-2 space-y-0">
-                                    <FormControl>
-                                    <RadioGroupItem value="classTeacher" />
-                                    </FormControl>
-                                    <FormLabel className="font-normal">Class Teacher</FormLabel>
-                                </FormItem>
-                                <FormItem className="flex items-center space-x-2 space-y-0">
-                                    <FormControl>
-                                    <RadioGroupItem value="subjectTeacher" />
-                                    </FormControl>
-                                    <FormLabel className="font-normal">Subject Teacher</FormLabel>
-                                </FormItem>
-                            </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-
-               {role === "classTeacher" && (
-                     <FormField
-                        control={form.control}
-                        name="classTeacherOf"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Class Teacher Of</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a class and section" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {allClassSections.map(cs => (
-                                        <SelectItem key={cs} value={cs}>{cs}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                )}
-
-                 {role === "subjectTeacher" && (
+             <div className="space-y-6">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                         control={form.control}
-                        name="classesTaught"
-                        render={() => (
-                            <FormItem>
-                                <div className="mb-4">
-                                    <FormLabel className="text-base">Classes Taught</FormLabel>
-                                </div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                    {allClassSections.map((item) => (
-                                        <FormField
-                                            key={item}
-                                            control={form.control}
-                                            name="classesTaught"
-                                            render={({ field }) => {
-                                                return (
-                                                <FormItem
-                                                    key={item}
-                                                    className="flex flex-row items-start space-x-3 space-y-0"
-                                                >
-                                                    <FormControl>
-                                                    <Checkbox
-                                                        checked={field.value?.includes(item)}
-                                                        onCheckedChange={(checked) => {
-                                                        return checked
-                                                            ? field.onChange([...(field.value || []), item])
-                                                            : field.onChange(
-                                                                field.value?.filter(
-                                                                    (value) => value !== item
-                                                                )
-                                                                )
-                                                        }}
-                                                    />
-                                                    </FormControl>
-                                                    <FormLabel className="font-normal">
-                                                    {item}
-                                                    </FormLabel>
-                                                </FormItem>
-                                                )
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                                <FormMessage />
-                            </FormItem>
+                        name="subject"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Primary Subject</FormLabel>
+                            <FormControl>
+                            <Input placeholder="e.g., Mathematics" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
                         )}
                     />
-                )}
+                    <FormField
+                        control={form.control}
+                        name="role"
+                        render={({ field }) => (
+                        <FormItem className="space-y-3">
+                            <FormLabel>Select Role</FormLabel>
+                            <FormControl>
+                                <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex items-center space-x-4 pt-2"
+                                >
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl>
+                                        <RadioGroupItem value="classTeacher" />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">Class Teacher</FormLabel>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl>
+                                        <RadioGroupItem value="subjectTeacher" />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">Subject Teacher</FormLabel>
+                                    </FormItem>
+                                </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
+
+                {role === "classTeacher" && (
+                        <FormField
+                            control={form.control}
+                            name="classTeacherOf"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Class Teacher Of</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select an available class" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {allClassSections.map(cs => (
+                                            <SelectItem 
+                                                key={cs} 
+                                                value={cs}
+                                                disabled={assignedClasses.includes(cs)}
+                                            >
+                                                {cs} {assignedClasses.includes(cs) && "(Assigned)"}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                    )}
+
+                    {role === "subjectTeacher" && (
+                        <FormField
+                            control={form.control}
+                            name="classesTaught"
+                            render={() => (
+                                <FormItem>
+                                    <div className="mb-4">
+                                        <FormLabel className="text-base">Classes Taught</FormLabel>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                        {allClassSections.map((item) => (
+                                            <FormField
+                                                key={item}
+                                                control={form.control}
+                                                name="classesTaught"
+                                                render={({ field }) => {
+                                                    return (
+                                                    <FormItem
+                                                        key={item}
+                                                        className="flex flex-row items-start space-x-3 space-y-0"
+                                                    >
+                                                        <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value?.includes(item)}
+                                                            onCheckedChange={(checked) => {
+                                                            return checked
+                                                                ? field.onChange([...(field.value || []), item])
+                                                                : field.onChange(
+                                                                    field.value?.filter(
+                                                                        (value) => value !== item
+                                                                    )
+                                                                    )
+                                                            }}
+                                                        />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">
+                                                        {item}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    )
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+             </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Teacher & Generate ID
