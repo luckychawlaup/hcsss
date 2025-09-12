@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { format as formatDate } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -15,16 +16,22 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle, Copy, UserPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Loader2, AlertCircle, CheckCircle, Copy, UserPlus, CalendarIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { registerStudentDetails } from "@/lib/firebase/students";
 import type { StudentRegistrationData } from "@/lib/firebase/students";
+import { Separator } from "../ui/separator";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
+const seniorSubjects = ["Physics", "Chemistry", "Maths", "Biology", "Computer Science", "English", "Commerce", "Accounts", "Economics"];
 
 const addStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -34,6 +41,10 @@ const addStudentSchema = z.object({
   address: z.string().min(10, "Address is too short."),
   class: z.string({ required_error: "Please select a class."}),
   section: z.string({ required_error: "Please select a section."}),
+  admissionDate: z.date({ required_error: "Admission date is required." }),
+  dateOfBirth: z.date({ required_error: "Date of birth is required." }),
+  aadharNumber: z.string().optional(),
+  optedSubjects: z.array(z.string()).optional(),
   fatherPhone: z.string().optional(),
   motherPhone: z.string().optional(),
   studentPhone: z.string().optional(),
@@ -62,8 +73,12 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       address: "",
       class: "",
       section: "",
+      admissionDate: new Date(),
+      optedSubjects: [],
     },
   });
+
+  const selectedClass = form.watch("class");
 
   async function onSubmit(values: z.infer<typeof addStudentSchema>) {
     setIsLoading(true);
@@ -161,6 +176,58 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         <FormControl>
                         <Input type="email" placeholder="student@example.com" {...field} />
                         </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="dateOfBirth"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>Date of Birth</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1990-01-01")} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="admissionDate"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>Admission Date</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                            </PopoverContent>
+                        </Popover>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -273,6 +340,19 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 />
                  <FormField
                     control={form.control}
+                    name="aadharNumber"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Aadhar Number (Optional)</FormLabel>
+                        <FormControl>
+                        <Input placeholder="xxxx-xxxx-xxxx" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
                     name="address"
                     render={({ field }) => (
                     <FormItem className="md:col-span-2">
@@ -285,6 +365,55 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     )}
                 />
             </div>
+
+            {(selectedClass === "11th" || selectedClass === "12th") && (
+                <>
+                <Separator/>
+                <FormField
+                    control={form.control}
+                    name="optedSubjects"
+                    render={() => (
+                        <FormItem>
+                            <div className="mb-4">
+                                <FormLabel className="text-base">Opted Subjects for Class {selectedClass}</FormLabel>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {seniorSubjects.map((subject) => (
+                                    <FormField
+                                        key={subject}
+                                        control={form.control}
+                                        name="optedSubjects"
+                                        render={({ field }) => {
+                                            return (
+                                            <FormItem key={subject} className="flex flex-row items-start space-x-3 space-y-0">
+                                                <FormControl>
+                                                <Checkbox
+                                                    checked={field.value?.includes(subject)}
+                                                    onCheckedChange={(checked) => {
+                                                    return checked
+                                                        ? field.onChange([...(field.value || []), subject])
+                                                        : field.onChange(
+                                                            field.value?.filter(
+                                                                (value) => value !== subject
+                                                            )
+                                                            )
+                                                    }}
+                                                />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">{subject}</FormLabel>
+                                            </FormItem>
+                                            )
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                </>
+            )}
+
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Admit Student & Generate Registration Key

@@ -31,6 +31,9 @@ export interface Student {
   class: string;
   section: string;
   admissionDate: number;
+  dateOfBirth: string;
+  aadharNumber?: string;
+  optedSubjects?: string[];
   fatherPhone?: string;
   motherPhone?: string;
   studentPhone?: string;
@@ -39,8 +42,11 @@ export interface Student {
 
 export type StudentRegistrationData = Omit<
   Student,
-  "id" | "authUid" | "admissionDate" | "srn"
->;
+  "id" | "authUid" | "srn"
+> & {
+    dateOfBirth: Date;
+    admissionDate: Date;
+};
 
 // Principal action: Creates a registration entry with a key.
 export const registerStudentDetails = async (
@@ -49,10 +55,14 @@ export const registerStudentDetails = async (
   const registrationKey = Math.random().toString(36).substring(2, 10).toUpperCase();
   const registrationRef = ref(db, `${REGISTRATIONS_COLLECTION}/${registrationKey}`);
   
-  await set(registrationRef, {
-    ...studentData,
-    registrationKey: registrationKey,
-  });
+  const dataToSave = {
+      ...studentData,
+      dateOfBirth: format(studentData.dateOfBirth, "yyyy-MM-dd"),
+      admissionDate: studentData.admissionDate.getTime(),
+      registrationKey,
+  }
+
+  await set(registrationRef, dataToSave);
 
   return { registrationKey, email: studentData.email };
 };
@@ -86,7 +96,6 @@ export const verifyAndClaimStudentAccount = async (data: {
     const studentRef = ref(db, `${STUDENTS_COLLECTION}/${data.authUid}`);
     const finalStudentData: Omit<Student, 'id' | 'registrationKey'> = {
         ...regData,
-        admissionDate: Date.now(),
         authUid: data.authUid,
         srn,
     };
