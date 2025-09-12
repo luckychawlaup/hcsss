@@ -10,13 +10,15 @@ import { getStudents, updateStudent, deleteStudent, Student } from "@/lib/fireba
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
 import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, CalendarPlus } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, CalendarPlus, Camera } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import GenerateSalary from "./GenerateSalary";
+import { useRouter } from "next/navigation";
+
 
 const AddTeacherForm = dynamic(() => import('./AddTeacherForm').then(mod => mod.AddTeacherForm), {
     loading: () => <Skeleton className="h-96 w-full" />
@@ -59,6 +61,7 @@ export default function PrincipalDashboard() {
   const [activeView, setActiveView] = useState<PrincipalView>("dashboard");
   const [manageTeachersTab, setManageTeachersTab] = useState("addTeacher");
   const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
+  const router = useRouter();
 
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
@@ -72,11 +75,13 @@ export default function PrincipalDashboard() {
     const unsubStudents = getStudents(setAllStudents);
     const unsubTeachers = getTeachers(setAllTeachers);
     
-    setIsLoading(false);
+    // We can consider loading to be false after first fetch, even if listeners are active
+    const timer = setTimeout(() => setIsLoading(false), 1500);
 
     return () => {
       unsubStudents();
       unsubTeachers();
+      clearTimeout(timer);
     };
 
   }, []);
@@ -342,6 +347,7 @@ export default function PrincipalDashboard() {
                         <NavCard title="Manage Payroll" description="Generate salary slips for teachers" icon={DollarSign} onClick={() => setActiveView("managePayroll")} />
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
+                        <NavCard title="School Gallery" description="View and manage school photos" icon={Camera} onClick={() => router.push('/gallery')} />
                     </div>
                 </div>
               );
@@ -360,5 +366,3 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
-
-    

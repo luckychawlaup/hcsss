@@ -9,6 +9,7 @@ import {
   equalTo,
   get,
   DataSnapshot,
+  serverTimestamp,
 } from "firebase/database";
 import type { DocumentData } from "firebase/firestore";
 
@@ -24,12 +25,12 @@ export interface Announcement extends DocumentData {
 }
 
 // Add a new announcement
-export const addAnnouncement = async (announcementData: Omit<Announcement, 'id'>) => {
+export const addAnnouncement = async (announcementData: Omit<Announcement, 'id' | 'createdAt'>) => {
   try {
     const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
     await push(announcementsRef, { 
         ...announcementData,
-        createdAt: Date.now() // Store as a server timestamp
+        createdAt: Date.now()
     });
   } catch (e) {
     console.error("Error adding document: ", e);

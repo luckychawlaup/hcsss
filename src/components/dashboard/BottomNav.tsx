@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, CalendarPlus, LifeBuoy, User, LogOut, MessageSquareQuote } from "lucide-react";
+import { Home, CalendarPlus, LifeBuoy, User, LogOut, MessageSquareQuote, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAuth, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
@@ -11,6 +11,7 @@ import { app } from "@/lib/firebase";
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/leave", label: "Leave", icon: CalendarPlus },
+  { href: "/gallery", label: "Gallery", icon: Camera },
   { href: "/feedback", label: "Feedback", icon: MessageSquareQuote },
   { href: "/profile", label: "Profile", icon: User },
 ];
@@ -47,13 +48,6 @@ export default function BottomNav() {
             </Link>
           );
         })}
-        <button
-          onClick={handleLogout}
-          className="flex flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary w-full h-full"
-        >
-          <LogOut className="h-5 w-5" />
-          <span>Logout</span>
-        </button>
       </div>
     </nav>
   );

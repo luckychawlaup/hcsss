@@ -2,14 +2,14 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Home, ClipboardCheck, BookUp, User } from "lucide-react";
+import { Home, ClipboardCheck, BookUp, User, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { TeacherView } from "./TeacherDashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NavItem {
-  view: TeacherView | "profile";
+  view: TeacherView | "profile" | "gallery";
   label: string;
   icon: React.ElementType;
 }
@@ -18,11 +18,12 @@ const mainNavItems: NavItem[] = [
   { view: "dashboard", label: "Home", icon: Home },
   { view: "markAttendance", label: "Attendance", icon: ClipboardCheck },
   { view: "addHomework", label: "Homework", icon: BookUp },
+  { view: "gallery", label: "Gallery", icon: Camera },
   { view: "profile", label: "Profile", icon: User },
 ];
 
 interface TeacherNavProps {
-    activeView: TeacherView | "profile";
+    activeView: TeacherView | "profile" | "gallery";
     setActiveView: (view: TeacherView) => void;
 }
 
@@ -31,9 +32,11 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
   const isMobile = useIsMobile();
   const pathname = usePathname();
 
-  const handleNavigation = (view: TeacherView | "profile") => {
+  const handleNavigation = (view: TeacherView | "profile" | "gallery") => {
       if (view === 'profile') {
           router.push('/profile');
+      } else if (view === 'gallery') {
+          router.push('/gallery');
       } else {
           if (pathname !== '/teacher') {
             router.push('/teacher');
@@ -48,9 +51,9 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
   if (isMobile) {
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-sm md:hidden">
-            <div className="grid h-16 grid-cols-4 items-center justify-items-center">
+            <div className="grid h-16 grid-cols-5 items-center justify-items-center">
                 {mainNavItems.map(item => {
-                    const isActive = item.view === 'profile' ? pathname === '/profile' : activeView === item.view && pathname === '/teacher';
+                    const isActive = item.view === 'profile' ? pathname === '/profile' : item.view === 'gallery' ? pathname === '/gallery' : activeView === item.view && pathname === '/teacher';
                     return (
                         <button
                             key={item.label}
@@ -78,7 +81,7 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
              <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Main Menu</p>
             <div className="grid items-start gap-1">
                 {mainNavItems.map((item) => {
-                     const isActive = item.view === 'profile' ? pathname === '/profile' : activeView === item.view && pathname === '/teacher';
+                     const isActive = item.view === 'profile' ? pathname === '/profile' : item.view === 'gallery' ? pathname === '/gallery' : activeView === item.view && pathname === '/teacher';
                     return (
                         <Button
                             key={item.label}
