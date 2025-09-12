@@ -21,7 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2, AlertCircle, CheckCircle, Copy, UserPlus, CalendarIcon } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, Copy, UserPlus, CalendarIcon, Plus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -31,7 +31,7 @@ import { Separator } from "../ui/separator";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
-const seniorSubjects = ["Physics", "Chemistry", "Maths", "Biology", "Computer Science", "English", "Commerce", "Accounts", "Economics"];
+const defaultSeniorSubjects = ["Physics", "Chemistry", "Maths", "Biology", "Computer Science", "English", "Commerce", "Accounts", "Economics"];
 
 const addStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -61,6 +61,8 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registrationInfo, setRegistrationInfo] = useState<{ key: string; name: string } | null>(null);
+  const [customSubject, setCustomSubject] = useState("");
+  const [seniorSubjects, setSeniorSubjects] = useState(defaultSeniorSubjects);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof addStudentSchema>>({
@@ -79,6 +81,17 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   });
 
   const selectedClass = form.watch("class");
+  const optedSubjects = form.watch("optedSubjects") || [];
+
+  const handleAddCustomSubject = () => {
+    if (customSubject.trim() && !seniorSubjects.includes(customSubject.trim())) {
+        const newSubject = customSubject.trim();
+        setSeniorSubjects(prev => [...prev, newSubject]);
+        form.setValue("optedSubjects", [...optedSubjects, newSubject]);
+        setCustomSubject("");
+    }
+  }
+
 
   async function onSubmit(values: z.infer<typeof addStudentSchema>) {
     setIsLoading(true);
@@ -406,6 +419,16 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                                         }}
                                     />
                                 ))}
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                                <Input 
+                                    placeholder="Add custom subject"
+                                    value={customSubject}
+                                    onChange={(e) => setCustomSubject(e.target.value)}
+                                />
+                                <Button type="button" onClick={handleAddCustomSubject}>
+                                    <Plus className="mr-2" /> Add
+                                </Button>
                             </div>
                             <FormMessage />
                         </FormItem>
