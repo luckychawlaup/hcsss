@@ -17,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, UploadCloud } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getTeacherByAuthId } from "@/lib/firebase/teachers";
-import { getStudentByAuthId } from "@/lib/firebase/students";
 
 const principalUID = "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
 
@@ -115,7 +114,7 @@ export default function GalleryPage() {
     const canUpload = userRole === 'teacher' || userRole === 'principal';
 
     const renderNav = () => {
-        if (userRole === 'teacher') return <TeacherNav activeView="dashboard" setActiveView={() => {}} />;
+        if (userRole === 'teacher') return <TeacherNav activeView="gallery" setActiveView={() => {}} />;
         return <BottomNav />;
     }
 
