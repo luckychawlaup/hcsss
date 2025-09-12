@@ -71,7 +71,7 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
       <div className="mx-auto max-w-4xl bg-white p-8 sm:p-12 shadow-lg print:shadow-none relative z-10 print:border-none">
         
         <header className="flex flex-col items-center justify-center border-b pb-4 text-center">
-          <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={100} height={100} />
+          <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png" alt="Hilton Convent School Logo" width={100} height={100} />
           <h1 className="text-3xl font-bold text-primary mt-4">Hilton Convent School</h1>
           <p className="text-sm text-muted-foreground">Joya Road, Amroha, 244221, Uttar Pradesh</p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
