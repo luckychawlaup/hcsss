@@ -11,15 +11,12 @@ export default function StudentLoginPage() {
           <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={80} height={80} className="mb-4" />
           <h1 className="text-3xl font-bold text-center text-primary">Student Portal</h1>
           <p className="text-center text-muted-foreground mt-2">
-            Sign in to access your dashboard.
+            Sign in with the credentials provided by the school.
           </p>
         </div>
         <LoginForm role="student" />
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <Link href="/auth/student/signup" className="font-medium text-primary hover:underline">
-            Sign up
-          </Link>
+            Contact school administration if you don't have login details.
         </p>
          <p className="mt-2 text-center text-sm text-muted-foreground">
             <Link href="/auth/student/forgot-password"className="text-xs font-medium text-primary hover:underline">

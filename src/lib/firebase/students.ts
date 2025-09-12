@@ -17,9 +17,10 @@ import {
 const STUDENTS_COLLECTION = "students";
 
 export interface Student {
-  id: string;
-  srn: string;
-  authUid?: string; // To link to Firebase Auth user
+  id: string; // Firebase Auth UID
+  srn?: string; // Kept for display/legacy purposes if needed, but not primary key
+  authUid: string;
+  email: string;
   name: string;
   fatherName: string;
   motherName: string;
@@ -30,12 +31,13 @@ export interface Student {
   fatherPhone?: string;
   motherPhone?: string;
   studentPhone?: string;
+  mustChangePassword?: boolean;
 }
 
-// Add or update a student with a specific ID (SRN)
-export const addStudent = async (srn: string, studentData: Omit<Student, 'id' | 'srn'>) => {
+// Add or update a student with a specific UID
+export const addStudent = async (uid: string, studentData: Omit<Student, 'id'>) => {
   try {
-    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${srn}`);
+    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
     await set(studentRef, studentData);
   } catch (e: any) {
     console.error("Error adding student: ", e.message);
@@ -51,7 +53,7 @@ export const getStudents = (callback: (students: Student[]) => void) => {
     if (snapshot.exists()) {
       const data = snapshot.val();
       for (const id in data) {
-        students.push({ id, srn: id, ...data[id] });
+        students.push({ id, ...data[id] });
       }
     }
     callback(students);
@@ -62,13 +64,13 @@ export const getStudents = (callback: (students: Student[]) => void) => {
   return unsubscribe;
 };
 
-// Get a single student by SRN
-export const getStudentById = async (srn: string): Promise<Student | null> => {
+// Get a single student by UID (which is their Auth UID)
+export const getStudentById = async (uid: string): Promise<Student | null> => {
     try {
-        const studentRef = ref(db, `${STUDENTS_COLLECTION}/${srn}`);
+        const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
         const snapshot = await get(studentRef);
         if (snapshot.exists()) {
-            return { id: snapshot.key, srn: snapshot.key, ...snapshot.val() };
+            return { id: snapshot.key, ...snapshot.val() };
         } else {
             console.log("No such student document!");
             return null;
@@ -81,27 +83,14 @@ export const getStudentById = async (srn: string): Promise<Student | null> => {
 
 // Get a single student by Auth UID
 export const getStudentByAuthId = async (authUid: string): Promise<Student | null> => {
-    try {
-        const studentsRef = query(ref(db, STUDENTS_COLLECTION), orderByChild('authUid'), equalTo(authUid));
-        const snapshot = await get(studentsRef);
-        if (snapshot.exists()) {
-            const studentsData = snapshot.val();
-            const studentId = Object.keys(studentsData)[0];
-            const studentData = studentsData[studentId];
-            return { id: studentId, srn: studentId, ...studentData };
-        }
-        return null;
-    } catch (e) {
-        console.error("Error getting student document by auth UID:", e);
-        throw e;
-    }
+    return getStudentById(authUid);
 }
 
 
 // Update a student's details
-export const updateStudent = async (srn: string, updatedData: Partial<Student>) => {
+export const updateStudent = async (uid: string, updatedData: Partial<Student>) => {
   try {
-    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${srn}`);
+    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
     await update(studentRef, updatedData);
   } catch (e) {
     console.error("Error updating student document: ", e);
@@ -110,10 +99,12 @@ export const updateStudent = async (srn: string, updatedData: Partial<Student>) 
 };
 
 // Delete a student
-export const deleteStudent = async (srn: string) => {
+export const deleteStudent = async (uid: string) => {
   try {
-    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${srn}`);
+    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
     await remove(studentRef);
+    // Note: Deleting the Firebase Auth user requires admin privileges
+    // and should be handled in a secure backend environment (e.g., Firebase Function).
   } catch (e) {
     console.error("Error deleting student document: ", e);
     throw e;

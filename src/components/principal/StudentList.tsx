@@ -26,8 +26,10 @@ import {
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 import { Input } from "../ui/input";
-import { Edit, Trash2, Loader2, Info, ArrowLeft, FileDown, Search, Users } from "lucide-react";
+import { Edit, Trash2, Loader2, Info, ArrowLeft, FileDown, Search, Users, UserX } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
+import { deleteStudentAndAuth } from "@/lib/firebase/admin-actions";
+
 
 interface StudentListProps {
   students: Student[];
@@ -51,7 +53,10 @@ export function StudentList({ students, isLoading, onUpdateStudent, onDeleteStud
   const confirmDelete = async () => {
     if (studentToDelete) {
       setIsDeleting(true);
-      await onDeleteStudent(studentToDelete.id);
+      // We now call a function that also handles auth user deletion.
+      // This is a placeholder for a secure backend function call.
+      await deleteStudentAndAuth(studentToDelete.id);
+      onDeleteStudent(studentToDelete.id); // To optimistically update UI
       setIsDeleting(false);
       setIsAlertOpen(false);
       setStudentToDelete(null);
@@ -73,7 +78,7 @@ export function StudentList({ students, isLoading, onUpdateStudent, onDeleteStud
     if (!selectedClass || !studentsByClass[selectedClass]) return [];
     return studentsByClass[selectedClass].filter(student => 
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.srn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.fatherName.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [selectedClass, studentsByClass, searchTerm]);
@@ -81,9 +86,10 @@ export function StudentList({ students, isLoading, onUpdateStudent, onDeleteStud
   const handleExport = () => {
     if (!selectedClass) return;
 
-    const dataToExport = filteredStudents.map(({ id, ...student }) => ({
-        "SRN": student.srn,
+    const dataToExport = filteredStudents.map(({ authUid, ...student }) => ({
+        "UID": student.id,
         "Name": student.name,
+        "Email": student.email,
         "Class": `${student.class}-${student.section}`,
         "Father's Name": student.fatherName,
         "Mother's Name": student.motherName,
@@ -107,7 +113,7 @@ export function StudentList({ students, isLoading, onUpdateStudent, onDeleteStud
   if (students.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
-        <Users className="h-12 w-12 text-muted-foreground" />
+        <UserX className="h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No Students Admitted</h3>
         <p className="text-muted-foreground mt-2">Get started by admitting the first student.</p>
       </div>
@@ -144,8 +150,8 @@ export function StudentList({ students, isLoading, onUpdateStudent, onDeleteStud
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead>SRN</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Father's Name</TableHead>
                     <TableHead>Primary Phone</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -155,8 +161,8 @@ export function StudentList({ students, isLoading, onUpdateStudent, onDeleteStud
                     {filteredStudents.length > 0 ? (
                         filteredStudents.map((student) => (
                         <TableRow key={student.id}>
-                            <TableCell className="font-mono">{student.srn}</TableCell>
                             <TableCell className="font-medium">{student.name}</TableCell>
+                            <TableCell>{student.email}</TableCell>
                             <TableCell>{student.fatherName}</TableCell>
                             <TableCell>{student.fatherPhone || student.motherPhone || student.studentPhone}</TableCell>
                             <TableCell className="text-right">
@@ -184,7 +190,7 @@ export function StudentList({ students, isLoading, onUpdateStudent, onDeleteStud
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the student's record and all associated data for {studentToDelete?.name}.
+                    This action cannot be undone. This will permanently delete the student record and their authentication account for {studentToDelete?.name}.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

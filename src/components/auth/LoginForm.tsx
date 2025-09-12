@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getTeacherByAuthId, updateTeacher } from "@/lib/firebase/teachers";
+import { getStudentByAuthId, updateStudent } from "@/lib/firebase/students";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -107,14 +108,24 @@ export default function LoginForm({ role }: LoginFormProps) {
             "This is your first login. For security, you must change your temporary password. A password reset link has been sent to your email."
           );
           await sendPasswordResetEmail(auth, user.email!);
-          await updateTeacher(teacherProfile.id, { mustChangePassword: false, tempPassword: "" });
+          await updateTeacher(teacherProfile.id, { mustChangePassword: false });
           await auth.signOut();
           setIsLoading(false);
           return;
         }
         document.cookie = "teacher-role=true; path=/; max-age=86400"; // Set cookie for 1 day
         router.push("/teacher");
-      } else {
+      } else if (role === "student") {
+        const studentProfile = await getStudentByAuthId(user.uid);
+        if(studentProfile?.mustChangePassword) {
+            setNeedsPasswordChange(true);
+            setError("This is your first login. For security, you must change your temporary password. A password reset link has been sent to your email.");
+            await sendPasswordResetEmail(auth, user.email!);
+            await updateStudent(studentProfile.id, { mustChangePassword: false });
+            await auth.signOut();
+            setIsLoading(false);
+            return;
+        }
         document.cookie = "teacher-role=; path=/; max-age=-1"; // Clear teacher cookie for student
         router.push("/");
       }
