@@ -25,6 +25,7 @@ export interface Student {
   authUid: string;
   email: string;
   name: string;
+  photoUrl?: string;
   fatherName: string;
   motherName: string;
   address: string;
@@ -33,6 +34,7 @@ export interface Student {
   admissionDate: number;
   dateOfBirth: string;
   aadharNumber?: string;
+  aadharUrl?: string;
   optedSubjects?: string[];
   fatherPhone?: string;
   motherPhone?: string;

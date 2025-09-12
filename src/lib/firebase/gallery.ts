@@ -1,11 +1,6 @@
 
 import { db } from "@/lib/firebase";
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
+import { uploadImage as uploadToImageKit } from "@/lib/imagekit";
 import {
   ref as dbRef,
   push,
@@ -17,7 +12,6 @@ import {
 } from "firebase/database";
 
 const GALLERY_COLLECTION = "gallery";
-const storage = getStorage();
 
 export interface GalleryImage {
   id: string;
@@ -35,17 +29,16 @@ export const uploadImage = async (
   uploadedBy: string,
   uploaderId: string
 ) => {
+  const imageUrl = await uploadToImageKit(file, "gallery");
+  if (!imageUrl) {
+    throw new Error("Image upload to ImageKit failed.");
+  }
+  
   const newImageKey = push(dbRef(db, GALLERY_COLLECTION)).key;
   if (!newImageKey) throw new Error("Could not generate a new key for the image.");
-  
-  const filePath = `gallery/${newImageKey}/${file.name}`;
-  const fileRef = storageRef(storage, filePath);
 
-  await uploadBytes(fileRef, file);
-  const downloadURL = await getDownloadURL(fileRef);
-
-  const imageDa_ta: Omit<GalleryImage, 'id'> = {
-    url: downloadURL,
+  const imageData: Omit<GalleryImage, 'id'> = {
+    url: imageUrl,
     caption,
     uploadedBy,
     uploaderId,
@@ -53,7 +46,7 @@ export const uploadImage = async (
   };
 
   const imageDbRef = dbRef(db, `${GALLERY_COLLECTION}/${newImageKey}`);
-  await set(imageDbRef, imageDa_ta);
+  await set(imageDbRef, imageData);
 };
 
 // Get all gallery images with real-time updates

@@ -28,6 +28,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "../ui/checkbox";
+import { uploadImage } from "@/lib/imagekit";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -38,6 +39,7 @@ const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 const addTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
+  photo: z.instanceof(FileList).refine(files => files.length > 0, "Teacher photo is required."),
   dob: z.date({ required_error: "Date of birth is required." }),
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
@@ -109,7 +111,14 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
     setAddedTeacherName(null);
 
     try {
-      const { registrationKey, email } = await registerTeacherDetails(values as TeacherRegistrationData);
+      const teacherPhotoFile = values.photo?.[0];
+      if (!teacherPhotoFile) {
+        throw new Error("Teacher photo is required.");
+      }
+
+      const photoUrl = await uploadImage(teacherPhotoFile, "Photos (teachers)");
+
+      const { registrationKey, email } = await registerTeacherDetails({ ...values, photoUrl } as TeacherRegistrationData);
       setRegistrationInfo({ key: registrationKey, email });
       setAddedTeacherName(values.name);
       toast({
@@ -200,6 +209,19 @@ export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
                         <FormLabel>Email Address</FormLabel>
                         <FormControl>
                         <Input placeholder="teacher@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="photo"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Teacher Photo</FormLabel>
+                        <FormControl>
+                          <Input type="file" accept="image/*" {...form.register('photo')} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>

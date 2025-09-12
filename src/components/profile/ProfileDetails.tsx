@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
 
 const DetailItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string | null }) => {
     if (!value) return null;
@@ -67,7 +68,11 @@ export function StudentProfile({ student }: { student: Student }) {
         <div className="w-full">
              <div className="bg-card p-6 text-center">
                 <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
-                    <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${student.name}`} alt={student.name} />
+                    {student.photoUrl ? (
+                         <Image src={student.photoUrl} alt={student.name} width={96} height={96} className="object-cover" />
+                    ) : (
+                        <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${student.name}`} alt={student.name} />
+                    )}
                     <AvatarFallback>{student.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{student.name}</h1>
@@ -107,7 +112,11 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
          <div className="w-full">
              <div className="bg-card p-6 text-center">
                 <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
-                     <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${teacher.name}`} alt={teacher.name} />
+                     {teacher.photoUrl ? (
+                         <Image src={teacher.photoUrl} alt={teacher.name} width={96} height={96} className="object-cover" />
+                    ) : (
+                        <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${teacher.name}`} alt={teacher.name} />
+                    )}
                     <AvatarFallback>{teacher.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{teacher.name}</h1>

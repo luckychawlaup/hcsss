@@ -30,6 +30,7 @@ export interface Teacher {
   authUid: string;
   email: string;
   name: string;
+  photoUrl?: string;
   dob: string;
   fatherName: string;
   motherName: string;

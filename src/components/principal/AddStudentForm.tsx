@@ -21,13 +21,14 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2, AlertCircle, CheckCircle, Copy, UserPlus, CalendarIcon, Plus } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, Copy, UserPlus, CalendarIcon, Plus, Upload } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { registerStudentDetails } from "@/lib/firebase/students";
 import type { StudentRegistrationData } from "@/lib/firebase/students";
 import { Separator } from "../ui/separator";
+import { uploadImage } from "@/lib/imagekit";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
@@ -36,6 +37,7 @@ const defaultSeniorSubjects = ["Physics", "Chemistry", "Maths", "Biology", "Comp
 const addStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
+  photo: z.instanceof(FileList).refine(files => files.length > 0, "Student photo is required."),
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
   address: z.string().min(10, "Address is too short."),
@@ -43,6 +45,7 @@ const addStudentSchema = z.object({
   section: z.string({ required_error: "Please select a section."}),
   admissionDate: z.date({ required_error: "Admission date is required." }),
   dateOfBirth: z.date({ required_error: "Date of birth is required." }),
+  aadharCard: z.instanceof(FileList).optional(),
   aadharNumber: z.string().optional(),
   optedSubjects: z.array(z.string()).optional(),
   fatherPhone: z.string().optional(),
@@ -99,7 +102,25 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     setRegistrationInfo(null);
 
     try {
-      const result = await registerStudentDetails(values as StudentRegistrationData);
+      const studentPhotoFile = values.photo?.[0];
+      if (!studentPhotoFile) {
+        throw new Error("Student photo is required.");
+      }
+
+      const photoUrl = await uploadImage(studentPhotoFile, "Photos (students)");
+      
+      let aadharUrl;
+      const aadharFile = values.aadharCard?.[0];
+      if (aadharFile) {
+        aadharUrl = await uploadImage(aadharFile, "Aadhar Cards");
+      }
+
+      const result = await registerStudentDetails({
+        ...values,
+        photoUrl,
+        aadharUrl,
+      } as StudentRegistrationData);
+
       setRegistrationInfo({ key: result.registrationKey, name: values.name });
       toast({
         title: "Student Registered Successfully!",
@@ -188,6 +209,19 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         <FormLabel>Email Address</FormLabel>
                         <FormControl>
                         <Input type="email" placeholder="student@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="photo"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Student Photo</FormLabel>
+                        <FormControl>
+                          <Input type="file" accept="image/*" {...form.register('photo')} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -359,6 +393,19 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                         <FormLabel>Aadhar Number (Optional)</FormLabel>
                         <FormControl>
                         <Input placeholder="xxxx-xxxx-xxxx" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="aadharCard"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Aadhar Card (Optional)</FormLabel>
+                        <FormControl>
+                          <Input type="file" accept="image/*,application/pdf" {...form.register('aadharCard')} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
