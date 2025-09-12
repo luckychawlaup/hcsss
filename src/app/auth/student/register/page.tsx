@@ -1,33 +1,20 @@
 
-import LoginForm from "@/components/auth/LoginForm";
+import StudentRegistrationForm from "@/components/auth/StudentRegistrationForm";
 import Link from "next/link";
 import Image from "next/image";
 
-export default function StudentLoginPage() {
+export default function StudentRegisterPage() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md flex-1 flex flex-col justify-center">
         <div className="flex flex-col items-center justify-center mb-8">
           <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hiltonconventschool_logo.png" alt="Hilton Convent School Logo" width={80} height={80} className="mb-4" />
-          <h1 className="text-3xl font-bold text-center text-primary">Student Portal</h1>
+          <h1 className="text-3xl font-bold text-center text-primary">Create Your Student Account</h1>
           <p className="text-center text-muted-foreground mt-2">
-            Sign in with the credentials provided by the school.
+            Enter the registration key provided by the school to get started.
           </p>
         </div>
-        <LoginForm role="student" />
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p>
-                First time logging in?{" "}
-                <Link href="/auth/student/register" className="font-medium text-primary hover:underline">
-                    Register your account
-                </Link>
-            </p>
-            <p className="mt-2">
-                <Link href="/auth/student/forgot-password"className="text-xs font-medium text-primary hover:underline">
-                    Forgot Password?
-                </Link>
-            </p>
-        </div>
+        <StudentRegistrationForm />
       </div>
        <footer className="py-4">
         <p className="text-center text-xs text-muted-foreground">

@@ -19,10 +19,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle, CheckCircle, Copy, UserPlus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
-import type { Student } from "@/lib/firebase/students";
-import { addStudent } from "@/lib/firebase/students";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { registerStudentAndCreateAuth } from "@/lib/firebase/admin-actions";
+import { registerStudentDetails } from "@/lib/firebase/students";
+import type { StudentRegistrationData } from "@/lib/firebase/students";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
@@ -50,7 +49,7 @@ interface AddStudentFormProps {
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newStudentInfo, setNewStudentInfo] = useState<{ email: string; tempPass: string; name: string } | null>(null);
+  const [registrationInfo, setRegistrationInfo] = useState<{ key: string; name: string } | null>(null);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof addStudentSchema>>({
@@ -63,30 +62,22 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       address: "",
       class: "",
       section: "",
-      fatherPhone: "",
-      motherPhone: "",
-      studentPhone: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof addStudentSchema>) {
     setIsLoading(true);
     setError(null);
-    setNewStudentInfo(null);
+    setRegistrationInfo(null);
 
     try {
-      const result = await registerStudentAndCreateAuth(values);
-      if (result.success) {
-        setNewStudentInfo({ email: values.email, tempPass: result.tempPassword!, name: values.name });
-        toast({
-          title: "Student Added Successfully!",
-          description: `${values.name} has been admitted.`,
-        });
-        form.reset();
-        onStudentAdded();
-      } else {
-        throw new Error(result.message);
-      }
+      const result = await registerStudentDetails(values as StudentRegistrationData);
+      setRegistrationInfo({ key: result.registrationKey, name: values.name });
+      toast({
+        title: "Student Registered Successfully!",
+        description: `Registration details for ${values.name} have been saved.`,
+      });
+      form.reset();
     } catch (e: any) {
       setError(`An unexpected error occurred: ${e.message}`);
     } finally {
@@ -94,47 +85,37 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
     }
   }
 
-  const copyToClipboard = (text: string, type: string) => {
+  const copyToClipboard = (text: string) => {
       navigator.clipboard.writeText(text);
       toast({
         title: "Copied!",
-        description: `${type} copied to clipboard.`,
+        description: "Registration Key copied to clipboard.",
       });
   };
 
   const handleAddAnother = () => {
-    setNewStudentInfo(null);
+    setRegistrationInfo(null);
   }
 
-  if (newStudentInfo) {
+  if (registrationInfo) {
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20 mt-6">
             <CheckCircle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-primary">Student Admitted!</AlertTitle>
             <AlertDescription className="space-y-4">
-                <p>{newStudentInfo.name} has been successfully registered. Please provide the family with their login credentials.</p>
+                <p><strong>{registrationInfo.name}</strong> has been admitted. Please provide the family with their unique one-time Registration Key to create their account.</p>
                 
-                <div className="space-y-2">
-                    <div>
-                        <p className="text-xs font-semibold">Login Email:</p>
-                        <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-2">
-                            <p className="font-mono text-sm text-primary">{newStudentInfo.email}</p>
-                            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(newStudentInfo.email, 'Email')}>
-                                <Copy className="mr-2" /> Copy
-                            </Button>
-                        </div>
-                    </div>
-                     <div>
-                        <p className="text-xs font-semibold">Temporary Password:</p>
-                        <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-2">
-                            <p className="font-mono text-sm font-bold text-primary">{newStudentInfo.tempPass}</p>
-                            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(newStudentInfo.tempPass, 'Password')}>
-                                <Copy className="mr-2" /> Copy
-                            </Button>
-                        </div>
-                    </div>
+                 <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
+                    <p className="font-mono text-lg font-bold text-primary">{registrationInfo.key}</p>
+                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(registrationInfo.key)}>
+                        <Copy className="h-5 w-5 text-primary" />
+                    </Button>
                 </div>
-                <p className="text-xs text-muted-foreground pt-2">The student will be required to change this password on their first login for security.</p>
+                
+                <p className="text-xs text-muted-foreground">
+                    The student will need this key, their registered name, and email to create their account on the student login page.
+                </p>
+
                  <div className="flex gap-2 pt-2">
                     <Button onClick={handleAddAnother}>
                         <UserPlus className="mr-2" />
@@ -306,7 +287,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
             </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Admit Student & Generate Credentials
+            Admit Student & Generate Registration Key
           </Button>
         </form>
       </Form>

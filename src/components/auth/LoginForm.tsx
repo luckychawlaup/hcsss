@@ -42,7 +42,6 @@ export default function LoginForm({ role }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
-  const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth(app);
@@ -59,7 +58,6 @@ export default function LoginForm({ role }: LoginFormProps) {
     setIsLoading(true);
     setError(null);
     setNeedsVerification(false);
-    setNeedsPasswordChange(false);
 
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -101,31 +99,9 @@ export default function LoginForm({ role }: LoginFormProps) {
       }
 
       if (role === "teacher") {
-        const teacherProfile = await getTeacherByAuthId(user.uid);
-        if (teacherProfile?.mustChangePassword) {
-          setNeedsPasswordChange(true);
-          setError(
-            "This is your first login. For security, you must change your temporary password. A password reset link has been sent to your email."
-          );
-          await sendPasswordResetEmail(auth, user.email!);
-          await updateTeacher(teacherProfile.id, { mustChangePassword: false });
-          await auth.signOut();
-          setIsLoading(false);
-          return;
-        }
         document.cookie = "teacher-role=true; path=/; max-age=86400"; // Set cookie for 1 day
         router.push("/teacher");
       } else if (role === "student") {
-        const studentProfile = await getStudentByAuthId(user.uid);
-        if(studentProfile?.mustChangePassword) {
-            setNeedsPasswordChange(true);
-            setError("This is your first login. For security, you must change your temporary password. A password reset link has been sent to your email.");
-            await sendPasswordResetEmail(auth, user.email!);
-            await updateStudent(studentProfile.id, { mustChangePassword: false });
-            await auth.signOut();
-            setIsLoading(false);
-            return;
-        }
         document.cookie = "teacher-role=; path=/; max-age=-1"; // Clear teacher cookie for student
         router.push("/");
       }
@@ -157,20 +133,11 @@ export default function LoginForm({ role }: LoginFormProps) {
   return (
     <>
       {error && (
-        <Alert
-          variant={needsPasswordChange ? "default" : "destructive"}
-          className={
-            needsPasswordChange
-              ? "bg-primary/10 border-primary/20"
-              : ""
-          }
-        >
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>
             {needsVerification
               ? "Email Verification Required"
-              : needsPasswordChange
-              ? "Password Change Required"
               : "Login Failed"}
           </AlertTitle>
           <AlertDescription>{error}</AlertDescription>
