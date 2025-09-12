@@ -16,26 +16,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
-import GenerateSalary from "./GenerateSalary";
 import { useRouter } from "next/navigation";
 
 
-const AddTeacherForm = dynamic(() => import('./AddTeacherForm').then(mod => mod.AddTeacherForm), {
+const AddTeacherForm = dynamic(() => import('./AddTeacherForm'), {
     loading: () => <Skeleton className="h-96 w-full" />
 });
-const TeacherList = dynamic(() => import('./TeacherList').then(mod => mod.TeacherList), {
+const TeacherList = dynamic(() => import('./TeacherList'), {
     loading: () => <Skeleton className="h-64 w-full" />
 });
-const AddStudentForm = dynamic(() => import('./AddStudentForm').then(mod => mod.AddStudentForm), {
+const AddStudentForm = dynamic(() => import('./AddStudentForm'), {
     loading: () => <Skeleton className="h-96 w-full" />
 });
-const StudentList = dynamic(() => import('./StudentList').then(mod => mod.StudentList), {
+const StudentList = dynamic(() => import('./StudentList'), {
     loading: () => <Skeleton className="h-64 w-full" />
 });
 const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
     loading: () => <Skeleton className="h-48 w-full" />,
 });
-const MakeAnnouncementForm = dynamic(() => import('./MakeAnnouncementForm').then(mod => mod.MakeAnnouncementForm), {
+const MakeAnnouncementForm = dynamic(() => import('./MakeAnnouncementForm'), {
+    loading: () => <Skeleton className="h-80 w-full" />
+});
+const GenerateSalary = dynamic(() => import('./GenerateSalary'), {
     loading: () => <Skeleton className="h-80 w-full" />
 });
 

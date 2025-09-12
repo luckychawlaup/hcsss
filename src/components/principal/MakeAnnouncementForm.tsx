@@ -31,7 +31,7 @@ const announcementSchema = z.object({
   }),
 });
 
-export function MakeAnnouncementForm() {
+export default function MakeAnnouncementForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();

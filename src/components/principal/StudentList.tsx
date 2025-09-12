@@ -38,7 +38,7 @@ interface StudentListProps {
   onDeleteStudent: (id: string) => void;
 }
 
-export function StudentList({ students, isLoading, onUpdateStudent, onDeleteStudent }: StudentListProps) {
+export default function StudentList({ students, isLoading, onUpdateStudent, onDeleteStudent }: StudentListProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

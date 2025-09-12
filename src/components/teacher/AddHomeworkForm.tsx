@@ -78,7 +78,7 @@ interface AddHomeworkFormProps {
   teacher: Teacher | null;
 }
 
-export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
+export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [homeworkHistory, setHomeworkHistory] = useState<Homework[]>([]);
   const [editingHomework, setEditingHomework] = useState<Homework | null>(null);
@@ -544,7 +544,3 @@ export function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     </div>
   );
 }
-
-    
-
-    

@@ -63,7 +63,7 @@ interface AddTeacherFormProps {
     onTeacherAdded: () => void;
 }
 
-export function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
+export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registrationInfo, setRegistrationInfo] = useState<{key: string; email: string} | null>(null);

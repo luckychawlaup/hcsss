@@ -30,7 +30,7 @@ interface MarkAttendanceProps {
 
 type AttendanceStatus = "present" | "absent" | "half-day";
 
-export function MarkAttendance({ teacher, students, isLoading }: MarkAttendanceProps) {
+export default function MarkAttendance({ teacher, students, isLoading }: MarkAttendanceProps) {
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
@@ -171,5 +171,3 @@ export function MarkAttendance({ teacher, students, isLoading }: MarkAttendanceP
     </div>
   );
 }
-
-    

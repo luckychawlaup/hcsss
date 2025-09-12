@@ -98,7 +98,7 @@ interface TeacherListProps {
   onDeleteTeacher: (id: string) => void;
 }
 
-export function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeacher }: TeacherListProps) {
+export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeacher }: TeacherListProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);

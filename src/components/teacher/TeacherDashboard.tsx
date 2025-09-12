@@ -29,10 +29,10 @@ const TeacherStudentList = dynamic(() => import('./TeacherStudentList'), {
 const ApproveLeaves = dynamic(() => import('./ApproveLeaves'), {
   loading: () => <Skeleton className="h-48 w-full" />,
 });
-const AddHomeworkForm = dynamic(() => import('./AddHomeworkForm').then(mod => mod.AddHomeworkForm), {
+const AddHomeworkForm = dynamic(() => import('./AddHomeworkForm'), {
   loading: () => <Skeleton className="h-96 w-full" />,
 });
-const MarkAttendance = dynamic(() => import('./MarkAttendance').then(mod => mod.MarkAttendance), {
+const MarkAttendance = dynamic(() => import('./MarkAttendance'), {
   loading: () => <Skeleton className="h-96 w-full" />,
 });
 

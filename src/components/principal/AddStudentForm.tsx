@@ -60,7 +60,7 @@ interface AddStudentFormProps {
     onStudentAdded: () => void;
 }
 
-export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
+export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registrationInfo, setRegistrationInfo] = useState<{ key: string; name: string } | null>(null);
