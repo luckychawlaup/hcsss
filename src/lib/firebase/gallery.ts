@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { uploadImage as uploadToImageKit } from "@/lib/imagekit";
+import { uploadImageClientSide } from "@/lib/imagekit";
 import {
   ref as dbRef,
   push,
@@ -21,16 +21,16 @@ export interface GalleryImage {
   uploadedAt: number;
 }
 
-// Upload a new image to the gallery
+// Upload a new image to the gallery using the client-side SDK
 export const uploadImage = async (
   file: File,
   caption: string,
   uploadedBy: string,
   uploaderId: string
 ) => {
-  const imageUrl = await uploadToImageKit(file, "gallery");
+  const imageUrl = await uploadImageClientSide(file, "gallery");
   if (!imageUrl) {
-    throw new Error("Image upload to ImageKit failed.");
+    throw new Error("Image upload failed.");
   }
   
   const newImageKey = push(dbRef(db, GALLERY_COLLECTION)).key;
