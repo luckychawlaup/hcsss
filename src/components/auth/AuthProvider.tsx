@@ -23,7 +23,7 @@ const publicPaths = [
 ];
 
 const principalUID = "IIDjN5e6RzUMFGOYJ4kE7t3YqgZ2";
-const ownerEmail = "owner@hcsss.in";
+const ownerUID = "qEB6D6PbjycGSBKMPv9OGyorgnd2";
 
 
 function Preloader() {
@@ -43,7 +43,7 @@ function Preloader() {
 const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'owner' | 'principal' | null> => {
     if (!user) return null;
     if (user.uid === principalUID) return 'principal';
-    if (user.email === ownerEmail) return 'owner';
+    if (user.uid === ownerUID) return 'owner';
     
     // Check for teacher role by looking up their profile.
     // This is more reliable than a cookie which can be manipulated.
