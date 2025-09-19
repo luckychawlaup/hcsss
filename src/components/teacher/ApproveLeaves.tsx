@@ -33,9 +33,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { ThumbsUp, ThumbsDown, CalendarX2, Loader2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown, CalendarX2, Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateLeaveStatus } from "@/lib/firebase/leaves";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+
 
 interface ApproveLeavesProps {
   leaves: LeaveRequest[];
@@ -63,6 +66,43 @@ const NoLeavesMessage = ({ message }: { message: string }) => (
     <h3 className="mt-4 text-lg font-semibold">No Leave Requests</h3>
     <p className="text-muted-foreground mt-2">{message}</p>
   </div>
+);
+
+const LeaveCard = ({ leave, onApprove, onReject }: { leave: LeaveRequest, onApprove: (id: string) => void, onReject: (leave: LeaveRequest) => void}) => (
+    <Card>
+        <CardHeader>
+        <div className="flex items-start justify-between">
+            <div>
+            <CardTitle>{leave.userName}</CardTitle>
+            <CardDescription>
+                {leave.userRole === "Student" ? `Class ${leave.class}` : `Teacher`}
+            </CardDescription>
+            </div>
+            <Badge variant={getStatusVariant(leave.status)}>{leave.status}</Badge>
+        </div>
+        </CardHeader>
+        <CardContent>
+        <p className="font-semibold text-sm">{leave.date}</p>
+        <p className="text-muted-foreground mt-2">{leave.reason}</p>
+         {leave.status === 'Rejected' && leave.rejectionReason && (
+            <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Rejection Reason</AlertTitle>
+                <AlertDescription>{leave.rejectionReason}</AlertDescription>
+            </Alert>
+        )}
+        </CardContent>
+        {leave.status === 'Pending' && (
+            <CardFooter className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => onReject(leave)}>
+                <ThumbsDown className="mr-2" /> Reject
+                </Button>
+                <Button size="sm" onClick={() => onApprove(leave.id)}>
+                <ThumbsUp className="mr-2" /> Approve
+                </Button>
+            </CardFooter>
+        )}
+    </Card>
 );
 
 export default function ApproveLeaves({ leaves, title }: ApproveLeavesProps) {
@@ -117,52 +157,44 @@ export default function ApproveLeaves({ leaves, title }: ApproveLeavesProps) {
     }
   }
 
-
   const pendingLeaves = leaves.filter((leave) => leave.status === "Pending");
+  const approvedLeaves = leaves.filter((leave) => leave.status === "Confirmed");
+  const rejectedLeaves = leaves.filter((leave) => leave.status === "Rejected");
 
   if (leaves.length === 0) {
     return <NoLeavesMessage message={`${title} haven't requested any leave yet.`} />;
   }
 
-  if (pendingLeaves.length === 0) {
-    return (
-      <NoLeavesMessage
-        message={`All Clear! There are no pending leave requests from ${title} to review.`}
-      />
-    );
-  }
-
   return (
     <>
-    <div className="space-y-4">
-      {pendingLeaves.map((leave) => (
-         <Card key={leave.id}>
-            <CardHeader>
-            <div className="flex items-start justify-between">
-                <div>
-                <CardTitle>{leave.userName}</CardTitle>
-                <CardDescription>
-                    {leave.userRole === "Student" ? `Class ${leave.class}` : `Teacher`}
-                </CardDescription>
-                </div>
-                <Badge variant={getStatusVariant(leave.status)}>{leave.status}</Badge>
-            </div>
-            </CardHeader>
-            <CardContent>
-            <p className="font-semibold text-sm">{leave.date}</p>
-            <p className="text-muted-foreground mt-2">{leave.reason}</p>
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleOpenRejectDialog(leave)}>
-                <ThumbsDown className="mr-2" /> Reject
-                </Button>
-                <Button size="sm" onClick={() => handleApprove(leave.id)}>
-                <ThumbsUp className="mr-2" /> Approve
-                </Button>
-            </CardFooter>
-        </Card>
-      ))}
-    </div>
+    <Tabs defaultValue="pending">
+        <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="pending">Pending ({pendingLeaves.length})</TabsTrigger>
+            <TabsTrigger value="approved">Approved ({approvedLeaves.length})</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected ({rejectedLeaves.length})</TabsTrigger>
+        </TabsList>
+        <TabsContent value="pending" className="space-y-4 mt-4">
+            {pendingLeaves.length > 0 ? (
+                pendingLeaves.map(leave => <LeaveCard key={leave.id} leave={leave} onApprove={handleApprove} onReject={handleOpenRejectDialog} />)
+            ) : (
+                <p className="text-center text-muted-foreground p-8">No pending leave requests.</p>
+            )}
+        </TabsContent>
+        <TabsContent value="approved" className="space-y-4 mt-4">
+             {approvedLeaves.length > 0 ? (
+                approvedLeaves.map(leave => <LeaveCard key={leave.id} leave={leave} onApprove={handleApprove} onReject={handleOpenRejectDialog} />)
+            ) : (
+                <p className="text-center text-muted-foreground p-8">No approved leaves yet.</p>
+            )}
+        </TabsContent>
+        <TabsContent value="rejected" className="space-y-4 mt-4">
+             {rejectedLeaves.length > 0 ? (
+                rejectedLeaves.map(leave => <LeaveCard key={leave.id} leave={leave} onApprove={handleApprove} onReject={handleOpenRejectDialog} />)
+            ) : (
+                <p className="text-center text-muted-foreground p-8">No rejected leaves yet.</p>
+            )}
+        </TabsContent>
+    </Tabs>
 
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>

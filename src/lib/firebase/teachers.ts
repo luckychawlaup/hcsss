@@ -235,6 +235,18 @@ export const getRegistrationKeyForTeacher = async (email: string): Promise<strin
     }
 }
 
+// Find the class teacher for a specific class-section
+export const getTeacherForClass = async (classSection: string): Promise<Teacher | null> => {
+    const teachersRef = query(ref(db, TEACHERS_COLLECTION), orderByChild('classTeacherOf'), equalTo(classSection));
+    const snapshot = await get(teachersRef);
+    if (snapshot.exists()) {
+        const data = snapshot.val();
+        const teacherId = Object.keys(data)[0];
+        return { id: teacherId, ...data[teacherId] };
+    }
+    return null;
+};
+
 
 // Update a teacher's details
 export const updateTeacher = async (

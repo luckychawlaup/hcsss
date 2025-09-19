@@ -14,7 +14,7 @@ import { getAuth, User, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
 import { getStudents, Student } from "@/lib/firebase/students";
-import { getLeaveRequestsForStudents, LeaveRequest } from "@/lib/firebase/leaves";
+import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
 import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
@@ -78,6 +78,7 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     if (teacher) {
+      // Fetch students for all classes the teacher is associated with
       const unsubscribeStudents = getStudents((students) => {
         const assignedStudents = students.filter(student => {
             const classSection = `${student.class}-${student.section}`;
@@ -86,18 +87,18 @@ export default function TeacherDashboard() {
             return isClassTeacher || isSubjectTeacher;
         });
         setAllStudents(assignedStudents);
-        
-        const assignedStudentIds = assignedStudents.map(s => s.id);
-        
-        if (assignedStudentIds.length > 0) {
-            const unsubscribeLeaves = getLeaveRequestsForStudents(assignedStudentIds, setLeaves);
-            setIsLoading(false);
-            return () => unsubscribeLeaves();
-        } else {
-            setLeaves([]);
-            setIsLoading(false);
-        }
+        setIsLoading(false); // Stop loading once students are fetched
       });
+      
+      // If the teacher is a class teacher, fetch leave requests for their class
+      if (teacher.role === 'classTeacher') {
+          const unsubscribeLeaves = getLeaveRequestsForClassTeacher(teacher.id, setLeaves);
+          return () => {
+              unsubscribeStudents();
+              unsubscribeLeaves();
+          };
+      }
+
        return () => unsubscribeStudents();
     }
   }, [teacher]);
@@ -145,7 +146,15 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            {isLoading ? <Skeleton className="h-48 w-full" /> : <ApproveLeaves leaves={leaves} title="your students" />}
+                            {teacher?.role !== 'classTeacher' ? (
+                                <div className="text-center text-muted-foreground p-8 border border-dashed rounded-md">
+                                    <p>Leave approval is only available for Class Teachers.</p>
+                                </div>
+                            ) : isLoading ? (
+                                <Skeleton className="h-48 w-full" /> 
+                            ) : (
+                                <ApproveLeaves leaves={leaves} title="your students" />
+                            )}
                         </CardContent>
                     </Card>
                 );
@@ -197,7 +206,7 @@ export default function TeacherDashboard() {
                         <div className="mx-auto grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
                             <StatCard title="My Students" value={isLoading ? '...' : allStudents.length.toString()} icon={Users} />
                             <StatCard title="Class Teacher Of" value={teacher?.role === 'classTeacher' ? (teacher.classTeacherOf || 'N/A') : 'N/A'} icon={Users} />
-                            <StatCard title="Pending Leaves" value={isLoading ? '...' : pendingLeavesCount.toString()} icon={CalendarCheck} />
+                            <StatCard title="Pending Leaves" value={isLoading ? '...' : (teacher?.role === 'classTeacher' ? pendingLeavesCount.toString() : 'N/A')} icon={CalendarCheck} />
                             <StatCard title="Assignments Due" value="3" icon={ClipboardCheck} />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

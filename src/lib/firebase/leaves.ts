@@ -8,7 +8,10 @@ import {
   query,
   orderByChild,
   equalTo,
+  get,
 } from "firebase/database";
+import { getTeacherForClass } from "./teachers";
+
 
 const LEAVES_COLLECTION = "leaves";
 
@@ -22,14 +25,24 @@ export interface LeaveRequest {
   reason: string;
   status: "Confirmed" | "Pending" | "Rejected";
   appliedAt: number;
-  teacherId?: string;
+  teacherId?: string; // UID of the class teacher for student leaves
   rejectionReason?: string;
 }
 
 // Add a new leave request
 export const addLeaveRequest = async (leaveData: Omit<LeaveRequest, "id">) => {
   const leavesRef = ref(db, LEAVES_COLLECTION);
-  await push(leavesRef, leaveData);
+  let finalLeaveData = { ...leaveData };
+
+  // If a student is applying, find their class teacher and assign the teacherId
+  if (leaveData.userRole === "Student" && leaveData.class) {
+    const classTeacher = await getTeacherForClass(leaveData.class);
+    if (classTeacher) {
+      finalLeaveData.teacherId = classTeacher.id;
+    }
+  }
+
+  await push(leavesRef, finalLeaveData);
 };
 
 // Listen for all leave requests for a set of student IDs
@@ -55,6 +68,28 @@ export const getLeaveRequestsForStudents = (
   });
   return unsubscribe;
 };
+
+// Listen for all leave requests assigned to a specific class teacher
+export const getLeaveRequestsForClassTeacher = (
+    teacherId: string,
+    callback: (leaves: LeaveRequest[]) => void
+) => {
+    const leavesRef = ref(db, LEAVES_COLLECTION);
+    const leavesQuery = query(leavesRef, orderByChild("teacherId"), equalTo(teacherId));
+
+    const unsubscribe = onValue(leavesQuery, (snapshot) => {
+        const teacherLeaves: LeaveRequest[] = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            for (const id in data) {
+                teacherLeaves.push({ id, ...data[id] });
+            }
+        }
+        callback(teacherLeaves.sort((a, b) => b.appliedAt - a.appliedAt));
+    });
+    return unsubscribe;
+};
+
 
 // Listen for all leave requests for a set of teacher IDs
 export const getLeaveRequestsForTeachers = (
