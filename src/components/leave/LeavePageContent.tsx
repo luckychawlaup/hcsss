@@ -79,6 +79,15 @@ const getStatusVariant = (status: LeaveRequest["status"]) => {
   }
 };
 
+const formatLeaveDate = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (start.getTime() === end.getTime()) {
+        return format(start, "do MMM, yyyy");
+    }
+    return `${format(start, "do MMM")} - ${format(end, "do MMM, yyyy")}`;
+}
+
 
 export default function LeavePageContent() {
   const { toast } = useToast();
@@ -132,17 +141,16 @@ export default function LeavePageContent() {
         return;
     }
     
-    let dateString = format(values.dateRange.from, "yyyy-MM-dd");
-    if (values.dateRange.to) {
-        dateString += ` to ${format(values.dateRange.to, "yyyy-MM-dd")}`;
-    }
+    const startDate = values.dateRange.from.toISOString();
+    const endDate = (values.dateRange.to || values.dateRange.from).toISOString();
 
     const newLeave: Omit<LeaveRequest, 'id'> = {
         userId: currentStudent.id,
         userName: currentStudent.name,
         class: `${currentStudent.class}-${currentStudent.section}`,
         userRole: "Student",
-        date: dateString,
+        startDate,
+        endDate,
         reason: values.reason,
         status: "Pending",
         appliedAt: Date.now(),
@@ -291,16 +299,23 @@ export default function LeavePageContent() {
               >
                 <div className="flex items-start justify-between">
                     <div className="flex-1 space-y-1">
-                        <p className="font-semibold text-sm">{leave.date}</p>
+                        <p className="font-semibold text-sm">{formatLeaveDate(leave.startDate, leave.endDate)}</p>
                         <p className="text-muted-foreground text-sm">{leave.reason}</p>
                     </div>
                     <Badge variant={getStatusVariant(leave.status)}>{leave.status}</Badge>
                 </div>
-                 {leave.status === 'Rejected' && leave.rejectionReason && (
+                 {(leave.status === 'Rejected' && leave.rejectionReason) && (
                      <Alert variant="destructive" className="mt-2">
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Rejection Reason</AlertTitle>
                         <AlertDescription>{leave.rejectionReason}</AlertDescription>
+                    </Alert>
+                )}
+                {(leave.status === 'Confirmed' && leave.approverComment) && (
+                     <Alert variant="default" className="mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Approver's Comment</AlertTitle>
+                        <AlertDescription>{leave.approverComment}</AlertDescription>
                     </Alert>
                 )}
               </div>
@@ -315,5 +330,3 @@ export default function LeavePageContent() {
     </div>
   );
 }
-
-    

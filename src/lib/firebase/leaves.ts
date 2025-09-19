@@ -1,4 +1,5 @@
 
+
 import { db } from "@/lib/firebase";
 import {
   ref,
@@ -21,12 +22,14 @@ export interface LeaveRequest {
   userName: string;
   userRole: "Student" | "Teacher";
   class?: string; // For students
-  date: string;
+  startDate: string; // ISO String for start date
+  endDate: string; // ISO String for end date
   reason: string;
   status: "Confirmed" | "Pending" | "Rejected";
   appliedAt: number;
   teacherId?: string; // UID of the class teacher for student leaves
-  rejectionReason?: string;
+  rejectionReason?: string; // Kept for backward compatibility if needed, but will use approverComment
+  approverComment?: string;
 }
 
 // Add a new leave request
@@ -64,7 +67,11 @@ export const getLeaveRequestsForStudents = (
         }
       }
     }
-    callback(allLeaves.sort((a, b) => b.appliedAt - a.appliedAt));
+    callback(allLeaves.sort((a, b) => {
+        if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+        if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+        return b.appliedAt - a.appliedAt;
+    }));
   });
   return unsubscribe;
 };
@@ -85,7 +92,11 @@ export const getLeaveRequestsForClassTeacher = (
                 teacherLeaves.push({ id, ...data[id] });
             }
         }
-        callback(teacherLeaves.sort((a, b) => b.appliedAt - a.appliedAt));
+        callback(teacherLeaves.sort((a, b) => {
+            if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+            if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+            return b.appliedAt - a.appliedAt;
+        }));
     });
     return unsubscribe;
 };
@@ -110,7 +121,11 @@ export const getLeaveRequestsForTeachers = (
         }
       }
     }
-    callback(allLeaves.sort((a, b) => b.appliedAt - a.appliedAt));
+    callback(allLeaves.sort((a, b) => {
+        if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+        if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+        return b.appliedAt - a.appliedAt;
+    }));
   });
   return unsubscribe;
 };
@@ -137,16 +152,11 @@ export const getLeaveRequestsForUser = (
 }
 
 
-// Update leave status
-export const updateLeaveStatus = async (
+// Update leave status, comments, or dates
+export const updateLeaveRequest = async (
   leaveId: string,
-  status: "Confirmed" | "Rejected",
-  rejectionReason?: string
+  updates: Partial<LeaveRequest>
 ) => {
   const leaveRef = ref(db, `${LEAVES_COLLECTION}/${leaveId}`);
-  const updates: Record<string, any> = { status };
-  if (status === 'Rejected' && rejectionReason) {
-    updates.rejectionReason = rejectionReason;
-  }
   await update(leaveRef, updates);
 };

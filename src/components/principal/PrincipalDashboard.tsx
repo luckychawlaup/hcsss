@@ -309,7 +309,7 @@ export default function PrincipalDashboard() {
                                         <ApproveLeaves leaves={studentLeaves} title="Students" />
                                     </TabsContent>
                                     <TabsContent value="teachers" className="mt-4">
-                                        <ApproveLeaves leaves={teacherLeaves} title="Teachers" />
+                                        <ApproveLeaves leaves={teacherLeaves} title="Teachers" isPrincipal={true} />
                                     </TabsContent>
                                 </Tabs>
                             )}
@@ -417,5 +417,3 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
-
-    
