@@ -61,12 +61,10 @@ const editDateSchema = z.object({
 });
 
 const formatLeaveDate = (startDate: string, endDate: string) => {
-    if (!startDate || !endDate) {
-        return "Invalid Date";
-    }
+    if (!startDate || !endDate) return "Invalid Date";
     const start = new Date(startDate);
     const end = new Date(endDate);
-     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return "Invalid Date";
     }
     if (start.getTime() === end.getTime()) {
