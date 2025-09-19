@@ -1,3 +1,4 @@
+
 import ImageKit from "imagekit-javascript";
 
 // This file is now for the CLIENT-SIDE ImageKit SDK.
@@ -15,7 +16,7 @@ if (!process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || !process.env.NEXT_PUBLIC_I
 const imagekit = new ImageKit({
     urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT!,
     publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!,
-    authenticationEndpoint: "https://not-used-for-unsigned-uploads.com/auth" // Required, but not used for unsigned uploads
+    authenticationEndpoint: "https://ik.imagekit.io/credixdb/auth" // A dummy but valid-looking endpoint is often needed.
 });
 
 export default imagekit;
