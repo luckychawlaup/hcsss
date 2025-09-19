@@ -22,7 +22,7 @@ const publicPaths = [
     "/auth/teacher/forgot-password",
 ];
 
-const principalUID = "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
+const principalUID = "IIDjN5e6RzUMFGOYJ4kE7t3YqgZ2";
 const ownerEmail = "owner@hcsss.in";
 
 

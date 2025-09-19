@@ -18,7 +18,7 @@ import { Loader2, UploadCloud } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getTeacherByAuthId } from "@/lib/firebase/teachers";
 
-const principalUID = "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
+const principalUID = "IIDjN5e6RzUMFGOYJ4kE7t3YqgZ2";
 
 function UploadForm({ onUploadComplete }: { onUploadComplete: () => void }) {
     const [file, setFile] = useState<File | null>(null);
