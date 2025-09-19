@@ -7,6 +7,7 @@ import { app } from "@/lib/firebase";
 import { useRouter, usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
+import { getTeacherByAuthId } from "@/lib/firebase/teachers";
 
 const publicPaths = [
     "/login",
@@ -21,6 +22,7 @@ const publicPaths = [
 ];
 
 const principalUID = "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
+const ownerEmail = "owner@hcsss.in";
 
 
 function Preloader() {
@@ -36,19 +38,17 @@ function Preloader() {
     );
 }
 
-const getRoleFromCookie = (): 'teacher' | 'student' | 'owner' => {
-    if (typeof document === 'undefined') return 'student'; // Default for SSR
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'teacher-role' && value === 'true') {
-            return 'teacher';
-        }
-        if (name === 'owner-role' && value === 'true') {
-            return 'owner';
-        }
-    }
-    return 'student'; // Default to student
+const getRoleFromCookie = async (user: User | null): Promise<'teacher' | 'student' | 'owner' | 'principal' | null> => {
+    if (!user) return null;
+    if (user.uid === principalUID) return 'principal';
+    if (user.email === ownerEmail) return 'owner';
+    
+    // Check for teacher role by looking up their profile.
+    // This is more reliable than a cookie which can be manipulated.
+    const teacher = await getTeacherByAuthId(user.uid);
+    if (teacher) return 'teacher';
+    
+    return 'student'; // Default to student if not principal, owner, or teacher
 }
 
 
@@ -60,21 +60,18 @@ export default function AuthProvider({
   const auth = getAuth(app);
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
 
-    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
-        setUser(authUser);
-        const isPrincipal = authUser.uid === principalUID;
-        const role = getRoleFromCookie();
+        const role = await getRoleFromCookie(authUser);
         
         if (isPublicPath) {
             // If on a public page (like login) but already authenticated, redirect
-            if (isPrincipal || role === 'owner') {
+            if (role === 'principal' || role === 'owner') {
                 router.replace('/principal');
             } else if (role === 'teacher') {
                 router.replace('/teacher');
@@ -83,28 +80,22 @@ export default function AuthProvider({
             }
         } else {
             // If on a protected page, enforce role-based access
-            if (isPrincipal || role === 'owner') {
+            if (role === 'principal' || role === 'owner') {
                 if (!pathname.startsWith('/principal')) {
                     router.replace('/principal');
-                } else {
-                    setLoading(false);
                 }
             } else if (role === 'teacher') {
                 if (!pathname.startsWith('/teacher') || pathname.startsWith('/principal')) {
                     router.replace('/teacher');
-                } else {
-                    setLoading(false);
                 }
             } else { // Assumed student
                 if (pathname.startsWith('/teacher') || pathname.startsWith('/principal')) {
                     router.replace('/');
-                } else {
-                    setLoading(false);
                 }
             }
+            setLoading(false);
         }
       } else {
-        setUser(null);
         if (!isPublicPath) {
             router.replace('/login');
         } else {

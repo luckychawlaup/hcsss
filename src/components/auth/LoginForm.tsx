@@ -9,7 +9,6 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   sendEmailVerification,
-  sendPasswordResetEmail,
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -26,8 +25,6 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getTeacherByAuthId, updateTeacher } from "@/lib/firebase/teachers";
-import { getStudentByAuthId, updateStudent } from "@/lib/firebase/students";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -37,6 +34,11 @@ const loginSchema = z.object({
 interface LoginFormProps {
   role: "student" | "teacher" | "principal" | "owner";
 }
+
+const principalUID = "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
+const principalEmail = "principal@hcsss.in";
+const ownerEmail = "owner@hcsss.in";
+
 
 export default function LoginForm({ role }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -67,65 +69,57 @@ export default function LoginForm({ role }: LoginFormProps) {
       );
       const user = userCredential.user;
 
+      // Role-specific validation
       if (role === "principal") {
-        if (
-          user.uid !== "hvldHzYq4ZbZlc7nym3ICNaEI1u1" ||
-          values.email !== "principal@hcsss.in"
-        ) {
+        if (user.uid !== principalUID || values.email.toLowerCase() !== principalEmail) {
           setError("Invalid credentials for principal account.");
           await auth.signOut();
           setIsLoading(false);
           return;
         }
-        router.push("/principal");
-        router.refresh();
-        return;
-      }
-      
-      if (role === "owner") {
-        // In a real app, the owner UID would be stored securely
-        if (values.email !== "owner@hcsss.in") {
+      } else if (role === "owner") {
+         if (values.email.toLowerCase() !== ownerEmail) {
           setError("Invalid credentials for owner account.");
           await auth.signOut();
           setIsLoading(false);
           return;
         }
-        document.cookie = "owner-role=true; path=/; max-age=86400";
-        router.push("/principal"); // Redirect owner to principal dashboard for now
-        router.refresh();
-        return;
-      }
-      
-      if (!user.emailVerified && role !== 'principal') {
-        setNeedsVerification(true);
-        setError(
-          "Your email is not verified. A new verification link has been sent to your inbox."
-        );
-        await sendEmailVerification(user);
-        toast({
-          title: "Verification Email Sent",
-          description:
-            "Please check your inbox to verify your email address before logging in.",
-        });
-        await auth.signOut();
-        setIsLoading(false);
-        return;
       }
 
-      if (role === "teacher") {
-        document.cookie = "teacher-role=true; path=/; max-age=86400"; // Set cookie for 1 day
+      // Email verification check for students and teachers
+      if (role === 'student' || role === 'teacher') {
+        if (!user.emailVerified) {
+          setNeedsVerification(true);
+          setError(
+            "Your email is not verified. A new verification link has been sent."
+          );
+          await sendEmailVerification(user);
+          toast({
+            title: "Verification Email Sent",
+            description: "Please check your inbox to verify your email address.",
+          });
+          await auth.signOut();
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Redirect on success
+      if (role === "principal" || role === "owner") {
+        router.push("/principal");
+      } else if (role === "teacher") {
         router.push("/teacher");
-      } else if (role === "student") {
-        document.cookie = "teacher-role=; path=/; max-age=-1"; // Clear teacher cookie for student
+      } else {
         router.push("/");
       }
 
       toast({
         title: "Login Successful",
-        description: `Welcome back!`,
+        description: `Welcome!`,
       });
 
       router.refresh();
+
     } catch (error: any) {
       const errorCode = error.code;
       let errorMessage = "An unknown error occurred.";
@@ -137,7 +131,7 @@ export default function LoginForm({ role }: LoginFormProps) {
         errorMessage = "Invalid email or password. Please try again.";
       } else if (errorCode === "auth/too-many-requests") {
         errorMessage =
-          "Too many failed login attempts. Please try again later.";
+          "Too many failed login attempts. Account temporarily locked.";
       }
       setError(errorMessage);
       setIsLoading(false);
@@ -147,7 +141,7 @@ export default function LoginForm({ role }: LoginFormProps) {
   return (
     <>
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="my-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>
             {needsVerification
@@ -169,11 +163,9 @@ export default function LoginForm({ role }: LoginFormProps) {
                   <Input
                     type="email"
                     placeholder={
-                      role === "principal"
-                        ? "principal@hcsss.in"
-                        : role === "owner" 
-                        ? "owner@hcsss.in"
-                        : `${role}@example.com`
+                      role === "principal" ? principalEmail
+                      : role === "owner" ? ownerEmail
+                      : `${role}@example.com`
                     }
                     {...field}
                   />
