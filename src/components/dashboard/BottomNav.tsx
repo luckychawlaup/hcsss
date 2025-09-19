@@ -24,6 +24,7 @@ export default function BottomNav() {
   const handleLogout = async () => {
     await signOut(auth);
     document.cookie = "teacher-role=; path=/; max-age=-1";
+    document.cookie = "owner-role=; path=/; max-age=-1";
     router.push("/login");
   };
 

@@ -35,7 +35,7 @@ const loginSchema = z.object({
 });
 
 interface LoginFormProps {
-  role: "student" | "teacher" | "principal";
+  role: "student" | "teacher" | "principal" | "owner";
 }
 
 export default function LoginForm({ role }: LoginFormProps) {
@@ -78,6 +78,20 @@ export default function LoginForm({ role }: LoginFormProps) {
           return;
         }
         router.push("/principal");
+        router.refresh();
+        return;
+      }
+      
+      if (role === "owner") {
+        // In a real app, the owner UID would be stored securely
+        if (values.email !== "owner@hcsss.in") {
+          setError("Invalid credentials for owner account.");
+          await auth.signOut();
+          setIsLoading(false);
+          return;
+        }
+        document.cookie = "owner-role=true; path=/; max-age=86400";
+        router.push("/principal"); // Redirect owner to principal dashboard for now
         router.refresh();
         return;
       }
@@ -157,6 +171,8 @@ export default function LoginForm({ role }: LoginFormProps) {
                     placeholder={
                       role === "principal"
                         ? "principal@hcsss.in"
+                        : role === "owner" 
+                        ? "owner@hcsss.in"
                         : `${role}@example.com`
                     }
                     {...field}

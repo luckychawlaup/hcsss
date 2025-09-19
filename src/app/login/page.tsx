@@ -1,7 +1,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { User, Briefcase, School } from "lucide-react";
+import { User, Briefcase, School, Crown } from "lucide-react";
 
 export default function RoleSelectionPage() {
   return (
@@ -46,6 +46,17 @@ export default function RoleSelectionPage() {
                     <div>
                         <h2 className="font-semibold text-lg">I am the Principal</h2>
                         <p className="text-sm text-muted-foreground">Access the admin dashboard.</p>
+                    </div>
+                </div>
+            </Link>
+            <Link href="/auth/owner/login" className="block">
+                <div className="flex items-center gap-4 rounded-lg border p-4 hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Crown className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h2 className="font-semibold text-lg">I am the Owner</h2>
+                        <p className="text-sm text-muted-foreground">Access the owner's dashboard.</p>
                     </div>
                 </div>
             </Link>

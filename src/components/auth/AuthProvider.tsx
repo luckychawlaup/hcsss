@@ -13,7 +13,8 @@ const publicPaths = [
     "/auth/student/login",
     "/auth/teacher/login",
     "/auth/principal/login",
-    "/auth/student/signup",
+    "/auth/owner/login",
+    "/auth/student/register",
     "/auth/teacher/register",
     "/auth/student/forgot-password",
     "/auth/teacher/forgot-password",
@@ -35,13 +36,16 @@ function Preloader() {
     );
 }
 
-const getRoleFromCookie = (): 'teacher' | 'student' => {
+const getRoleFromCookie = (): 'teacher' | 'student' | 'owner' => {
     if (typeof document === 'undefined') return 'student'; // Default for SSR
     const cookies = document.cookie.split(';');
     for (let cookie of cookies) {
         const [name, value] = cookie.trim().split('=');
         if (name === 'teacher-role' && value === 'true') {
             return 'teacher';
+        }
+        if (name === 'owner-role' && value === 'true') {
+            return 'owner';
         }
     }
     return 'student'; // Default to student
@@ -70,7 +74,7 @@ export default function AuthProvider({
         
         if (isPublicPath) {
             // If on a public page (like login) but already authenticated, redirect
-            if (isPrincipal) {
+            if (isPrincipal || role === 'owner') {
                 router.replace('/principal');
             } else if (role === 'teacher') {
                 router.replace('/teacher');
@@ -79,7 +83,7 @@ export default function AuthProvider({
             }
         } else {
             // If on a protected page, enforce role-based access
-            if (isPrincipal) {
+            if (isPrincipal || role === 'owner') {
                 if (!pathname.startsWith('/principal')) {
                     router.replace('/principal');
                 } else {

@@ -38,7 +38,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
     await signOut(auth);
     // Clear role-specific cookies
     document.cookie = "teacher-role=; path=/; max-age=-1";
-    document.cookie = "principal-role=; path=/; max-age=-1"; // Example if you had one
+    document.cookie = "owner-role=; path=/; max-age=-1";
     router.push("/login");
     router.refresh();
   }
