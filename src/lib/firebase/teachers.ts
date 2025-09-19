@@ -52,6 +52,14 @@ export interface Teacher {
   };
 }
 
+export interface PendingTeacher extends Omit<Teacher, 'id' | 'authUid' | 'joiningDate'> {
+    id: string; // registration key
+    registrationKey: string;
+}
+
+export type CombinedTeacher = (Teacher & { status: 'Registered' }) | (PendingTeacher & { status: 'Pending' });
+
+
 export type TeacherRegistrationData = Omit<
   Teacher,
   "id" | "authUid" | "joiningDate" | "dob"
@@ -107,34 +115,89 @@ export const verifyAndClaimTeacherAccount = async (data: {
 
     await set(teacherRef, finalTeacherData); // Create teacher record
     
-    // We don't delete the registration record anymore, so we can retrieve the key later.
-    // await remove(regRef); 
+    // We update the registration record to mark it as claimed, but don't delete it
+    await update(regRef, { claimedBy: data.authUid });
 
     return { success: true, message: "Account claimed successfully."};
 }
 
+// Regenerate a temporary password for a teacher
+export const regenerateTemporaryPassword = async (teacherId: string): Promise<string> => {
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
+    
+    // This is a placeholder for updating the auth user's password via a backend function.
+    // In a real app, you would call a Firebase Function here to use the Admin SDK
+    // to update the password for the user with authUid = teacherId.
+    // For now, we'll store it in the DB and show it to the admin.
+    await update(teacherRef, {
+        tempPassword: tempPassword,
+        mustChangePassword: true,
+    });
+
+    return tempPassword;
+}
+
 
 // Get all teachers with real-time updates
-export const getTeachers = (callback: (teachers: Teacher[]) => void) => {
+export const getTeachersAndPending = (callback: (teachers: CombinedTeacher[]) => void) => {
   const teachersRef = ref(db, TEACHERS_COLLECTION);
-  const unsubscribe = onValue(
+  const registrationsRef = ref(db, REGISTRATIONS_COLLECTION);
+
+  let registeredTeachers: Teacher[] = [];
+  let pendingTeachers: PendingTeacher[] = [];
+
+  const processAndCallback = () => {
+      const combined: CombinedTeacher[] = [
+          ...registeredTeachers.map(t => ({...t, status: 'Registered' as const})),
+          ...pendingTeachers.map(p => ({...p, status: 'Pending' as const}))
+      ];
+      callback(combined.sort((a, b) => a.name.localeCompare(b.name)));
+  }
+
+  const unsubTeachers = onValue(
     teachersRef,
     (snapshot: DataSnapshot) => {
-      const teachers: Teacher[] = [];
+      const teachersData: Teacher[] = [];
       if (snapshot.exists()) {
         const data = snapshot.val();
         for (const id in data) {
-          teachers.push({ id, ...data[id], authUid: id });
+          teachersData.push({ id, ...data[id], authUid: id });
         }
       }
-      callback(teachers);
+      registeredTeachers = teachersData;
+      processAndCallback();
     },
     (error) => {
       console.error("Error fetching teachers: ", error);
-      callback([]);
     }
   );
-  return unsubscribe;
+
+   const unsubRegistrations = onValue(
+    registrationsRef,
+    (snapshot: DataSnapshot) => {
+      const pendingData: PendingTeacher[] = [];
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        for (const id in data) {
+          // A registration is pending if it has not been claimed
+          if (!data[id].claimedBy) {
+             pendingData.push({ id, ...data[id] });
+          }
+        }
+      }
+      pendingTeachers = pendingData;
+      processAndCallback();
+    },
+    (error) => {
+      console.error("Error fetching registrations: ", error);
+    }
+  );
+
+  return () => {
+    unsubTeachers();
+    unsubRegistrations();
+  };
 };
 
 // Get a single teacher by ID (which is their Auth UID)
@@ -193,21 +256,36 @@ export const updateTeacher = async (
 // Delete a teacher from DB. Auth user deletion would need a backend function.
 export const deleteTeacher = async (teacherId: string) => {
   try {
-    // Also remove their registration record if it exists
-    const teacherData = await getTeacherByAuthId(teacherId);
-    if (teacherData?.email) {
-        const registrationsRef = query(ref(db, REGISTRATIONS_COLLECTION), orderByChild('email'), equalTo(teacherData.email));
-        const snapshot = await get(registrationsRef);
-        if (snapshot.exists()) {
-            const keyToDelete = Object.keys(snapshot.val())[0];
-            const regRef = ref(db, `${REGISTRATIONS_COLLECTION}/${keyToDelete}`);
-            await remove(regRef);
-        }
-    }
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
-    await remove(teacherRef);
+    const snapshot = await get(teacherRef);
+    
+    // If the teacher record exists (i.e., they are registered)
+    if (snapshot.exists()) {
+        const teacherData = snapshot.val();
+        if (teacherData?.email) {
+            const registrationsRef = query(ref(db, REGISTRATIONS_COLLECTION), orderByChild('email'), equalTo(teacherData.email));
+            const regSnapshot = await get(registrationsRef);
+            if (regSnapshot.exists()) {
+                const keyToDelete = Object.keys(regSnapshot.val())[0];
+                const regRef = ref(db, `${REGISTRATIONS_COLLECTION}/${keyToDelete}`);
+                await remove(regRef);
+            }
+        }
+        // This is a placeholder for deleting the auth user.
+        // In a real app, this MUST be a backend function.
+        console.log(`Simulating deletion of auth user for ${teacherId}`);
+        
+        await remove(teacherRef); // Delete from /teachers
+    } else {
+        // If the teacher record does not exist in /teachers, it must be a pending registration
+        const regRef = ref(db, `${REGISTRATIONS_COLLECTION}/${teacherId}`);
+        await remove(regRef); // Delete from /registrations
+    }
+
   } catch (e) {
     console.error("Error deleting document: ", e);
     throw e;
   }
 };
+
+    

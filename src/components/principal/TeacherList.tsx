@@ -1,9 +1,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
-import type { Teacher } from "@/lib/firebase/teachers";
+import type { Teacher, PendingTeacher } from "@/lib/firebase/teachers";
+import { regenerateTemporaryPassword } from "@/lib/firebase/teachers";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
-import { Edit, Trash2, Loader2, Info, Printer, FileDown, Plus, X, UserX, Landmark } from "lucide-react";
+import { Edit, Trash2, Loader2, Info, Printer, FileDown, Plus, X, UserX, Landmark, KeyRound, Copy, CheckCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -51,6 +52,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -91,8 +93,10 @@ const editTeacherSchema = z.object({
     path: ["classesTaught"],
 });
 
+type CombinedTeacher = (Teacher & { status: 'Registered' }) | (PendingTeacher & { status: 'Pending' });
+
 interface TeacherListProps {
-  teachers: Teacher[];
+  teachers: CombinedTeacher[];
   isLoading: boolean;
   onUpdateTeacher: (id: string, data: Partial<Teacher>) => void;
   onDeleteTeacher: (id: string) => void;
@@ -101,10 +105,13 @@ interface TeacherListProps {
 export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDeleteTeacher }: TeacherListProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [selectedTeacher, setSelectedTeacher] = useState<CombinedTeacher | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [qualificationInput, setQualificationInput] = useState("");
+  const [newPassword, setNewPassword] = useState<string | null>(null);
+  const [isGeneratingPassword, setIsGeneratingPassword] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof editTeacherSchema>>({
     resolver: zodResolver(editTeacherSchema),
@@ -114,7 +121,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   const role = watch("role");
   const qualifications = watch("qualifications", []);
 
-  const handleDeleteClick = (teacher: Teacher) => {
+  const handleDeleteClick = (teacher: CombinedTeacher) => {
     setSelectedTeacher(teacher);
     setIsAlertOpen(true);
   };
@@ -160,7 +167,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   }
 
   async function onEditSubmit(values: z.infer<typeof editTeacherSchema>) {
-    if(selectedTeacher) {
+    if(selectedTeacher && selectedTeacher.status === 'Registered') {
         const updatedData: Partial<Teacher> = {
             ...values,
             dob: formatDate(values.dob, "yyyy-MM-dd"),
@@ -173,16 +180,17 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
 
   const handleExport = () => {
     const dataToExport = teachers.map(teacher => ({
-        "Teacher ID": teacher.id,
+        "Teacher ID": teacher.status === 'Registered' ? teacher.authUid : 'N/A',
         "Name": teacher.name,
         "Email": teacher.email,
+        "Status": teacher.status,
         "Role": teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher',
         "Assignment": teacher.role === 'classTeacher' ? teacher.classTeacherOf : teacher.classesTaught?.join(', '),
         "Subject": teacher.subject,
         "Phone Number": teacher.phoneNumber,
         "DOB": teacher.dob,
         "Qualifications": teacher.qualifications?.join(', '),
-        "Joining Date": new Date(teacher.joiningDate).toLocaleString('en-GB'),
+        "Joining Date": teacher.status === 'Registered' ? new Date(teacher.joiningDate).toLocaleString('en-GB') : 'Pending Registration',
         "Father's Name": teacher.fatherName,
         "Address": teacher.address,
     }));
@@ -191,6 +199,40 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Teachers");
     XLSX.writeFile(workbook, `Teachers_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }
+  
+  const handleRegeneratePassword = async (teacher: Teacher) => {
+      setSelectedTeacher(teacher);
+      setIsGeneratingPassword(true);
+      try {
+          const tempPassword = await regenerateTemporaryPassword(teacher.authUid);
+          setNewPassword(tempPassword);
+          toast({
+              title: "Password Regenerated",
+              description: `A new temporary password has been created for ${teacher.name}.`
+          });
+      } catch (error) {
+          toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Could not regenerate the password. Please try again."
+          })
+      } finally {
+        setIsGeneratingPassword(false);
+      }
+  }
+  
+  const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: "New password copied to clipboard.",
+      });
+  };
+
+  const closePasswordDialog = () => {
+      setNewPassword(null);
+      setSelectedTeacher(null);
   }
 
 
@@ -261,7 +303,12 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
           <TableBody>
             {teachers.map((teacher) => (
               <TableRow key={teacher.id}>
-                <TableCell className="font-medium">{teacher.name}</TableCell>
+                <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                        {teacher.name}
+                        <Badge variant={teacher.status === 'Registered' ? 'default' : 'secondary'}>{teacher.status}</Badge>
+                    </div>
+                </TableCell>
                 <TableCell>
                   {teacher.role === 'classTeacher' ? (
                     <Badge variant="secondary">Class Teacher: {teacher.classTeacherOf}</Badge>
@@ -270,36 +317,48 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                         <TooltipTrigger asChild>
                             <Badge variant="outline" className="cursor-pointer">
                                 Subject Teacher
-                                <Info className="ml-1.5 h-3 w-3" />
+                                {teacher.classesTaught && <Info className="ml-1.5 h-3 w-3" />}
                             </Badge>
                         </TooltipTrigger>
-                        <TooltipContent>
+                       {teacher.classesTaught && <TooltipContent>
                             <p>Teaches: {teacher.classesTaught?.join(', ')}</p>
-                        </TooltipContent>
+                        </TooltipContent>}
                     </Tooltip>
                   )}
                 </TableCell>
                 <TableCell>{teacher.subject}</TableCell>
                 <TableCell>
-                    {teacher.joiningDate ? formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy') : 'N/A'}
+                    {teacher.status === 'Registered' ? formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy') : 'Pending'}
                 </TableCell>
                 <TableCell className="text-right">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                             <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher.id)}>
-                                <Printer className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                         <TooltipContent>Print Joining Letter</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                             <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                         <TooltipContent>Edit Teacher</TooltipContent>
-                    </Tooltip>
+                    {teacher.status === 'Registered' && (
+                        <>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handleRegeneratePassword(teacher as Teacher)} disabled={isGeneratingPassword && selectedTeacher?.id === teacher.id}>
+                                    {isGeneratingPassword && selectedTeacher?.id === teacher.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Regenerate Password</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher.id)}>
+                                    <Printer className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Print Joining Letter</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher as Teacher)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit Teacher</TooltipContent>
+                        </Tooltip>
+                        </>
+                    )}
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(teacher)}>
@@ -322,6 +381,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the record for {selectedTeacher?.name}.
+              {selectedTeacher?.status === 'Registered' && ' This will also delete their login account.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -333,6 +393,26 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <Dialog open={!!newPassword} onOpenChange={closePasswordDialog}>
+        <DialogContent>
+            <DialogHeader>
+                 <DialogTitle className="flex items-center gap-2"><CheckCircle className="text-primary"/>New Password Generated</DialogTitle>
+                <DialogDescription>
+                    A new temporary password has been generated for <strong>{selectedTeacher?.name}</strong>. Please share it with them securely. They will be required to change it on their next login.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-between rounded-md border bg-secondary p-3">
+                <span className="font-mono text-lg text-primary">{newPassword}</span>
+                <Button size="sm" variant="ghost" onClick={() => copyToClipboard(newPassword!)}>
+                    <Copy className="mr-2 h-4 w-4" /> Copy
+                </Button>
+            </div>
+            <DialogFooter>
+                <Button onClick={closePasswordDialog}>Done</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[800px]">
@@ -342,7 +422,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                     Update the teacher's information below.
                 </DialogDescription>
             </DialogHeader>
-            {selectedTeacher && (
+            {selectedTeacher?.status === 'Registered' && (
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-2 pr-4">
                         {/* Personal Details */}
@@ -568,3 +648,5 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     </>
   );
 }
+
+    

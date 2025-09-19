@@ -105,7 +105,7 @@ export default function GenerateSalary({ teachers, isLoading }: GenerateSalaryPr
       });
       
       const teacher = teachers.find(t => t.id === values.teacherId);
-      if(teacher) {
+      if(teacher && newSlipId) {
         router.push(`/teacher/salary-slip/${slipData.month.replace(' ','-')}?slipId=${newSlipId}`);
       }
 
@@ -130,8 +130,8 @@ export default function GenerateSalary({ teachers, isLoading }: GenerateSalaryPr
     return (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
             <Users className="h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No Teachers Found</h3>
-            <p className="text-muted-foreground mt-2">You need to add teachers before you can generate salaries.</p>
+            <h3 className="mt-4 text-lg font-semibold">No Registered Teachers Found</h3>
+            <p className="text-muted-foreground mt-2">You can only generate salaries for teachers who have completed their registration.</p>
       </div>
     )
   }

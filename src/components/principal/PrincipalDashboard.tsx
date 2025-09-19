@@ -5,12 +5,12 @@ import { useState, useEffect } from "react";
 import Header from "@/components/dashboard/Header";
 import { getAuth, User, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
-import { getTeachers, updateTeacher, deleteTeacher, Teacher } from "@/lib/firebase/teachers";
+import { getTeachersAndPending, updateTeacher, deleteTeacher, Teacher, PendingTeacher } from "@/lib/firebase/teachers";
 import { getStudents, updateStudent, deleteStudent, Student } from "@/lib/firebase/students";
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
 import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, CalendarPlus, Camera, Settings, Shield } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
@@ -49,6 +49,7 @@ const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
     loading: () => <Skeleton className="h-80 w-full" />
 });
 
+type CombinedTeacher = (Teacher & { status: 'Registered' }) | (PendingTeacher & { status: 'Pending' });
 
 type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings";
 
@@ -76,7 +77,7 @@ export default function PrincipalDashboard() {
   const router = useRouter();
 
   const [allStudents, setAllStudents] = useState<Student[]>([]);
-  const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
+  const [allTeachers, setAllTeachers] = useState<CombinedTeacher[]>([]);
   const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
   const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,7 +95,7 @@ export default function PrincipalDashboard() {
     setIsLoading(true);
 
     const unsubStudents = getStudents(setAllStudents);
-    const unsubTeachers = getTeachers(setAllTeachers);
+    const unsubTeachers = getTeachersAndPending(setAllTeachers);
     
     const timer = setTimeout(() => setIsLoading(false), 1500);
 
@@ -119,11 +120,16 @@ export default function PrincipalDashboard() {
 
   useEffect(() => {
     if (allTeachers.length > 0) {
-      const teacherIds = allTeachers.map((t) => t.id);
-      const unsub = getLeaveRequestsForTeachers(teacherIds, (leaves) => {
-        setTeacherLeaves(leaves);
-      });
-      return () => unsub();
+      const registeredTeacherIds = allTeachers
+        .filter(t => t.status === 'Registered')
+        .map((t) => t.id);
+        
+      if (registeredTeacherIds.length > 0) {
+        const unsub = getLeaveRequestsForTeachers(registeredTeacherIds, (leaves) => {
+            setTeacherLeaves(leaves);
+        });
+        return () => unsub();
+      }
     }
   }, [allTeachers]);
 
@@ -348,7 +354,7 @@ export default function PrincipalDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <GenerateSalary teachers={allTeachers} isLoading={isLoading} />
+                            <GenerateSalary teachers={allTeachers.filter(t => t.status === 'Registered') as Teacher[]} isLoading={isLoading} />
                         </CardContent>
                     </Card>
               );
@@ -411,3 +417,5 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
+
+    
