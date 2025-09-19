@@ -10,13 +10,15 @@ import { getStudents, updateStudent, deleteStudent, Student } from "@/lib/fireba
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
 import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, CalendarPlus, Camera } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, CalendarPlus, Camera, Settings } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import type { SchoolSettings } from "@/lib/firebase/settings";
+import { getSchoolSettings, updateSchoolSettings } from "@/lib/firebase/settings";
 
 
 const AddTeacherForm = dynamic(() => import('./AddTeacherForm'), {
@@ -40,9 +42,12 @@ const MakeAnnouncementForm = dynamic(() => import('./MakeAnnouncementForm'), {
 const GenerateSalary = dynamic(() => import('./GenerateSalary'), {
     loading: () => <Skeleton className="h-80 w-full" />
 });
+const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
+    loading: () => <Skeleton className="h-80 w-full" />
+});
 
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -58,6 +63,8 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
     </Card>
 );
 
+const ownerEmail = "owner@hcsss.in";
+
 
 export default function PrincipalDashboard() {
   const [activeView, setActiveView] = useState<PrincipalView>("dashboard");
@@ -70,23 +77,32 @@ export default function PrincipalDashboard() {
   const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
   const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
+  const auth = getAuth(app);
+
 
   useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+        if(user && user.email === ownerEmail) {
+            setIsOwner(true);
+        }
+    });
+
     setIsLoading(true);
 
     const unsubStudents = getStudents(setAllStudents);
     const unsubTeachers = getTeachers(setAllTeachers);
     
-    // We can consider loading to be false after first fetch, even if listeners are active
     const timer = setTimeout(() => setIsLoading(false), 1500);
 
     return () => {
       unsubStudents();
       unsubTeachers();
+      unsubscribeAuth();
       clearTimeout(timer);
     };
 
-  }, []);
+  }, [auth]);
 
    useEffect(() => {
     if (allStudents.length > 0) {
@@ -243,7 +259,7 @@ export default function PrincipalDashboard() {
                                     <CardDescription>
                                         Here is a list of all students currently enrolled.
                                     </CardDescription>
-                                </CardHeader>
+                                </Header>
                                 <CardContent className="px-1">
                                 <StudentList
                                         students={allStudents}
@@ -333,6 +349,27 @@ export default function PrincipalDashboard() {
                         </CardContent>
                     </Card>
               );
+          case 'schoolSettings':
+              return (
+                  <Card>
+                      <CardHeader>
+                           <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                              <ArrowLeft className="mr-2 h-4 w-4" />
+                              Back to Dashboard
+                          </Button>
+                          <CardTitle className="flex items-center gap-2">
+                              <Settings />
+                              School Settings
+                          </CardTitle>
+                          <CardDescription>
+                              Customize school name, logo, and theme colors.
+                          </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <SchoolSettingsForm />
+                      </CardContent>
+                  </Card>
+              );
           default:
               return (
                 <div className="space-y-6">
@@ -350,6 +387,9 @@ export default function PrincipalDashboard() {
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                         <NavCard title="School Gallery" description="View and manage school photos" icon={Camera} onClick={() => router.push('/gallery')} />
+                        {isOwner && (
+                            <NavCard title="School Settings" description="Customize branding and theme" icon={Settings} onClick={() => setActiveView("schoolSettings")} />
+                        )}
                     </div>
                 </div>
               );
@@ -359,7 +399,7 @@ export default function PrincipalDashboard() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header title="Principal Dashboard" showAvatar={false} />
+      <Header title={isOwner ? "Owner Dashboard" : "Principal Dashboard"} showAvatar={false} />
       <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-6xl">
             {renderContent()}

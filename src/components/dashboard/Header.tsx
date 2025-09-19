@@ -17,6 +17,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { getAuth, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
+import { useTheme } from "../theme/ThemeProvider";
 
 
 interface HeaderProps {
@@ -28,6 +29,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = getAuth(app);
+  const { settings } = useTheme();
   const isTeacher = pathname.startsWith('/teacher');
   const isPrincipal = pathname.startsWith('/principal');
 
@@ -47,9 +49,9 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between gap-4 border-b bg-card/80 px-4 shadow-sm backdrop-blur-sm sm:px-6">
       <Link href="/" className="flex items-center gap-3">
-        <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png" alt="Hilton Convent School Logo" width={56} height={56} />
+        <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={56} height={56} />
         <h1 className="text-xl font-bold text-foreground sm:text-2xl font-headline truncate">
-          {title || "Hilton Convent"}
+          {title || settings.schoolName || "Hilton Convent"}
         </h1>
       </Link>
       <div className="flex items-center gap-2">
@@ -91,7 +93,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
             </DropdownMenuContent>
             </DropdownMenu>
         )}
-        {isPrincipal && (
+        {(isPrincipal) && (
             <Button variant="outline" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
