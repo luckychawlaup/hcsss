@@ -22,7 +22,7 @@ const publicPaths = [
     "/auth/teacher/forgot-password",
 ];
 
-const principalEmail = "principal@hcsss.in";
+const principalUID = "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
 const ownerEmail = "owner@hcsss.in";
 
 
@@ -42,7 +42,7 @@ function Preloader() {
 
 const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'owner' | 'principal' | null> => {
     if (!user) return null;
-    if (user.email === principalEmail) return 'principal';
+    if (user.uid === principalUID) return 'principal';
     if (user.email === ownerEmail) return 'owner';
     
     // Check for teacher role by looking up their profile.
