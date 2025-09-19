@@ -36,7 +36,8 @@
     },
      "registrations": {
       ".read": "root.child('isAdmin').val()",
-      ".write": "root.child('isAdmin').val() || auth != null"
+      ".write": "root.child('isAdmin').val() || auth != null",
+      ".indexOn": "email"
     },
     "announcements": {
       ".read": "auth != null",
@@ -81,3 +82,4 @@
     }
   }
 }
+
