@@ -117,7 +117,7 @@ function SecuritySettings() {
     )
 }
 
-const ownerEmail = "owner@hcsss.in";
+const ownerUID = "qEB6D6PbjycGSBKMPv9OGyorgnd2";
 
 
 export default function PrincipalDashboard() {
@@ -137,7 +137,7 @@ export default function PrincipalDashboard() {
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-        if(user && user.email === ownerEmail) {
+        if(user && user.uid === ownerUID) {
             setIsOwner(true);
         }
     });
@@ -285,13 +285,13 @@ export default function PrincipalDashboard() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                    <Tabs value={manageStudentsTab} onValueChange={setManageStudentsTab} className="w-full">
+                        <Tabs value={manageStudentsTab} onValueChange={setManageStudentsTab} className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
                                 <TabsTrigger value="addStudent">Add Student</TabsTrigger>
                                 <TabsTrigger value="viewStudents">View Students</TabsTrigger>
                             </TabsList>
                             <TabsContent value="addStudent">
-                            <CardHeader className="px-1 pt-6">
+                                <CardHeader className="px-1 pt-6">
                                     <CardTitle className="flex items-center gap-2 text-xl">
                                         <UserPlus />
                                         Add New Student
@@ -313,7 +313,7 @@ export default function PrincipalDashboard() {
                                     <CardDescription>
                                         Here is a list of all students currently enrolled.
                                     </CardDescription>
-                                </Header>
+                                </CardHeader>
                                 <CardContent className="px-1">
                                 <StudentList
                                         students={allStudents}
