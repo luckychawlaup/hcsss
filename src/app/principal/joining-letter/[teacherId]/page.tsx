@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { getTeacherByAuthId } from '@/lib/firebase/teachers';
 import type { Teacher } from '@/lib/firebase/teachers';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ClipboardCopy, Info, Phone, Mail, Shield } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,18 +14,20 @@ import { getRegistrationKeyForTeacher } from '@/lib/firebase/teachers';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useTheme } from '@/components/theme/ThemeProvider';
 
-export default function JoiningLetterPage({ params }: { params: { teacherId: string } }) {
+export default function JoiningLetterPage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [registrationKey, setRegistrationKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { settings } = useTheme();
+  const params = useParams();
+  const teacherId = params.teacherId as string;
 
   useEffect(() => {
     async function fetchTeacher() {
       setIsLoading(true);
-      if (params.teacherId) {
-          const teacherData = await getTeacherByAuthId(params.teacherId);
+      if (teacherId) {
+          const teacherData = await getTeacherByAuthId(teacherId);
           if (teacherData) {
             setTeacher(teacherData);
             const regKey = await getRegistrationKeyForTeacher(teacherData.email);
@@ -36,7 +38,7 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
     }
 
     fetchTeacher();
-  }, [params.teacherId]);
+  }, [teacherId]);
 
   const handlePrint = () => {
     window.print();
