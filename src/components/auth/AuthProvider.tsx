@@ -22,7 +22,7 @@ const publicPaths = [
     "/auth/teacher/forgot-password",
 ];
 
-const principalUID = "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
+const principalEmail = "principal@hcsss.in";
 const ownerEmail = "owner@hcsss.in";
 
 
@@ -40,9 +40,9 @@ function Preloader() {
     );
 }
 
-const getRoleFromCookie = async (user: User | null): Promise<'teacher' | 'student' | 'owner' | 'principal' | null> => {
+const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'owner' | 'principal' | null> => {
     if (!user) return null;
-    if (user.uid === principalUID) return 'principal';
+    if (user.email === principalEmail) return 'principal';
     if (user.email === ownerEmail) return 'owner';
     
     // Check for teacher role by looking up their profile.
@@ -69,7 +69,7 @@ export default function AuthProvider({
 
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
-        const role = await getRoleFromCookie(authUser);
+        const role = await getRole(authUser);
         
         if (isPublicPath) {
             // If on a public page (like login) but already authenticated, redirect

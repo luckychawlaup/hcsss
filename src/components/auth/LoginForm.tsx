@@ -35,7 +35,6 @@ interface LoginFormProps {
   role: "student" | "teacher" | "principal" | "owner";
 }
 
-const principalUID = "hvldHzYq4ZbZlc7nym3ICNaEI1u1";
 const principalEmail = "principal@hcsss.in";
 const ownerEmail = "owner@hcsss.in";
 
@@ -71,7 +70,7 @@ export default function LoginForm({ role }: LoginFormProps) {
 
       // Role-specific validation
       if (role === "principal") {
-        if (user.uid !== principalUID || values.email.toLowerCase() !== principalEmail) {
+        if (values.email.toLowerCase() !== principalEmail) {
           setError("Invalid credentials for principal account.");
           await auth.signOut();
           setIsLoading(false);
