@@ -1,6 +1,6 @@
 
 import { db } from "@/lib/firebase";
-import { uploadImageClientSide } from "@/lib/imagekit";
+import { uploadImage as uploadImageToImageKit } from "@/lib/imagekit";
 import {
   ref as dbRef,
   push,
@@ -30,7 +30,7 @@ export const uploadImage = async (
   uploadedBy: string,
   uploaderId: string
 ) => {
-  const imageUrl = await uploadImageClientSide(file, "gallery");
+  const imageUrl = await uploadImageToImageKit(file, "gallery");
   if (!imageUrl) {
     throw new Error("Image upload failed.");
   }

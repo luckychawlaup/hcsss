@@ -16,7 +16,7 @@ if (!process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || !process.env.NEXT_PUBLIC_I
 const imagekit = new ImageKit({
     urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT!,
     publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!,
-    authenticationEndpoint: "https://ik.imagekit.io/credixdb/auth" // A dummy but valid-looking endpoint is often needed.
+    authenticationEndpoint: "https://ik.imagekit.io/credixdb/auth" 
 });
 
 export default imagekit;
@@ -25,7 +25,7 @@ type UploadFolder = "Photos (students)" | "Photos (teachers)" | "gallery" | "Aad
 
 // This function performs an "unsigned" upload from the client-side.
 // It's secure because your backend has pre-configured which folders allow unsigned uploads in your ImageKit dashboard.
-export const uploadImageClientSide = async (file: File, folder: UploadFolder): Promise<string> => {
+export const uploadImage = async (file: File, folder: UploadFolder): Promise<string> => {
     return new Promise((resolve, reject) => {
         imagekit.upload({
             file: file,
