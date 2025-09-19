@@ -10,7 +10,7 @@ import { getStudents, updateStudent, deleteStudent, Student } from "@/lib/fireba
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
 import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, CalendarPlus, Camera, Settings } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, CalendarPlus, Camera, Settings, Shield } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
@@ -19,6 +19,9 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { SchoolSettings } from "@/lib/firebase/settings";
 import { getSchoolSettings, updateSchoolSettings } from "@/lib/firebase/settings";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 
 const AddTeacherForm = dynamic(() => import('./AddTeacherForm'), {
@@ -47,7 +50,7 @@ const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
 });
 
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings" | "securitySettings";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -62,6 +65,57 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
         </CardHeader>
     </Card>
 );
+
+function SecuritySettings() {
+    const [is2faEnabled, setIs2faEnabled] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const handle2faToggle = (checked: boolean) => {
+        setIs2faEnabled(checked);
+        setIsDialogOpen(true);
+    }
+    
+    return (
+         <>
+            <div className="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Security Settings</CardTitle>
+                        <CardDescription>Manage your account's security features.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="2fa-switch" className="text-base">Two-Factor Authentication</Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Secure your account with an authenticator app.
+                                </p>
+                            </div>
+                            <Switch
+                                id="2fa-switch"
+                                checked={is2faEnabled}
+                                onCheckedChange={handle2faToggle}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+                        <DialogDescription>
+                            This feature is coming soon. When enabled, you will be prompted to scan a QR code with an authenticator app like Google Authenticator or Authy to finalize setup.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button onClick={() => setIsDialogOpen(false)}>OK</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+         </>
+    )
+}
 
 const ownerEmail = "owner@hcsss.in";
 
@@ -370,6 +424,27 @@ export default function PrincipalDashboard() {
                       </CardContent>
                   </Card>
               );
+          case 'securitySettings':
+                return (
+                    <Card>
+                        <CardHeader>
+                             <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <Shield />
+                                Security Settings
+                            </CardTitle>
+                            <CardDescription>
+                                Manage account security features.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <SecuritySettings />
+                        </CardContent>
+                    </Card>
+                );
           default:
               return (
                 <div className="space-y-6">
@@ -387,6 +462,7 @@ export default function PrincipalDashboard() {
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                         <NavCard title="School Gallery" description="View and manage school photos" icon={Camera} onClick={() => router.push('/gallery')} />
+                        <NavCard title="Security" description="Manage account security" icon={Shield} onClick={() => setActiveView("securitySettings")} />
                         {isOwner && (
                             <NavCard title="School Settings" description="Customize branding and theme" icon={Settings} onClick={() => setActiveView("schoolSettings")} />
                         )}
