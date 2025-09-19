@@ -8,6 +8,7 @@
       "ownerUID": "qEB6D6PbjycGSBKMPv9OGyorgnd2"
     },
     "isAdmin": "auth != null && (auth.uid === root.child('variables/principalUID').val() || auth.uid === root.child('variables/ownerUID').val())",
+    "isTeacher": "auth != null && root.child('teachers').child(auth.uid).exists()",
     
     "students": {
       ".read": "root.child('isAdmin').val()",
@@ -62,7 +63,7 @@
     },
     "homework": {
        ".read": "auth != null",
-       ".write": "auth != null", // Teachers can write
+       ".write": "root.child('isTeacher').val() || root.child('isAdmin').val()",
        ".indexOn": ["classSection", "assignedBy"]
     },
     "salaries": {
@@ -72,8 +73,7 @@
     },
     "gallery": {
       ".read": "auth != null",
-      // Any authenticated user can upload
-      ".write": "auth != null"
+      ".write": "root.child('isTeacher').val() || root.child('isAdmin').val()"
     },
     "school_settings": {
       ".read": true, // Publicly readable for branding

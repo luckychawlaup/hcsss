@@ -1,3 +1,4 @@
+
 import { db } from "@/lib/firebase";
 import { uploadImageClientSide } from "@/lib/imagekit";
 import {
@@ -8,6 +9,7 @@ import {
   query,
   orderByChild,
   set,
+  remove,
 } from "firebase/database";
 
 const GALLERY_COLLECTION = "gallery";
@@ -48,6 +50,14 @@ export const uploadImage = async (
   await set(imageDbRef, imageData);
 };
 
+// Delete an image reference from the database
+export const deleteImage = async (imageId: string) => {
+    const imageRef = dbRef(db, `${GALLERY_COLLECTION}/${imageId}`);
+    await remove(imageRef);
+    // Note: This does not delete the file from ImageKit storage.
+    // That requires a backend API call with the private key for security.
+}
+
 // Get all gallery images with real-time updates
 export const getGalleryImages = (
   callback: (images: GalleryImage[]) => void
@@ -59,7 +69,7 @@ export const getGalleryImages = (
     const images: GalleryImage[] = [];
     if (snapshot.exists()) {
       snapshot.forEach((childSnapshot) => {
-        images.push({ id: childSnapshot.key, ...childSnapshot.val() });
+        images.push({ id: childSnapshot.key!, ...childSnapshot.val() });
       });
     }
     callback(images.reverse()); // Reverse to show newest first

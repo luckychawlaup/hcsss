@@ -7,18 +7,20 @@ import BottomNav from "@/components/dashboard/BottomNav";
 import TeacherNav from "@/components/teacher/TeacherNav";
 import { getAuth, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
-import { getGalleryImages, GalleryImage, uploadImage } from "@/lib/firebase/gallery";
+import { getGalleryImages, GalleryImage, uploadImage, deleteImage as deleteGalleryImage } from "@/lib/firebase/gallery";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UploadCloud } from "lucide-react";
+import { Loader2, UploadCloud, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getTeacherByAuthId } from "@/lib/firebase/teachers";
 
 const principalUID = "IIDjN5e6RzUMFGOYJ4kE7t3YqgZ2";
+const ownerUID = "qEB6D6PbjycGSBKMPv9OGyorgnd2";
 
 function UploadForm({ onUploadComplete }: { onUploadComplete: () => void }) {
     const [file, setFile] = useState<File | null>(null);
@@ -76,8 +78,10 @@ export default function GalleryPage() {
     const [images, setImages] = useState<GalleryImage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+    const [imageToDelete, setImageToDelete] = useState<GalleryImage | null>(null);
     const [user, setUser] = useState<User | null>(null);
-    const [userRole, setUserRole] = useState<'student' | 'teacher' | 'principal' | null>(null);
+    const [userRole, setUserRole] = useState<'student' | 'teacher' | 'principal' | 'owner' | null>(null);
+    const { toast } = useToast();
     const auth = getAuth(app);
 
     useEffect(() => {
@@ -94,6 +98,8 @@ export default function GalleryPage() {
                 setUser(currentUser);
                 if(currentUser.uid === principalUID) {
                     setUserRole('principal');
+                } else if (currentUser.uid === ownerUID) {
+                    setUserRole('owner');
                 } else {
                     const teacher = await getTeacherByAuthId(currentUser.uid);
                     if(teacher) {
@@ -111,7 +117,24 @@ export default function GalleryPage() {
     }, [auth]);
 
 
-    const canUpload = userRole === 'teacher' || userRole === 'principal';
+    const canManage = userRole === 'teacher' || userRole === 'principal' || userRole === 'owner';
+
+    const handleDeleteClick = (image: GalleryImage) => {
+        setImageToDelete(image);
+    }
+
+    const confirmDelete = async () => {
+        if (!imageToDelete) return;
+        try {
+            await deleteGalleryImage(imageToDelete.id);
+            toast({ title: "Image Deleted", description: "The photo has been removed from the gallery."});
+        } catch (error) {
+            toast({ variant: "destructive", title: "Deletion Failed", description: "Could not delete the image." });
+        } finally {
+            setImageToDelete(null);
+        }
+    }
+
 
     const renderNav = () => {
         if (userRole === 'teacher') return <TeacherNav activeView="gallery" setActiveView={() => {}} />;
@@ -123,7 +146,7 @@ export default function GalleryPage() {
             <Header title="School Gallery" />
             <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
                 <div className="mx-auto w-full max-w-6xl">
-                    {canUpload && (
+                    {canManage && (
                         <div className="flex justify-end mb-4">
                             <Button onClick={() => setIsUploadDialogOpen(true)}>
                                 <UploadCloud className="mr-2" /> Upload Photo
@@ -144,10 +167,17 @@ export default function GalleryPage() {
                                 <div key={image.id} className="group relative overflow-hidden rounded-lg">
                                     <Image src={image.url} alt={image.caption} width={400} height={400} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                                    <div className="absolute bottom-0 left-0 p-4">
+                                    <div className="absolute bottom-0 left-0 p-4 w-full">
                                         <p className="text-sm font-semibold text-white">{image.caption}</p>
                                         <p className="text-xs text-white/80">by {image.uploadedBy}</p>
                                     </div>
+                                    {canManage && (
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="destructive" size="icon" onClick={() => handleDeleteClick(image)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -168,6 +198,21 @@ export default function GalleryPage() {
                     <UploadForm onUploadComplete={() => setIsUploadDialogOpen(false)} />
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={!!imageToDelete} onOpenChange={(open) => !open && setImageToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete the photo from the gallery. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

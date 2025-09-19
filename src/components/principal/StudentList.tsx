@@ -79,7 +79,7 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
     return studentsByClass[selectedClass].filter(student => 
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.fatherName.toLowerCase().includes(searchTerm.toLowerCase())
+      (student.fatherName && student.fatherName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [selectedClass, studentsByClass, searchTerm]);
 
