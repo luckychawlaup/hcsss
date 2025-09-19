@@ -12,6 +12,7 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
+  CardFooter,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,8 +61,14 @@ const editDateSchema = z.object({
 });
 
 const formatLeaveDate = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) {
+        return "Invalid Date";
+    }
     const start = new Date(startDate);
     const end = new Date(endDate);
+     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return "Invalid Date";
+    }
     if (start.getTime() === end.getTime()) {
         return format(start, "do MMM, yyyy");
     }
@@ -117,7 +124,7 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
       if (type === 'comment' || type === 'reject') {
           commentForm.reset({ comment: leave.approverComment || leave.rejectionReason || "" });
       }
-      if (type === 'edit_date') {
+      if (type === 'edit_date' && leave.startDate && leave.endDate) {
           dateForm.reset({ dateRange: { from: new Date(leave.startDate), to: new Date(leave.endDate) } });
       }
   }
@@ -125,10 +132,14 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
   const handleCommentSubmit = async (values: z.infer<typeof commentSchema>) => {
     if (!dialogState.leave) return;
 
-    let updates: Partial<LeaveRequest> = { approverComment: values.comment };
+    let updates: Partial<LeaveRequest> = {};
     if (dialogState.type === 'reject') {
-      updates.status = 'Rejected';
-      updates.rejectionReason = values.comment;
+      updates = { 
+        status: 'Rejected',
+        rejectionReason: values.comment 
+      };
+    } else {
+      updates = { approverComment: values.comment };
     }
     
     try {
@@ -187,6 +198,13 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                 <CardContent>
                     <p className="font-semibold text-sm">{formatLeaveDate(leave.startDate, leave.endDate)}</p>
                     <p className="text-muted-foreground mt-2">{leave.reason}</p>
+                     {(leave.status === 'Rejected' && leave.rejectionReason) && (
+                        <Alert variant="destructive" className="mt-4">
+                            <ThumbsDown className="h-4 w-4" />
+                            <AlertTitle>Rejection Reason</AlertTitle>
+                            <AlertDescription>{leave.rejectionReason}</AlertDescription>
+                        </Alert>
+                    )}
                     {leave.approverComment && (
                         <Alert className="mt-4">
                             <MessageSquare className="h-4 w-4" />
