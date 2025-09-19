@@ -12,12 +12,14 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { getRegistrationKeyForTeacher } from '@/lib/firebase/teachers';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTheme } from '@/components/theme/ThemeProvider';
 
 export default function JoiningLetterPage({ params }: { params: { teacherId: string } }) {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [registrationKey, setRegistrationKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { settings } = useTheme();
 
   useEffect(() => {
     async function fetchTeacher() {
@@ -64,31 +66,40 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:bg-white print:p-0">
         <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:hidden">
             <h1 className="text-[12rem] font-bold text-gray-200/50 transform -rotate-45 select-none whitespace-nowrap">
-                Hilton Convent School
+                {settings.schoolName || "Hilton Convent School"}
             </h1>
         </div>
 
       <div className="mx-auto max-w-4xl bg-white p-8 sm:p-12 shadow-lg print:shadow-none relative z-10 print:border-none">
         
-        <header className="flex flex-col items-center justify-center border-b pb-4 text-center">
-          <Image src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png" alt="Hilton Convent School Logo" width={100} height={100} />
-          <h1 className="text-3xl font-bold text-primary mt-4">Hilton Convent School</h1>
-          <p className="text-sm text-muted-foreground">Joya Road, Amroha, 244221, Uttar Pradesh</p>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-            <div className="flex items-center gap-1.5">
-                <Mail className="h-3 w-3" />
-                <span>hiltonconventschool@gmail.com</span>
+        <header className="flex items-start justify-between pb-6">
+            <div className="flex-shrink-0">
+                <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} />
             </div>
-            <div className="flex items-center gap-1.5">
-                <Phone className="h-3 w-3" />
-                <span>+91 9548322595</span>
+            <div className="text-right">
+                <h1 className="text-3xl font-bold text-primary">{settings.schoolName || "Hilton Convent School"}</h1>
+                <p className="text-sm text-muted-foreground mt-1">Joya Road, Amroha, 244221, Uttar Pradesh</p>
+                <div className="flex justify-end items-center gap-4 text-xs text-muted-foreground mt-2">
+                    <div className="flex items-center gap-1.5">
+                        <Mail className="h-3 w-3" />
+                        <span>hiltonconventschool@gmail.com</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <Phone className="h-3 w-3" />
+                        <span>+91 9548322595</span>
+                    </div>
+                </div>
+                 <div className="flex justify-end items-center gap-4 text-xs text-muted-foreground mt-1">
+                     <div className="flex items-center gap-1.5">
+                        <Shield className="h-3 w-3" />
+                        <span>CBSE Affiliation No: 2131151</span>
+                    </div>
+                </div>
             </div>
-             <div className="flex items-center gap-1.5">
-                <Shield className="h-3 w-3" />
-                <span>CBSE Affiliation: 2131151</span>
-            </div>
-          </div>
         </header>
+
+        <div className="w-full h-px bg-gray-200" />
+
 
         <div className="flex items-center justify-between mt-8">
             <div/>
@@ -112,7 +123,7 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
             <p className="mt-8">Dear {teacher.name},</p>
 
             <p className="mt-4">
-                We are pleased to offer you the position of <strong>{teacher.subject} Teacher</strong> at Hilton Convent School, effective from {new Date(teacher.joiningDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
+                We are pleased to offer you the position of <strong>{teacher.subject} Teacher</strong> at {settings.schoolName || "Hilton Convent School"}, effective from {new Date(teacher.joiningDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
             </p>
 
             <p className="mt-4">
@@ -126,13 +137,13 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
             <div className="mt-16">
                 <p>Sincerely,</p>
                 <p className="font-semibold mt-8">Principal</p>
-                <p>Hilton Convent School</p>
+                <p>{settings.schoolName || "Hilton Convent School"}</p>
             </div>
         </main>
         
         <footer className="mt-16 border-t pt-4 text-center text-xs text-muted-foreground">
              <p>This is a computer-generated document and does not require a signature.</p>
-            <p className="print:hidden">© {new Date().getFullYear()} Hilton Convent School. All rights reserved.</p>
+            <p className="print:hidden">© {new Date().getFullYear()} {settings.schoolName || "Hilton Convent School"}. All rights reserved.</p>
         </footer>
 
       </div>
@@ -164,7 +175,7 @@ export default function JoiningLetterPage({ params }: { params: { teacherId: str
                             </Button>
                         </div>
                     </div>
-                     <p className="text-xs text-muted-foreground pt-2">The teacher must use these exact details on the Teacher Login page by clicking `Register as a new teacher` to create their account and set a password.</p>
+                     <p className="text-xs text-muted-foreground pt-2">The teacher must use these exact details on the Teacher Login page by clicking `Register your account` to create their account and set a password.</p>
                 </AlertDescription>
             </Alert>
        </div>
