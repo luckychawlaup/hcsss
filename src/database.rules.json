@@ -47,19 +47,22 @@
       ".read": "auth != null",
       ".indexOn": ["userId", "appliedAt", "teacherId"],
       "$leaveId": {
-        // A user can create their own leave request
-        ".write": "auth != null && (newData.child('userId').val() === auth.uid && !data.exists() || root.child('isAdmin').val() || (root.child('isTeacher').val() && auth.uid === newData.child('teacherId').val()))",
+        // A user can write all fields on creation, or admin/teacher can update specific fields.
+        ".write": "auth != null && ((newData.child('userId').val() === auth.uid && !data.exists()) || root.child('isAdmin').val() || (root.child('isTeacher').val() && auth.uid === data.child('teacherId').val()))",
         "status": {
            ".write": "auth != null && (root.child('isAdmin').val() || (auth.uid === data.parent().child('teacherId').val()))"
         },
         "approverComment": {
             ".write": "auth != null && (root.child('isAdmin').val() || (auth.uid === data.parent().child('teacherId').val()))"
         },
-        "startDate": {
-           ".write": "auth != null && (newData.parent().child('userId').val() === auth.uid || root.child('isAdmin').val() || (root.child('isTeacher').val() && auth.uid === newData.parent().child('teacherId').val()))"
+        "rejectionReason": {
+           ".write": "auth != null && (root.child('isAdmin').val() || (auth.uid === data.parent().child('teacherId').val()))"
         },
-         "endDate": {
-           ".write": "auth != null && (newData.parent().child('userId').val() === auth.uid || root.child('isAdmin').val() || (root.child('isTeacher').val() && auth.uid === newData.parent().child('teacherId').val()))"
+        "startDate": {
+           ".write": "auth != null"
+        },
+        "endDate": {
+           ".write": "auth != null"
         }
       }
     },
