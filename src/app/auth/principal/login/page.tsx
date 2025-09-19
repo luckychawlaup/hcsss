@@ -1,11 +1,13 @@
 
+"use client";
+
 import LoginForm from "@/components/auth/LoginForm";
 import Image from "next/image";
 import Link from "next/link";
-import { getSchoolSettings } from "@/lib/firebase/settings";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
-export default async function PrincipalLoginPage() {
-  const settings = await getSchoolSettings();
+export default function PrincipalLoginPage() {
+  const { settings } = useTheme();
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md flex-1 flex flex-col justify-center">
