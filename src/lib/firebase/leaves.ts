@@ -28,7 +28,7 @@ export interface LeaveRequest {
   status: "Confirmed" | "Pending" | "Rejected";
   appliedAt: number;
   teacherId?: string; // UID of the class teacher for student leaves
-  rejectionReason?: string; // Kept for backward compatibility if needed, but will use approverComment
+  rejectionReason?: string; 
   approverComment?: string;
 }
 
@@ -48,26 +48,32 @@ export const addLeaveRequest = async (leaveData: Omit<LeaveRequest, "id">) => {
   await push(leavesRef, finalLeaveData);
 };
 
-// Listen for all leave requests for a set of student IDs
+// Listen for all leave requests for a set of student IDs (more efficient)
 export const getLeaveRequestsForStudents = (
   studentIds: string[],
   callback: (leaves: LeaveRequest[]) => void
 ) => {
+  if (studentIds.length === 0) {
+    callback([]);
+    return () => {}; // Return an empty unsubscribe function
+  }
+
+  // Since RTDB doesn't support "IN" queries, we fetch all leaves and filter.
+  // For better performance at scale, a denormalized data structure would be needed.
   const leavesRef = ref(db, LEAVES_COLLECTION);
-  const leavesQuery = query(leavesRef, orderByChild("appliedAt"));
+  const leavesQuery = query(leavesRef, orderByChild("userRole"), equalTo("Student"));
 
   const unsubscribe = onValue(leavesQuery, (snapshot) => {
     const allLeaves: LeaveRequest[] = [];
     if (snapshot.exists()) {
-      const data = snapshot.val();
-      for (const id in data) {
-        const leave = data[id];
-        if (leave.userRole === "Student" && studentIds.includes(leave.userId)) {
-          allLeaves.push({ id, ...leave });
+      snapshot.forEach((childSnapshot) => {
+        const leave = childSnapshot.val();
+        if (studentIds.includes(leave.userId)) {
+          allLeaves.push({ id: childSnapshot.key!, ...leave });
         }
-      }
+      });
     }
-    callback(allLeaves.sort((a, b) => {
+     callback(allLeaves.sort((a, b) => {
         if (a.status === 'Pending' && b.status !== 'Pending') return -1;
         if (a.status !== 'Pending' && b.status === 'Pending') return 1;
         return b.appliedAt - a.appliedAt;
@@ -75,6 +81,7 @@ export const getLeaveRequestsForStudents = (
   });
   return unsubscribe;
 };
+
 
 // Listen for all leave requests assigned to a specific class teacher
 export const getLeaveRequestsForClassTeacher = (
@@ -107,19 +114,22 @@ export const getLeaveRequestsForTeachers = (
   teacherIds: string[],
   callback: (leaves: LeaveRequest[]) => void
 ) => {
+   if (teacherIds.length === 0) {
+    callback([]);
+    return () => {};
+  }
   const leavesRef = ref(db, LEAVES_COLLECTION);
-  const leavesQuery = query(leavesRef, orderByChild("appliedAt"));
+  const leavesQuery = query(leavesRef, orderByChild("userRole"), equalTo("Teacher"));
 
   const unsubscribe = onValue(leavesQuery, (snapshot) => {
     const allLeaves: LeaveRequest[] = [];
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      for (const id in data) {
-        const leave = data[id];
-        if (leave.userRole === "Teacher" && teacherIds.includes(leave.userId)) {
-          allLeaves.push({ id, ...leave });
+     if (snapshot.exists()) {
+      snapshot.forEach((childSnapshot) => {
+        const leave = childSnapshot.val();
+        if (teacherIds.includes(leave.userId)) {
+          allLeaves.push({ id: childSnapshot.key!, ...leave });
         }
-      }
+      });
     }
     callback(allLeaves.sort((a, b) => {
         if (a.status === 'Pending' && b.status !== 'Pending') return -1;

@@ -97,6 +97,7 @@ export default function PrincipalDashboard() {
     const unsubStudents = getStudents(setAllStudents);
     const unsubTeachers = getTeachersAndPending(setAllTeachers);
     
+    // Give a bit of time for initial data to load for stat cards
     const timer = setTimeout(() => setIsLoading(false), 1500);
 
     return () => {
@@ -109,17 +110,17 @@ export default function PrincipalDashboard() {
   }, [auth]);
 
    useEffect(() => {
-    if (allStudents.length > 0) {
+    if (activeView === 'viewLeaves' && allStudents.length > 0) {
       const studentIds = allStudents.map((s) => s.id);
       const unsub = getLeaveRequestsForStudents(studentIds, (leaves) => {
         setStudentLeaves(leaves);
       });
       return () => unsub();
     }
-  }, [allStudents]);
+  }, [activeView, allStudents]);
 
   useEffect(() => {
-    if (allTeachers.length > 0) {
+    if (activeView === 'viewLeaves' && allTeachers.length > 0) {
       const registeredTeacherIds = allTeachers
         .filter(t => t.status === 'Registered')
         .map((t) => t.id);
@@ -131,7 +132,7 @@ export default function PrincipalDashboard() {
         return () => unsub();
       }
     }
-  }, [allTeachers]);
+  }, [activeView, allTeachers]);
 
 
   const handleTeacherAdded = () => {
@@ -299,20 +300,18 @@ export default function PrincipalDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {isLoading ? <Skeleton className="h-48 w-full" /> : (
-                                <Tabs defaultValue="students">
-                                    <TabsList className="grid grid-cols-2">
-                                        <TabsTrigger value="students">Student Leaves ({pendingStudentLeavesCount})</TabsTrigger>
-                                        <TabsTrigger value="teachers">Teacher Leaves ({pendingTeacherLeavesCount})</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="students" className="mt-4">
-                                        <ApproveLeaves leaves={studentLeaves} title="Students" />
-                                    </TabsContent>
-                                    <TabsContent value="teachers" className="mt-4">
-                                        <ApproveLeaves leaves={teacherLeaves} title="Teachers" isPrincipal={true} />
-                                    </TabsContent>
-                                </Tabs>
-                            )}
+                            <Tabs defaultValue="students">
+                                <TabsList className="grid grid-cols-2">
+                                    <TabsTrigger value="students">Student Leaves ({pendingStudentLeavesCount})</TabsTrigger>
+                                    <TabsTrigger value="teachers">Teacher Leaves ({pendingTeacherLeavesCount})</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="students" className="mt-4">
+                                    <ApproveLeaves leaves={studentLeaves} title="Students" />
+                                </TabsContent>
+                                <TabsContent value="teachers" className="mt-4">
+                                    <ApproveLeaves leaves={teacherLeaves} title="Teachers" isPrincipal={true} />
+                                </TabsContent>
+                            </Tabs>
                         </CardContent>
                     </Card>
                );

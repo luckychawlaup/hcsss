@@ -14,6 +14,7 @@ import {
   DataSnapshot,
 } from "firebase/database";
 import { format } from "date-fns";
+import type { Teacher } from "./teachers";
 
 
 const STUDENTS_COLLECTION = "students";
@@ -139,6 +140,40 @@ export const getStudents = (callback: (students: Student[]) => void) => {
   });
   return unsubscribe;
 };
+
+// Get students assigned to a specific teacher
+export const getStudentsForTeacher = (teacher: Teacher, callback: (students: Student[]) => void) => {
+    const assignedClasses = new Set<string>();
+    if (teacher.classTeacherOf) {
+        assignedClasses.add(teacher.classTeacherOf);
+    }
+    if (teacher.classesTaught) {
+        teacher.classesTaught.forEach(c => assignedClasses.add(c));
+    }
+    
+    if (assignedClasses.size === 0) {
+        callback([]);
+        return () => {};
+    }
+
+    const studentsRef = ref(db, STUDENTS_COLLECTION);
+    const unsubscribe = onValue(studentsRef, (snapshot) => {
+        const students: Student[] = [];
+        if (snapshot.exists()) {
+            snapshot.forEach(childSnapshot => {
+                const student = childSnapshot.val();
+                const classSection = `${student.class}-${student.section}`;
+                if (assignedClasses.has(classSection)) {
+                    students.push({ id: childSnapshot.key!, ...student });
+                }
+            });
+        }
+        callback(students);
+    });
+
+    return unsubscribe;
+};
+
 
 // Get a single student by UID (which is their Auth UID)
 export const getStudentById = async (uid: string): Promise<Student | null> => {

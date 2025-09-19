@@ -13,7 +13,7 @@ import {
 import { getAuth, User, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
-import { getStudents, Student } from "@/lib/firebase/students";
+import { getStudentsForTeacher, Student } from "@/lib/firebase/students";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
 import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft } from "lucide-react";
@@ -55,7 +55,7 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
 export default function TeacherDashboard() {
   const [activeView, setActiveView] = useState<TeacherView>("dashboard");
   const [teacher, setTeacher] = useState<Teacher | null>(null);
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [assignedStudents, setAssignedStudents] = useState<Student[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const auth = getAuth(app);
@@ -63,10 +63,14 @@ export default function TeacherDashboard() {
 
 
   useEffect(() => {
+    setIsLoading(true);
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const teacherProfile = await getTeacherByAuthId(user.uid);
         setTeacher(teacherProfile);
+        if (!teacherProfile) {
+            setIsLoading(false);
+        }
       } else {
         setTeacher(null);
         setIsLoading(false);
@@ -78,15 +82,8 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     if (teacher) {
-      // Fetch students for all classes the teacher is associated with
-      const unsubscribeStudents = getStudents((students) => {
-        const assignedStudents = students.filter(student => {
-            const classSection = `${student.class}-${student.section}`;
-            const isClassTeacher = teacher.role === 'classTeacher' && classSection === teacher.classTeacherOf;
-            const isSubjectTeacher = teacher.classesTaught?.includes(classSection);
-            return isClassTeacher || isSubjectTeacher;
-        });
-        setAllStudents(assignedStudents);
+      const unsubscribeStudents = getStudentsForTeacher(teacher, (students) => {
+        setAssignedStudents(students);
         setIsLoading(false); // Stop loading once students are fetched
       });
       
@@ -125,7 +122,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <TeacherStudentList students={allStudents} isLoading={isLoading} />
+                             <TeacherStudentList students={assignedStudents} isLoading={isLoading} />
                         </CardContent>
                     </Card>
                 );
@@ -150,8 +147,6 @@ export default function TeacherDashboard() {
                                 <div className="text-center text-muted-foreground p-8 border border-dashed rounded-md">
                                     <p>Leave approval is only available for Class Teachers.</p>
                                 </div>
-                            ) : isLoading ? (
-                                <Skeleton className="h-48 w-full" /> 
                             ) : (
                                 <ApproveLeaves leaves={leaves} title="your students" />
                             )}
@@ -196,7 +191,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <MarkAttendance teacher={teacher} students={allStudents} isLoading={isLoading} />
+                            <MarkAttendance teacher={teacher} students={assignedStudents} isLoading={isLoading} />
                         </CardContent>
                     </Card>
                 );
@@ -204,7 +199,7 @@ export default function TeacherDashboard() {
                 return (
                     <div className="space-y-6">
                         <div className="mx-auto grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-                            <StatCard title="My Students" value={isLoading ? '...' : allStudents.length.toString()} icon={Users} />
+                            <StatCard title="My Students" value={isLoading ? '...' : assignedStudents.length.toString()} icon={Users} />
                             <StatCard title="Class Teacher Of" value={teacher?.role === 'classTeacher' ? (teacher.classTeacherOf || 'N/A') : 'N/A'} icon={Users} />
                             <StatCard title="Pending Leaves" value={isLoading ? '...' : (teacher?.role === 'classTeacher' ? pendingLeavesCount.toString() : 'N/A')} icon={CalendarCheck} />
                             <StatCard title="Assignments Due" value="3" icon={ClipboardCheck} />
