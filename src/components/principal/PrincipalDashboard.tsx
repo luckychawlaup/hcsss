@@ -6,7 +6,7 @@ import Header from "@/components/dashboard/Header";
 import { getAuth, User, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getTeachersAndPending, updateTeacher, deleteTeacher, Teacher, PendingTeacher } from "@/lib/firebase/teachers";
-import { getStudents, updateStudent, deleteStudent, Student } from "@/lib/firebase/students";
+import { getStudentsAndPending, updateStudent, deleteStudent, Student, CombinedStudent } from "@/lib/firebase/students";
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
 import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
@@ -179,7 +179,7 @@ export default function PrincipalDashboard() {
   const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
   const router = useRouter();
 
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<CombinedStudent[]>([]);
   const [allTeachers, setAllTeachers] = useState<CombinedTeacher[]>([]);
   const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
   const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
@@ -199,7 +199,7 @@ export default function PrincipalDashboard() {
 
     setIsLoading(true);
 
-    const unsubStudents = getStudents(setAllStudents);
+    const unsubStudents = getStudentsAndPending(setAllStudents);
     const unsubTeachers = getTeachersAndPending(setAllTeachers);
     
     const timer = setTimeout(() => setIsLoading(false), 1500);
@@ -266,6 +266,7 @@ export default function PrincipalDashboard() {
   const pendingStudentLeavesCount = studentLeaves.filter(l => l.status === 'Pending').length;
   const pendingTeacherLeavesCount = teacherLeaves.filter(l => l.status === 'Pending').length;
   const totalPendingLeaves = pendingStudentLeavesCount + pendingTeacherLeavesCount;
+  const newAdmissionsCount = allStudents.filter(s => s.status === 'Pending').length;
 
   const renderContent = () => {
       switch(activeView) {
@@ -486,7 +487,7 @@ export default function PrincipalDashboard() {
                     <div className="mx-auto grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
                         <StatCard title="Total Students" value={isLoading ? '...' : allStudents.length.toString()} icon={GraduationCap} />
                         <StatCard title="Total Teachers" value={isLoading ? '...' : allTeachers.length.toString()} icon={Users} />
-                        <StatCard title="New Admissions" value="45" icon={UserPlus} />
+                        <StatCard title="New Admissions" value={isLoading ? '...' : newAdmissionsCount.toString()} icon={UserPlus} />
                         <StatCard title="Pending Leaves" value={isLoading ? '...' : totalPendingLeaves.toString()} icon={CalendarCheck} />
                     </div>
 

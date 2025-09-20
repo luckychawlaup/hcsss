@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { Student } from "@/lib/firebase/students";
+import type { CombinedStudent } from "@/lib/firebase/students";
 import * as XLSX from "xlsx";
 import {
   Table,
@@ -28,24 +28,24 @@ import { Skeleton } from "../ui/skeleton";
 import { Input } from "../ui/input";
 import { Edit, Trash2, Loader2, Info, ArrowLeft, FileDown, Search, Users, UserX } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
-import { deleteStudentAndAuth } from "@/lib/firebase/admin-actions";
+import { deleteStudent as deleteStudentFromDb } from "@/lib/firebase/students";
 
 
 interface StudentListProps {
-  students: Student[];
+  students: CombinedStudent[];
   isLoading: boolean;
-  onUpdateStudent: (id: string, data: Partial<Student>) => void;
+  onUpdateStudent: (id: string, data: Partial<CombinedStudent>) => void;
   onDeleteStudent: (id: string) => void;
 }
 
 export default function StudentList({ students, isLoading, onUpdateStudent, onDeleteStudent }: StudentListProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [studentToDelete, setStudentToDelete] = useState<CombinedStudent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
 
-  const handleDeleteClick = (student: Student) => {
+  const handleDeleteClick = (student: CombinedStudent) => {
     setStudentToDelete(student);
     setIsAlertOpen(true);
   };
@@ -53,10 +53,7 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
   const confirmDelete = async () => {
     if (studentToDelete) {
       setIsDeleting(true);
-      // We now call a function that also handles auth user deletion.
-      // This is a placeholder for a secure backend function call.
-      await deleteStudentAndAuth(studentToDelete.id);
-      onDeleteStudent(studentToDelete.id); // To optimistically update UI
+      await onDeleteStudent(studentToDelete.id);
       setIsDeleting(false);
       setIsAlertOpen(false);
       setStudentToDelete(null);
@@ -71,7 +68,7 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
       }
       acc[classKey].push(student);
       return acc;
-    }, {} as Record<string, Student[]>);
+    }, {} as Record<string, CombinedStudent[]>);
   }, [students]);
 
   const filteredStudents = useMemo(() => {
@@ -87,10 +84,11 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
     if (!selectedClass) return;
 
     const dataToExport = filteredStudents.map(({ authUid, ...student }) => ({
-        "UID": student.id,
+        "SRN": student.status === 'Registered' ? student.srn : 'Pending',
         "Name": student.name,
         "Email": student.email,
         "Class": `${student.class}-${student.section}`,
+        "Status": student.status,
         "Father's Name": student.fatherName,
         "Mother's Name": student.motherName,
         "Father's Phone": student.fatherPhone || 'N/A',
@@ -161,7 +159,12 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                     {filteredStudents.length > 0 ? (
                         filteredStudents.map((student) => (
                         <TableRow key={student.id}>
-                            <TableCell className="font-medium">{student.name}</TableCell>
+                            <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                    {student.name}
+                                    <Badge variant={student.status === 'Registered' ? 'default' : 'secondary'}>{student.status}</Badge>
+                                </div>
+                            </TableCell>
                             <TableCell>{student.email}</TableCell>
                             <TableCell>{student.fatherName}</TableCell>
                             <TableCell>{student.fatherPhone || student.motherPhone || student.studentPhone}</TableCell>
@@ -190,7 +193,8 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the student record and their authentication account for {studentToDelete?.name}.
+                      This will permanently delete the record for {studentToDelete?.name}. This action cannot be undone.
+                      {studentToDelete?.status === 'Registered' && ' This will also delete their login account.'}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

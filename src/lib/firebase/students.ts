@@ -43,6 +43,14 @@ export interface Student {
   mustChangePassword?: boolean;
 }
 
+export interface PendingStudent extends Omit<Student, 'id' | 'authUid' | 'srn'> {
+    id: string; // registration key
+    registrationKey: string;
+}
+
+export type CombinedStudent = (Student & { status: 'Registered' }) | (PendingStudent & { status: 'Pending' });
+
+
 export type StudentRegistrationData = Omit<
   Student,
   "id" | "authUid" | "srn"
@@ -63,6 +71,12 @@ export const registerStudentDetails = async (
       dateOfBirth: format(studentData.dateOfBirth, "yyyy-MM-dd"),
       admissionDate: studentData.admissionDate.getTime(),
       registrationKey,
+      photoUrl: studentData.photoUrl || "",
+      aadharUrl: studentData.aadharUrl || "",
+      aadharNumber: studentData.aadharNumber || "",
+      studentPhone: studentData.studentPhone || "",
+      fatherPhone: studentData.fatherPhone || "",
+      motherPhone: studentData.motherPhone || "",
   }
 
   await set(registrationRef, dataToSave);
@@ -105,7 +119,7 @@ export const verifyAndClaimStudentAccount = async (data: {
     delete (finalStudentData as any).registrationKey; 
 
     await set(studentRef, finalStudentData);
-    await remove(regRef); 
+    await update(regRef, { claimedBy: data.authUid });
 
     return { success: true, message: "Account claimed successfully."};
 }
@@ -123,6 +137,65 @@ export const addStudent = async (uid: string, studentData: Omit<Student, 'id'>) 
 };
 
 // Get all students with real-time updates
+export const getStudentsAndPending = (callback: (students: CombinedStudent[]) => void) => {
+  const studentsRef = ref(db, STUDENTS_COLLECTION);
+  const registrationsRef = ref(db, REGISTRATIONS_COLLECTION);
+
+  let registeredStudents: Student[] = [];
+  let pendingStudents: PendingStudent[] = [];
+
+  const processAndCallback = () => {
+      const combined: CombinedStudent[] = [
+          ...registeredStudents.map(s => ({...s, status: 'Registered' as const})),
+          ...pendingStudents.map(p => ({...p, status: 'Pending' as const}))
+      ];
+      callback(combined.sort((a, b) => a.name.localeCompare(b.name)));
+  }
+
+  const unsubStudents = onValue(
+    studentsRef,
+    (snapshot: DataSnapshot) => {
+      const studentsData: Student[] = [];
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        for (const id in data) {
+          studentsData.push({ id, ...data[id] });
+        }
+      }
+      registeredStudents = studentsData;
+      processAndCallback();
+    },
+    (error) => {
+      console.error("Error fetching students: ", error);
+    }
+  );
+
+   const unsubRegistrations = onValue(
+    registrationsRef,
+    (snapshot: DataSnapshot) => {
+      const pendingData: PendingStudent[] = [];
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        for (const id in data) {
+          if (!data[id].claimedBy) {
+             pendingData.push({ id, ...data[id] });
+          }
+        }
+      }
+      pendingStudents = pendingData;
+      processAndCallback();
+    },
+    (error) => {
+      console.error("Error fetching student registrations: ", error);
+    }
+  );
+
+  return () => {
+    unsubStudents();
+    unsubRegistrations();
+  };
+};
+
 export const getStudents = (callback: (students: Student[]) => void) => {
   const studentsRef = ref(db, STUDENTS_COLLECTION);
   const unsubscribe = onValue(studentsRef, (snapshot: DataSnapshot) => {
@@ -220,13 +293,18 @@ export const updateStudent = async (uid: string, updatedData: Partial<Student>) 
 // Delete a student
 export const deleteStudent = async (uid: string) => {
   try {
+    // This is the registration key for a pending student, or authUID for a registered one.
     const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
-    await remove(studentRef);
-    // Note: Deleting the Firebase Auth user requires admin privileges
-    // and should be handled in a secure backend environment (e.g., Firebase Function).
+    const snapshot = await get(studentRef);
+    if(snapshot.exists()) {
+        await remove(studentRef);
+        // Auth user deletion would happen here on a backend
+    } else {
+        const regRef = ref(db, `${REGISTRATIONS_COLLECTION}/${uid}`);
+        await remove(regRef);
+    }
   } catch (e) {
     console.error("Error deleting student document: ", e);
     throw e;
   }
 };
-
