@@ -126,8 +126,8 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         studentPhone: values.studentPhone || "",
         fatherPhone: values.fatherPhone || "",
         motherPhone: values.motherPhone || "",
-        photoUrl,
-        aadharUrl,
+        photoUrl: photoUrl || "",
+        aadharUrl: aadharUrl || "",
       } as StudentRegistrationData;
 
       const result = await registerStudentDetails(dataToSave);
@@ -504,5 +504,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
+
+    
 
     
