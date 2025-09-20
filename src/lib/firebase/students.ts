@@ -102,7 +102,7 @@ export const verifyAndClaimStudentAccount = async (data: {
         authUid: data.authUid,
         srn,
     };
-    delete finalStudentData.registrationKey; 
+    delete (finalStudentData as any).registrationKey; 
 
     await set(studentRef, finalStudentData);
     await remove(regRef); 
@@ -229,3 +229,4 @@ export const deleteStudent = async (uid: string) => {
     throw e;
   }
 };
+

@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState } from "react";
@@ -81,6 +82,10 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
       section: "",
       admissionDate: new Date(),
       optedSubjects: [],
+      aadharNumber: "",
+      fatherPhone: "",
+      motherPhone: "",
+      studentPhone: "",
     },
   });
 
@@ -114,12 +119,18 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
       if (aadharFile) {
         aadharUrl = await uploadImage(aadharFile, "Aadhar Cards");
       }
-
-      const result = await registerStudentDetails({
+      
+      const dataToSave = {
         ...values,
+        aadharNumber: values.aadharNumber || "",
+        studentPhone: values.studentPhone || "",
+        fatherPhone: values.fatherPhone || "",
+        motherPhone: values.motherPhone || "",
         photoUrl,
         aadharUrl,
-      } as StudentRegistrationData);
+      } as StudentRegistrationData;
+
+      const result = await registerStudentDetails(dataToSave);
 
       setRegistrationInfo({ key: result.registrationKey, name: values.name });
       toast({
