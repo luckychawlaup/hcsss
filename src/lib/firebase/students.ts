@@ -1,6 +1,6 @@
 
 
-import { db } from "@/lib/firebase";
+import { db, auth as firebaseAuth } from "@/lib/firebase";
 import {
   ref,
   set,
@@ -15,10 +15,10 @@ import {
 } from "firebase/database";
 import { format } from "date-fns";
 import type { Teacher } from "./teachers";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 
 
 const STUDENTS_COLLECTION = "students";
-const REGISTRATIONS_COLLECTION = "student_registrations";
 
 export interface Student {
   id: string; // Firebase Auth UID
@@ -40,122 +40,17 @@ export interface Student {
   fatherPhone?: string;
   motherPhone?: string;
   studentPhone?: string;
-  mustChangePassword?: boolean;
 }
 
-export interface PendingStudent extends Omit<Student, 'id' | 'authUid' | 'srn'> {
-    id: string; // registration key
-    registrationKey: string;
-}
-
-export type CombinedStudent = (Student & { status: 'Registered' }) | (PendingStudent & { status: 'Pending' });
-
-
-export type StudentRegistrationData = Omit<
+export type AddStudentData = Omit<
   Student,
-  "id" | "authUid" | "srn"
-> & {
-    dateOfBirth: Date;
-    admissionDate: Date;
-};
-
-// Principal action: Creates a registration entry with a key.
-export const registerStudentDetails = async (
-  studentData: StudentRegistrationData
-) => {
-  const registrationKey = Math.random().toString(36).substring(2, 10).toUpperCase();
-  const registrationRef = ref(db, `${REGISTRATIONS_COLLECTION}/${registrationKey}`);
-  
-  const dataToSave = {
-      ...studentData,
-      dateOfBirth: format(studentData.dateOfBirth, "yyyy-MM-dd"),
-      admissionDate: studentData.admissionDate.getTime(),
-      registrationKey,
-      photoUrl: studentData.photoUrl || "",
-      aadharUrl: studentData.aadharUrl || "",
-      aadharNumber: studentData.aadharNumber || "",
-      studentPhone: studentData.studentPhone || "",
-      fatherPhone: studentData.fatherPhone || "",
-      motherPhone: studentData.motherPhone || "",
-  }
-
-  await set(registrationRef, dataToSave);
-
-  return { registrationKey, email: studentData.email };
-};
-
-// Principal action: Regenerates a registration key for a pending student.
-export const regenerateStudentKey = async (oldKey: string): Promise<string> => {
-    const oldRegRef = ref(db, `${REGISTRATIONS_COLLECTION}/${oldKey}`);
-    const snapshot = await get(oldRegRef);
-
-    if (!snapshot.exists()) {
-        throw new Error("Original registration not found.");
-    }
-
-    const regData = snapshot.val();
-    const newKey = Math.random().toString(36).substring(2, 10).toUpperCase();
-    
-    // Create new entry
-    const newRegRef = ref(db, `${REGISTRATIONS_COLLECTION}/${newKey}`);
-    await set(newRegRef, { ...regData, registrationKey: newKey });
-
-    // Delete old entry
-    await remove(oldRegRef);
-
-    return newKey;
-}
-
-
-// Student action: Verify details and claim account
-export const verifyAndClaimStudentAccount = async (data: {
-    authUid: string;
-    email: string;
-    name: string;
-    registrationKey: string;
-}) => {
-    const regRef = ref(db, `${REGISTRATIONS_COLLECTION}/${data.registrationKey}`);
-    const snapshot = await get(regRef);
-
-    if (!snapshot.exists()) {
-        return { success: false, message: "Invalid Registration Key." };
-    }
-
-    const regData = snapshot.val();
-    if (regData.email.toLowerCase() !== data.email.toLowerCase()) {
-        return { success: false, message: "Email does not match the registered details." };
-    }
-    if (regData.name.toLowerCase() !== data.name.toLowerCase()) {
-        return { success: false, message: "Name does not match the registered details." };
-    }
-    if (regData.claimedBy) {
-        return { success: false, message: "This registration key has already been used."};
-    }
-
-    // Generate SRN
-    const srn = `SRN${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${data.authUid}`);
-    const finalStudentData: Omit<Student, 'id' | 'registrationKey'> = {
-        ...regData,
-        authUid: data.authUid,
-        srn,
-    };
-
-    // Create the permanent student record FIRST.
-    await set(studentRef, finalStudentData);
-
-    // THEN, remove the temporary registration entry.
-    await remove(regRef);
-
-    return { success: true, message: "Account claimed successfully."};
-}
-
+  "id" | "srn"
+>;
 
 // Add or update a student with a specific UID
-export const addStudent = async (uid: string, studentData: Omit<Student, 'id'>) => {
+export const addStudent = async (studentData: Omit<Student, 'id'>) => {
   try {
-    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
+    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${studentData.authUid}`);
     await set(studentRef, studentData);
   } catch (e: any) {
     console.error("Error adding student: ", e.message);
@@ -163,67 +58,8 @@ export const addStudent = async (uid: string, studentData: Omit<Student, 'id'>) 
   }
 };
 
+
 // Get all students with real-time updates
-export const getStudentsAndPending = (callback: (students: CombinedStudent[]) => void) => {
-  const studentsRef = ref(db, STUDENTS_COLLECTION);
-  const registrationsRef = ref(db, REGISTRATIONS_COLLECTION);
-
-  let registeredStudents: Student[] = [];
-  let pendingStudents: PendingStudent[] = [];
-
-  const processAndCallback = () => {
-      const combined: CombinedStudent[] = [
-          ...registeredStudents.map(s => ({...s, status: 'Registered' as const})),
-          ...pendingStudents.map(p => ({...p, status: 'Pending' as const}))
-      ];
-      callback(combined.sort((a, b) => a.name.localeCompare(b.name)));
-  }
-
-  const unsubStudents = onValue(
-    studentsRef,
-    (snapshot: DataSnapshot) => {
-      const studentsData: Student[] = [];
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        for (const id in data) {
-          studentsData.push({ id, ...data[id] });
-        }
-      }
-      registeredStudents = studentsData;
-      processAndCallback();
-    },
-    (error) => {
-      console.error("Error fetching students: ", error);
-    }
-  );
-
-   const unsubRegistrations = onValue(
-    registrationsRef,
-    (snapshot: DataSnapshot) => {
-      const pendingData: PendingStudent[] = [];
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        for (const id in data) {
-          // A registration is pending if it has not been claimed
-          if (!data[id].claimedBy) {
-             pendingData.push({ id, ...data[id] });
-          }
-        }
-      }
-      pendingStudents = pendingData;
-      processAndCallback();
-    },
-    (error) => {
-      console.error("Error fetching student registrations: ", error);
-    }
-  );
-
-  return () => {
-    unsubStudents();
-    unsubRegistrations();
-  };
-};
-
 export const getStudents = (callback: (students: Student[]) => void) => {
   const studentsRef = ref(db, STUDENTS_COLLECTION);
   const unsubscribe = onValue(studentsRef, (snapshot: DataSnapshot) => {
@@ -243,7 +79,7 @@ export const getStudents = (callback: (students: Student[]) => void) => {
 };
 
 // Get students assigned to a specific teacher
-export const getStudentsForTeacher = (teacher: Teacher, callback: (students: CombinedStudent[]) => void) => {
+export const getStudentsForTeacher = (teacher: Teacher, callback: (students: Student[]) => void) => {
     const assignedClasses = new Set<string>();
     if (teacher.classTeacherOf) {
         assignedClasses.add(teacher.classTeacherOf);
@@ -257,7 +93,7 @@ export const getStudentsForTeacher = (teacher: Teacher, callback: (students: Com
         return () => {};
     }
 
-    return getStudentsAndPending((allStudents) => {
+    return getStudents((allStudents) => {
         const teacherStudents = allStudents.filter(student => {
             const classSection = `${student.class}-${student.section}`;
             return assignedClasses.has(classSection);
@@ -312,16 +148,8 @@ export const updateStudent = async (uid: string, updatedData: Partial<Student>) 
 // Delete a student
 export const deleteStudent = async (uid: string) => {
   try {
-    // This is the registration key for a pending student, or authUID for a registered one.
     const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
-    const snapshot = await get(studentRef);
-    if(snapshot.exists()) {
-        await remove(studentRef);
-        // Auth user deletion would happen here on a backend
-    } else {
-        const regRef = ref(db, `${REGISTRATIONS_COLLECTION}/${uid}`);
-        await remove(regRef);
-    }
+    await remove(studentRef);
   } catch (e) {
     console.error("Error deleting student document: ", e);
     throw e;

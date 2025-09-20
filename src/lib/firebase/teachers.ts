@@ -3,7 +3,7 @@
 import { db, auth as firebaseAuth } from "@/lib/firebase";
 import {
   createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
+  sendEmailVerification,
 } from "firebase/auth";
 import {
   ref,
@@ -18,7 +18,6 @@ import {
   equalTo,
 } from "firebase/database";
 import type { DataSnapshot } from "firebase/database";
-import { format } from "date-fns";
 
 const TEACHERS_COLLECTION = "teachers";
 
@@ -40,7 +39,6 @@ export interface Teacher {
   classTeacherOf?: string;
   classesTaught?: string[];
   qualifications?: string[];
-  mustChangePassword?: boolean;
   bankAccount?: {
     accountNumber: string;
     ifscCode: string;
@@ -51,16 +49,14 @@ export interface Teacher {
 
 export type AddTeacherData = Omit<
   Teacher,
-  "id" | "authUid" | "joiningDate" | "mustChangePassword"
+  "id" | "authUid" | "joiningDate"
 >;
 
 // Principal action: Add a new teacher, create their auth account, and save details.
 export const addTeacher = async (teacherData: AddTeacherData) => {
+  // This is a placeholder password, it won't be used.
   const tempPassword = Math.random().toString(36).slice(-8);
 
-  // In a real app, this should be done in a secure backend environment
-  // to avoid exposing admin credentials or session details.
-  // We use the client SDK here for demonstration purposes.
   const userCredential = await createUserWithEmailAndPassword(
     firebaseAuth,
     teacherData.email,
@@ -68,39 +64,18 @@ export const addTeacher = async (teacherData: AddTeacherData) => {
   );
   const user = userCredential.user;
 
+  await sendEmailVerification(user);
+
   const finalTeacherData: Omit<Teacher, 'id'> = {
     ...teacherData,
     authUid: user.uid,
     joiningDate: Date.now(),
-    mustChangePassword: true,
   };
   
   const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${user.uid}`);
   await set(teacherRef, finalTeacherData);
   
-  return { tempPassword, uid: user.uid };
-}
-
-
-// Regenerate a temporary password for a teacher
-export const regenerateTemporaryPassword = async (teacherId: string): Promise<string> => {
-    const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${teacherId}`);
-    
-    await update(teacherRef, {
-        mustChangePassword: true,
-    });
-    
-    // This action would ideally be `admin.auth().updateUser(teacherId, { password: tempPassword })`
-    // Since we cannot do this on the client, we send a password reset email instead,
-    // which is more secure than handling passwords directly.
-    const teacherSnapshot = await get(teacherRef);
-    if(teacherSnapshot.exists()) {
-        const teacherData = teacherSnapshot.val();
-        await sendPasswordResetEmail(firebaseAuth, teacherData.email);
-        return `A password reset email has been sent to ${teacherData.email}.`;
-    }
-
-    throw new Error("Teacher not found.");
+  return { uid: user.uid };
 }
 
 

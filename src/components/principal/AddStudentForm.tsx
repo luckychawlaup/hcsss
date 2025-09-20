@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Separator } from "../ui/separator";
 import { uploadImage } from "@/lib/imagekit";
 import { addStudent } from "@/lib/firebase/students";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { app } from "@/lib/firebase";
 
 
@@ -67,7 +67,7 @@ interface AddStudentFormProps {
 export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [registrationInfo, setRegistrationInfo] = useState<{ password: string; name: string, email: string } | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ name: string, email: string } | null>(null);
   const [customSubject, setCustomSubject] = useState("");
   const [seniorSubjects, setSeniorSubjects] = useState(defaultSeniorSubjects);
   const { toast } = useToast();
@@ -108,14 +108,18 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
   async function onSubmit(values: z.infer<typeof addStudentSchema>) {
     setIsLoading(true);
     setError(null);
-    setRegistrationInfo(null);
+    setSuccessInfo(null);
 
     let tempUser = null;
 
     try {
+        // This is a placeholder password, it won't be used.
         const tempPassword = Math.random().toString(36).slice(-8);
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, tempPassword);
         tempUser = userCredential.user;
+        
+        await sendEmailVerification(tempUser);
+
 
       let photoUrl: string | undefined;
       const studentPhotoFile = values.photo?.[0];
@@ -131,7 +135,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
       
       const srn = `SRN${Math.floor(1000 + Math.random() * 9000)}`;
 
-      await addStudent(tempUser.uid, {
+      await addStudent({
         authUid: tempUser.uid,
         srn: srn,
         email: values.email,
@@ -149,14 +153,12 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         optedSubjects: values.optedSubjects || [],
         fatherPhone: values.fatherPhone || "",
         motherPhone: values.motherPhone || "",
-        studentPhone: values.studentPhone || "",
-        mustChangePassword: true,
       });
 
-      setRegistrationInfo({ password: tempPassword, name: values.name, email: values.email });
+      setSuccessInfo({ name: values.name, email: values.email });
       toast({
         title: "Student Admitted Successfully!",
-        description: `Login credentials for ${values.name} have been generated.`,
+        description: `${values.name}'s account has been created.`,
       });
       form.reset();
     } catch (e: any) {
@@ -169,38 +171,18 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     }
   }
 
-  const copyToClipboard = (text: string) => {
-      navigator.clipboard.writeText(text);
-      toast({
-        title: "Copied!",
-        description: "Password copied to clipboard.",
-      });
-  };
-
   const handleAddAnother = () => {
-    setRegistrationInfo(null);
+    setSuccessInfo(null);
   }
 
-  if (registrationInfo) {
+  if (successInfo) {
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20 mt-6">
             <CheckCircle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-primary">Student Admitted!</AlertTitle>
             <AlertDescription className="space-y-4">
-                <p><strong>{registrationInfo.name}</strong> has been admitted. Please provide the family with their login credentials.</p>
-                
-                <p className="text-sm"><strong>Email:</strong> {registrationInfo.email}</p>
-                 <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
-                    <p className="font-mono text-lg font-bold text-primary">{registrationInfo.password}</p>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(registrationInfo.password)}>
-                        <Copy className="h-5 w-5 text-primary" />
-                    </Button>
-                </div>
-                
-                <p className="text-xs text-muted-foreground">
-                    This is a one-time temporary password. The student will be required to change it on their first login.
-                </p>
-
+                <p><strong>{successInfo.name}</strong> has been admitted with the email <strong>{successInfo.email}</strong>.</p>
+                <p>An email verification has been sent. They must now go to the student login page and use the **"Forgot Password?"** link to set their password and log in for the first time.</p>
                  <div className="flex gap-2 pt-2">
                     <Button onClick={handleAddAnother}>
                         <UserPlus className="mr-2" />
@@ -522,14 +504,10 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Admit Student & Generate Credentials
+            Admit Student & Create Account
           </Button>
         </form>
       </Form>
     </>
   );
 }
-
-    
-
-    

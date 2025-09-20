@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState } from "react";
@@ -66,7 +67,7 @@ interface AddTeacherFormProps {
 export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [registrationInfo, setRegistrationInfo] = useState<{password: string; name: string, email: string} | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ name: string, email: string} | null>(null);
   const [qualificationInput, setQualificationInput] = useState("");
   const { toast } = useToast();
 
@@ -106,7 +107,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
   async function onSubmit(values: z.infer<typeof addTeacherSchema>) {
     setIsLoading(true);
     setError(null);
-    setRegistrationInfo(null);
+    setSuccessInfo(null);
 
     try {
       const teacherPhotoFile = values.photo?.[0];
@@ -122,13 +123,13 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
           photoUrl: photoUrl
       };
 
-      const { tempPassword } = await addTeacher(teacherRegistrationData);
+      await addTeacher(teacherRegistrationData);
 
-      setRegistrationInfo({ password: tempPassword, name: values.name, email: values.email });
+      setSuccessInfo({ name: values.name, email: values.email });
       
       toast({
         title: "Teacher Added Successfully!",
-        description: `Login credentials for ${values.name} have been generated.`,
+        description: `An account for ${values.name} has been created.`,
       });
       form.reset();
     } catch (e: any) {
@@ -138,38 +139,18 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
     }
   }
 
-  const copyToClipboard = (text: string) => {
-      navigator.clipboard.writeText(text);
-      toast({
-        title: "Copied!",
-        description: "Password copied to clipboard.",
-      });
-  };
-
   const handleAddAnother = () => {
-    setRegistrationInfo(null);
+    setSuccessInfo(null);
   }
 
-  if (registrationInfo) {
+  if (successInfo) {
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20 mt-6">
             <CheckCircle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-primary">Teacher Added!</AlertTitle>
             <AlertDescription className="space-y-4">
-                <p><strong>{registrationInfo.name}</strong> has been added. Please provide them with their login credentials.</p>
-                <p className="text-sm"><strong>Email:</strong> {registrationInfo.email}</p>
-                
-                <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
-                    <p className="font-mono text-lg font-bold text-primary">{registrationInfo.password}</p>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(registrationInfo.password)}>
-                        <Copy className="h-5 w-5 text-primary" />
-                    </Button>
-                </div>
-                
-                <p className="text-xs text-muted-foreground">
-                    This is a one-time temporary password. The teacher will be required to reset it via email on their first login.
-                </p>
-
+                <p><strong>{successInfo.name}</strong> has been added with the email <strong>{successInfo.email}</strong>.</p>
+                <p>An email verification has been sent. They must now go to the teacher login page and use the **"Forgot Password?"** link to set their password and log in for the first time.</p>
                  <div className="flex gap-2 pt-2">
                     <Button onClick={handleAddAnother}>
                         <UserPlus className="mr-2" />
@@ -489,7 +470,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
              </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Add Teacher & Generate Credentials
+            Add Teacher & Create Account
           </Button>
         </form>
       </Form>
