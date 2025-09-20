@@ -47,29 +47,26 @@ export type CombinedStudent = (Student & { status: 'Registered' });
 
 export type AddStudentData = Omit<
   Student,
-  "id" | "authUid" | "srn"
+  "id" | "srn"
 >;
 
 // Add or update a student with a specific UID
-export const addStudent = async (studentData: Omit<Student, 'id'| 'srn' | 'authUid'>) => {
+export const addStudent = async (studentData: Omit<Student, 'id' | 'srn'>) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(firebaseAuth, studentData.email, Math.random().toString(36).slice(-8));
-    await sendEmailVerification(userCredential.user);
-    
     const srn = `SRN${Math.floor(1000 + Math.random() * 9000)}`;
 
     const finalStudentData: Omit<Student, 'id'> = {
         ...studentData,
-        authUid: userCredential.user.uid,
         srn,
     };
 
-    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${userCredential.user.uid}`);
+    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${studentData.authUid}`);
     await set(studentRef, finalStudentData);
 
   } catch (e: any) {
-    console.error("Error adding student: ", e.message);
-    throw new Error(`Failed to add student. Please ensure your Firebase configuration is correct and the service is available. Original error: ${e.message}`);
+    console.error("Error adding student DB record: ", e.message);
+    // This error will be caught by the calling function in the form
+    throw e;
   }
 };
 

@@ -152,6 +152,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
             optedSubjects: values.optedSubjects || [],
             fatherPhone: values.fatherPhone || "",
             motherPhone: values.motherPhone || "",
+            studentPhone: values.studentPhone || "",
         };
 
         // Step 5: Save the student data to the database
@@ -184,7 +185,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
             errorMessage = "This email is already in use by another account. Please use a different email.";
         }
         setError(errorMessage);
-        console.error("Error adding student: ", e.message);
+        console.error("Error adding student: ", e);
 
     } finally {
         setIsLoading(false);
