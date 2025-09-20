@@ -37,7 +37,7 @@ const defaultSeniorSubjects = ["Physics", "Chemistry", "Maths", "Biology", "Comp
 const addStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
-  photo: z.instanceof(FileList).refine(files => files.length > 0, "Student photo is required."),
+  photo: z.instanceof(FileList).optional(),
   fatherName: z.string().min(2, "Father's name is required."),
   motherName: z.string().min(2, "Mother's name is required."),
   address: z.string().min(10, "Address is too short."),
@@ -52,9 +52,10 @@ const addStudentSchema = z.object({
   motherPhone: z.string().optional(),
   studentPhone: z.string().optional(),
 }).refine(data => !!data.fatherPhone || !!data.motherPhone || !!data.studentPhone, {
-  message: "At least one phone number must be provided.",
+  message: "At least one phone number (Father's, Mother's, or Student's) must be provided.",
   path: ["fatherPhone"],
 });
+
 
 interface AddStudentFormProps {
     onStudentAdded: () => void;
@@ -102,14 +103,13 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     setRegistrationInfo(null);
 
     try {
+      let photoUrl: string | undefined;
       const studentPhotoFile = values.photo?.[0];
-      if (!studentPhotoFile) {
-        throw new Error("Student photo is required.");
+      if (studentPhotoFile) {
+        photoUrl = await uploadImage(studentPhotoFile, "Photos (students)");
       }
-
-      const photoUrl = await uploadImage(studentPhotoFile, "Photos (students)");
       
-      let aadharUrl;
+      let aadharUrl: string | undefined;
       const aadharFile = values.aadharCard?.[0];
       if (aadharFile) {
         aadharUrl = await uploadImage(aadharFile, "Aadhar Cards");
@@ -219,7 +219,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                     name="photo"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Student Photo</FormLabel>
+                        <FormLabel>Student Photo (Optional)</FormLabel>
                         <FormControl>
                           <Input type="file" accept="image/*" {...form.register('photo')} />
                         </FormControl>
@@ -493,3 +493,5 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
+
+    
