@@ -29,6 +29,7 @@ export interface Announcement extends DocumentData {
   createdAt: number; // Use timestamp for ordering
   createdBy?: string; // UID of creator (principal or teacher)
   creatorName?: string;
+  creatorRole?: "Principal" | "Owner" | "Teacher";
 }
 
 // Add a new announcement
@@ -93,4 +94,23 @@ export const getAnnouncements = (
     callback(sorted);
   });
   return unsubscribe; // Return the unsubscribe function to clean up the listener
+};
+
+// Get all announcements, intended for principal/admin views
+export const getAllAnnouncements = (callback: (announcements: Announcement[]) => void) => {
+    const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
+    const announcementsQuery = query(announcementsRef, orderByChild('createdAt'));
+
+    const unsubscribe = onValue(announcementsQuery, (snapshot: DataSnapshot) => {
+        const allAnnouncements: Announcement[] = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            for (const id in data) {
+                allAnnouncements.push({ id, ...data[id] });
+            }
+        }
+        callback(allAnnouncements.sort((a, b) => b.createdAt - a.createdAt));
+    });
+
+    return unsubscribe;
 };

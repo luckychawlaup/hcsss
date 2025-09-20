@@ -10,18 +10,15 @@ import { getStudents, updateStudent, deleteStudent, Student } from "@/lib/fireba
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
 import type { LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import type { SchoolSettings } from "@/lib/firebase/settings";
-import { getSchoolSettings, updateSchoolSettings } from "@/lib/firebase/settings";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { getAllAnnouncements, Announcement } from "@/lib/firebase/announcements";
+import { cn } from "@/lib/utils";
 
 
 const AddTeacherForm = dynamic(() => import('./AddTeacherForm'), {
@@ -40,13 +37,13 @@ const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
     loading: () => <Skeleton className="h-48 w-full" />,
 });
 const MakeAnnouncementForm = dynamic(() => import('./MakeAnnouncementForm'), {
-    loading: () => <Skeleton className="h-80 w-full" />
+    loading: () => <Skeleton className="h-80 w-full" />,
 });
 const GenerateSalary = dynamic(() => import('./GenerateSalary'), {
     loading: () => <Skeleton className="h-80 w-full" />
 });
 const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
-    loading: () => <Skeleton className="h-80 w-full" />
+    loading: () => <Skeleton className="h-80 w-full" />,
 });
 
 type CombinedTeacher = (Teacher & { status: 'Registered' }) | (PendingTeacher & { status: 'Pending' });
@@ -69,6 +66,17 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
 
 const ownerUID = "qEB6D6PbjycGSBKMPv9OGyorgnd2";
 
+const getCategoryStyles = (category: string) => {
+    switch (category.toLowerCase()) {
+        case "urgent":
+        return "bg-destructive/10 border-l-4 border-destructive";
+        case "event":
+        return "bg-primary/10 border-l-4 border-primary";
+        default:
+        return "bg-secondary border-l-4 border-secondary-foreground";
+    }
+};
+
 
 export default function PrincipalDashboard() {
   const [activeView, setActiveView] = useState<PrincipalView>("dashboard");
@@ -80,14 +88,17 @@ export default function PrincipalDashboard() {
   const [allTeachers, setAllTeachers] = useState<CombinedTeacher[]>([]);
   const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
   const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const auth = getAuth(app);
 
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-        if(user && user.uid === ownerUID) {
+    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+        setUser(authUser);
+        if(authUser && authUser.uid === ownerUID) {
             setIsOwner(true);
         }
     });
@@ -96,6 +107,7 @@ export default function PrincipalDashboard() {
 
     const unsubStudents = getStudents(setAllStudents);
     const unsubTeachers = getTeachersAndPending(setAllTeachers);
+    const unsubAnnouncements = getAllAnnouncements(setAnnouncements);
     
     // Give a bit of time for initial data to load for stat cards
     const timer = setTimeout(() => setIsLoading(false), 1500);
@@ -103,6 +115,7 @@ export default function PrincipalDashboard() {
     return () => {
       unsubStudents();
       unsubTeachers();
+      unsubAnnouncements();
       unsubscribeAuth();
       clearTimeout(timer);
     };
@@ -317,24 +330,39 @@ export default function PrincipalDashboard() {
                );
           case 'makeAnnouncement':
               return (
-                    <Card>
-                        <CardHeader>
-                             <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                    <div className="flex flex-col h-[calc(100vh-10rem)]">
+                        <div className="flex-shrink-0">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
-                            <CardTitle className="flex items-center gap-2">
-                                <Megaphone />
-                                Make an Announcement
-                            </CardTitle>
-                            <CardDescription>
-                                Publish an announcement to students, teachers, or both.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                        <MakeAnnouncementForm />
-                        </CardContent>
-                    </Card>
+                            <h2 className="text-2xl font-bold flex items-center gap-2 mb-4"><Megaphone/> Announcements</h2>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-4">
+                         {announcements.length === 0 ? (
+                                <Card className="flex flex-col items-center justify-center p-8 h-full text-center">
+                                    <Info className="h-10 w-10 text-muted-foreground mb-4"/>
+                                    <p className="text-muted-foreground font-semibold">No announcements sent yet</p>
+                                    <p className="text-sm text-muted-foreground">Use the form below to send your first announcement.</p>
+                                </Card>
+                            ) : (
+                                announcements.map((notice) => (
+                                    <div key={notice.id} className={cn("flex flex-col gap-1 p-3 rounded-lg shadow-sm w-fit max-w-lg ml-auto", getCategoryStyles(notice.category))}>
+                                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                                            <span className="text-sm font-semibold text-foreground">{notice.creatorName}</span>
+                                            <span className="text-xs font-normal text-muted-foreground">{notice.creatorRole}</span>
+                                            <span className="text-xs font-normal text-muted-foreground">{new Date(notice.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <p className="text-sm font-semibold text-foreground py-1">{notice.title}</p>
+                                        <p className="text-sm font-normal text-muted-foreground">{notice.content}</p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        <div className="mt-4 flex-shrink-0">
+                            <MakeAnnouncementForm currentUser={user} isOwner={isOwner} />
+                        </div>
+                    </div>
               );
           case 'managePayroll':
               return (

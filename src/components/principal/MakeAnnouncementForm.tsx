@@ -18,9 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Send } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { addAnnouncement } from "@/lib/firebase/announcements";
+import { getAuth, User } from "firebase/auth";
+import { app } from "@/lib/firebase";
 
 const announcementSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
@@ -31,7 +33,12 @@ const announcementSchema = z.object({
   }),
 });
 
-export default function MakeAnnouncementForm() {
+interface MakeAnnouncementFormProps {
+    currentUser: User | null;
+    isOwner: boolean;
+}
+
+export default function MakeAnnouncementForm({ currentUser, isOwner }: MakeAnnouncementFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -47,16 +54,30 @@ export default function MakeAnnouncementForm() {
   });
 
   async function onSubmit(values: z.infer<typeof announcementSchema>) {
+    if (!currentUser) {
+        toast({ variant: 'destructive', title: 'Not Authenticated' });
+        return;
+    }
     setIsLoading(true);
     setError(null);
 
     try {
-      await addAnnouncement(values as any);
+      await addAnnouncement({
+          ...values,
+          createdBy: currentUser.uid,
+          creatorName: isOwner ? "Owner" : "Principal",
+          creatorRole: isOwner ? "Owner" : "Principal",
+      });
       toast({
         title: "Announcement Published!",
         description: "Your announcement has been successfully published.",
       });
-      form.reset();
+      form.reset({
+        title: "",
+        content: "",
+        category: "General",
+        target: "both",
+      });
     } catch (e: any) {
       setError("An unexpected error occurred. Please try again.");
     } finally {
@@ -65,7 +86,7 @@ export default function MakeAnnouncementForm() {
   }
 
   return (
-    <>
+    <div className="bg-background rounded-lg p-4">
       {error && (
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
@@ -73,93 +94,85 @@ export default function MakeAnnouncementForm() {
         </Alert>
       )}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Announcement Title</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Annual Sports Day" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="content"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Content</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Write the full announcement details here..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g., Event, Urgent, Holiday" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="target"
-                    render={({ field }) => (
-                    <FormItem className="space-y-3">
-                        <FormLabel>Target Audience</FormLabel>
-                        <FormControl>
-                            <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex items-center space-x-4"
-                            >
-                            <FormItem className="flex items-center space-x-2 space-y-0">
-                                <FormControl>
-                                <RadioGroupItem value="students" />
-                                </FormControl>
-                                <FormLabel className="font-normal">Students</FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-2 space-y-0">
-                                <FormControl>
-                                <RadioGroupItem value="teachers" />
-                                </FormControl>
-                                <FormLabel className="font-normal">Teachers</FormLabel>
-                            </FormItem>
-                             <FormItem className="flex items-center space-x-2 space-y-0">
-                                <FormControl>
-                                <RadioGroupItem value="both" />
-                                </FormControl>
-                                <FormLabel className="font-normal">Both</FormLabel>
-                            </FormItem>
-                            </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Publish Announcement
-          </Button>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                <FormItem>
+                    <FormControl>
+                    <Input placeholder="Title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="content"
+                render={({ field }) => (
+                <FormItem>
+                    <FormControl>
+                    <Textarea
+                        placeholder="Write your announcement here..."
+                        {...field}
+                    />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                <div className="flex flex-wrap gap-4 items-center">
+                     <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormControl>
+                            <Input placeholder="Category (e.g., Event)" {...field} className="h-9 w-32" />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="target"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormControl>
+                                <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex items-center space-x-4"
+                                >
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl><RadioGroupItem value="students" /></FormControl>
+                                    <FormLabel className="font-normal text-xs">Students</FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl><RadioGroupItem value="teachers" /></FormControl>
+                                    <FormLabel className="font-normal text-xs">Teachers</FormLabel>
+                                </FormItem>
+                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl><RadioGroupItem value="both" /></FormControl>
+                                    <FormLabel className="font-normal text-xs">Both</FormLabel>
+                                </FormItem>
+                                </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
+                 <Button type="submit" disabled={isLoading} size="sm">
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Send
+                </Button>
+            </div>
         </form>
       </Form>
-    </>
+    </div>
   );
 }

@@ -48,7 +48,7 @@
       ".indexOn": ["userId", "appliedAt", "teacherId"],
       "$leaveId": {
         // A user can write all fields on creation, or admin/teacher can update specific fields.
-        ".write": "auth != null && ((newData.child('userId').val() === auth.uid && !data.exists()) || root.child('isAdmin').val() || (root.child('isTeacher').val() && auth.uid === data.child('teacherId').val()))",
+        ".write": "auth != null && ((newData.child('userId').val() === auth.uid && !data.exists()) || root.child('isAdmin').val() || (root.child('isTeacher').val() && auth.uid === newData.child('teacherId').val()))",
         "startDate": { ".write": "auth != null" },
         "endDate": { ".write": "auth != null" },
         "status": {
