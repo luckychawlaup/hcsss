@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { CombinedStudent, PendingStudent } from "@/lib/firebase/students";
+import type { CombinedStudent, PendingStudent, Student } from "@/lib/firebase/students";
 import * as XLSX from "xlsx";
 import {
   Table,
@@ -31,6 +31,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { format as formatDate, parseISO } from "date-fns";
 
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
@@ -39,12 +43,35 @@ import { Edit, Trash2, Loader2, ArrowLeft, FileDown, Search, Users, UserX, KeyRo
 import { Card, CardContent } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { regenerateStudentKey } from "@/lib/firebase/students";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "../ui/calendar";
+import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Textarea } from "../ui/textarea";
 
+const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
+const sections = ["A", "B"];
+
+const editStudentSchema = z.object({
+    name: z.string().min(2, "Name is required."),
+    email: z.string().email("A valid email is required."),
+    fatherName: z.string().min(2, "Father's name is required."),
+    motherName: z.string().min(2, "Mother's name is required."),
+    address: z.string().min(10, "Address is required."),
+    class: z.string(),
+    section: z.string(),
+    dateOfBirth: z.date(),
+    fatherPhone: z.string().optional(),
+    motherPhone: z.string().optional(),
+    studentPhone: z.string().optional(),
+});
 
 interface StudentListProps {
   students: CombinedStudent[];
   isLoading: boolean;
-  onUpdateStudent: (id: string, data: Partial<CombinedStudent>) => void;
+  onUpdateStudent: (id: string, data: Partial<Student>) => void;
   onDeleteStudent: (id: string) => void;
 }
 
@@ -57,7 +84,37 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
   const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
   const [selectedStudentForKey, setSelectedStudentForKey] = useState<PendingStudent | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [studentToEdit, setStudentToEdit] = useState<CombinedStudent | null>(null);
   const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof editStudentSchema>>({
+      resolver: zodResolver(editStudentSchema),
+  });
+
+  const { formState: { isSubmitting: isUpdating }, reset } = form;
+
+  const handleEditClick = (student: CombinedStudent) => {
+    setStudentToEdit(student);
+    reset({
+        ...student,
+        dateOfBirth: parseISO(student.dateOfBirth),
+    });
+    setIsEditOpen(true);
+  }
+
+  async function onEditSubmit(values: z.infer<typeof editStudentSchema>) {
+      if (!studentToEdit) return;
+      const updatedData = {
+          ...values,
+          dateOfBirth: formatDate(values.dateOfBirth, "yyyy-MM-dd"),
+      };
+      await onUpdateStudent(studentToEdit.id, updatedData);
+      toast({ title: "Student Updated", description: `${values.name}'s details have been updated.`});
+      setIsEditOpen(false);
+      setStudentToEdit(null);
+  }
+
 
   const handleDeleteClick = (student: CombinedStudent) => {
     setStudentToDelete(student);
@@ -216,7 +273,7 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                                         <KeyRound className="h-4 w-4" />
                                     </Button>
                                 )}
-                                <Button variant="ghost" size="icon" onClick={() => { /* Implement edit functionality */ }}>
+                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(student)}>
                                     <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(student)}>
@@ -275,6 +332,81 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                         </Button>
                         <Button onClick={() => setIsKeyDialogOpen(false)}>Close</Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent className="sm:max-w-4xl">
+                     <DialogHeader>
+                        <DialogTitle>Edit Student: {studentToEdit?.name}</DialogTitle>
+                        <DialogDescription>Update the student's details below.</DialogDescription>
+                    </DialogHeader>
+                     <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="email" render={({ field }) => (
+                                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="fatherName" render={({ field }) => (
+                                    <FormItem><FormLabel>Father's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="motherName" render={({ field }) => (
+                                    <FormItem><FormLabel>Mother's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="fatherPhone" render={({ field }) => (
+                                    <FormItem><FormLabel>Father's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="motherPhone" render={({ field }) => (
+                                    <FormItem><FormLabel>Mother's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="studentPhone" render={({ field }) => (
+                                    <FormItem><FormLabel>Student's Phone (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
+                                     <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
+                                         <Popover><PopoverTrigger asChild><FormControl>
+                                             <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                 {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
+                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                             </Button>
+                                         </FormControl></PopoverTrigger>
+                                         <PopoverContent className="w-auto p-0" align="start">
+                                             <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1990-01-01")} initialFocus />
+                                         </PopoverContent></Popover><FormMessage />
+                                     </FormItem>
+                                )}/>
+                                <FormField control={form.control} name="class" render={({ field }) => (
+                                     <FormItem><FormLabel>Class</FormLabel>
+                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                             <SelectContent>{classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                                         </Select><FormMessage />
+                                     </FormItem>
+                                )}/>
+                                <FormField control={form.control} name="section" render={({ field }) => (
+                                     <FormItem><FormLabel>Section</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                            <SelectContent>{sections.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                        </Select><FormMessage />
+                                    </FormItem>
+                                )}/>
+                                 <FormField control={form.control} name="address" render={({ field }) => (
+                                    <FormItem className="md:col-span-2"><FormLabel>Address</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={isUpdating}>
+                                    {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Save Changes
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
                 </DialogContent>
             </Dialog>
         </div>

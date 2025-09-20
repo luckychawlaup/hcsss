@@ -13,7 +13,7 @@ import {
 import { getAuth, User, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
-import { getStudentsForTeacher, CombinedStudent } from "@/lib/firebase/students";
+import { getStudentsForTeacher, CombinedStudent, updateStudent, Student } from "@/lib/firebase/students";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
 import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked } from "lucide-react";
@@ -105,6 +105,10 @@ export default function TeacherDashboard() {
     }
   }, [teacher]);
 
+  const handleStudentUpdated = async (studentId: string, updatedData: Partial<Student>) => {
+    await updateStudent(studentId, updatedData);
+  };
+
 
   const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
   const classTeacherStudentsCount = useMemo(() => {
@@ -132,7 +136,12 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <TeacherStudentList students={assignedStudents} isLoading={isLoading} />
+                             <TeacherStudentList 
+                                students={assignedStudents} 
+                                isLoading={isLoading} 
+                                isClassTeacher={teacher?.role === 'classTeacher'} 
+                                onUpdateStudent={handleStudentUpdated}
+                             />
                         </CardContent>
                     </Card>
                 );
