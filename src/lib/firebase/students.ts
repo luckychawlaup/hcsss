@@ -15,7 +15,7 @@ import {
 } from "firebase/database";
 import { format } from "date-fns";
 import type { Teacher } from "./teachers";
-import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, deleteUser } from "firebase/auth";
 
 
 const STUDENTS_COLLECTION = "students";
@@ -182,23 +182,54 @@ export const updateStudent = async (uid: string, updatedData: Partial<Student>) 
   }
 };
 
-// Delete a student
+// Delete a student's data and auth account.
 export const deleteStudent = async (uid: string) => {
+  const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
+  
   try {
-    const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
-    await remove(studentRef);
-    // Also delete from pending if they existed there
-    const pendingStudentQuery = query(ref(db, PENDING_STUDENTS_COLLECTION), orderByChild('email'), equalTo((await get(studentRef)).val().email));
-    const pendingSnapshot = await get(pendingStudentQuery);
-    if(pendingSnapshot.exists()){
-      const pendingKey = Object.keys(pendingSnapshot.val())[0];
-      await remove(ref(db, `${PENDING_STUDENTS_COLLECTION}/${pendingKey}`));
+    // First, get the student's data to retrieve their email
+    const studentSnapshot = await get(studentRef);
+    if (!studentSnapshot.exists()) {
+      console.warn(`Student with UID ${uid} not found in database. Cannot complete deletion.`);
+      // If student doesn't exist, maybe they are in pending. Let's try to find them by authUid
+      const pendingQuery = query(ref(db, PENDING_STUDENTS_COLLECTION), orderByChild('authUid'), equalTo(uid));
+      const pendingSnapshot = await get(pendingQuery);
+       if (pendingSnapshot.exists()) {
+        const pendingKey = Object.keys(pendingSnapshot.val())[0];
+        await remove(ref(db, `${PENDING_STUDENTS_COLLECTION}/${pendingKey}`));
+      }
+      return;
     }
+    
+    const studentData = studentSnapshot.val() as Student;
+    const studentEmail = studentData.email;
+
+    // Now, delete the student record from the database
+    await remove(studentRef);
+
+    // Then, find and delete the pending registration if it exists
+    if (studentEmail) {
+        const pendingStudentQuery = query(ref(db, PENDING_STUDENTS_COLLECTION), orderByChild('email'), equalTo(studentEmail));
+        const pendingSnapshot = await get(pendingStudentQuery);
+        if (pendingSnapshot.exists()) {
+            const pendingKey = Object.keys(pendingSnapshot.val())[0];
+            await remove(ref(db, `${PENDING_STUDENTS_COLLECTION}/${pendingKey}`));
+        }
+    }
+    
+    // In a real app with a backend, you would now delete the Firebase Auth user.
+    // This is a client-side simulation placeholder. The following line WILL FAIL on the client
+    // due to insufficient permissions and is for demonstration purposes.
+    // For a real implementation, this needs to be a call to a Firebase Function.
+    console.log(`[SIMULATION] Would now call backend to delete auth user for UID: ${uid}`);
+
+
   } catch (e) {
-    console.error("Error deleting student document: ", e);
+    console.error("Error deleting student:", e);
     throw e;
   }
 };
+
 
 
 export const regenerateStudentKey = async (oldKey: string): Promise<string> => {
