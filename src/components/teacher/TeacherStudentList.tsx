@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Student } from "@/lib/firebase/students";
+import type { CombinedStudent } from "@/lib/firebase/students";
 import {
   Table,
   TableBody,
@@ -17,9 +17,10 @@ import { Users, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "../ui/button";
 import { FileDown } from "lucide-react";
+import { Badge } from "../ui/badge";
 
 interface TeacherStudentListProps {
-  students: Student[];
+  students: CombinedStudent[];
   isLoading: boolean;
 }
 
@@ -29,14 +30,14 @@ export default function TeacherStudentList({ students, isLoading }: TeacherStude
   const filteredStudents = useMemo(() => {
     return students.filter(student =>
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.srn && student.srn.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (student.status === 'Registered' && student.srn && student.srn.toLowerCase().includes(searchTerm.toLowerCase())) ||
       `${student.class}-${student.section}`.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [students, searchTerm]);
 
    const handleExport = () => {
     const dataToExport = filteredStudents.map(({ id, authUid, ...student }) => ({
-        "SRN": student.srn,
+        "SRN": student.status === 'Registered' ? student.srn : 'Pending',
         "Name": student.name,
         "Class": `${student.class}-${student.section}`,
         "Father's Name": student.fatherName,
@@ -97,8 +98,13 @@ export default function TeacherStudentList({ students, isLoading }: TeacherStude
             {filteredStudents.length > 0 ? (
               filteredStudents.map((student) => (
                 <TableRow key={student.id}>
-                  <TableCell className="font-mono">{student.srn}</TableCell>
-                  <TableCell className="font-medium">{student.name}</TableCell>
+                  <TableCell className="font-mono">{student.status === 'Registered' ? student.srn : 'Pending'}</TableCell>
+                  <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {student.name}
+                        <Badge variant={student.status === 'Registered' ? 'default' : 'secondary'}>{student.status}</Badge>
+                      </div>
+                  </TableCell>
                   <TableCell>{student.class}-{student.section}</TableCell>
                   <TableCell>{student.fatherName}</TableCell>
                   <TableCell>{student.fatherPhone || student.motherPhone}</TableCell>

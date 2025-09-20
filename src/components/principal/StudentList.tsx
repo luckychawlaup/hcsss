@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { CombinedStudent } from "@/lib/firebase/students";
+import type { CombinedStudent, PendingStudent } from "@/lib/firebase/students";
 import * as XLSX from "xlsx";
 import {
   Table,
@@ -23,12 +23,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 import { Input } from "../ui/input";
-import { Edit, Trash2, Loader2, Info, ArrowLeft, FileDown, Search, Users, UserX } from "lucide-react";
+import { Edit, Trash2, Loader2, ArrowLeft, FileDown, Search, Users, UserX, KeyRound, Copy } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
-import { deleteStudent as deleteStudentFromDb } from "@/lib/firebase/students";
+import { useToast } from "@/hooks/use-toast";
+import { regenerateStudentKey } from "@/lib/firebase/students";
 
 
 interface StudentListProps {
@@ -44,6 +54,10 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
+  const [selectedStudentForKey, setSelectedStudentForKey] = useState<PendingStudent | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const { toast } = useToast();
 
   const handleDeleteClick = (student: CombinedStudent) => {
     setStudentToDelete(student);
@@ -60,6 +74,33 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
     }
   };
   
+  const handleViewKey = (student: PendingStudent) => {
+    setSelectedStudentForKey(student);
+    setIsKeyDialogOpen(true);
+  }
+
+  const handleRegenerateKey = async () => {
+    if (!selectedStudentForKey) return;
+    setIsRegenerating(true);
+    try {
+        const newKey = await regenerateStudentKey(selectedStudentForKey.id);
+        setSelectedStudentForKey(prev => prev ? { ...prev, registrationKey: newKey, id: newKey } : null);
+        toast({ title: "Key Regenerated", description: "A new registration key has been created." });
+    } catch (error) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to regenerate key." });
+    } finally {
+        setIsRegenerating(false);
+    }
+  }
+  
+  const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: "Registration Key copied to clipboard.",
+      });
+  };
+
   const studentsByClass = useMemo(() => {
     return students.reduce((acc, student) => {
       const classKey = `${student.class}-${student.section}`;
@@ -75,6 +116,7 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
     if (!selectedClass || !studentsByClass[selectedClass]) return [];
     return studentsByClass[selectedClass].filter(student => 
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.status === "Registered" && student.srn && student.srn.toLowerCase().includes(searchTerm.toLowerCase())) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (student.fatherName && student.fatherName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
@@ -169,6 +211,11 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                             <TableCell>{student.fatherName}</TableCell>
                             <TableCell>{student.fatherPhone || student.motherPhone || student.studentPhone}</TableCell>
                             <TableCell className="text-right">
+                                {student.status === 'Pending' && (
+                                     <Button variant="ghost" size="icon" onClick={() => handleViewKey(student)}>
+                                        <KeyRound className="h-4 w-4" />
+                                    </Button>
+                                )}
                                 <Button variant="ghost" size="icon" onClick={() => { /* Implement edit functionality */ }}>
                                     <Edit className="h-4 w-4" />
                                 </Button>
@@ -206,6 +253,30 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                 </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <Dialog open={isKeyDialogOpen} onOpenChange={setIsKeyDialogOpen}>
+                <DialogContent>
+                     <DialogHeader>
+                        <DialogTitle>Registration Key for {selectedStudentForKey?.name}</DialogTitle>
+                        <DialogDescription>
+                            Share this one-time key with the student to complete their account registration.
+                        </DialogDescription>
+                    </DialogHeader>
+                     <div className="flex items-center justify-between rounded-md border bg-secondary p-3">
+                        <span className="font-mono text-lg text-primary">{selectedStudentForKey?.registrationKey}</span>
+                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedStudentForKey!.registrationKey)}>
+                            <Copy className="mr-2 h-4 w-4" /> Copy
+                        </Button>
+                    </div>
+                     <DialogFooter className="sm:justify-between gap-2">
+                        <Button variant="outline" onClick={handleRegenerateKey} disabled={isRegenerating}>
+                             {isRegenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Regenerate Key
+                        </Button>
+                        <Button onClick={() => setIsKeyDialogOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
   }

@@ -13,7 +13,7 @@ import {
 import { getAuth, User, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
-import { getStudentsForTeacher, Student } from "@/lib/firebase/students";
+import { getStudentsForTeacher, CombinedStudent } from "@/lib/firebase/students";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
 import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked } from "lucide-react";
@@ -60,7 +60,7 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
 export default function TeacherDashboard() {
   const [activeView, setActiveView] = useState<TeacherView>("dashboard");
   const [teacher, setTeacher] = useState<Teacher | null>(null);
-  const [assignedStudents, setAssignedStudents] = useState<Student[]>([]);
+  const [assignedStudents, setAssignedStudents] = useState<CombinedStudent[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const auth = getAuth(app);
@@ -201,7 +201,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <MarkAttendance teacher={teacher} students={assignedStudents} isLoading={isLoading} />
+                            <MarkAttendance teacher={teacher} students={assignedStudents.filter(s => s.status === 'Registered') as Student[]} isLoading={isLoading} />
                         </CardContent>
                     </Card>
                 );
@@ -243,7 +243,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <Gradebook teacher={teacher} students={assignedStudents} />
+                           <Gradebook teacher={teacher} students={assignedStudents.filter(s => s.status === 'Registered') as Student[]} />
                         </CardContent>
                     </Card>
                 );

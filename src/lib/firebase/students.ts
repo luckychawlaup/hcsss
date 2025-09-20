@@ -84,6 +84,28 @@ export const registerStudentDetails = async (
   return { registrationKey, email: studentData.email };
 };
 
+// Principal action: Regenerates a registration key for a pending student.
+export const regenerateStudentKey = async (oldKey: string): Promise<string> => {
+    const oldRegRef = ref(db, `${REGISTRATIONS_COLLECTION}/${oldKey}`);
+    const snapshot = await get(oldRegRef);
+
+    if (!snapshot.exists()) {
+        throw new Error("Original registration not found.");
+    }
+
+    const regData = snapshot.val();
+    const newKey = Math.random().toString(36).substring(2, 10).toUpperCase();
+    
+    // Create new entry
+    const newRegRef = ref(db, `${REGISTRATIONS_COLLECTION}/${newKey}`);
+    await set(newRegRef, { ...regData, registrationKey: newKey });
+
+    // Delete old entry
+    await remove(oldRegRef);
+
+    return newKey;
+}
+
 
 // Student action: Verify details and claim account
 export const verifyAndClaimStudentAccount = async (data: {
@@ -119,7 +141,8 @@ export const verifyAndClaimStudentAccount = async (data: {
     delete (finalStudentData as any).registrationKey; 
 
     await set(studentRef, finalStudentData);
-    await update(regRef, { claimedBy: data.authUid });
+    // Remove the registration entry as it's now claimed
+    await remove(regRef);
 
     return { success: true, message: "Account claimed successfully."};
 }
@@ -215,7 +238,7 @@ export const getStudents = (callback: (students: Student[]) => void) => {
 };
 
 // Get students assigned to a specific teacher
-export const getStudentsForTeacher = (teacher: Teacher, callback: (students: Student[]) => void) => {
+export const getStudentsForTeacher = (teacher: Teacher, callback: (students: CombinedStudent[]) => void) => {
     const assignedClasses = new Set<string>();
     if (teacher.classTeacherOf) {
         assignedClasses.add(teacher.classTeacherOf);
@@ -229,22 +252,13 @@ export const getStudentsForTeacher = (teacher: Teacher, callback: (students: Stu
         return () => {};
     }
 
-    const studentsRef = ref(db, STUDENTS_COLLECTION);
-    const unsubscribe = onValue(studentsRef, (snapshot) => {
-        const students: Student[] = [];
-        if (snapshot.exists()) {
-            snapshot.forEach(childSnapshot => {
-                const student = childSnapshot.val();
-                const classSection = `${student.class}-${student.section}`;
-                if (assignedClasses.has(classSection)) {
-                    students.push({ id: childSnapshot.key!, ...student });
-                }
-            });
-        }
-        callback(students);
+    return getStudentsAndPending((allStudents) => {
+        const teacherStudents = allStudents.filter(student => {
+            const classSection = `${student.class}-${student.section}`;
+            return assignedClasses.has(classSection);
+        });
+        callback(teacherStudents);
     });
-
-    return unsubscribe;
 };
 
 
