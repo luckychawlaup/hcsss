@@ -2,13 +2,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import * as z from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { Teacher } from "@/lib/firebase/teachers";
-import type { Student } from "@/lib/firebase/students";
-import { getExams, Exam } from "@/lib/firebase/exams";
-import { setMarksForStudent, getStudentMarksForExam, Mark } from "@/lib/firebase/marks";
+import type { Teacher } from "@/lib/supabase/teachers";
+import type { Student } from "@/lib/supabase/students";
+import { getExams, Exam } from "@/lib/supabase/exams";
+import { setMarksForStudent, getStudentMarksForExam, Mark } from "@/lib/supabase/marks";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,8 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "../ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Users, BookOpen, UserCheck, Search, FileSignature } from "lucide-react";
@@ -55,7 +52,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
     
     useEffect(() => {
         const unsubscribe = getExams(setExams);
-        return () => unsubscribe();
+        return () => unsubscribe.unsubscribe();
     }, []);
     
     useEffect(() => {

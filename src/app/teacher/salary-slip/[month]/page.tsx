@@ -2,16 +2,15 @@
 "use client";
 
 import { useEffect, useState, Suspense } from 'react';
-import { getAuth } from 'firebase/auth';
-import { app } from '@/lib/firebase';
-import { getTeacherByAuthId } from '@/lib/firebase/teachers';
-import type { Teacher } from '@/lib/firebase/teachers';
+import { createClient } from '@/lib/supabase/client';
+import { getTeacherByAuthId } from '@/lib/supabase/teachers';
+import type { Teacher } from '@/lib/supabase/teachers';
 import { notFound, useParams, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, Shield, Mail, Phone, Home, User } from 'lucide-react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
-import { getSalarySlipById, SalarySlip } from '@/lib/firebase/salary';
+import { getSalarySlipById, SalarySlip } from '@/lib/supabase/salary';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function formatCurrency(amount: number) {
@@ -41,7 +40,7 @@ function SalarySlipContent() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [salarySlip, setSalarySlip] = useState<SalarySlip | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const auth = getAuth(app);
+  const supabase = createClient();
   const params = useParams();
   const searchParams = useSearchParams();
   const month = typeof params.month === 'string' ? params.month : '';
@@ -51,11 +50,11 @@ function SalarySlipContent() {
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      const user = auth.currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       if (user && slipId) {
-          const teacherData = await getTeacherByAuthId(user.uid);
+          const teacherData = await getTeacherByAuthId(user.id);
           const slipData = await getSalarySlipById(slipId);
-          if (teacherData && slipData && slipData.teacherId === user.uid) {
+          if (teacherData && slipData && slipData.teacherId === teacherData.id) {
             setTeacher(teacherData);
             setSalarySlip(slipData);
           }
@@ -64,7 +63,7 @@ function SalarySlipContent() {
     }
 
     fetchData();
-  }, [auth, slipId]);
+  }, [supabase, slipId]);
 
   const handlePrint = () => {
     window.print();
@@ -193,5 +192,3 @@ export default function SalarySlipPage() {
     </Suspense>
   )
 }
-
-    

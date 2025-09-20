@@ -4,10 +4,10 @@
 import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/dashboard/Header";
 import TeacherNav from "@/components/teacher/TeacherNav";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
-import { Announcement, getAnnouncementsForClass, addAnnouncement, updateAnnouncement, deleteAnnouncement } from "@/lib/firebase/announcements";
+import { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { getTeacherByAuthId, Teacher } from "@/lib/supabase/teachers";
+import { Announcement, getAnnouncementsForClass, addAnnouncement, updateAnnouncement, deleteAnnouncement } from "@/lib/supabase/announcements";
 import { Skeleton } from "@/components/ui/skeleton";
 import ClassChatGroup from "@/components/teacher/ClassChatGroup";
 import AnnouncementChat from "@/components/teacher/AnnouncementChat";
@@ -16,15 +16,16 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const supabase = createClient();
 
 export default function TeacherAnnouncementsPage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const auth = getAuth(app);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const [user, setUser] = useState<User | null>(null);
 
   const assignedClasses = useMemo(() => {
     if (!teacher) return [];
@@ -35,23 +36,31 @@ export default function TeacherAnnouncementsPage() {
   }, [teacher]);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const teacherProfile = await getTeacherByAuthId(user.uid);
-        setTeacher(teacherProfile);
-      } else {
-        setTeacher(null);
-      }
-      setIsLoading(false);
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+            const teacherProfile = await getTeacherByAuthId(currentUser.id);
+            setTeacher(teacherProfile);
+        } else {
+            setTeacher(null);
+        }
+        setIsLoading(false);
     });
 
-    return () => unsubscribeAuth();
-  }, [auth]);
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedClass) {
       const unsubscribe = getAnnouncementsForClass(selectedClass, setAnnouncements);
-      return () => unsubscribe();
+      return () => {
+          if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+              unsubscribe.unsubscribe();
+          }
+      };
     } else {
       setAnnouncements([]);
     }
@@ -67,22 +76,22 @@ export default function TeacherAnnouncementsPage() {
         return;
     }
 
-    const announcementData = {
+    const announcementData: Omit<Announcement, 'id' | 'created_at'> = {
         title: `${teacher.subject} Announcement`, // Or a more dynamic title
         content,
         category,
-        target: "students" as const,
-        targetAudience: {
-            type: "class" as const,
+        target: "students",
+        target_audience: {
+            type: "class",
             value: selectedClass,
         },
-        createdBy: teacher?.id,
-        creatorName: teacher?.name,
-        creatorRole: teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher' as const,
+        created_by: teacher?.id,
+        creator_name: teacher?.name,
+        creator_role: teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher',
     };
     
      try {
-      await addAnnouncement(announcementData as any, file);
+      await addAnnouncement(announcementData, file);
       toast({
         title: "Announcement Sent!",
         description: `Your message has been sent to ${selectedClass}.`,

@@ -164,5 +164,3 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
         </div>
     )
 }
-
-    

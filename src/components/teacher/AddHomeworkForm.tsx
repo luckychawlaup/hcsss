@@ -59,9 +59,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, Upload, BookCheck, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Teacher } from "@/lib/firebase/teachers";
-import { addHomework, getHomeworksByTeacher, deleteHomework, updateHomework } from "@/lib/firebase/homework";
-import type { Homework } from "@/lib/firebase/homework";
+import type { Teacher } from "@/lib/supabase/teachers";
+import { addHomework, getHomeworksByTeacher, deleteHomework, updateHomework } from "@/lib/supabase/homework";
+import type { Homework } from "@/lib/supabase/homework";
 import { ScrollArea } from "../ui/scroll-area";
 
 const homeworkSchema = z.object({
@@ -121,17 +121,21 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         const unsubscribe = getHomeworksByTeacher(teacher.id, (homeworks) => {
             setHomeworkHistory(homeworks);
         });
-        return () => unsubscribe();
+        return () => {
+            if(unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+                unsubscribe.unsubscribe();
+            }
+        };
     }
   }, [teacher]);
 
    useEffect(() => {
     if (editingHomework) {
       reset({
-        classSection: editingHomework.classSection,
+        classSection: editingHomework.class_section,
         subject: editingHomework.subject,
         description: editingHomework.description,
-        dueDate: parseISO(editingHomework.dueDate),
+        dueDate: parseISO(editingHomework.due_date),
         attachment: undefined,
       });
     } else {
@@ -162,11 +166,11 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
       
       if(editingHomework) {
         // Update existing homework
-        const updatedData = {
-            classSection: values.classSection,
+        const updatedData: Partial<Homework> = {
+            class_section: values.classSection,
             subject: values.subject,
             description: values.description,
-            dueDate: format(values.dueDate, "yyyy-MM-dd"),
+            due_date: format(values.dueDate, "yyyy-MM-dd"),
         }
         await updateHomework(editingHomework.id, updatedData, file);
         toast({
@@ -176,14 +180,14 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         setEditingHomework(null);
       } else {
         // Add new homework
-        const homeworkData = {
-            assignedBy: teacher.id,
-            teacherName: teacher.name,
-            classSection: values.classSection,
+        const homeworkData: Omit<Homework, 'id'> = {
+            assigned_by: teacher.id,
+            teacher_name: teacher.name,
+            class_section: values.classSection,
             subject: values.subject,
             description: values.description,
-            dueDate: format(values.dueDate, "yyyy-MM-dd"),
-            assignedAt: Date.now(),
+            due_date: format(values.dueDate, "yyyy-MM-dd"),
+            assigned_at: new Date().toISOString(),
         };
         await addHomework(homeworkData, file);
         toast({
@@ -405,9 +409,9 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                                 <div key={hw.id} className="text-sm p-3 bg-secondary/50 rounded-md">
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <p className="font-bold">{hw.subject} - {hw.classSection}</p>
+                                            <p className="font-bold">{hw.subject} - {hw.class_section}</p>
                                             <p className="text-muted-foreground truncate">{hw.description}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">Due: {hw.dueDate}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">Due: {hw.due_date}</p>
                                         </div>
                                         <div className="flex gap-1">
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingHomework(hw)}>
@@ -532,7 +536,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This will permanently delete the homework for {deletingHomework?.classSection} ({deletingHomework?.subject}). This action cannot be undone.
+                        This will permanently delete the homework for {deletingHomework?.class_section} ({deletingHomework?.subject}). This action cannot be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

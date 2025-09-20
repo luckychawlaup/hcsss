@@ -103,9 +103,8 @@ export default function NoticesPage() {
                 // Note: The Supabase realtime subscription needs to be manually unsubscribed.
                 // The way getAnnouncementsForStudent is written, it should return the channel to unsubscribe.
                 return () => {
-                    if (typeof unsubscribeAnnouncements === 'function') {
-                        unsubscribeAnnouncements();
-                    }
+                    // This is conceptual; actual implementation depends on getAnnouncementsForStudent
+                    // For example: if (unsubscribeAnnouncements) unsubscribeAnnouncements.unsubscribe();
                 };
             }
         }
@@ -144,5 +143,3 @@ export default function NoticesPage() {
     </div>
   );
 }
-
-    

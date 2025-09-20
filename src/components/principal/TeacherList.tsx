@@ -3,8 +3,8 @@
 
 import { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
-import type { Teacher } from "@/lib/firebase/teachers";
-import { regenerateTemporaryPassword } from "@/lib/firebase/teachers";
+import type { Teacher } from "@/lib/supabase/teachers";
+import { regenerateTemporaryPassword } from "@/lib/supabase/teachers";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -53,7 +53,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Checkbox } from "../ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { createClient } from "@/lib/supabase/client";
 
+const supabase = createClient();
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
@@ -93,7 +95,7 @@ const editTeacherSchema = z.object({
     path: ["classesTaught"],
 });
 
-type CombinedTeacher = Teacher & { status: 'Registered' };
+type CombinedTeacher = Teacher & { status: 'Registered' | 'Pending' };
 
 interface TeacherListProps {
   teachers: CombinedTeacher[];
@@ -180,17 +182,17 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
 
   const handleExport = () => {
     const dataToExport = teachers.map(teacher => ({
-        "Teacher ID": teacher.authUid,
+        "Teacher ID": teacher.status === 'Registered' ? teacher.authUid : 'N/A',
         "Name": teacher.name,
         "Email": teacher.email,
         "Status": teacher.status,
-        "Role": teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher',
-        "Assignment": teacher.role === 'classTeacher' ? teacher.classTeacherOf : teacher.classesTaught?.join(', '),
-        "Subject": teacher.subject,
-        "Phone Number": teacher.phoneNumber,
+        "Role": teacher.status === 'Registered' ? (teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher') : 'N/A',
+        "Assignment": teacher.status === 'Registered' ? (teacher.role === 'classTeacher' ? teacher.classTeacherOf : teacher.classesTaught?.join(', ')) : 'N/A',
+        "Subject": teacher.status === 'Registered' ? teacher.subject : 'N/A',
+        "Phone Number": teacher.status === 'Registered' ? teacher.phoneNumber : 'N/A',
         "DOB": teacher.dob,
-        "Qualifications": teacher.qualifications?.join(', '),
-        "Joining Date": new Date(teacher.joiningDate).toLocaleString('en-GB'),
+        "Qualifications": teacher.status === 'Registered' ? teacher.qualifications?.join(', ') : 'N/A',
+        "Joining Date": new Date(teacher.joiningDate).toLocaleDateString('en-GB'),
         "Father's Name": teacher.fatherName,
         "Address": teacher.address,
     }));
@@ -206,8 +208,9 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
       setIsGeneratingPassword(true);
       setNewPasswordInfo(null);
       try {
-          const info = await regenerateTemporaryPassword(teacher.authUid);
-          setNewPasswordInfo(info);
+          const { data, error } = await supabase.auth.resetPasswordForEmail(teacher.email);
+          if (error) throw error;
+          setNewPasswordInfo("Password reset email sent.");
           toast({
               title: "Password Reset Triggered",
               description: `A password reset email has been sent to ${teacher.name}.`
@@ -311,9 +314,9 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                     </div>
                 </TableCell>
                 <TableCell>
-                  {teacher.role === 'classTeacher' ? (
+                  {teacher.status === 'Registered' && teacher.role === 'classTeacher' ? (
                     <Badge variant="secondary">Class Teacher: {teacher.classTeacherOf}</Badge>
-                  ) : (
+                  ) : teacher.status === 'Registered' ? (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Badge variant="outline" className="cursor-pointer">
@@ -325,11 +328,13 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                             <p>Teaches: {teacher.classesTaught?.join(', ')}</p>
                         </TooltipContent>}
                     </Tooltip>
+                  ) : (
+                    <Badge variant="outline">Pending</Badge>
                   )}
                 </TableCell>
-                <TableCell>{teacher.subject}</TableCell>
+                <TableCell>{teacher.status === "Registered" ? teacher.subject : "N/A"}</TableCell>
                 <TableCell>
-                    {teacher.status === 'Registered' ? formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy') : 'Pending'}
+                    {formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy')}
                 </TableCell>
                 <TableCell className="text-right">
                     {teacher.status === 'Registered' && (
@@ -646,4 +651,4 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     </>
   );
 }
-    
+

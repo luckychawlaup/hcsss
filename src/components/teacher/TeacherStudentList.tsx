@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CombinedStudent, Student } from "@/lib/firebase/students";
+import type { CombinedStudent, Student } from "@/lib/supabase/students";
 import {
   Table,
   TableBody,

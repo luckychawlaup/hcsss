@@ -10,11 +10,11 @@ import {
     CardDescription,
     CardContent
 } from "@/components/ui/card";
-import { getAuth, User, onAuthStateChanged } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
-import { getStudentsForTeacher, CombinedStudent, updateStudent, Student } from "@/lib/firebase/students";
-import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/firebase/leaves";
+import { createClient } from "@/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { getTeacherByAuthId, Teacher } from "@/lib/supabase/teachers";
+import { getStudentsForTeacher, CombinedStudent, updateStudent, Student } from "@/lib/supabase/students";
+import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/supabase/leaves";
 import { Skeleton } from "../ui/skeleton";
 import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
@@ -63,27 +63,28 @@ export default function TeacherDashboard() {
   const [assignedStudents, setAssignedStudents] = useState<CombinedStudent[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const auth = getAuth(app);
+  const supabase = createClient();
   const router = useRouter();
 
 
   useEffect(() => {
     setIsLoading(true);
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const teacherProfile = await getTeacherByAuthId(user.uid);
-        setTeacher(teacherProfile);
-        if (!teacherProfile) {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const user = session?.user;
+        if (user) {
+            const teacherProfile = await getTeacherByAuthId(user.id);
+            setTeacher(teacherProfile);
+            if (!teacherProfile) {
+                setIsLoading(false);
+            }
+        } else {
+            setTeacher(null);
             setIsLoading(false);
         }
-      } else {
-        setTeacher(null);
-        setIsLoading(false);
-      }
     });
 
-    return () => unsubscribeAuth();
-  }, [auth]);
+    return () => authListener.subscription.unsubscribe();
+  }, [supabase]);
 
   useEffect(() => {
     if (teacher) {
@@ -97,7 +98,7 @@ export default function TeacherDashboard() {
           const unsubscribeLeaves = getLeaveRequestsForClassTeacher(teacher.id, setLeaves);
           return () => {
               unsubscribeStudents();
-              unsubscribeLeaves();
+              if (unsubscribeLeaves) unsubscribeLeaves();
           };
       }
 

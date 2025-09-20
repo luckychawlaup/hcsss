@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { CombinedStudent, PendingStudent, Student } from "@/lib/firebase/students";
+import type { CombinedStudent, PendingStudent, Student } from "@/lib/supabase/students";
 import * as XLSX from "xlsx";
 import {
   Table,
@@ -42,7 +42,7 @@ import { Input } from "../ui/input";
 import { Edit, Trash2, Loader2, ArrowLeft, FileDown, Search, Users, UserX, KeyRound, Copy, Info } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { regenerateStudentKey } from "@/lib/firebase/students";
+import { regenerateStudentKey } from "@/lib/supabase/students";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";

@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import type { Teacher } from "@/lib/firebase/teachers";
-import type { Student } from "@/lib/firebase/students";
+import type { Teacher } from "@/lib/supabase/teachers";
+import type { Student } from "@/lib/supabase/students";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,7 +76,7 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
     setIsSubmitting(true);
     console.log("Submitting attendance for", selectedClass, "on", format(attendanceDate, "yyyy-MM-dd"));
     console.log(attendance);
-    // Here you would typically save to Firebase Realtime Database
+    // Here you would typically save to Supabase
     await new Promise(resolve => setTimeout(resolve, 1500));
     toast({
         title: "Attendance Submitted",

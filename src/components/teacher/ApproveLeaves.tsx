@@ -6,7 +6,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, startOfDay } from "date-fns";
-import type { LeaveRequest } from "@/lib/firebase/leaves";
+import type { LeaveRequest } from "@/lib/supabase/leaves";
 import {
   Card,
   CardContent,
@@ -36,7 +36,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ThumbsUp, ThumbsDown, CalendarX2, Loader2, MessageSquare, Calendar as CalendarIcon, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { updateLeaveRequest } from "@/lib/firebase/leaves";
+import { updateLeaveRequest } from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";

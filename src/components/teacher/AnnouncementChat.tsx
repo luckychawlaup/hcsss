@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import type { Announcement } from '@/lib/firebase/announcements';
+import type { Announcement } from '@/lib/supabase/announcements';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -52,29 +52,30 @@ function AttachmentPreview({ url }: { url: string }) {
 }
 
 function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: AnnouncementBubbleProps) {
-  const isRecent = (Date.now() - notice.createdAt.toMillis()) < 15 * 60 * 1000; // 15 minutes
+  const createdAt = notice.created_at ? new Date(notice.created_at) : new Date();
+  const isRecent = (Date.now() - createdAt.getTime()) < 15 * 60 * 1000; // 15 minutes
 
   return (
     <div className={cn("flex items-end gap-2.5 group", isSender ? "justify-end" : "justify-start")}>
       {!isSender && (
         <Avatar className="h-8 w-8">
-          <AvatarFallback>{notice.creatorName?.charAt(0)}</AvatarFallback>
+          <AvatarFallback>{notice.creator_name?.charAt(0)}</AvatarFallback>
         </Avatar>
       )}
       <div className={cn("flex flex-col gap-1 w-full max-w-xs md:max-w-md")}>
         <div className="flex items-center space-x-2 rtl:space-x-reverse">
-          {!isSender && <span className="text-xs font-semibold text-foreground">{notice.creatorName}</span>}
+          {!isSender && <span className="text-xs font-semibold text-foreground">{notice.creator_name}</span>}
           <span className="text-xs font-normal text-muted-foreground">
-            {notice.createdAt.toDate().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
         <div className={cn("relative p-3 rounded-lg shadow-sm", isSender ? "bg-primary text-primary-foreground rounded-ee-none" : "bg-secondary rounded-es-none")}>
           {notice.title && <p className="text-sm font-semibold pb-1">{notice.title}</p>}
           <p className="text-sm font-normal whitespace-pre-wrap">{notice.content}</p>
-          {notice.attachmentUrl && <AttachmentPreview url={notice.attachmentUrl} />}
-          {notice.editedAt && <span className="text-xs text-white/70 pl-2">(edited)</span>}
+          {notice.attachment_url && <AttachmentPreview url={notice.attachment_url} />}
+          {notice.edited_at && <span className="text-xs text-white/70 pl-2">(edited)</span>}
         </div>
-        <span className="text-xs font-normal text-muted-foreground">{notice.creatorRole} ({notice.category})</span>
+        <span className="text-xs font-normal text-muted-foreground">{notice.creator_role} ({notice.category})</span>
       </div>
       {isSender && isRecent && (
         <DropdownMenu>
@@ -205,7 +206,7 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
             <AnnouncementBubble 
                 key={notice.id} 
                 notice={notice} 
-                isSender={notice.creatorName === senderName} 
+                isSender={notice.creator_name === senderName} 
                 onEdit={handleEdit}
                 onDelete={setDeletingMessageId}
             />

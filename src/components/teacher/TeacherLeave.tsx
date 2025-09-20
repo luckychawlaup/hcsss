@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Teacher } from "@/lib/firebase/teachers";
+import type { Teacher } from "@/lib/supabase/teachers";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -44,7 +44,7 @@ import {
   addLeaveRequest,
   getLeaveRequestsForUser,
   LeaveRequest,
-} from "@/lib/firebase/leaves";
+} from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const leaveSchema = z
@@ -105,7 +105,11 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
       const unsubscribeLeaves = getLeaveRequestsForUser(teacher.id, (leaves) => {
         setPastLeaves(leaves);
       });
-      return () => unsubscribeLeaves();
+      return () => {
+          if (unsubscribeLeaves && typeof unsubscribeLeaves.unsubscribe === 'function') {
+              unsubscribeLeaves.unsubscribe();
+          }
+      };
     }
   }, [teacher]);
 
@@ -146,7 +150,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
       endDate,
       reason: values.reason,
       status: "Pending",
-      appliedAt: Date.now(),
+      appliedAt: new Date().toISOString(),
       teacherId: teacher.id,
     };
 

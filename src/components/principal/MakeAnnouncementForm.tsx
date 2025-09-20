@@ -20,9 +20,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle, Send } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { addAnnouncement } from "@/lib/firebase/announcements";
-import { getAuth, User } from "firebase/auth";
-import { app } from "@/lib/firebase";
+import { addAnnouncement } from "@/lib/supabase/announcements";
+import { User } from "@supabase/supabase-js";
 
 const announcementSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
@@ -64,9 +63,9 @@ export default function MakeAnnouncementForm({ currentUser, isOwner }: MakeAnnou
     try {
       await addAnnouncement({
           ...values,
-          createdBy: currentUser.uid,
-          creatorName: isOwner ? "Owner" : "Principal",
-          creatorRole: isOwner ? "Owner" : "Principal",
+          created_by: currentUser.id,
+          creator_name: isOwner ? "Owner" : "Principal",
+          creator_role: isOwner ? "Owner" : "Principal",
       });
       toast({
         title: "Announcement Published!",

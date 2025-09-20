@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Teacher } from "@/lib/firebase/teachers";
+import type { Teacher } from "@/lib/supabase/teachers";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,8 +25,8 @@ import {
 } from "@/components/ui/card";
 import { Loader2, Landmark, Wallet, Edit, Save, WalletCards, BadgeInfo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { updateTeacher } from "@/lib/firebase/teachers";
-import { getSalarySlipsForTeacher, SalarySlip } from "@/lib/firebase/salary";
+import { updateTeacher } from "@/lib/supabase/teachers";
+import { getSalarySlipsForTeacher, SalarySlip } from "@/lib/supabase/salary";
 import {
   Table,
   TableBody,
@@ -58,7 +58,11 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
   useEffect(() => {
     if (teacher) {
         const unsubscribe = getSalarySlipsForTeacher(teacher.id, setSalaryHistory);
-        return () => unsubscribe();
+        return () => {
+            if(unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+                unsubscribe.unsubscribe();
+            }
+        };
     }
   }, [teacher]);
 
