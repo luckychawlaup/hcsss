@@ -2,8 +2,8 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { SchoolSettings } from '@/lib/firebase/settings';
-import { getSchoolSettingsRT } from '@/lib/firebase/settings';
+import type { SchoolSettings } from '@/lib/supabase/settings';
+import { getSchoolSettingsRT } from '@/lib/supabase/settings';
 import { Skeleton } from '../ui/skeleton';
 
 interface ThemeProviderProps {
@@ -43,7 +43,7 @@ export function ThemeProvider({ children, settings: initialSettings }: ThemeProv
     }
 
     // Then, subscribe to real-time updates which will overwrite the initial settings
-    const unsubscribe = getSchoolSettingsRT((newSettings) => {
+    const channel = getSchoolSettingsRT((newSettings) => {
         setSettings(newSettings);
         if (newSettings.primaryColor) {
             document.documentElement.style.setProperty('--primary', hslToCssVar(newSettings.primaryColor));
@@ -54,7 +54,11 @@ export function ThemeProvider({ children, settings: initialSettings }: ThemeProv
         setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+        if(channel) {
+            channel.unsubscribe();
+        }
+    };
   }, [initialSettings]);
 
   return (

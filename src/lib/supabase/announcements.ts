@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/client";
 import { uploadImage as uploadImageToImageKit } from "@/lib/imagekit";
 
@@ -27,10 +28,10 @@ export const addAnnouncement = async (
     attachment?: File
 ) => {
   try {
-    let finalAnnouncementData = { ...announcementData };
+    let finalAnnouncementData: any = { ...announcementData };
     
     if (attachment) {
-        const attachmentUrl = await uploadImageToImageToImageKit(attachment, "gallery");
+        const attachmentUrl = await uploadImageToImageKit(attachment, "gallery");
         finalAnnouncementData.attachment_url = attachmentUrl;
     }
 
@@ -61,7 +62,6 @@ export const getAnnouncementsForStudent = (
             return;
         }
         
-        // This client-side filter is still useful for complex rules
         const filtered = (data || []).filter(ann => {
             if (ann.target === "students" && !ann.target_audience) return true;
             if (ann.target === "both" && !ann.target_audience) return true;

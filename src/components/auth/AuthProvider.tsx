@@ -22,8 +22,8 @@ const publicPaths = [
     "/auth/teacher/forgot-password",
 ];
 
-const principalUID = "IIDjN5e6RzUMFGOYJ4kE7t3YqgZ2";
-const ownerUID = "qEB6D6PbjycGSBKMPv9OGyorgnd2";
+const principalUID = "6cc51c80-e098-4d6d-8450-5ff5931b7391";
+const ownerUID = "946ba406-1ba6-49cf-ab78-f611d1350f33";
 
 function Preloader() {
     const { settings } = useTheme();
@@ -115,5 +115,3 @@ export default function AuthProvider({
 
   return <>{children}</>;
 }
-
-    

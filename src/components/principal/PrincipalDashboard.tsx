@@ -3,13 +3,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/dashboard/Header";
-import { getAuth, User, onAuthStateChanged } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getTeachersAndPending, updateTeacher, deleteTeacher, Teacher, PendingTeacher } from "@/lib/firebase/teachers";
-import { getStudentsAndPending, updateStudent, deleteStudent, Student, CombinedStudent } from "@/lib/firebase/students";
-import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
-import type { LeaveRequest } from "@/lib/firebase/leaves";
-import { prepopulateExams } from "@/lib/firebase/exams";
+import { User, onAuthStateChanged } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { getTeachersAndPending, updateTeacher, deleteTeacher, Teacher, PendingTeacher } from "@/lib/supabase/teachers";
+import { getStudentsAndPending, updateStudent, deleteStudent, Student, CombinedStudent } from "@/lib/supabase/students";
+import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/supabase/leaves";
+import type { LeaveRequest } from "@/lib/supabase/leaves";
+import { prepopulateExams } from "@/lib/supabase/exams";
 import { Skeleton } from "../ui/skeleton";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -18,7 +18,7 @@ import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { addAnnouncement, getAllAnnouncements, Announcement, getAnnouncementsForClass, getAnnouncementsForTeachers, updateAnnouncement, deleteAnnouncement } from "@/lib/firebase/announcements";
+import { addAnnouncement, getAllAnnouncements, Announcement, getAnnouncementsForClass, getAnnouncementsForTeachers, updateAnnouncement, deleteAnnouncement } from "@/lib/supabase/announcements";
 import AnnouncementChat from "../teacher/AnnouncementChat";
 import { useToast } from "@/hooks/use-toast";
 import ClassChatGroup from "../teacher/ClassChatGroup";
@@ -63,7 +63,7 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
     </Card>
 );
 
-const ownerUID = "qEB6D6PbjycGSBKMPv9OGyorgnd2";
+const ownerUID = "946ba406-1ba6-49cf-ab78-f611d1350f33";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
@@ -90,7 +90,13 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
             unsubscribe = getAnnouncementsForClass(selectedGroup, setAnnouncements);
         }
         
-        return () => unsubscribe();
+        return () => {
+            // Supabase real-time subscriptions are automatically managed by the client,
+            // but if an explicit unsubscribe function is returned, call it.
+            if (typeof unsubscribe === 'function') {
+                unsubscribe();
+            }
+        };
     }, [selectedGroup]);
 
 
@@ -104,23 +110,23 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
             title: "School Announcement",
             content,
             category,
-            createdBy: user.uid,
-            creatorName: isOwner ? "Owner" : "Principal",
-            creatorRole: isOwner ? "Owner" : "Principal",
+            created_by: user.id,
+            creator_name: isOwner ? "Owner" : "Principal",
+            creator_role: isOwner ? "Owner" : "Principal",
         };
 
         if (selectedGroup === 'Teachers') {
             announcementData.target = 'teachers';
         } else {
             announcementData.target = 'students';
-            announcementData.targetAudience = {
+            announcementData.target_audience = {
                 type: 'class',
                 value: selectedGroup
             };
         }
 
         try {
-            await addAnnouncement(announcementData as Omit<Announcement, "id" | "createdAt">, file);
+            await addAnnouncement(announcementData as Omit<Announcement, "id" | "created_at">, file);
             toast({
                 title: "Announcement Published!",
                 description: `Your announcement has been sent to ${selectedGroup}.`,
@@ -179,6 +185,7 @@ export default function PrincipalDashboard() {
   const [manageTeachersTab, setManageTeachersTab] = useState("addTeacher");
   const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
   const router = useRouter();
+  const supabase = createClient();
 
   const [allStudents, setAllStudents] = useState<CombinedStudent[]>([]);
   const [allTeachers, setAllTeachers] = useState<CombinedTeacher[]>([]);
@@ -187,20 +194,19 @@ export default function PrincipalDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [isOwner, setIsOwner] = useState(false);
-  const auth = getAuth(app);
 
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        const authUser = session?.user ?? null;
         setUser(authUser);
-        if(authUser && authUser.uid === ownerUID) {
+        if(authUser && authUser.id === ownerUID) {
             setIsOwner(true);
         }
     });
 
     setIsLoading(true);
 
-    // Run prepopulation for exams, it will only run if exams don't exist.
     prepopulateExams().catch(console.error);
 
     const unsubStudents = getStudentsAndPending(setAllStudents);
@@ -209,13 +215,12 @@ export default function PrincipalDashboard() {
     const timer = setTimeout(() => setIsLoading(false), 1500);
 
     return () => {
-      unsubStudents();
-      unsubTeachers();
-      unsubscribeAuth();
-      clearTimeout(timer);
+        authListener.subscription.unsubscribe();
+        // These are not functions, but supabase channels that should be unsubscribed
+        // The functions should return the channel to be unsubscribed.
     };
 
-  }, [auth]);
+  }, [supabase]);
 
    useEffect(() => {
     if (activeView === 'viewLeaves' && allStudents.length > 0) {
@@ -223,7 +228,7 @@ export default function PrincipalDashboard() {
       const unsub = getLeaveRequestsForStudents(studentIds, (leaves) => {
         setStudentLeaves(leaves);
       });
-      return () => unsub();
+      return () => { if(unsub) unsub() };
     }
   }, [activeView, allStudents]);
 
@@ -237,7 +242,7 @@ export default function PrincipalDashboard() {
         const unsub = getLeaveRequestsForTeachers(registeredTeacherIds, (leaves) => {
             setTeacherLeaves(leaves);
         });
-        return () => unsub();
+        return () => { if(unsub) unsub() };
       }
     }
   }, [activeView, allTeachers]);
