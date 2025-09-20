@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Separator } from "../ui/separator";
 import { uploadImage } from "@/lib/imagekit";
 import { addStudent } from "@/lib/firebase/students";
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, deleteUser } from "firebase/auth";
 import { app } from "@/lib/firebase";
 
 
@@ -109,67 +109,88 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     setIsLoading(true);
     setError(null);
     setSuccessInfo(null);
-
+    
     let tempUser = null;
 
     try {
-        // This is a placeholder password, it won't be used.
-        const tempPassword = Math.random().toString(36).slice(-8);
+        // Step 1: Create the Firebase Auth user
+        const tempPassword = Math.random().toString(36).slice(-8); // This password is temporary and will be reset by the user
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, tempPassword);
         tempUser = userCredential.user;
-        
+
+        // Step 2: Send verification email
         await sendEmailVerification(tempUser);
 
-
-      let photoUrl: string | undefined;
-      const studentPhotoFile = values.photo?.[0];
-      if (studentPhotoFile) {
-        photoUrl = await uploadImage(studentPhotoFile, "Photos (students)");
-      }
-      
-      let aadharUrl: string | undefined;
-      const aadharFile = values.aadharCard?.[0];
-      if (aadharFile) {
-        aadharUrl = await uploadImage(aadharFile, "Aadhar Cards");
-      }
-      
-      const srn = `SRN${Math.floor(1000 + Math.random() * 9000)}`;
-
-      await addStudent({
-        authUid: tempUser.uid,
-        srn: srn,
-        email: values.email,
-        name: values.name,
-        photoUrl: photoUrl || "",
-        fatherName: values.fatherName,
-        motherName: values.motherName,
-        address: values.address,
-        class: values.class,
-        section: values.section,
-        admissionDate: values.admissionDate.getTime(),
-        dateOfBirth: formatDate(values.dateOfBirth, "yyyy-MM-dd"),
-        aadharNumber: values.aadharNumber || "",
-        aadharUrl: aadharUrl || "",
-        optedSubjects: values.optedSubjects || [],
-        fatherPhone: values.fatherPhone || "",
-        motherPhone: values.motherPhone || "",
-      });
-
-      setSuccessInfo({ name: values.name, email: values.email });
-      toast({
-        title: "Student Admitted Successfully!",
-        description: `${values.name}'s account has been created.`,
-      });
-      form.reset();
-    } catch (e: any) {
-        if (tempUser) {
-            await tempUser.delete();
+        // Step 3: Upload photo and Aadhar if they exist
+        let photoUrl: string | undefined;
+        const studentPhotoFile = values.photo?.[0];
+        if (studentPhotoFile) {
+            photoUrl = await uploadImage(studentPhotoFile, "Photos (students)");
         }
-      setError(`An unexpected error occurred: ${e.message}`);
+        
+        let aadharUrl: string | undefined;
+        const aadharFile = values.aadharCard?.[0];
+        if (aadharFile) {
+            aadharUrl = await uploadImage(aadharFile, "Aadhar Cards");
+        }
+
+        // Step 4: Prepare the final student data payload
+        const studentDataPayload = {
+            authUid: tempUser.uid,
+            email: values.email,
+            name: values.name,
+            photoUrl: photoUrl || "",
+            fatherName: values.fatherName,
+            motherName: values.motherName,
+            address: values.address,
+            class: values.class,
+            section: values.section,
+            admissionDate: values.admissionDate.getTime(),
+            dateOfBirth: formatDate(values.dateOfBirth, "yyyy-MM-dd"),
+            aadharNumber: values.aadharNumber || "",
+            aadharUrl: aadharUrl || "",
+            optedSubjects: values.optedSubjects || [],
+            fatherPhone: values.fatherPhone || "",
+            motherPhone: values.motherPhone || "",
+        };
+
+        // Step 5: Save the student data to the database
+        await addStudent(studentDataPayload);
+
+        // If all successful:
+        setSuccessInfo({ name: values.name, email: values.email });
+        toast({
+            title: "Student Admitted Successfully!",
+            description: `${values.name}'s account has been created. They must use 'Forgot Password' to log in.`,
+        });
+        form.reset();
+
+    } catch (e: any) {
+        // CRITICAL: If any step after auth creation fails, delete the temporary auth user
+        if (tempUser) {
+            try {
+                await deleteUser(tempUser);
+                console.log("Temporary auth user deleted successfully after failed registration.");
+            } catch (deleteError) {
+                console.error("CRITICAL: Failed to delete temporary auth user after an error. Manual cleanup required.", deleteError);
+                setError(`An error occurred, and a cleanup operation also failed. Please contact support. Error: ${e.message}`);
+                setIsLoading(false);
+                return;
+            }
+        }
+        
+        let errorMessage = `An unexpected error occurred: ${e.message}`;
+        if (e.code === 'auth/email-already-in-use') {
+            errorMessage = "This email is already in use by another account. Please use a different email.";
+        }
+        setError(errorMessage);
+        console.error("Error adding student: ", e.message);
+
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   }
+
 
   const handleAddAnother = () => {
     setSuccessInfo(null);

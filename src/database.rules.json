@@ -14,20 +14,14 @@
       ".read": "root.child('isAdmin').val() || root.child('isTeacher').val()",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "(auth != null && auth.uid === $uid) || root.child('isAdmin').val() || (root.child('isTeacher').val() && root.child('teachers').child(auth.uid).child('classTeacherOf').val() === data.child('class').val() + '-' + data.child('section').val())"
-      }
-    },
-    "student_registrations": {
-      ".read": "root.child('isAdmin').val() || root.child('isTeacher').val()",
-      "$key": {
-        ".write": "root.child('isAdmin').val() || !newData.exists()"
+        ".write": "(auth != null && auth.uid === $uid && !data.exists()) || root.child('isAdmin').val() || (root.child('isTeacher').val() && root.child('teachers').child(auth.uid).child('classTeacherOf').val() === data.child('class').val() + '-' + data.child('section').val())"
       }
     },
     "teachers": {
       ".read": "root.child('isAdmin').val() || root.child('isTeacher').val()",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "(auth != null && auth.uid === $uid) || root.child('isAdmin').val()"
       }
     },
      "registrations": {
@@ -46,17 +40,17 @@
       ".read": "auth != null",
       ".indexOn": ["userId", "appliedAt", "teacherId"],
       "$leaveId": {
-        ".write": "auth != null && ((newData.child('userId').val() === auth.uid && !data.exists()) || root.child('isAdmin').val() || (root.child('isTeacher').val() && auth.uid === newData.child('teacherId').val()))",
+        ".write": "auth != null && ((newData.child('userId').val() === auth.uid && !data.exists()) || root.child('isAdmin').val() || (root.child('isTeacher').val() && newData.child('teacherId').val() === auth.uid))",
         "startDate": { ".write": "auth != null" },
         "endDate": { ".write": "auth != null" },
         "status": {
-           ".write": "auth != null && (root.child('isAdmin').val() || (auth.uid === data.parent().child('teacherId').val()))"
+           ".write": "auth != null && (root.child('isAdmin').val() || (data.parent().child('teacherId').val() === auth.uid))"
         },
         "approverComment": {
-            ".write": "auth != null && (root.child('isAdmin').val() || (auth.uid === data.parent().child('teacherId').val()))"
+            ".write": "auth != null && (root.child('isAdmin').val() || (data.parent().child('teacherId').val() === auth.uid))"
         },
         "rejectionReason": {
-           ".write": "auth != null && (root.child('isAdmin').val() || (auth.uid === data.parent().child('teacherId').val()))"
+           ".write": "auth != null && (root.child('isAdmin').val() || (data.parent().child('teacherId').val() === auth.uid))"
         }
       }
     },
