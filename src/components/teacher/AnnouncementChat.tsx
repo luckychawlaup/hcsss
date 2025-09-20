@@ -8,11 +8,35 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Info, Megaphone } from 'lucide-react';
+import { Send, Info, Megaphone, Paperclip, X } from 'lucide-react';
+import Image from 'next/image';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface AnnouncementBubbleProps {
   notice: Announcement;
   isSender: boolean;
+}
+
+function AttachmentPreview({ url }: { url: string }) {
+    const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
+
+    return (
+        <div className="mt-2">
+            {isImage ? (
+                <Image src={url} alt="Attachment" width={200} height={200} className="rounded-md object-cover" />
+            ) : (
+                <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 underline flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" /> View Attachment
+                </a>
+            )}
+        </div>
+    )
 }
 
 function AnnouncementBubble({ notice, isSender }: AnnouncementBubbleProps) {
@@ -32,7 +56,8 @@ function AnnouncementBubble({ notice, isSender }: AnnouncementBubbleProps) {
         </div>
         <div className={cn("p-3 rounded-lg shadow-sm", isSender ? "bg-primary text-primary-foreground rounded-ee-none" : "bg-secondary rounded-es-none")}>
           {notice.title && <p className="text-sm font-semibold pb-1">{notice.title}</p>}
-          <p className="text-sm font-normal">{notice.content}</p>
+          <p className="text-sm font-normal whitespace-pre-wrap">{notice.content}</p>
+          {notice.attachmentUrl && <AttachmentPreview url={notice.attachmentUrl} />}
         </div>
         <span className="text-xs font-normal text-muted-foreground">{notice.creatorRole} ({notice.category})</span>
       </div>
@@ -43,7 +68,7 @@ function AnnouncementBubble({ notice, isSender }: AnnouncementBubbleProps) {
 interface AnnouncementChatProps {
   announcements: Announcement[];
   chatTitle: string | null;
-  onSendMessage: (content: string, category: string) => Promise<void>;
+  onSendMessage: (content: string, category: string, file?: File) => Promise<void>;
   senderName: string;
   senderRole: string;
   headerContent?: React.ReactNode;
@@ -52,8 +77,10 @@ interface AnnouncementChatProps {
 export default function AnnouncementChat({ announcements, chatTitle, onSendMessage, senderName, senderRole, headerContent }: AnnouncementChatProps) {
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState("General");
+  const [attachment, setAttachment] = useState<File | null>(null);
   const [isSending, setIsSending] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -62,12 +89,26 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
   }, [announcements]);
 
   const handleSend = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() && !attachment) return;
     setIsSending(true);
-    await onSendMessage(message, category);
+    await onSendMessage(message, category, attachment || undefined);
     setMessage("");
+    setAttachment(null);
+    if(fileInputRef.current) fileInputRef.current.value = "";
     setIsSending(false);
   };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        alert("File size cannot exceed 2MB.");
+        return;
+      }
+      setAttachment(file);
+    }
+  }
+
 
   if (!chatTitle) {
     return (
@@ -96,7 +137,26 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
         )}
       </div>
       <div className="p-4 border-t bg-background">
+        {attachment && (
+            <div className="flex items-center gap-2 p-2 mb-2 bg-secondary rounded-md text-sm">
+                <Paperclip className="h-4 w-4" />
+                <span>{attachment.name}</span>
+                <button onClick={() => { setAttachment(null); if(fileInputRef.current) fileInputRef.current.value = ""; }} className="ml-auto">
+                    <X className="h-4 w-4" />
+                </button>
+            </div>
+        )}
         <div className="flex items-center gap-2">
+            <Input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileChange}
+                accept="image/*,application/pdf"
+            />
+            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isSending}>
+                <Paperclip/>
+            </Button>
             <Input
                 value={message}
                 onChange={e => setMessage(e.target.value)}
@@ -112,7 +172,7 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
                 disabled={isSending}
                 className="w-28"
             />
-            <Button onClick={handleSend} disabled={isSending || !message.trim()}>
+            <Button onClick={handleSend} disabled={isSending || (!message.trim() && !attachment)}>
                 <Send />
             </Button>
         </div>

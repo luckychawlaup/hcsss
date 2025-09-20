@@ -93,7 +93,7 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
     }, [selectedGroup]);
 
 
-    const handleSendMessage = async (content: string, category: string) => {
+    const handleSendMessage = async (content: string, category: string, file?: File) => {
         if (!user || !selectedGroup) {
             toast({ variant: 'destructive', title: 'Error', description: "No group selected." });
             return;
@@ -119,7 +119,7 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
         }
 
         try {
-            await addAnnouncement(announcementData as Omit<Announcement, "id" | "createdAt">);
+            await addAnnouncement(announcementData as Omit<Announcement, "id" | "createdAt">, file);
             toast({
                 title: "Announcement Published!",
                 description: `Your announcement has been sent to ${selectedGroup}.`,

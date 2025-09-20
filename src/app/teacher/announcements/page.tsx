@@ -55,7 +55,7 @@ export default function TeacherAnnouncementsPage() {
       setSelectedClass(classSection);
   }
 
-  const handleSendMessage = async (content: string, category: string) => {
+  const handleSendMessage = async (content: string, category: string, file?: File) => {
     if (!teacher || !selectedClass) {
         toast({ variant: "destructive", title: "Error", description: "Cannot send message. Teacher or class not selected." });
         return;
@@ -76,7 +76,7 @@ export default function TeacherAnnouncementsPage() {
     };
     
      try {
-      await addAnnouncement(announcementData as any);
+      await addAnnouncement(announcementData as any, file);
       toast({
         title: "Announcement Sent!",
         description: `Your message has been sent to ${selectedClass}.`,

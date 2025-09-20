@@ -1,6 +1,6 @@
 
-
 import { db } from "@/lib/firebase";
+import { uploadImage as uploadImageToImageKit } from "@/lib/imagekit";
 import {
   ref,
   push,
@@ -11,6 +11,7 @@ import {
   get,
   DataSnapshot,
   serverTimestamp,
+  set,
 } from "firebase/database";
 import type { DocumentData } from "firebase/firestore";
 
@@ -26,25 +27,46 @@ export interface Announcement extends DocumentData {
     type: "class" | "student";
     value: string; // class-section string or studentId
   };
-  createdAt: number; // Use timestamp for ordering
-  createdBy?: string; // UID of creator (principal or teacher)
+  createdAt: number;
+  createdBy?: string;
   creatorName?: string;
   creatorRole?: "Principal" | "Owner" | "Teacher";
+  attachmentUrl?: string;
+  attachmentPath?: string;
 }
 
 // Add a new announcement
-export const addAnnouncement = async (announcementData: Omit<Announcement, 'id' | 'createdAt'>) => {
+export const addAnnouncement = async (
+    announcementData: Omit<Announcement, 'id' | 'createdAt'>,
+    attachment?: File
+) => {
   try {
     const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
-    await push(announcementsRef, { 
+    const newAnnouncementRef = push(announcementsRef);
+    const newAnnouncementId = newAnnouncementRef.key;
+
+    if (!newAnnouncementId) {
+      throw new Error("Could not generate a new key for the announcement.");
+    }
+
+    let finalAnnouncementData: Omit<Announcement, 'id'> = {
         ...announcementData,
         createdAt: Date.now()
-    });
+    };
+    
+    if (attachment) {
+        const attachmentUrl = await uploadImageToImageKit(attachment, "gallery");
+        finalAnnouncementData.attachmentUrl = attachmentUrl;
+        // The path isn't stored as we don't have a backend to delete from ImageKit securely
+    }
+
+    await set(newAnnouncementRef, finalAnnouncementData);
   } catch (e) {
     console.error("Error adding document: ", e);
     throw e;
   }
 };
+
 
 // Get announcements with real-time updates for a student
 export const getAnnouncementsForStudent = (
