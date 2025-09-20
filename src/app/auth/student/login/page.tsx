@@ -20,12 +20,6 @@ export default function StudentLoginPage() {
         </div>
         <LoginForm role="student" />
         <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p>
-                First time logging in?{" "}
-                <Link href="/auth/student/register" className="font-medium text-primary hover:underline">
-                    Register your account
-                </Link>
-            </p>
             <p className="mt-2">
                 <Link href="/auth/student/forgot-password"className="text-xs font-medium text-primary hover:underline">
                     Forgot Password?

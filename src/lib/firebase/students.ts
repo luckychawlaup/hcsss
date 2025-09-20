@@ -141,7 +141,6 @@ export const verifyAndClaimStudentAccount = async (data: {
         authUid: data.authUid,
         srn,
     };
-    delete (finalStudentData as any).registrationKey; 
 
     // Create the permanent student record FIRST.
     await set(studentRef, finalStudentData);

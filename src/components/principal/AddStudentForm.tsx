@@ -26,10 +26,12 @@ import { Loader2, AlertCircle, CheckCircle, Copy, UserPlus, CalendarIcon, Plus, 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { registerStudentDetails } from "@/lib/firebase/students";
-import type { StudentRegistrationData } from "@/lib/firebase/students";
 import { Separator } from "../ui/separator";
 import { uploadImage } from "@/lib/imagekit";
+import { addStudent } from "@/lib/firebase/students";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { app } from "@/lib/firebase";
+
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
@@ -65,10 +67,11 @@ interface AddStudentFormProps {
 export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [registrationInfo, setRegistrationInfo] = useState<{ key: string; name: string } | null>(null);
+  const [registrationInfo, setRegistrationInfo] = useState<{ password: string; name: string, email: string } | null>(null);
   const [customSubject, setCustomSubject] = useState("");
   const [seniorSubjects, setSeniorSubjects] = useState(defaultSeniorSubjects);
   const { toast } = useToast();
+  const auth = getAuth(app);
 
   const form = useForm<z.infer<typeof addStudentSchema>>({
     resolver: zodResolver(addStudentSchema),
@@ -107,7 +110,13 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     setError(null);
     setRegistrationInfo(null);
 
+    let tempUser = null;
+
     try {
+        const tempPassword = Math.random().toString(36).slice(-8);
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, tempPassword);
+        tempUser = userCredential.user;
+
       let photoUrl: string | undefined;
       const studentPhotoFile = values.photo?.[0];
       if (studentPhotoFile) {
@@ -120,25 +129,40 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         aadharUrl = await uploadImage(aadharFile, "Aadhar Cards");
       }
       
-      const dataToSave = {
-        ...values,
+      const srn = `SRN${Math.floor(1000 + Math.random() * 9000)}`;
+
+      await addStudent(tempUser.uid, {
+        authUid: tempUser.uid,
+        srn: srn,
+        email: values.email,
+        name: values.name,
+        photoUrl: photoUrl || "",
+        fatherName: values.fatherName,
+        motherName: values.motherName,
+        address: values.address,
+        class: values.class,
+        section: values.section,
+        admissionDate: values.admissionDate.getTime(),
+        dateOfBirth: formatDate(values.dateOfBirth, "yyyy-MM-dd"),
         aadharNumber: values.aadharNumber || "",
-        studentPhone: values.studentPhone || "",
+        aadharUrl: aadharUrl || "",
+        optedSubjects: values.optedSubjects || [],
         fatherPhone: values.fatherPhone || "",
         motherPhone: values.motherPhone || "",
-        photoUrl: photoUrl || "",
-        aadharUrl: aadharUrl || "",
-      } as StudentRegistrationData;
+        studentPhone: values.studentPhone || "",
+        mustChangePassword: true,
+      });
 
-      const result = await registerStudentDetails(dataToSave);
-
-      setRegistrationInfo({ key: result.registrationKey, name: values.name });
+      setRegistrationInfo({ password: tempPassword, name: values.name, email: values.email });
       toast({
-        title: "Student Registered Successfully!",
-        description: `Registration details for ${values.name} have been saved.`,
+        title: "Student Admitted Successfully!",
+        description: `Login credentials for ${values.name} have been generated.`,
       });
       form.reset();
     } catch (e: any) {
+        if (tempUser) {
+            await tempUser.delete();
+        }
       setError(`An unexpected error occurred: ${e.message}`);
     } finally {
       setIsLoading(false);
@@ -149,7 +173,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
       navigator.clipboard.writeText(text);
       toast({
         title: "Copied!",
-        description: "Registration Key copied to clipboard.",
+        description: "Password copied to clipboard.",
       });
   };
 
@@ -163,17 +187,18 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
             <CheckCircle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-primary">Student Admitted!</AlertTitle>
             <AlertDescription className="space-y-4">
-                <p><strong>{registrationInfo.name}</strong> has been admitted. Please provide the family with their unique one-time Registration Key to create their account.</p>
+                <p><strong>{registrationInfo.name}</strong> has been admitted. Please provide the family with their login credentials.</p>
                 
+                <p className="text-sm"><strong>Email:</strong> {registrationInfo.email}</p>
                  <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
-                    <p className="font-mono text-lg font-bold text-primary">{registrationInfo.key}</p>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(registrationInfo.key)}>
+                    <p className="font-mono text-lg font-bold text-primary">{registrationInfo.password}</p>
+                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(registrationInfo.password)}>
                         <Copy className="h-5 w-5 text-primary" />
                     </Button>
                 </div>
                 
                 <p className="text-xs text-muted-foreground">
-                    The student will need this key, their registered name, and email to create their account on the student login page.
+                    This is a one-time temporary password. The student will be required to change it on their first login.
                 </p>
 
                  <div className="flex gap-2 pt-2">
@@ -497,7 +522,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Admit Student & Generate Registration Key
+            Admit Student & Generate Credentials
           </Button>
         </form>
       </Form>
