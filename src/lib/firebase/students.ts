@@ -194,7 +194,15 @@ export const getStudentById = async (uid: string): Promise<Student | null> => {
 
 // Get a single student by Auth UID
 export const getStudentByAuthId = async (authUid: string): Promise<Student | null> => {
-    return getStudentById(authUid);
+  const studentsRef = ref(db, STUDENTS_COLLECTION);
+  const q = query(studentsRef, orderByChild('authUid'), equalTo(authUid));
+  const snapshot = await get(q);
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    const id = Object.keys(data)[0];
+    return { id, ...data[id] };
+  }
+  return null;
 }
 
 

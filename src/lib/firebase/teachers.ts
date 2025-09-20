@@ -242,7 +242,7 @@ export const getTeacherForClass = async (classSection: string): Promise<Teacher 
     if (snapshot.exists()) {
         const data = snapshot.val();
         const teacherId = Object.keys(data)[0];
-        return { id: teacherId, ...data[teacherId] };
+        return { id: teacherId, authUid: teacherId, ...data[teacherId] };
     }
     return null;
 };
@@ -299,5 +299,3 @@ export const deleteTeacher = async (teacherId: string) => {
     throw e;
   }
 };
-
-    

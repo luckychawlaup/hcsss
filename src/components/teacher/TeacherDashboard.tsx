@@ -36,6 +36,9 @@ const AddHomeworkForm = dynamic(() => import('./AddHomeworkForm'), {
 const MarkAttendance = dynamic(() => import('./MarkAttendance'), {
   loading: () => <Skeleton className="h-96 w-full" />,
 });
+const Gradebook = dynamic(() => import('./Gradebook'), {
+    loading: () => <Skeleton className="h-96 w-full" />
+});
 
 
 export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "makeAnnouncement" | "teacherLeave" | "gradebook";
@@ -240,10 +243,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
-                                <h3 className="mt-4 text-lg font-semibold">Feature Coming Soon</h3>
-                                <p className="text-muted-foreground mt-2">The Gradebook & Assessment Tool is currently under development.</p>
-                            </div>
+                           <Gradebook teacher={teacher} students={assignedStudents} />
                         </CardContent>
                     </Card>
                 );
