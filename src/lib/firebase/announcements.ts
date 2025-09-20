@@ -12,6 +12,8 @@ import {
   DataSnapshot,
   serverTimestamp,
   set,
+  remove,
+  update,
 } from "firebase/database";
 import type { DocumentData } from "firebase/firestore";
 
@@ -28,9 +30,10 @@ export interface Announcement extends DocumentData {
     value: string; // class-section string or studentId
   };
   createdAt: number;
+  editedAt?: number;
   createdBy?: string;
   creatorName?: string;
-  creatorRole?: "Principal" | "Owner" | "Teacher";
+  creatorRole?: "Principal" | "Owner" | "Teacher" | "Class Teacher" | "Subject Teacher";
   attachmentUrl?: string;
   attachmentPath?: string;
 }
@@ -176,4 +179,19 @@ export const getAllAnnouncements = (callback: (announcements: Announcement[]) =>
     });
 
     return unsubscribe;
+};
+
+// Update an existing announcement
+export const updateAnnouncement = async (announcementId: string, content: string) => {
+  const announcementRef = ref(db, `${ANNOUNCEMENTS_COLLECTION}/${announcementId}`);
+  await update(announcementRef, {
+    content: content,
+    editedAt: Date.now()
+  });
+};
+
+// Delete an announcement
+export const deleteAnnouncement = async (announcementId: string) => {
+  const announcementRef = ref(db, `${ANNOUNCEMENTS_COLLECTION}/${announcementId}`);
+  await remove(announcementRef);
 };

@@ -7,12 +7,12 @@ import TeacherNav from "@/components/teacher/TeacherNav";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
-import { Announcement, getAnnouncementsForClass } from "@/lib/firebase/announcements";
+import { Announcement, getAnnouncementsForClass, addAnnouncement, updateAnnouncement, deleteAnnouncement } from "@/lib/firebase/announcements";
 import { Skeleton } from "@/components/ui/skeleton";
 import ClassChatGroup from "@/components/teacher/ClassChatGroup";
 import AnnouncementChat from "@/components/teacher/AnnouncementChat";
-import { addAnnouncement } from "@/lib/firebase/announcements";
 import { useToast } from "@/hooks/use-toast";
+
 
 export default function TeacherAnnouncementsPage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
@@ -86,6 +86,24 @@ export default function TeacherAnnouncementsPage() {
     }
   }
 
+   const handleUpdateMessage = async (id: string, content: string) => {
+      try {
+        await updateAnnouncement(id, content);
+        toast({ title: "Announcement Updated" });
+      } catch (e: any) {
+        toast({ variant: "destructive", title: "Error", description: "Could not update announcement." });
+      }
+  }
+
+  const handleDeleteMessage = async (id: string) => {
+       try {
+        await deleteAnnouncement(id);
+        toast({ title: "Announcement Deleted" });
+      } catch (e: any) {
+        toast({ variant: "destructive", title: "Error", description: "Could not delete announcement." });
+      }
+  }
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
@@ -113,6 +131,8 @@ export default function TeacherAnnouncementsPage() {
                         announcements={announcements}
                         chatTitle={selectedClass}
                         onSendMessage={handleSendMessage}
+                        onUpdateMessage={handleUpdateMessage}
+                        onDeleteMessage={handleDeleteMessage}
                         senderName={teacher?.name || "Teacher"}
                         senderRole={teacher?.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}
                     />

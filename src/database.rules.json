@@ -43,7 +43,7 @@
       ".read": "auth != null",
       ".write": "root.child('isAdmin').val() || root.child('isTeacher').val()",
       "$announcementId": {
-        ".write": "(root.child('isAdmin').val() || root.child('isTeacher').val()) && newData.child('createdBy').val() === auth.uid"
+        ".write": "(root.child('isAdmin').val() || root.child('isTeacher').val()) && (!data.exists() || data.child('createdBy').val() === auth.uid)"
       }
     },
     "leaves": {
@@ -91,3 +91,4 @@
     }
   }
 }
+

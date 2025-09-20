@@ -17,7 +17,7 @@ import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { addAnnouncement, getAllAnnouncements, Announcement, getAnnouncementsForClass, getAnnouncementsForTeachers } from "@/lib/firebase/announcements";
+import { addAnnouncement, getAllAnnouncements, Announcement, getAnnouncementsForClass, getAnnouncementsForTeachers, updateAnnouncement, deleteAnnouncement } from "@/lib/firebase/announcements";
 import AnnouncementChat from "../teacher/AnnouncementChat";
 import { useToast } from "@/hooks/use-toast";
 import ClassChatGroup from "../teacher/ClassChatGroup";
@@ -128,6 +128,24 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
             toast({ variant: 'destructive', title: 'Error', description: "Failed to send announcement." });
         }
     };
+
+    const handleUpdateMessage = async (id: string, content: string) => {
+      try {
+        await updateAnnouncement(id, content);
+        toast({ title: "Announcement Updated" });
+      } catch (e: any) {
+        toast({ variant: "destructive", title: "Error", description: "Could not update announcement." });
+      }
+    }
+
+    const handleDeleteMessage = async (id: string) => {
+        try {
+            await deleteAnnouncement(id);
+            toast({ title: "Announcement Deleted" });
+        } catch (e: any) {
+            toast({ variant: "destructive", title: "Error", description: "Could not delete announcement." });
+        }
+    }
     
     return (
         <div className="flex flex-1 md:grid md:grid-cols-[300px_1fr] md:border-t">
@@ -144,6 +162,8 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
                     announcements={announcements}
                     chatTitle={selectedGroup}
                     onSendMessage={handleSendMessage}
+                    onUpdateMessage={handleUpdateMessage}
+                    onDeleteMessage={handleDeleteMessage}
                     senderName={isOwner ? "Owner" : "Principal"}
                     senderRole={isOwner ? "Owner" : "Principal"}
                 />
