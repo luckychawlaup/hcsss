@@ -104,6 +104,9 @@ export const verifyAndClaimTeacherAccount = async (data: {
     if (regData.name.toLowerCase() !== data.name.toLowerCase()) {
         return { success: false, message: "Name does not match the registered details." };
     }
+     if (regData.claimedBy) {
+        return { success: false, message: "This registration key has already been used." };
+    }
 
     const teacherRef = ref(db, `${TEACHERS_COLLECTION}/${data.authUid}`);
     const finalTeacherData: Omit<Teacher, 'id' | 'registrationKey'> = {

@@ -128,6 +128,9 @@ export const verifyAndClaimStudentAccount = async (data: {
     if (regData.name.toLowerCase() !== data.name.toLowerCase()) {
         return { success: false, message: "Name does not match the registered details." };
     }
+    if (regData.claimedBy) {
+        return { success: false, message: "This registration key has already been used."};
+    }
 
     // Generate SRN
     const srn = `SRN${Math.floor(1000 + Math.random() * 9000)}`;
@@ -140,8 +143,10 @@ export const verifyAndClaimStudentAccount = async (data: {
     };
     delete (finalStudentData as any).registrationKey; 
 
+    // Create the permanent student record FIRST.
     await set(studentRef, finalStudentData);
-    // Remove the registration entry as it's now claimed
+
+    // THEN, remove the temporary registration entry.
     await remove(regRef);
 
     return { success: true, message: "Account claimed successfully."};
@@ -200,6 +205,7 @@ export const getStudentsAndPending = (callback: (students: CombinedStudent[]) =>
       if (snapshot.exists()) {
         const data = snapshot.val();
         for (const id in data) {
+          // A registration is pending if it has not been claimed
           if (!data[id].claimedBy) {
              pendingData.push({ id, ...data[id] });
           }
