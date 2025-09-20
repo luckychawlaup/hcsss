@@ -71,7 +71,7 @@ export const uploadImage = async (file: File, folder: UploadFolder): Promise<str
         throw new Error(`File type ${file.type} is not supported. Allowed types: ${allowedTypes.join(', ')}`);
     }
     
-    // Validate file size (10MB limit)
+    // Validate file size (2MB limit)
     const maxSize = 2 * 1024 * 1024; // 2MB
     if (file.size > maxSize) {
         throw new Error(`File size ${(file.size / 1024 / 1024).toFixed(2)}MB exceeds the 2MB limit`);
