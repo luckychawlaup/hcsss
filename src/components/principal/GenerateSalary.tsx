@@ -25,8 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, PlusCircle, Trash2, Users, WalletCards } from "lucide-react";
-import type { Teacher } from "@/lib/firebase/teachers";
-import { addSalarySlip } from "@/lib/firebase/salary";
+import type { Teacher } from "@/lib/supabase/teachers";
+import { addSalarySlip } from "@/lib/supabase/salary";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -301,5 +301,3 @@ export default function GenerateSalary({ teachers, isLoading }: GenerateSalaryPr
     </Form>
   );
 }
-
-    

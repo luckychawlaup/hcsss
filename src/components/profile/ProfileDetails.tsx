@@ -1,8 +1,8 @@
 
 "use client";
 
-import type { Student } from "@/lib/firebase/students";
-import type { Teacher } from "@/lib/firebase/teachers";
+import type { Student } from "@/lib/supabase/students";
+import type { Teacher } from "@/lib/supabase/teachers";
 import {
   Card,
   CardHeader,
@@ -24,7 +24,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
-import { Timestamp } from "firebase/firestore";
 
 const DetailItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string | null }) => {
     if (!value) return null;
@@ -64,11 +63,8 @@ export function ProfileSkeleton() {
     )
 }
 
-function formatDateFromTimestamp(timestamp: Timestamp | number): string {
-    if (typeof timestamp === 'number') {
-        return new Date(timestamp).toLocaleDateString("en-GB");
-    }
-    return timestamp.toDate().toLocaleDateString("en-GB");
+function formatDateFromTimestamp(timestamp: number): string {
+    return new Date(timestamp).toLocaleDateString("en-GB");
 }
 
 export function StudentProfile({ student }: { student: Student }) {
@@ -168,3 +164,5 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
         </div>
     )
 }
+
+    

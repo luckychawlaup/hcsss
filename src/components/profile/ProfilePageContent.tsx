@@ -2,12 +2,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged, signOut, User as AuthUser } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getStudentByAuthId } from "@/lib/firebase/students";
-import { getTeacherByAuthId } from "@/lib/firebase/teachers";
-import type { Student } from "@/lib/firebase/students";
-import type { Teacher } from "@/lib/firebase/teachers";
+import { User as AuthUser } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { getStudentByAuthId } from "@/lib/supabase/students";
+import { getTeacherByAuthId } from "@/lib/supabase/teachers";
+import type { Student } from "@/lib/supabase/students";
+import type { Teacher } from "@/lib/supabase/teachers";
 import { ProfileSkeleton, StudentProfile, TeacherProfile } from "./ProfileDetails";
 import { SalaryDetails } from "../teacher/SalaryDetails";
 import { Button } from "../ui/button";
@@ -20,20 +20,21 @@ export default function ProfilePageContent() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
   const [role, setRole] = useState<"student" | "teacher" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const auth = getAuth(app);
+  const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: AuthUser | null) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       setIsLoading(true);
+      const user = session?.user;
       if (user) {
         try {
-          const teacherProfile = await getTeacherByAuthId(user.uid);
+          const teacherProfile = await getTeacherByAuthId(user.id);
           if (teacherProfile) {
             setProfile(teacherProfile);
             setRole("teacher");
           } else {
-            const studentProfile = await getStudentByAuthId(user.uid);
+            const studentProfile = await getStudentByAuthId(user.id);
             if (studentProfile) {
               setProfile(studentProfile);
               setRole("student");
@@ -56,12 +57,13 @@ export default function ProfilePageContent() {
       }
     });
 
-    return () => unsubscribe();
-  }, [auth]);
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const handleLogout = async () => {
-    await signOut(auth);
-    document.cookie = "teacher-role=; path=/; max-age=-1";
+    await supabase.auth.signOut();
     router.push("/login");
   };
 
@@ -105,3 +107,5 @@ export default function ProfilePageContent() {
     </>
   );
 }
+
+    

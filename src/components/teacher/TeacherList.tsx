@@ -3,7 +3,8 @@
 
 import { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
-import type { Teacher } from "@/lib/firebase/teachers";
+import type { Teacher } from "@/lib/supabase/teachers";
+import { regenerateTemporaryPassword } from "@/lib/supabase/teachers";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -52,7 +53,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Checkbox } from "../ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Timestamp } from "firebase/firestore";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -72,7 +72,7 @@ const editTeacherSchema = z.object({
   qualifications: z.array(z.string()).optional().default([]),
   classTeacherOf: z.string().optional(),
   classesTaught: z.array(z.string()).optional().default([]),
-  joiningDate: z.any(), // Keep as any to handle Timestamp
+  joiningDate: z.number(),
   bankAccount: z.object({
       accountHolderName: z.string().optional(),
       accountNumber: z.string().optional(),
@@ -98,7 +98,7 @@ type CombinedTeacher = Teacher & { status: 'Registered' };
 interface TeacherListProps {
   teachers: CombinedTeacher[];
   isLoading: boolean;
-  onUpdateTeacher: (id: string, data: Partial<Omit<Teacher, 'id'>>) => void;
+  onUpdateTeacher: (id: string, data: Partial<Teacher>) => void;
   onDeleteTeacher: (id: string) => void;
 }
 
@@ -108,6 +108,8 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   const [selectedTeacher, setSelectedTeacher] = useState<CombinedTeacher | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [qualificationInput, setQualificationInput] = useState("");
+  const [newPasswordInfo, setNewPasswordInfo] = useState<string | null>(null);
+  const [isGeneratingPassword, setIsGeneratingPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -144,7 +146,6 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     reset({
         ...teacher,
         dob: new Date(teacher.dob),
-        joiningDate: teacher.joiningDate,
         qualifications: teacher.qualifications || [],
         classesTaught: teacher.classesTaught || [],
         bankAccount: teacher.bankAccount || { accountHolderName: "", accountNumber: "", ifscCode: "", bankName: "" },
@@ -166,10 +167,9 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   }
 
   async function onEditSubmit(values: z.infer<typeof editTeacherSchema>) {
-    if(selectedTeacher) {
-        const { joiningDate, ...rest } = values;
-        const updatedData: Partial<Omit<Teacher, 'id'>> = {
-            ...rest,
+    if(selectedTeacher && selectedTeacher.status === 'Registered') {
+        const updatedData: Partial<Teacher> = {
+            ...values,
             dob: formatDate(values.dob, "yyyy-MM-dd"),
         };
         await onUpdateTeacher(selectedTeacher.id, updatedData);
@@ -183,13 +183,14 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
         "Teacher ID": teacher.authUid,
         "Name": teacher.name,
         "Email": teacher.email,
+        "Status": teacher.status,
         "Role": teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher',
         "Assignment": teacher.role === 'classTeacher' ? teacher.classTeacherOf : teacher.classesTaught?.join(', '),
         "Subject": teacher.subject,
         "Phone Number": teacher.phoneNumber,
         "DOB": teacher.dob,
         "Qualifications": teacher.qualifications?.join(', '),
-        "Joining Date": teacher.joiningDate.toDate().toLocaleDateString('en-GB'),
+        "Joining Date": new Date(teacher.joiningDate).toLocaleDateString('en-GB'),
         "Father's Name": teacher.fatherName,
         "Address": teacher.address,
     }));
@@ -199,6 +200,42 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     XLSX.utils.book_append_sheet(workbook, worksheet, "Teachers");
     XLSX.writeFile(workbook, `Teachers_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
+  
+  const handleRegeneratePassword = async (teacher: Teacher) => {
+      setSelectedTeacher(teacher as CombinedTeacher);
+      setIsGeneratingPassword(true);
+      setNewPasswordInfo(null);
+      try {
+          const info = await regenerateTemporaryPassword(teacher.authUid);
+          setNewPasswordInfo(info);
+          toast({
+              title: "Password Reset Triggered",
+              description: `A password reset email has been sent to ${teacher.name}.`
+          });
+      } catch (error) {
+          toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Could not trigger the password reset. Please try again."
+          })
+      } finally {
+        setIsGeneratingPassword(false);
+      }
+  }
+  
+  const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: "Information copied to clipboard.",
+      });
+  };
+
+  const closePasswordDialog = () => {
+      setNewPasswordInfo(null);
+      setSelectedTeacher(null);
+  }
+
 
   if (isLoading) {
     return (
@@ -206,18 +243,22 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Teacher ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Joining Date</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {[...Array(5)].map((_, i) => (
               <TableRow key={i}>
+                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                 <TableCell className="text-right flex justify-end gap-2">
                   <Skeleton className="h-8 w-8" />
                   <Skeleton className="h-8 w-8" />
@@ -266,6 +307,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                 <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                         {teacher.name}
+                        <Badge variant={teacher.status === 'Registered' ? 'default' : 'secondary'}>{teacher.status}</Badge>
                     </div>
                 </TableCell>
                 <TableCell>
@@ -287,25 +329,37 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                 </TableCell>
                 <TableCell>{teacher.subject}</TableCell>
                 <TableCell>
-                    {formatDate(teacher.joiningDate.toDate(), 'dd MMM, yyyy')}
+                    {teacher.status === 'Registered' ? formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy') : 'Pending'}
                 </TableCell>
                 <TableCell className="text-right">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher.id)}>
-                                <Printer className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Print Joining Letter</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit Teacher</TooltipContent>
-                    </Tooltip>
+                    {teacher.status === 'Registered' && (
+                        <>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handleRegeneratePassword(teacher as Teacher)} disabled={isGeneratingPassword && selectedTeacher?.id === teacher.id}>
+                                    {isGeneratingPassword && selectedTeacher?.id === teacher.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Force Password Reset</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher.id)}>
+                                    <Printer className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Print Joining Letter</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(teacher as Teacher)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit Teacher</TooltipContent>
+                        </Tooltip>
+                        </>
+                    )}
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(teacher)}>
@@ -327,7 +381,8 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the record for {selectedTeacher?.name} and their login account.
+              This action cannot be undone. This will permanently delete the record for {selectedTeacher?.name}.
+              {selectedTeacher?.status === 'Registered' && ' This will also delete their login account.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -339,6 +394,23 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <Dialog open={!!newPasswordInfo} onOpenChange={closePasswordDialog}>
+        <DialogContent>
+            <DialogHeader>
+                 <DialogTitle className="flex items-center gap-2"><CheckCircle className="text-primary"/>Password Reset Initiated</DialogTitle>
+                <DialogDescription>
+                    A password reset email has been sent to <strong>{selectedTeacher?.email}</strong>. The teacher must use the link in the email to set their new password.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-between rounded-md border bg-secondary p-3">
+                <span className="font-mono text-sm text-primary">{newPasswordInfo}</span>
+            </div>
+            <DialogFooter>
+                <Button onClick={closePasswordDialog}>Done</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[800px]">
@@ -348,49 +420,17 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                     Update the teacher's information below.
                 </DialogDescription>
             </DialogHeader>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-2 pr-4">
-                    {/* Personal Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Full Name</FormLabel>
-                                <FormControl>
-                                <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                    </div>
-                    
-                     {/* Academic & Role Details */}
-                    <Separator />
-                    <p className="font-semibold text-foreground">Academic & Role Details</p>
-                     <div className="space-y-6">
+            {selectedTeacher?.status === 'Registered' && (
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-2 pr-4">
+                        {/* Personal Details */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField
+                             <FormField
                                 control={form.control}
-                                name="subject"
+                                name="name"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Primary Subject</FormLabel>
+                                    <FormLabel>Full Name</FormLabel>
                                     <FormControl>
                                     <Input {...field} />
                                     </FormControl>
@@ -398,177 +438,214 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                                 </FormItem>
                                 )}
                             />
-                            <FormField
+                             <FormField
                                 control={form.control}
-                                name="role"
+                                name="email"
                                 render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <FormLabel>Select Role</FormLabel>
+                                <FormItem>
+                                    <FormLabel>Email Address</FormLabel>
                                     <FormControl>
-                                        <RadioGroup
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                        className="flex items-center space-x-4 pt-2"
-                                        >
-                                            <FormItem className="flex items-center space-x-2 space-y-0">
-                                                <FormControl>
-                                                <RadioGroupItem value="classTeacher" />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">Class Teacher</FormLabel>
-                                            </FormItem>
-                                            <FormItem className="flex items-center space-x-2 space-y-0">
-                                                <FormControl>
-                                                <RadioGroupItem value="subjectTeacher" />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">Subject Teacher</FormLabel>
-                                            </FormItem>
-                                        </RadioGroup>
+                                    <Input {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}
                             />
                         </div>
-
-                        {role === "classTeacher" && (
-                            <FormField
-                                control={form.control}
-                                name="classTeacherOf"
-                                render={({ field }) => (
+                        
+                         {/* Academic & Role Details */}
+                        <Separator />
+                        <p className="font-semibold text-foreground">Academic & Role Details</p>
+                         <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                    control={form.control}
+                                    name="subject"
+                                    render={({ field }) => (
                                     <FormItem>
-                                    <FormLabel>Class Teacher Of</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormLabel>Primary Subject</FormLabel>
                                         <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a class and section" />
-                                        </SelectTrigger>
+                                        <Input {...field} />
                                         </FormControl>
-                                        <SelectContent>
-                                            {allClassSections.map(cs => (
-                                                <SelectItem key={cs} value={cs}>{cs}</SelectItem>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="role"
+                                    render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel>Select Role</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                            className="flex items-center space-x-4 pt-2"
+                                            >
+                                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                                    <FormControl>
+                                                    <RadioGroupItem value="classTeacher" />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">Class Teacher</FormLabel>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                                    <FormControl>
+                                                    <RadioGroupItem value="subjectTeacher" />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">Subject Teacher</FormLabel>
+                                                </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            {role === "classTeacher" && (
+                                <FormField
+                                    control={form.control}
+                                    name="classTeacherOf"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Class Teacher Of</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a class and section" />
+                                            </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {allClassSections.map(cs => (
+                                                    <SelectItem key={cs} value={cs}>{cs}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
+                            )}
+                             <FormField
+                                control={form.control}
+                                name="classesTaught"
+                                render={() => (
+                                    <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">
+                                                {role === 'classTeacher' ? 'Also Teaches (as Subject Teacher)' : 'Assign Classes to Subject Teacher'}
+                                            </FormLabel>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                            {allClassSections.map((item) => (
+                                                <FormField
+                                                    key={item}
+                                                    control={form.control}
+                                                    name="classesTaught"
+                                                    render={({ field }) => {
+                                                        return (
+                                                        <FormItem
+                                                            key={item}
+                                                            className="flex flex-row items-start space-x-3 space-y-0"
+                                                        >
+                                                            <FormControl>
+                                                            <Checkbox
+                                                                checked={field.value?.includes(item)}
+                                                                onCheckedChange={(checked) => {
+                                                                return checked
+                                                                    ? field.onChange([...(field.value || []), item])
+                                                                    : field.onChange(
+                                                                        field.value?.filter(
+                                                                            (value) => value !== item
+                                                                        )
+                                                                        )
+                                                                }}
+                                                            />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">
+                                                            {item}
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                        )
+                                                    }}
+                                                />
                                             ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
+                                        </div>
+                                        <FormMessage />
                                     </FormItem>
                                 )}
-                                />
-                        )}
-                         <FormField
-                            control={form.control}
-                            name="classesTaught"
-                            render={() => (
+                            />
+                        </div>
+                        
+                        {/* Bank Details */}
+                        <Separator />
+                        <p className="font-semibold text-foreground flex items-center gap-2"><Landmark/> Bank Account Details</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                             <FormField
+                                control={form.control}
+                                name="bankAccount.accountHolderName"
+                                render={({ field }) => (
                                 <FormItem>
-                                    <div className="mb-4">
-                                        <FormLabel className="text-base">
-                                            {role === 'classTeacher' ? 'Also Teaches (as Subject Teacher)' : 'Assign Classes to Subject Teacher'}
-                                        </FormLabel>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {allClassSections.map((item) => (
-                                            <FormField
-                                                key={item}
-                                                control={form.control}
-                                                name="classesTaught"
-                                                render={({ field }) => {
-                                                    return (
-                                                    <FormItem
-                                                        key={item}
-                                                        className="flex flex-row items-start space-x-3 space-y-0"
-                                                    >
-                                                        <FormControl>
-                                                        <Checkbox
-                                                            checked={field.value?.includes(item)}
-                                                            onCheckedChange={(checked) => {
-                                                            return checked
-                                                                ? field.onChange([...(field.value || []), item])
-                                                                : field.onChange(
-                                                                    field.value?.filter(
-                                                                        (value) => value !== item
-                                                                    )
-                                                                    )
-                                                            }}
-                                                        />
-                                                        </FormControl>
-                                                        <FormLabel className="font-normal">
-                                                        {item}
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                    )
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
+                                    <FormLabel>Account Holder Name</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
-                            )}
-                        />
-                    </div>
-                    
-                    {/* Bank Details */}
-                    <Separator />
-                    <p className="font-semibold text-foreground flex items-center gap-2"><Landmark/> Bank Account Details</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                         <FormField
-                            control={form.control}
-                            name="bankAccount.accountHolderName"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Account Holder Name</FormLabel>
-                                <FormControl><Input {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="bankAccount.accountNumber"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Account Number</FormLabel>
-                                <FormControl><Input {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="bankAccount.ifscCode"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>IFSC Code</FormLabel>
-                                <FormControl><Input {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="bankAccount.bankName"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bank Name</FormLabel>
-                                <FormControl><Input {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                    </div>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="bankAccount.accountNumber"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Account Number</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="bankAccount.ifscCode"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>IFSC Code</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="bankAccount.bankName"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Bank Name</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
 
 
-                    <DialogFooter className="pt-4">
-                        <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdating}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={isUpdating}>
-                            {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save Changes
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </Form>
+                        <DialogFooter className="pt-4">
+                            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdating}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isUpdating}>
+                                {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save Changes
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            )}
         </DialogContent>
       </Dialog>
     </>
   );
 }
+    
+
+    

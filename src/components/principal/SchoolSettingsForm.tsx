@@ -18,8 +18,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getSchoolSettingsRT, updateSchoolSettings } from "@/lib/firebase/settings";
-import type { SchoolSettings } from "@/lib/firebase/settings";
+import { getSchoolSettingsRT, updateSchoolSettings } from "@/lib/supabase/settings";
+import type { SchoolSettings } from "@/lib/supabase/settings";
 import { Skeleton } from "../ui/skeleton";
 import { useRouter } from "next/navigation";
 
@@ -64,7 +64,11 @@ export default function SchoolSettingsForm() {
         setSettings(currentSettings);
         form.reset(currentSettings);
     });
-    return () => unsubscribe();
+    return () => {
+        if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+            unsubscribe.unsubscribe();
+        }
+    }
   }, [form]);
 
 

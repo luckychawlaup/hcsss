@@ -40,10 +40,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getAuth, User } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getStudentByAuthId, Student } from "@/lib/firebase/students";
-import { addLeaveRequest, getLeaveRequestsForUser, LeaveRequest } from "@/lib/firebase/leaves";
+import { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { getStudentByAuthId, Student } from "@/lib/supabase/students";
+import { addLeaveRequest, getLeaveRequestsForUser, LeaveRequest } from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 
@@ -94,14 +94,15 @@ export default function LeavePageContent() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
-  const auth = getAuth(app);
+  const supabase = createClient();
 
 
   useEffect(() => {
-    const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const user = session?.user;
         if(user) {
             setCurrentUser(user);
-            const studentProfile = await getStudentByAuthId(user.uid);
+            const studentProfile = await getStudentByAuthId(user.id);
             setCurrentStudent(studentProfile);
             if (studentProfile) {
                const unsubscribeLeaves = getLeaveRequestsForUser(studentProfile.id, (leaves) => {
@@ -115,8 +116,10 @@ export default function LeavePageContent() {
         }
     });
 
-    return () => unsubscribeAuth();
-  }, [auth]);
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
 
   const form = useForm<z.infer<typeof leaveSchema>>({
@@ -153,7 +156,7 @@ export default function LeavePageContent() {
         endDate,
         reason: values.reason,
         status: "Pending",
-        appliedAt: Date.now(),
+        appliedAt: new Date().toISOString(),
     }
 
     try {
@@ -330,3 +333,5 @@ export default function LeavePageContent() {
     </div>
   );
 }
+
+    

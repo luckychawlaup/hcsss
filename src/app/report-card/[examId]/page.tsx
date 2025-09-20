@@ -3,11 +3,11 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useParams, notFound } from 'next/navigation';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import { app } from '@/lib/firebase';
-import { getStudentByAuthId, Student } from '@/lib/firebase/students';
-import { getStudentMarksForExam, Mark } from '@/lib/firebase/marks';
-import { getExams, Exam } from '@/lib/firebase/exams';
+import { User } from "@supabase/supabase-js";
+import { createClient } from '@/lib/supabase/client';
+import { getStudentByAuthId, Student } from '@/lib/supabase/students';
+import { getStudentMarksForExam, Mark } from '@/lib/supabase/marks';
+import { getExams, Exam } from '@/lib/supabase/exams';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, Award, Check, Percent } from 'lucide-react';
 import Image from 'next/image';
@@ -33,18 +33,20 @@ function ReportCardContent() {
     const { settings } = useTheme();
     const params = useParams();
     const examId = params.examId as string;
-    const auth = getAuth(app);
+    const supabase = createClient();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+            const currentUser = session?.user;
             setUser(currentUser);
             if (currentUser && examId) {
                 try {
-                    const studentData = await getStudentByAuthId(currentUser.uid);
+                    const studentData = await getStudentByAuthId(currentUser.id);
                     setStudent(studentData);
 
                     const allExams = await new Promise<Exam[]>((resolve) => {
                         const unsub = getExams(resolve);
+                        return () => unsub.unsubscribe();
                     });
                     const currentExam = allExams.find(e => e.id === examId);
                     setExam(currentExam || null);
@@ -62,8 +64,11 @@ function ReportCardContent() {
                 setIsLoading(false);
             }
         });
-        return () => unsubscribe();
-    }, [auth, examId]);
+
+        return () => {
+            authListener.subscription.unsubscribe();
+        };
+    }, [supabase, examId]);
 
     const handlePrint = () => window.print();
 
@@ -186,3 +191,5 @@ export default function ReportCardPage() {
         </Suspense>
     );
 }
+
+    

@@ -2,15 +2,15 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { getTeacherByAuthId } from '@/lib/firebase/teachers';
-import type { Teacher } from '@/lib/firebase/teachers';
+import { getTeacherByAuthId } from '@/lib/supabase/teachers';
+import type { Teacher } from '@/lib/supabase/teachers';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ClipboardCopy, Info, Phone, Mail, Shield } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { getRegistrationKeyForTeacher } from '@/lib/firebase/teachers';
+import { getRegistrationKeyForTeacher } from '@/lib/supabase/teachers';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useTheme } from '@/components/theme/ThemeProvider';
 
@@ -184,3 +184,5 @@ export default function JoiningLetterPage() {
     </div>
   );
 }
+
+    
