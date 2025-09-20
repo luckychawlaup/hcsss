@@ -46,10 +46,9 @@ export const addAnnouncement = async (announcementData: Omit<Announcement, 'id' 
   }
 };
 
-// Get announcements with real-time updates based on target
-export const getAnnouncements = (
-    targetRole: "students" | "teachers",
-    studentInfo: { classSection: string; studentId: string } | null,
+// Get announcements with real-time updates for a student
+export const getAnnouncementsForStudent = (
+    studentInfo: { classSection: string; studentId: string },
     callback: (announcements: Announcement[]) => void
 ) => {
   const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
@@ -66,35 +65,56 @@ export const getAnnouncements = (
     
     // Filter announcements for the target audience
     const filtered = allAnnouncements.filter(ann => {
-        // Principal-level announcements
-        if (ann.target === targetRole || ann.target === "both") {
-            // If it's a general announcement without specific audience, show it
+        // General announcements for all students or everyone
+        if (ann.target === "students" || ann.target === "both") {
             if (!ann.targetAudience) {
                 return true;
             }
         }
         
-        // Teacher-level announcements for a specific student or class
-        if (targetRole === 'students' && ann.targetAudience && studentInfo) {
-            const { type, value } = ann.targetAudience;
-            if (type === 'class' && value === studentInfo.classSection) {
-                return true;
-            }
-            if (type === 'student' && value === studentInfo.studentId) {
-                return true;
-            }
+        // Announcements targeted to the student's class
+        if (ann.targetAudience?.type === 'class' && ann.targetAudience.value === studentInfo.classSection) {
+            return true;
+        }
+
+        // Announcements targeted specifically to the student
+        if (ann.targetAudience?.type === 'student' && ann.targetAudience.value === studentInfo.studentId) {
+            return true;
         }
         
         return false;
     });
 
-    // Sort by most recent
-    const sorted = filtered.sort((a, b) => b.createdAt - a.createdAt);
-
+    const sorted = filtered.sort((a, b) => a.createdAt - b.createdAt);
     callback(sorted);
   });
-  return unsubscribe; // Return the unsubscribe function to clean up the listener
+  return unsubscribe;
 };
+
+// Get announcements for a specific class (for teachers)
+export const getAnnouncementsForClass = (
+    classSection: string,
+    callback: (announcements: Announcement[]) => void
+) => {
+    const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
+    const announcementsQuery = query(announcementsRef, orderByChild('targetAudience/value'), equalTo(classSection));
+
+    const unsubscribe = onValue(announcementsQuery, (snapshot: DataSnapshot) => {
+        const classAnnouncements: Announcement[] = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            for (const id in data) {
+                // Additional check because the query is on a nested property
+                if(data[id].targetAudience?.value === classSection) {
+                    classAnnouncements.push({ id, ...data[id] });
+                }
+            }
+        }
+        callback(classAnnouncements.sort((a, b) => a.createdAt - b.createdAt));
+    });
+    return unsubscribe;
+}
+
 
 // Get all announcements, intended for principal/admin views
 export const getAllAnnouncements = (callback: (announcements: Announcement[]) => void) => {
@@ -109,7 +129,7 @@ export const getAllAnnouncements = (callback: (announcements: Announcement[]) =>
                 allAnnouncements.push({ id, ...data[id] });
             }
         }
-        callback(allAnnouncements.sort((a, b) => b.createdAt - a.createdAt));
+        callback(allAnnouncements.sort((a, b) => a.createdAt - b.createdAt));
     });
 
     return unsubscribe;

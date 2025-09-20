@@ -17,8 +17,11 @@ import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { getAllAnnouncements, Announcement } from "@/lib/firebase/announcements";
-import { cn } from "@/lib/utils";
+import { addAnnouncement, getAllAnnouncements, Announcement } from "@/lib/firebase/announcements";
+import AnnouncementChat from "../teacher/AnnouncementChat";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Label } from "../ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 
 const AddTeacherForm = dynamic(() => import('./AddTeacherForm'), {
@@ -36,19 +39,17 @@ const StudentList = dynamic(() => import('./StudentList'), {
 const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
     loading: () => <Skeleton className="h-48 w-full" />,
 });
-const MakeAnnouncementForm = dynamic(() => import('./MakeAnnouncementForm'), {
-    loading: () => <Skeleton className="h-80 w-full" />,
-});
 const GenerateSalary = dynamic(() => import('./GenerateSalary'), {
     loading: () => <Skeleton className="h-80 w-full" />
 });
 const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
-    loading: () => <Skeleton className="h-80 w-full" />,
+    loading: () => <Skeleton className="h-80 w-full" />
 });
 
 type CombinedTeacher = (Teacher & { status: 'Registered' }) | (PendingTeacher & { status: 'Pending' });
 
 type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings";
+type AnnouncementTarget = "students" | "teachers" | "both";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -66,16 +67,64 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
 
 const ownerUID = "qEB6D6PbjycGSBKMPv9OGyorgnd2";
 
-const getCategoryStyles = (category: string) => {
-    switch (category.toLowerCase()) {
-        case "urgent":
-        return "bg-destructive/10 border-l-4 border-destructive";
-        case "event":
-        return "bg-primary/10 border-l-4 border-primary";
-        default:
-        return "bg-secondary border-l-4 border-secondary-foreground";
-    }
-};
+
+const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boolean }) => {
+    const [target, setTarget] = useState<AnnouncementTarget>("both");
+    const [allAnnouncements, setAllAnnouncements] = useState<Announcement[]>([]);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const unsub = getAllAnnouncements(setAllAnnouncements);
+        return () => unsub();
+    }, []);
+
+    const handleSendMessage = async (content: string, category: string) => {
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Not Authenticated' });
+            return;
+        }
+
+        try {
+            await addAnnouncement({
+                title: "School Announcement",
+                content,
+                category,
+                target,
+                createdBy: user.uid,
+                creatorName: isOwner ? "Owner" : "Principal",
+                creatorRole: isOwner ? "Owner" : "Principal",
+            });
+            toast({
+                title: "Announcement Published!",
+                description: `Your announcement has been sent to ${target}.`,
+            });
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: "Failed to send announcement." });
+        }
+    };
+    
+    const TargetSwitcher = (
+        <div className="p-4 border-b">
+            <p className="text-sm font-semibold mb-2">Select Audience</p>
+            <RadioGroup value={target} onValueChange={(value: AnnouncementTarget) => setTarget(value)} className="flex gap-4">
+                <div className="flex items-center space-x-2"><RadioGroupItem value="both" id="r_both" /><Label htmlFor="r_both">Everyone</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="students" id="r_students" /><Label htmlFor="r_students">Students Only</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="teachers" id="r_teachers" /><Label htmlFor="r_teachers">Teachers Only</Label></div>
+            </RadioGroup>
+        </div>
+    );
+
+    return (
+        <AnnouncementChat
+            announcements={allAnnouncements.filter(a => !a.targetAudience)} // Only show general announcements
+            chatTitle="School Announcements"
+            onSendMessage={handleSendMessage}
+            senderName={isOwner ? "Owner" : "Principal"}
+            senderRole={isOwner ? "Owner" : "Principal"}
+            headerContent={TargetSwitcher}
+        />
+    )
+}
 
 
 export default function PrincipalDashboard() {
@@ -88,7 +137,6 @@ export default function PrincipalDashboard() {
   const [allTeachers, setAllTeachers] = useState<CombinedTeacher[]>([]);
   const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
   const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -107,15 +155,12 @@ export default function PrincipalDashboard() {
 
     const unsubStudents = getStudents(setAllStudents);
     const unsubTeachers = getTeachersAndPending(setAllTeachers);
-    const unsubAnnouncements = getAllAnnouncements(setAnnouncements);
     
-    // Give a bit of time for initial data to load for stat cards
     const timer = setTimeout(() => setIsLoading(false), 1500);
 
     return () => {
       unsubStudents();
       unsubTeachers();
-      unsubAnnouncements();
       unsubscribeAuth();
       clearTimeout(timer);
     };
@@ -330,39 +375,24 @@ export default function PrincipalDashboard() {
                );
           case 'makeAnnouncement':
               return (
-                    <div className="flex flex-col h-[calc(100vh-10rem)]">
-                        <div className="flex-shrink-0">
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                    <Card>
+                        <CardHeader>
+                             <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
-                            <h2 className="text-2xl font-bold flex items-center gap-2 mb-4"><Megaphone/> Announcements</h2>
-                        </div>
-                        <div className="flex-1 overflow-y-auto space-y-4 pr-4">
-                         {announcements.length === 0 ? (
-                                <Card className="flex flex-col items-center justify-center p-8 h-full text-center">
-                                    <Info className="h-10 w-10 text-muted-foreground mb-4"/>
-                                    <p className="text-muted-foreground font-semibold">No announcements sent yet</p>
-                                    <p className="text-sm text-muted-foreground">Use the form below to send your first announcement.</p>
-                                </Card>
-                            ) : (
-                                announcements.map((notice) => (
-                                    <div key={notice.id} className={cn("flex flex-col gap-1 p-3 rounded-lg shadow-sm w-fit max-w-lg ml-auto", getCategoryStyles(notice.category))}>
-                                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                                            <span className="text-sm font-semibold text-foreground">{notice.creatorName}</span>
-                                            <span className="text-xs font-normal text-muted-foreground">{notice.creatorRole}</span>
-                                            <span className="text-xs font-normal text-muted-foreground">{new Date(notice.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                        <p className="text-sm font-semibold text-foreground py-1">{notice.title}</p>
-                                        <p className="text-sm font-normal text-muted-foreground">{notice.content}</p>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                        <div className="mt-4 flex-shrink-0">
-                            <MakeAnnouncementForm currentUser={user} isOwner={isOwner} />
-                        </div>
-                    </div>
+                             <CardTitle className="flex items-center gap-2">
+                                <Megaphone />
+                                Make Announcement
+                            </CardTitle>
+                             <CardDescription>
+                                Publish notices for staff, students, or everyone.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <AnnouncementView user={user} isOwner={isOwner} />
+                        </CardContent>
+                    </Card>
               );
           case 'managePayroll':
               return (

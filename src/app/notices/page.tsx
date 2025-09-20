@@ -5,38 +5,59 @@ import { useState, useEffect } from "react";
 import Header from "@/components/dashboard/Header";
 import BottomNav from "@/components/dashboard/BottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAnnouncements, Announcement } from "@/lib/firebase/announcements";
+import { getAnnouncementsForStudent, Announcement } from "@/lib/firebase/announcements";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getStudentByAuthId } from "@/lib/firebase/students";
 import { Card } from "@/components/ui/card";
-import { Info } from "lucide-react";
+import { Info, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+function AnnouncementBubble({ notice }: { notice: Announcement }) {
+  const isSender = false; // Students are always receivers
+  
+  return (
+    <div className={cn("flex items-end gap-2.5", isSender ? "justify-end" : "justify-start")}>
+        {!isSender && (
+             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                 {notice.creatorName?.charAt(0)}
+            </div>
+        )}
+        <div className={cn("flex flex-col gap-1 w-full max-w-[320px]")}>
+            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                <span className="text-xs font-semibold text-foreground">{notice.creatorName}</span>
+                <span className="text-xs font-normal text-muted-foreground">{new Date(notice.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <div className={cn("p-3 rounded-lg", isSender ? "bg-primary text-primary-foreground rounded-ee-none" : "bg-secondary rounded-es-none")}>
+                {notice.title && <p className="text-sm font-semibold pb-1">{notice.title}</p>}
+                <p className="text-sm font-normal">{notice.content}</p>
+            </div>
+             <span className="text-xs font-normal text-muted-foreground">{notice.creatorRole}</span>
+        </div>
+    </div>
+  )
+}
 
 function AnnouncementSkeleton() {
     return (
-        <div className="flex items-end gap-2.5">
-            <Skeleton className="w-10 h-10 rounded-full" />
-            <div className="flex flex-col gap-1 w-full max-w-[320px]">
-                <Skeleton className="h-4 w-24" />
-                <div className="p-3 rounded-e-xl rounded-es-xl bg-muted">
-                    <Skeleton className="h-4 w-64 mb-2" />
-                    <Skeleton className="h-4 w-48" />
+        <>
+            <div className="flex items-end gap-2.5 justify-start">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <div className="flex flex-col gap-1 w-full max-w-[320px]">
+                    <Skeleton className="h-4 w-24 mb-1" />
+                    <Skeleton className="h-16 w-full" />
                 </div>
             </div>
-        </div>
+             <div className="flex items-end gap-2.5 justify-end">
+                <div className="flex flex-col gap-1 w-full max-w-[320px] items-end">
+                    <Skeleton className="h-4 w-24 mb-1" />
+                    <Skeleton className="h-20 w-4/5" />
+                </div>
+                <Skeleton className="w-8 h-8 rounded-full" />
+            </div>
+        </>
     )
 }
-
-const getCategoryStyles = (category: string) => {
-    switch (category.toLowerCase()) {
-        case "urgent":
-        return "bg-destructive/10 border-l-4 border-destructive";
-        case "event":
-        return "bg-primary/10 border-l-4 border-primary";
-        default:
-        return "bg-secondary border-l-4 border-secondary-foreground";
-    }
-};
 
 export default function NoticesPage() {
   const [notices, setNotices] = useState<Announcement[]>([]);
@@ -53,8 +74,7 @@ export default function NoticesPage() {
             const classSection = `${studentProfile.class}-${studentProfile.section}`;
             const studentId = studentProfile.id;
 
-            const unsubscribeAnnouncements = getAnnouncements(
-              "students",
+            const unsubscribeAnnouncements = getAnnouncementsForStudent(
               { classSection, studentId },
               (announcements) => {
                 setNotices(announcements);
@@ -77,11 +97,7 @@ export default function NoticesPage() {
       <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 flex flex-col">
         <div className="mx-auto w-full max-w-2xl flex-1 space-y-6">
           {isLoading ? (
-            <>
-                <AnnouncementSkeleton />
-                <AnnouncementSkeleton />
-                <AnnouncementSkeleton />
-            </>
+            <AnnouncementSkeleton />
           ) : notices.length === 0 ? (
              <Card className="flex flex-col items-center justify-center p-8 h-full text-center">
                  <Info className="h-10 w-10 text-muted-foreground mb-4"/>
@@ -90,19 +106,11 @@ export default function NoticesPage() {
              </Card>
           ) : (
             notices.map((notice) => (
-                <div key={notice.id} className={cn("flex flex-col gap-1 p-3 rounded-lg shadow-sm", getCategoryStyles(notice.category))}>
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                        <span className="text-sm font-semibold text-foreground">{notice.creatorName}</span>
-                        <span className="text-xs font-normal text-muted-foreground">{notice.creatorRole || ''}</span>
-                        <span className="text-xs font-normal text-muted-foreground">{new Date(notice.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                    <p className="text-sm font-semibold text-foreground py-1">{notice.title}</p>
-                    <p className="text-sm font-normal text-muted-foreground">{notice.content}</p>
-                </div>
+                <AnnouncementBubble key={notice.id} notice={notice} />
             ))
           )}
         </div>
-        <div className="text-center text-xs text-muted-foreground py-4 mt-auto">
+        <div className="text-center text-xs text-muted-foreground pt-4 mt-auto">
             This is a one-way announcement channel. You cannot reply to these messages.
         </div>
       </main>
@@ -110,4 +118,3 @@ export default function NoticesPage() {
     </div>
   );
 }
-
