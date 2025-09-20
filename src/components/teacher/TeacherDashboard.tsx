@@ -222,13 +222,10 @@ export default function TeacherDashboard() {
                 return (
                     <div className="space-y-6">
                         <div className="mx-auto grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-                            <StatCard title="My Students" value={isLoading ? '...' : assignedStudents.length.toString()} icon={Users} />
-                            <StatCard title="Class Teacher Of" value={teacher?.role === 'classTeacher' ? (teacher.classTeacherOf || 'N/A') : 'N/A'} icon={Users} />
                             <StatCard title="Pending Leaves" value={isLoading ? '...' : (teacher?.role === 'classTeacher' ? pendingLeavesCount.toString() : 'N/A')} icon={CalendarCheck} />
                             <StatCard title="Assignments Due" value="3" icon={ClipboardCheck} />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <NavCard title="My Students" description="View and manage student details" icon={Users} onClick={() => setActiveView("manageStudents")} />
                             <NavCard title="Approve Leaves" description="Review student leave requests" icon={CalendarCheck} onClick={() => setActiveView("approveLeaves")} />
                         </div>
                     </div>
