@@ -61,11 +61,8 @@ export default function Homework() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-primary">
           <BookOpen className="h-6 w-6" />
-          Today's Homework
+          Homework Assignments
         </CardTitle>
-        <Button variant="link" size="sm">
-          View All
-        </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
