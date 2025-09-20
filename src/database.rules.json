@@ -19,11 +19,12 @@
       }
     },
     "student_registrations": {
-      ".read": "root.child('isAdmin').val() || root.child('isTeacher').val()",
-      ".write": "root.child('isAdmin').val() || auth != null",
+      ".read": "auth != null",
+      ".write": "root.child('isAdmin').val()",
       "$key": {
-        // Allow a student to claim their account
-        ".write": "newData.exists() && !data.exists() || (data.exists() && newData.child('authUid').val() === auth.uid)"
+        // Allow an admin to create a registration key.
+        // Allow the claiming student to write their authUid to the record, then it gets deleted.
+        ".write": "auth != null && (root.child('isAdmin').val() || newData.child('authUid').val() === auth.uid)"
       }
     },
     "teachers": {
