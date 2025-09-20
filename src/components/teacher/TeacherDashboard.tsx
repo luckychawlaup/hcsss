@@ -16,7 +16,7 @@ import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
 import { getStudentsForTeacher, Student } from "@/lib/firebase/students";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import dynamic from "next/dynamic";
 import TeacherNav from "./TeacherNav";
@@ -38,7 +38,7 @@ const MarkAttendance = dynamic(() => import('./MarkAttendance'), {
 });
 
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "makeAnnouncement" | "teacherLeave";
+export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "makeAnnouncement" | "teacherLeave" | "gradebook";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -223,6 +223,30 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 );
+             case 'gradebook':
+                return (
+                    <Card>
+                        <CardHeader>
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <BookMarked />
+                                Gradebook & Assessments
+                            </CardTitle>
+                            <CardDescription>
+                                Manage student grades, assessments, and performance.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
+                                <h3 className="mt-4 text-lg font-semibold">Feature Coming Soon</h3>
+                                <p className="text-muted-foreground mt-2">The Gradebook & Assessment Tool is currently under development.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
             default:
                 return (
                     <div className="space-y-6">
@@ -241,6 +265,7 @@ export default function TeacherDashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            <NavCard title="Announcements" description="Send announcements to classes" icon={Megaphone} onClick={() => router.push('/teacher/announcements')} />
                            <NavCard title="School Gallery" description="View and manage school photos" icon={Camera} onClick={() => router.push('/gallery')} />
+                           <NavCard title="Gradebook & Assessments" description="Manage student grades and performance" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
                         </div>
                     </div>
                 );
