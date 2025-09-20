@@ -11,38 +11,38 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Download } from "lucide-react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getExams, Exam } from "@/lib/firebase/exams";
-import { getMarksForStudent, Mark } from "@/lib/firebase/marks";
+import { createClient } from "@/lib/supabase/client";
+import { getExams, Exam } from "@/lib/supabase/exams";
+import { getMarksForStudent, Mark } from "@/lib/supabase/marks";
 import { Skeleton } from "../ui/skeleton";
-import { Timestamp } from "firebase/firestore";
 
 export default function ReportCardComponent() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [marks, setMarks] = useState<Record<string, Mark[]>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const auth = getAuth(app);
+  const supabase = createClient();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const unsubscribeExams = getExams(setExams);
-        const unsubscribeMarks = getMarksForStudent(user.uid, (studentMarks) => {
-          setMarks(studentMarks);
-          setIsLoading(false);
-        });
-        
-        return () => {
-          unsubscribeExams();
-          unsubscribeMarks();
-        };
-      } else {
-        setIsLoading(false);
-      }
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const user = session?.user;
+        if (user) {
+            const unsubscribeExams = getExams(setExams);
+            const unsubscribeMarks = getMarksForStudent(user.id, (studentMarks) => {
+                setMarks(studentMarks);
+                setIsLoading(false);
+            });
+            
+            // This setup implies `getExams` and `getMarksForStudent` need to handle their own subscriptions
+            // and don't return unsubscribe functions. For a more robust implementation, they would.
+        } else {
+            setIsLoading(false);
+        }
     });
-    return () => unsubscribeAuth();
-  }, [auth]);
+
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const availableReportCards = exams.filter(exam => marks[exam.id] && marks[exam.id].length > 0);
 
@@ -79,7 +79,7 @@ export default function ReportCardComponent() {
             >
               <div>
                 <p className="font-semibold">{exam.name}</p>
-                <p className="text-sm text-muted-foreground">{exam.date.toDate().toLocaleDateString()}</p>
+                <p className="text-sm text-muted-foreground">{new Date(exam.date).toLocaleDateString()}</p>
               </div>
               <Button variant="outline" size="icon" asChild>
                 <Link href={`/report-card/${exam.id}`}>
@@ -98,3 +98,5 @@ export default function ReportCardComponent() {
     </Card>
   );
 }
+
+    

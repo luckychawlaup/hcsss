@@ -5,14 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  User,
-} from "firebase/auth";
-import { app } from "@/lib/firebase";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,11 +18,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getRole } from "./AuthProvider";
-import { getStudentByAuthId } from "@/lib/firebase/students";
-import { getTeacherByAuthId } from "@/lib/firebase/teachers";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -43,14 +34,12 @@ interface LoginFormProps {
 const principalEmail = "principal@hcsss.in";
 const ownerEmail = "owner@hcsss.in";
 
-
 export default function LoginForm({ role }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [needsVerification, setNeedsVerification] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const auth = getAuth(app);
+  const supabase = createClient();
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -63,15 +52,18 @@ export default function LoginForm({ role }: LoginFormProps) {
   async function onSubmit(values: z.infer<typeof loginSchema>) {
     setIsLoading(true);
     setError(null);
-    setNeedsVerification(false);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        values.email,
-        values.password
-      );
-      const user = userCredential.user;
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
+
+      if (signInError) throw signInError;
+      
+      const user = data.user;
+      if (!user) throw new Error("Login failed, user not found.");
+
       const actualRole = await getRole(user);
       
       const isPrincipalOrOwner = role === 'principal' || role === 'owner';
@@ -79,30 +71,28 @@ export default function LoginForm({ role }: LoginFormProps) {
 
       if (isPrincipalOrOwner && !actualIsPrincipalOrOwner) {
           setError("Invalid credentials for this role.");
-          await auth.signOut();
+          await supabase.auth.signOut();
           setIsLoading(false);
           return;
       }
 
       if (!isPrincipalOrOwner && role !== actualRole) {
            setError("Invalid credentials for this role.");
-           await auth.signOut();
+           await supabase.auth.signOut();
            setIsLoading(false);
            return;
       }
       
       if (actualRole === 'student' || actualRole === 'teacher') {
-        if (!user.emailVerified) {
-          setNeedsVerification(true);
+        if (!user.email_confirmed_at) {
           setError(
-            "Your email is not verified. A new verification link has been sent."
+            "Your email is not verified. Please check your inbox for the verification link."
           );
-          await sendEmailVerification(user);
           toast({
-            title: "Verification Email Sent",
-            description: "Please check your inbox to verify your email address.",
+            title: "Email Verification Required",
+            description: "Please check your inbox to verify your email address before logging in.",
           });
-          await auth.signOut();
+          await supabase.auth.signOut();
           setIsLoading(false);
           return;
         }
@@ -124,20 +114,15 @@ export default function LoginForm({ role }: LoginFormProps) {
       router.refresh();
 
     } catch (error: any) {
-      const errorCode = error.code;
       let errorMessage = "An unknown error occurred.";
-      if (
-        errorCode === "auth/user-not-found" ||
-        errorCode === "auth/wrong-password" ||
-        errorCode === "auth/invalid-credential"
-      ) {
+      if (error.message.includes("Invalid login credentials")) {
         errorMessage = "Invalid email or password. Please try again.";
-      } else if (errorCode === "auth/too-many-requests") {
-        errorMessage =
-          "Too many failed login attempts. Account temporarily locked.";
+      } else if (error.message.includes("Email not confirmed")) {
+           errorMessage = "Your email is not verified. Please check your inbox for the verification link.";
       }
       setError(errorMessage);
-      setIsLoading(false);
+    } finally {
+        setIsLoading(false);
     }
   }
   
@@ -146,11 +131,7 @@ export default function LoginForm({ role }: LoginFormProps) {
       {error && (
         <Alert variant="destructive" className="my-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>
-            {needsVerification
-              ? "Email Verification Required"
-              : "Login Failed"}
-          </AlertTitle>
+          <AlertTitle>Login Failed</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -199,3 +180,5 @@ export default function LoginForm({ role }: LoginFormProps) {
     </>
   );
 }
+
+    

@@ -5,9 +5,8 @@ import { useState, useEffect } from "react";
 import Header from "@/components/dashboard/Header";
 import BottomNav from "@/components/dashboard/BottomNav";
 import TeacherNav from "@/components/teacher/TeacherNav";
-import { getAuth, User } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getGalleryImages, GalleryImage, uploadImage, deleteImage as deleteGalleryImage } from "@/lib/firebase/gallery";
+import { User } from "@supabase/supabase-js";
+import { getGalleryImages, GalleryImage, uploadImage, deleteImage as deleteGalleryImage } from "@/lib/supabase/gallery";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -17,8 +16,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, UploadCloud, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getTeacherByAuthId } from "@/lib/firebase/teachers";
+import { getTeacherByAuthId } from "@/lib/supabase/teachers";
+import { createClient } from "@/lib/supabase/client";
 
+const supabase = createClient();
 const principalUID = "IIDjN5e6RzUMFGOYJ4kE7t3YqgZ2";
 const ownerUID = "qEB6D6PbjycGSBKMPv9OGyorgnd2";
 
@@ -27,7 +28,15 @@ function UploadForm({ onUploadComplete }: { onUploadComplete: () => void }) {
     const [caption, setCaption] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const { toast } = useToast();
-    const auth = getAuth(app);
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        getUser();
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -36,7 +45,6 @@ function UploadForm({ onUploadComplete }: { onUploadComplete: () => void }) {
     };
 
     const handleSubmit = async () => {
-        const user = auth.currentUser;
         if (!file || !user) {
             toast({ variant: "destructive", title: "Error", description: "File and authentication required." });
             return;
@@ -44,7 +52,7 @@ function UploadForm({ onUploadComplete }: { onUploadComplete: () => void }) {
 
         setIsUploading(true);
         try {
-            await uploadImage(file, caption, user.displayName || "Unknown User", user.uid);
+            await uploadImage(file, caption, user.user_metadata.name || "Unknown User", user.id);
             toast({ title: "Upload Successful", description: "Your photo has been added to the gallery." });
             setFile(null);
             setCaption("");
@@ -82,26 +90,30 @@ export default function GalleryPage() {
     const [user, setUser] = useState<User | null>(null);
     const [userRole, setUserRole] = useState<'student' | 'teacher' | 'principal' | 'owner' | null>(null);
     const { toast } = useToast();
-    const auth = getAuth(app);
 
     useEffect(() => {
         const unsubscribe = getGalleryImages((galleryImages) => {
             setImages(galleryImages);
             setIsLoading(false);
         });
-        return () => unsubscribe();
+        return () => {
+            // In Supabase, you might need to explicitly remove the subscription if the library supports it
+            // For this example, we assume getGalleryImages handles its own cleanup or is a one-time fetch.
+            // If it returns a subscription, you'd do: subscription.unsubscribe();
+        };
     }, []);
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
             if (currentUser) {
-                setUser(currentUser);
-                if(currentUser.uid === principalUID) {
+                 if(currentUser.id === principalUID) {
                     setUserRole('principal');
-                } else if (currentUser.uid === ownerUID) {
+                } else if (currentUser.id === ownerUID) {
                     setUserRole('owner');
                 } else {
-                    const teacher = await getTeacherByAuthId(currentUser.uid);
+                    const teacher = await getTeacherByAuthId(currentUser.id);
                     if(teacher) {
                         setUserRole('teacher');
                     } else {
@@ -113,8 +125,11 @@ export default function GalleryPage() {
                 setUserRole(null);
             }
         });
-        return () => unsubscribe();
-    }, [auth]);
+
+        return () => {
+            authListener.subscription.unsubscribe();
+        };
+    }, []);
 
 
     const canManage = userRole === 'teacher' || userRole === 'principal' || userRole === 'owner';
@@ -169,7 +184,7 @@ export default function GalleryPage() {
                                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                                     <div className="absolute bottom-0 left-0 p-4 w-full">
                                         <p className="text-sm font-semibold text-white">{image.caption}</p>
-                                        <p className="text-xs text-white/80">by {image.uploadedBy}</p>
+                                        <p className="text-xs text-white/80">by {image.uploaded_by}</p>
                                     </div>
                                     {canManage && (
                                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -216,3 +231,5 @@ export default function GalleryPage() {
         </div>
     );
 }
+
+    

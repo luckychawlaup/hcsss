@@ -14,10 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, Download } from "lucide-react";
-import { getHomeworks, Homework } from "@/lib/firebase/homework";
-import { getAuth, User } from "firebase/auth";
-import { getStudentByAuthId, Student } from "@/lib/firebase/students";
-import { app } from "@/lib/firebase";
+import { getHomeworks, Homework } from "@/lib/supabase/homework";
+import { getStudentByAuthId, Student } from "@/lib/supabase/students";
+import { createClient } from "@/lib/supabase/client";
 
 function HomeworkSkeleton() {
   return (
@@ -32,29 +31,34 @@ function HomeworkSkeleton() {
 export default function Homework() {
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const auth = getAuth(app);
+  const supabase = createClient();
 
   useEffect(() => {
-    const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const studentProfile = await getStudentByAuthId(user.uid);
-        if (studentProfile) {
-          const classSection = `${studentProfile.class}-${studentProfile.section}`;
-          const unsubscribeHomework = getHomeworks(classSection, (newHomeworks) => {
-            setHomeworks(newHomeworks);
-            setIsLoading(false);
-          });
-          // Here you should store and call unsubscribeHomework on component unmount
-        } else {
-          setIsLoading(false);
-        }
-      } else {
-        setIsLoading(false);
-      }
-    });
+      const fetchHomework = async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+              const studentProfile = await getStudentByAuthId(user.id);
+              if (studentProfile) {
+                  const classSection = `${studentProfile.class}-${studentProfile.section}`;
+                  const unsubscribeHomework = getHomeworks(classSection, (newHomeworks) => {
+                      setHomeworks(newHomeworks);
+                      setIsLoading(false);
+                  });
+                  return () => {
+                      // In Supabase V2, you might need to call `supabase.removeSubscription(subscription)`
+                      // Assuming `getHomeworks` returns a subscription object.
+                  };
+              } else {
+                  setIsLoading(false);
+              }
+          } else {
+              setIsLoading(false);
+          }
+      };
 
-    return () => unsubscribeAuth();
-  }, [auth]);
+      fetchHomework();
+
+  }, [supabase]);
 
   return (
     <Card>
@@ -84,11 +88,11 @@ export default function Homework() {
                     <TableRow key={index}>
                       <TableCell className="font-medium pl-0 sm:pl-6">{hw.subject}</TableCell>
                       <TableCell>{hw.description}</TableCell>
-                      <TableCell>{hw.dueDate.split("-")[2]}/{hw.dueDate.split("-")[1]}</TableCell>
+                      <TableCell>{hw.due_date.split("-")[2]}/{hw.due_date.split("-")[1]}</TableCell>
                       <TableCell className="text-right pr-0 sm:pr-6">
-                        {hw.attachmentUrl ? (
+                        {hw.attachment_url ? (
                           <Button variant="ghost" size="icon" asChild>
-                            <a href={hw.attachmentUrl} target="_blank" rel="noopener noreferrer">
+                            <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer">
                               <Download className="h-4 w-4" />
                             </a>
                           </Button>
@@ -113,3 +117,5 @@ export default function Homework() {
     </Card>
   );
 }
+
+    

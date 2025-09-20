@@ -5,13 +5,13 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { getAuth, User } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getStudentByAuthId } from "@/lib/firebase/students";
-import { getTeacherByAuthId } from "@/lib/firebase/teachers";
-import type { Student } from "@/lib/firebase/students";
-import type { Teacher } from "@/lib/firebase/teachers";
-import { addFeedback } from "@/lib/firebase/feedback";
+import { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { getStudentByAuthId } from "@/lib/supabase/students";
+import { getTeacherByAuthId } from "@/lib/supabase/teachers";
+import type { Student } from "@/lib/supabase/students";
+import type { Teacher } from "@/lib/supabase/teachers";
+import { addFeedback } from "@/lib/supabase/feedback";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -46,25 +46,31 @@ export function FeedbackForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<Student | Teacher | null>(null);
-  const auth = getAuth(app);
+  const supabase = createClient();
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const user = session?.user;
         if (user) {
             setCurrentUser(user);
             // Try fetching teacher profile, then student profile
-            const teacher = await getTeacherByAuthId(user.uid);
+            const teacher = await getTeacherByAuthId(user.id);
             if(teacher) {
                 setUserProfile(teacher);
             } else {
-                const student = await getStudentByAuthId(user.uid);
+                const student = await getStudentByAuthId(user.id);
                 setUserProfile(student);
             }
+        } else {
+            setCurrentUser(null);
+            setUserProfile(null);
         }
     });
-    return () => unsubscribe();
-  }, [auth]);
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const form = useForm<z.infer<typeof feedbackSchema>>({
     resolver: zodResolver(feedbackSchema),
@@ -87,9 +93,9 @@ export function FeedbackForm() {
 
     try {
         await addFeedback({
-            userId: currentUser.uid,
-            userName: userProfile.name,
-            userRole: 'classesTaught' in userProfile ? 'Teacher' : 'Student',
+            user_id: currentUser.id,
+            user_name: userProfile.name,
+            user_role: 'classes_taught' in userProfile ? 'Teacher' : 'Student',
             ...values,
         });
 
@@ -193,3 +199,5 @@ export function FeedbackForm() {
     </Card>
   );
 }
+
+    

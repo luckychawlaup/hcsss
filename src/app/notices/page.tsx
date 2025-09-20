@@ -5,14 +5,15 @@ import { useState, useEffect } from "react";
 import Header from "@/components/dashboard/Header";
 import BottomNav from "@/components/dashboard/BottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAnnouncementsForStudent, Announcement } from "@/lib/firebase/announcements";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { app } from "@/lib/firebase";
-import { getStudentByAuthId } from "@/lib/firebase/students";
+import { getAnnouncementsForStudent, Announcement } from "@/lib/supabase/announcements";
+import { getStudentByAuthId } from "@/lib/supabase/students";
 import { Card } from "@/components/ui/card";
 import { Info, Send, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
 
 function AttachmentPreview({ url }: { url: string }) {
     const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
@@ -37,20 +38,20 @@ function AnnouncementBubble({ notice }: { notice: Announcement }) {
     <div className={cn("flex items-end gap-2.5", isSender ? "justify-end" : "justify-start")}>
         {!isSender && (
              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                 {notice.creatorName?.charAt(0)}
+                 {notice.creator_name?.charAt(0)}
             </div>
         )}
         <div className={cn("flex flex-col gap-1 w-full max-w-[320px]")}>
             <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                <span className="text-xs font-semibold text-foreground">{notice.creatorName}</span>
-                <span className="text-xs font-normal text-muted-foreground">{new Date(notice.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="text-xs font-semibold text-foreground">{notice.creator_name}</span>
+                <span className="text-xs font-normal text-muted-foreground">{new Date(notice.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
             <div className={cn("p-3 rounded-lg", isSender ? "bg-primary text-primary-foreground rounded-ee-none" : "bg-secondary rounded-es-none")}>
                 {notice.title && <p className="text-sm font-semibold pb-1">{notice.title}</p>}
                 <p className="text-sm font-normal">{notice.content}</p>
-                 {notice.attachmentUrl && <AttachmentPreview url={notice.attachmentUrl} />}
+                 {notice.attachment_url && <AttachmentPreview url={notice.attachment_url} />}
             </div>
-             <span className="text-xs font-normal text-muted-foreground">{notice.creatorRole} ({notice.category})</span>
+             <span className="text-xs font-normal text-muted-foreground">{notice.creator_role} ({notice.category})</span>
         </div>
     </div>
   )
@@ -80,34 +81,41 @@ function AnnouncementSkeleton() {
 export default function NoticesPage() {
   const [notices, setNotices] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const auth = getAuth(app);
 
   useEffect(() => {
     setIsLoading(true);
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-          const studentProfile = await getStudentByAuthId(user.uid);
-          if (studentProfile) {
-            const classSection = `${studentProfile.class}-${studentProfile.section}`;
-            const studentId = studentProfile.id;
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const user = session?.user;
+        if (user) {
+            const studentProfile = await getStudentByAuthId(user.id);
+            if (studentProfile) {
+                const classSection = `${studentProfile.class}-${studentProfile.section}`;
+                const studentId = studentProfile.id;
 
-            const unsubscribeAnnouncements = getAnnouncementsForStudent(
-              { classSection, studentId },
-              (announcements) => {
-                setNotices(announcements);
-                setIsLoading(false);
-              }
-            );
-
-            return () => unsubscribeAnnouncements();
-          }
-      }
-       setIsLoading(false);
+                const unsubscribeAnnouncements = getAnnouncementsForStudent(
+                { classSection, studentId },
+                (announcements) => {
+                    setNotices(announcements);
+                    setIsLoading(false);
+                }
+                );
+                // Note: The Supabase realtime subscription needs to be manually unsubscribed.
+                // The way getAnnouncementsForStudent is written, it should return the channel to unsubscribe.
+                return () => {
+                    if (typeof unsubscribeAnnouncements === 'function') {
+                        unsubscribeAnnouncements();
+                    }
+                };
+            }
+        }
+        setIsLoading(false);
     });
 
-    return () => unsubscribeAuth();
-  }, [auth]);
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -136,3 +144,5 @@ export default function NoticesPage() {
     </div>
   );
 }
+
+    

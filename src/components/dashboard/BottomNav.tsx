@@ -5,8 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, CalendarPlus, MessageSquareQuote, User, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getAuth, signOut } from "firebase/auth";
-import { app } from "@/lib/firebase";
+import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
@@ -19,12 +18,10 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const auth = getAuth(app);
+  const supabase = createClient();
 
   const handleLogout = async () => {
-    await signOut(auth);
-    document.cookie = "teacher-role=; path=/; max-age=-1";
-    document.cookie = "owner-role=; path=/; max-age=-1";
+    await supabase.auth.signOut();
     router.push("/login");
   };
 
@@ -53,3 +50,5 @@ export default function BottomNav() {
     </nav>
   );
 }
+
+    

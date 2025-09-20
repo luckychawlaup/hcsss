@@ -5,8 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { getAuth, sendPasswordResetEmail } from "firebase/auth";
-import { app } from "@/lib/firebase";
+import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,8 +19,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getStudentByEmail } from "@/lib/firebase/students";
-import { getTeacherByEmail } from "@/lib/firebase/teachers";
+import { getStudentByEmail } from "@/lib/supabase/students";
+import { getTeacherByEmail } from "@/lib/supabase/teachers";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -36,7 +35,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
-  const auth = getAuth(app);
+  const supabase = createClient();
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -66,7 +65,12 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
       }
       
       // If user exists, then send the reset email
-      await sendPasswordResetEmail(auth, values.email);
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email, {
+          redirectTo: `${window.location.origin}/`,
+      });
+
+      if(resetError) throw resetError;
+
       setIsSuccess(true);
       toast({
         title: "Password Reset Email Sent",
@@ -75,10 +79,8 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
       form.reset();
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
-      // Firebase's sendPasswordResetEmail doesn't throw auth/user-not-found by default
-      // for security reasons, but we handle other potential errors.
-      if (error.code === "auth/invalid-email") {
-        errorMessage = "Please enter a valid email address.";
+      if (error.message.includes("For security purposes, you can only request this once every")) {
+        errorMessage = "A password reset email has already been sent recently. Please check your inbox or wait a minute before trying again.";
       }
       setError(errorMessage);
     } finally {
@@ -134,3 +136,5 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
     </>
   );
 }
+
+    

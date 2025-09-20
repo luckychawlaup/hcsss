@@ -15,10 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePathname, useRouter } from "next/navigation";
-import { getAuth, signOut } from "firebase/auth";
-import { app } from "@/lib/firebase";
+import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "../theme/ThemeProvider";
-
 
 interface HeaderProps {
     title?: string;
@@ -28,7 +26,7 @@ interface HeaderProps {
 export default function Header({ title, showAvatar = true }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const auth = getAuth(app);
+  const supabase = createClient();
   const { settings } = useTheme();
   const isTeacher = pathname.startsWith('/teacher');
   const isPrincipal = pathname.startsWith('/principal');
@@ -37,10 +35,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   const noticesLink = isTeacher ? "/teacher/announcements" : "/notices";
 
   const handleLogout = async () => {
-    await signOut(auth);
-    // Clear role-specific cookies
-    document.cookie = "teacher-role=; path=/; max-age=-1";
-    document.cookie = "owner-role=; path=/; max-age=-1";
+    await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
   }
@@ -103,3 +98,5 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
     </header>
   );
 }
+
+    
