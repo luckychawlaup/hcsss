@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/dashboard/Header";
 import { getAuth, User, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
@@ -17,12 +17,10 @@ import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { addAnnouncement, getAllAnnouncements, Announcement } from "@/lib/firebase/announcements";
+import { addAnnouncement, getAllAnnouncements, Announcement, getAnnouncementsForClass, getAnnouncementsForTeachers } from "@/lib/firebase/announcements";
 import AnnouncementChat from "../teacher/AnnouncementChat";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Label } from "../ui/label";
 import { useToast } from "@/hooks/use-toast";
-
+import ClassChatGroup from "../teacher/ClassChatGroup";
 
 const AddTeacherForm = dynamic(() => import('./AddTeacherForm'), {
     loading: () => <Skeleton className="h-96 w-full" />
@@ -49,7 +47,6 @@ const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
 type CombinedTeacher = (Teacher & { status: 'Registered' }) | (PendingTeacher & { status: 'Pending' });
 
 type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings";
-type AnnouncementTarget = "students" | "teachers" | "both";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -67,62 +64,91 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
 
 const ownerUID = "qEB6D6PbjycGSBKMPv9OGyorgnd2";
 
+const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
+const sections = ["A", "B"];
+const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
+
 
 const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boolean }) => {
-    const [target, setTarget] = useState<AnnouncementTarget>("both");
-    const [allAnnouncements, setAllAnnouncements] = useState<Announcement[]>([]);
+    const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const { toast } = useToast();
 
+    const announcementGroups = useMemo(() => ["Teachers", ...allClassSections], []);
+
     useEffect(() => {
-        const unsub = getAllAnnouncements(setAllAnnouncements);
-        return () => unsub();
-    }, []);
+        if (!selectedGroup) {
+            setAnnouncements([]);
+            return;
+        };
+
+        let unsubscribe;
+        if (selectedGroup === 'Teachers') {
+            unsubscribe = getAnnouncementsForTeachers(setAnnouncements);
+        } else {
+            unsubscribe = getAnnouncementsForClass(selectedGroup, setAnnouncements);
+        }
+        
+        return () => unsubscribe();
+    }, [selectedGroup]);
+
 
     const handleSendMessage = async (content: string, category: string) => {
-        if (!user) {
-            toast({ variant: 'destructive', title: 'Not Authenticated' });
+        if (!user || !selectedGroup) {
+            toast({ variant: 'destructive', title: 'Error', description: "No group selected." });
             return;
         }
 
+        const announcementData: Partial<Announcement> = {
+            title: "School Announcement",
+            content,
+            category,
+            createdBy: user.uid,
+            creatorName: isOwner ? "Owner" : "Principal",
+            creatorRole: isOwner ? "Owner" : "Principal",
+        };
+
+        if (selectedGroup === 'Teachers') {
+            announcementData.target = 'teachers';
+        } else {
+            announcementData.target = 'students';
+            announcementData.targetAudience = {
+                type: 'class',
+                value: selectedGroup
+            };
+        }
+
         try {
-            await addAnnouncement({
-                title: "School Announcement",
-                content,
-                category,
-                target,
-                createdBy: user.uid,
-                creatorName: isOwner ? "Owner" : "Principal",
-                creatorRole: isOwner ? "Owner" : "Principal",
-            });
+            await addAnnouncement(announcementData as Omit<Announcement, "id" | "createdAt">);
             toast({
                 title: "Announcement Published!",
-                description: `Your announcement has been sent to ${target}.`,
+                description: `Your announcement has been sent to ${selectedGroup}.`,
             });
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: "Failed to send announcement." });
         }
     };
     
-    const TargetSwitcher = (
-        <div className="p-4 border-b">
-            <p className="text-sm font-semibold mb-2">Select Audience</p>
-            <RadioGroup value={target} onValueChange={(value: AnnouncementTarget) => setTarget(value)} className="flex gap-4">
-                <div className="flex items-center space-x-2"><RadioGroupItem value="both" id="r_both" /><Label htmlFor="r_both">Everyone</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="students" id="r_students" /><Label htmlFor="r_students">Students Only</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="teachers" id="r_teachers" /><Label htmlFor="r_teachers">Teachers Only</Label></div>
-            </RadioGroup>
-        </div>
-    );
-
     return (
-        <AnnouncementChat
-            announcements={allAnnouncements.filter(a => !a.targetAudience)} // Only show general announcements
-            chatTitle="School Announcements"
-            onSendMessage={handleSendMessage}
-            senderName={isOwner ? "Owner" : "Principal"}
-            senderRole={isOwner ? "Owner" : "Principal"}
-            headerContent={TargetSwitcher}
-        />
+        <div className="flex flex-1 md:grid md:grid-cols-[300px_1fr] md:border-t">
+            <div className="border-b md:border-b-0 md:border-r">
+                <ClassChatGroup 
+                    assignedClasses={announcementGroups}
+                    onSelectClass={setSelectedGroup}
+                    selectedClass={selectedGroup}
+                    isLoading={false}
+                />
+            </div>
+            <div className="flex flex-col">
+                <AnnouncementChat
+                    announcements={announcements}
+                    chatTitle={selectedGroup}
+                    onSendMessage={handleSendMessage}
+                    senderName={isOwner ? "Owner" : "Principal"}
+                    senderRole={isOwner ? "Owner" : "Principal"}
+                />
+            </div>
+        </div>
     )
 }
 
@@ -375,7 +401,7 @@ export default function PrincipalDashboard() {
                );
           case 'makeAnnouncement':
               return (
-                    <Card>
+                    <Card className="flex flex-col h-full">
                         <CardHeader>
                              <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -386,12 +412,10 @@ export default function PrincipalDashboard() {
                                 Make Announcement
                             </CardTitle>
                              <CardDescription>
-                                Publish notices for staff, students, or everyone.
+                                Publish notices to all teachers or specific class groups.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="p-0">
-                            <AnnouncementView user={user} isOwner={isOwner} />
-                        </CardContent>
+                        <AnnouncementView user={user} isOwner={isOwner} />
                     </Card>
               );
           case 'managePayroll':
@@ -466,8 +490,8 @@ export default function PrincipalDashboard() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header title={isOwner ? "Owner Dashboard" : "Principal Dashboard"} showAvatar={false} />
-      <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto w-full max-w-6xl">
+       <main className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto w-full max-w-6xl flex-1">
             {renderContent()}
         </div>
       </main>

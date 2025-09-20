@@ -66,10 +66,8 @@ export const getAnnouncementsForStudent = (
     // Filter announcements for the target audience
     const filtered = allAnnouncements.filter(ann => {
         // General announcements for all students or everyone
-        if (ann.target === "students" || ann.target === "both") {
-            if (!ann.targetAudience) {
-                return true;
-            }
+        if ((ann.target === "students" || ann.target === "both") && !ann.targetAudience) {
+            return true;
         }
         
         // Announcements targeted to the student's class
@@ -112,6 +110,29 @@ export const getAnnouncementsForClass = (
         }
         callback(classAnnouncements.sort((a, b) => a.createdAt - b.createdAt));
     });
+    return unsubscribe;
+}
+
+// Get announcements for all teachers
+export const getAnnouncementsForTeachers = (
+    callback: (announcements: Announcement[]) => void
+) => {
+    const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
+    const announcementsQuery = query(announcementsRef, orderByChild('target'), equalTo('teachers'));
+
+    const unsubscribe = onValue(announcementsQuery, (snapshot: DataSnapshot) => {
+        const teacherAnnouncements: Announcement[] = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            for (const id in data) {
+                 if(!data[id].targetAudience) {
+                    teacherAnnouncements.push({ id, ...data[id] });
+                }
+            }
+        }
+        callback(teacherAnnouncements.sort((a, b) => a.createdAt - b.createdAt));
+    });
+
     return unsubscribe;
 }
 
