@@ -9,6 +9,7 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  User,
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getRole } from "./AuthProvider";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -68,25 +70,29 @@ export default function LoginForm({ role }: LoginFormProps) {
       );
       const user = userCredential.user;
 
-      // Role-specific validation
-      if (role === "principal") {
-        if (values.email.toLowerCase() !== principalEmail) {
-          setError("Invalid credentials for principal account.");
+      // Post-login role validation
+      const actualRole = await getRole(user);
+      
+      // Special handling for principal/owner who might share a role type
+      const isPrincipalOrOwner = role === 'principal' || role === 'owner';
+      const actualIsPrincipalOrOwner = actualRole === 'principal' || actualRole === 'owner';
+
+      if (isPrincipalOrOwner && !actualIsPrincipalOrOwner) {
+          setError("Invalid credentials for this role.");
           await auth.signOut();
           setIsLoading(false);
           return;
-        }
-      } else if (role === "owner") {
-         if (values.email.toLowerCase() !== ownerEmail) {
-          setError("Invalid credentials for owner account.");
-          await auth.signOut();
-          setIsLoading(false);
-          return;
-        }
+      }
+
+      if (!isPrincipalOrOwner && role !== actualRole) {
+           setError("Invalid credentials for this role.");
+           await auth.signOut();
+           setIsLoading(false);
+           return;
       }
 
       // Email verification check for students and teachers
-      if (role === 'student' || role === 'teacher') {
+      if (actualRole === 'student' || actualRole === 'teacher') {
         if (!user.emailVerified) {
           setNeedsVerification(true);
           setError(
@@ -104,9 +110,9 @@ export default function LoginForm({ role }: LoginFormProps) {
       }
 
       // Redirect on success
-      if (role === "principal" || role === "owner") {
+      if (actualRole === "principal" || actualRole === "owner") {
         router.push("/principal");
-      } else if (role === "teacher") {
+      } else if (actualRole === "teacher") {
         router.push("/teacher");
       } else {
         router.push("/");

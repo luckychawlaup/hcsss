@@ -40,7 +40,7 @@ function Preloader() {
     );
 }
 
-const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'owner' | 'principal' | null> => {
+export const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'owner' | 'principal' | null> => {
     if (!user) return null;
     if (user.uid === principalUID) return 'principal';
     if (user.uid === ownerUID) return 'owner';
