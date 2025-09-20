@@ -16,7 +16,7 @@ import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
 import { getStudentsForTeacher, Student } from "@/lib/firebase/students";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import dynamic from "next/dynamic";
 import TeacherNav from "./TeacherNav";
@@ -27,7 +27,7 @@ import { TeacherLeave } from "./TeacherLeave";
 const TeacherStudentList = dynamic(() => import('./TeacherStudentList'), {
   loading: () => <Skeleton className="h-64 w-full" />,
 });
-const ApproveLeaves = dynamic(() => import('./ApproveLeaves'), {
+const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
   loading: () => <Skeleton className="h-48 w-full" />,
 });
 const AddHomeworkForm = dynamic(() => import('./AddHomeworkForm'), {
@@ -237,6 +237,10 @@ export default function TeacherDashboard() {
                                     <StatCard title="Pending Leaves" value={isLoading ? '...' : pendingLeavesCount.toString()} icon={CalendarCheck} />
                                 </div>
                             )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <NavCard title="Announcements" description="Send announcements to classes" icon={Megaphone} onClick={() => router.push('/teacher/announcements')} />
+                           <NavCard title="School Gallery" description="View and manage school photos" icon={Camera} onClick={() => router.push('/gallery')} />
                         </div>
                     </div>
                 );
