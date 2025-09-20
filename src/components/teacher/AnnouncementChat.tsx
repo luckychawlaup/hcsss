@@ -124,6 +124,12 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
     }
   }, [announcements]);
 
+  useEffect(() => {
+    // When switching chats, cancel any ongoing edits
+    cancelEdit();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatTitle]);
+
   const handleSend = async () => {
     if (!message.trim() && !attachment) return;
     setIsSending(true);

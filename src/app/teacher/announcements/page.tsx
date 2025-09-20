@@ -12,6 +12,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ClassChatGroup from "@/components/teacher/ClassChatGroup";
 import AnnouncementChat from "@/components/teacher/AnnouncementChat";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 
 export default function TeacherAnnouncementsPage() {
@@ -21,6 +24,7 @@ export default function TeacherAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const auth = getAuth(app);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const assignedClasses = useMemo(() => {
     if (!teacher) return [];
@@ -48,6 +52,8 @@ export default function TeacherAnnouncementsPage() {
     if (selectedClass) {
       const unsubscribe = getAnnouncementsForClass(selectedClass, setAnnouncements);
       return () => unsubscribe();
+    } else {
+      setAnnouncements([]);
     }
   }, [selectedClass]);
   
@@ -103,6 +109,17 @@ export default function TeacherAnnouncementsPage() {
         toast({ variant: "destructive", title: "Error", description: "Could not delete announcement." });
       }
   }
+  
+  const chatHeader = (
+    <div className="p-4 border-b flex items-center gap-4">
+        {isMobile && (
+            <Button variant="ghost" size="icon" onClick={() => setSelectedClass(null)}>
+                <ArrowLeft/>
+            </Button>
+        )}
+        <h2 className="text-lg font-semibold">{selectedClass}</h2>
+    </div>
+  );
 
 
   return (
@@ -110,34 +127,60 @@ export default function TeacherAnnouncementsPage() {
       <TeacherNav activeView="makeAnnouncement" setActiveView={() => {}} />
       <div className="flex flex-1 flex-col">
         <Header title="Announcements" showAvatar={true} />
-        <main className="flex flex-1 md:grid md:grid-cols-[300px_1fr]">
-            <div className="border-b md:border-b-0 md:border-r">
-                <ClassChatGroup 
+        <main className="flex flex-1">
+          {isMobile ? (
+            <div className="w-full">
+              {!selectedClass ? (
+                 <ClassChatGroup 
                     assignedClasses={assignedClasses}
                     onSelectClass={handleSelectClass}
                     selectedClass={selectedClass}
                     isLoading={isLoading}
                 />
+              ) : (
+                 <AnnouncementChat 
+                    announcements={announcements}
+                    chatTitle={selectedClass}
+                    onSendMessage={handleSendMessage}
+                    onUpdateMessage={handleUpdateMessage}
+                    onDeleteMessage={handleDeleteMessage}
+                    senderName={teacher?.name || "Teacher"}
+                    senderRole={teacher?.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}
+                    headerContent={chatHeader}
+                />
+              )}
             </div>
-            <div className="flex flex-col">
-                {isLoading ? (
-                    <div className="flex-1 p-4 space-y-4">
-                        <Skeleton className="h-16 w-2/3" />
-                        <Skeleton className="h-16 w-3/4 self-end" />
-                        <Skeleton className="h-12 w-1/2" />
-                    </div>
-                ) : (
-                    <AnnouncementChat 
-                        announcements={announcements}
-                        chatTitle={selectedClass}
-                        onSendMessage={handleSendMessage}
-                        onUpdateMessage={handleUpdateMessage}
-                        onDeleteMessage={handleDeleteMessage}
-                        senderName={teacher?.name || "Teacher"}
-                        senderRole={teacher?.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}
-                    />
-                )}
+          ) : (
+            <div className="flex flex-1 md:grid md:grid-cols-[300px_1fr]">
+              <div className="border-r">
+                   <ClassChatGroup 
+                      assignedClasses={assignedClasses}
+                      onSelectClass={handleSelectClass}
+                      selectedClass={selectedClass}
+                      isLoading={isLoading}
+                  />
+              </div>
+              <div className="flex flex-col">
+                  {isLoading ? (
+                      <div className="flex-1 p-4 space-y-4">
+                          <Skeleton className="h-16 w-2/3" />
+                          <Skeleton className="h-16 w-3/4 self-end" />
+                          <Skeleton className="h-12 w-1/2" />
+                      </div>
+                  ) : (
+                      <AnnouncementChat 
+                          announcements={announcements}
+                          chatTitle={selectedClass}
+                          onSendMessage={handleSendMessage}
+                          onUpdateMessage={handleUpdateMessage}
+                          onDeleteMessage={handleDeleteMessage}
+                          senderName={teacher?.name || "Teacher"}
+                          senderRole={teacher?.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}
+                      />
+                  )}
+              </div>
             </div>
+          )}
         </main>
       </div>
     </div>
