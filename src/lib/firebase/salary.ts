@@ -1,16 +1,16 @@
 
 import { db } from "@/lib/firebase";
 import {
-  ref,
-  push,
-  set,
-  get,
+  collection,
+  addDoc,
+  getDoc,
+  doc,
   query,
-  orderByChild,
-  equalTo,
-  onValue,
-} from "firebase/database";
-import type { DataSnapshot } from "firebase/database";
+  where,
+  onSnapshot,
+  orderBy,
+  Timestamp,
+} from "firebase/firestore";
 
 const SALARY_COLLECTION = "salaries";
 
@@ -23,7 +23,7 @@ export interface SalarySlip {
     id: string;
     teacherId: string;
     month: string; // e.g., "July 2024"
-    generatedAt: number;
+    generatedAt: Timestamp;
     basicSalary: number;
     earnings: SalaryItem[];
     deductions: SalaryItem[];
@@ -40,21 +40,19 @@ export const addSalarySlip = async (slipData: Omit<SalarySlip, 'id' | 'generated
     const slipWithTotals: Omit<SalarySlip, 'id'> = {
         ...slipData,
         netSalary,
-        generatedAt: Date.now(),
+        generatedAt: Timestamp.now(),
     };
 
-    const slipsRef = ref(db, SALARY_COLLECTION);
-    const newSlipRef = push(slipsRef);
-    await set(newSlipRef, slipWithTotals);
-    return newSlipRef.key;
+    const newDocRef = await addDoc(collection(db, SALARY_COLLECTION), slipWithTotals);
+    return newDocRef.id;
 };
 
 // Get a single salary slip by its ID
 export const getSalarySlipById = async (slipId: string): Promise<SalarySlip | null> => {
-    const slipRef = ref(db, `${SALARY_COLLECTION}/${slipId}`);
-    const snapshot = await get(slipRef);
-    if (snapshot.exists()) {
-        return { id: snapshot.key, ...snapshot.val() };
+    const slipRef = doc(db, SALARY_COLLECTION, slipId);
+    const docSnap = await getDoc(slipRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as SalarySlip;
     }
     return null;
 };
@@ -64,21 +62,16 @@ export const getSalarySlipsForTeacher = (
     teacherId: string,
     callback: (slips: SalarySlip[]) => void
 ) => {
-    const slipsRef = ref(db, SALARY_COLLECTION);
-    const slipsQuery = query(slipsRef, orderByChild("teacherId"), equalTo(teacherId));
+    const q = query(
+      collection(db, SALARY_COLLECTION),
+      where("teacherId", "==", teacherId),
+      orderBy("generatedAt", "desc")
+    );
 
-    const unsubscribe = onValue(slipsQuery, (snapshot: DataSnapshot) => {
-        const slips: SalarySlip[] = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            for (const id in data) {
-                slips.push({ id, ...data[id] });
-            }
-        }
-        callback(slips.sort((a, b) => b.generatedAt - a.generatedAt));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const slips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SalarySlip));
+        callback(slips);
     });
 
     return unsubscribe;
 };
-
-    

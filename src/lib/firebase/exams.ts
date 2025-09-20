@@ -1,33 +1,39 @@
 
 import { db } from "@/lib/firebase";
 import {
-  ref,
-  onValue,
-  set,
-  push,
-  get
-} from "firebase/database";
-import type { DataSnapshot } from "firebase/database";
+  collection,
+  onSnapshot,
+  getDocs,
+  Timestamp,
+  writeBatch
+} from "firebase/firestore";
 
 const EXAMS_COLLECTION = "exams";
 
 export interface Exam {
   id: string;
   name: string;
-  date: number; // Timestamp
+  date: Timestamp;
   maxMarks: number;
 }
 
 // Pre-populate some exams if they don't exist
 export const prepopulateExams = async () => {
-    const examsRef = ref(db, EXAMS_COLLECTION);
-    const snapshot = await get(examsRef);
-    if (!snapshot.exists()) {
-        const initialExams = {
-            "mid-term-2024": { name: "Mid-Term Exam 2024", date: new Date("2024-09-15").getTime(), maxMarks: 100 },
-            "final-exam-2024": { name: "Final Exam 2024", date: new Date("2025-03-10").getTime(), maxMarks: 100 }
-        };
-        await set(examsRef, initialExams);
+    const examsColl = collection(db, EXAMS_COLLECTION);
+    const snapshot = await getDocs(examsColl);
+    if (snapshot.empty) {
+        const batch = writeBatch(db);
+        const initialExams = [
+            { id: "mid-term-2024", name: "Mid-Term Exam 2024", date: Timestamp.fromDate(new Date("2024-09-15")), maxMarks: 100 },
+            { id: "final-exam-2024", name: "Final Exam 2024", date: Timestamp.fromDate(new Date("2025-03-10")), maxMarks: 100 }
+        ];
+
+        initialExams.forEach(exam => {
+            const docRef = doc(examsColl, exam.id);
+            batch.set(docRef, exam);
+        });
+
+        await batch.commit();
     }
 }
 
@@ -36,23 +42,15 @@ export const prepopulateExams = async () => {
 export const getExams = (
     callback: (exams: Exam[]) => void
 ) => {
-    const examsRef = ref(db, EXAMS_COLLECTION);
-    const unsubscribe = onValue(examsRef, (snapshot: DataSnapshot) => {
-        const exams: Exam[] = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            for (const id in data) {
-                exams.push({ id, ...data[id] });
-            }
-        }
-        callback(exams.sort((a,b) => b.date - a.date));
+    const examsColl = collection(db, EXAMS_COLLECTION);
+    const unsubscribe = onSnapshot(examsColl, (snapshot) => {
+        const exams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Exam));
+        callback(exams.sort((a,b) => b.date.toMillis() - a.date.toMillis()));
     });
     return unsubscribe;
 };
 
 // Add a new exam (for principal)
 export const addExam = async (examData: Omit<Exam, 'id'>) => {
-    const examsRef = ref(db, EXAMS_COLLECTION);
-    const newExamRef = push(examsRef);
-    await set(newExamRef, examData);
+    await addDoc(collection(db, EXAMS_COLLECTION), examData);
 };

@@ -1,16 +1,17 @@
 
-
 import { db } from "@/lib/firebase";
 import {
-  ref,
-  push,
-  onValue,
-  update,
+  collection,
+  addDoc,
+  onSnapshot,
+  updateDoc,
+  doc,
   query,
-  orderByChild,
-  equalTo,
-  get,
-} from "firebase/database";
+  where,
+  orderBy,
+  Timestamp,
+  or,
+} from "firebase/firestore";
 import { getTeacherForClass } from "./teachers";
 
 
@@ -22,11 +23,11 @@ export interface LeaveRequest {
   userName: string;
   userRole: "Student" | "Teacher";
   class?: string; // For students
-  startDate: string; // ISO String for start date
-  endDate: string; // ISO String for end date
+  startDate: Timestamp;
+  endDate: Timestamp;
   reason: string;
   status: "Confirmed" | "Pending" | "Rejected";
-  appliedAt: number;
+  appliedAt: Timestamp;
   teacherId?: string; // UID of the class teacher for student leaves
   rejectionReason?: string; 
   approverComment?: string;
@@ -34,10 +35,8 @@ export interface LeaveRequest {
 
 // Add a new leave request
 export const addLeaveRequest = async (leaveData: Omit<LeaveRequest, "id">) => {
-  const leavesRef = ref(db, LEAVES_COLLECTION);
   let finalLeaveData = { ...leaveData };
 
-  // If a student is applying, find their class teacher and assign the teacherId
   if (leaveData.userRole === "Student" && leaveData.class) {
     const classTeacher = await getTeacherForClass(leaveData.class);
     if (classTeacher) {
@@ -45,7 +44,7 @@ export const addLeaveRequest = async (leaveData: Omit<LeaveRequest, "id">) => {
     }
   }
 
-  await push(leavesRef, finalLeaveData);
+  await addDoc(collection(db, LEAVES_COLLECTION), finalLeaveData);
 };
 
 // Listen for all leave requests for a set of student IDs (more efficient)
@@ -58,25 +57,15 @@ export const getLeaveRequestsForStudents = (
     return () => {}; // Return an empty unsubscribe function
   }
 
-  // Since RTDB doesn't support "IN" queries, we fetch all leaves and filter.
-  // For better performance at scale, a denormalized data structure would be needed.
-  const leavesRef = ref(db, LEAVES_COLLECTION);
-  const leavesQuery = query(leavesRef, orderByChild("userRole"), equalTo("Student"));
+  const leavesColl = collection(db, LEAVES_COLLECTION);
+  const q = query(leavesColl, where("userRole", "==", "Student"), where("userId", "in", studentIds));
 
-  const unsubscribe = onValue(leavesQuery, (snapshot) => {
-    const allLeaves: LeaveRequest[] = [];
-    if (snapshot.exists()) {
-      snapshot.forEach((childSnapshot) => {
-        const leave = childSnapshot.val();
-        if (studentIds.includes(leave.userId)) {
-          allLeaves.push({ id: childSnapshot.key!, ...leave });
-        }
-      });
-    }
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const allLeaves = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LeaveRequest));
      callback(allLeaves.sort((a, b) => {
         if (a.status === 'Pending' && b.status !== 'Pending') return -1;
         if (a.status !== 'Pending' && b.status === 'Pending') return 1;
-        return b.appliedAt - a.appliedAt;
+        return b.appliedAt.toMillis() - a.appliedAt.toMillis();
     }));
   });
   return unsubscribe;
@@ -88,21 +77,15 @@ export const getLeaveRequestsForClassTeacher = (
     teacherId: string,
     callback: (leaves: LeaveRequest[]) => void
 ) => {
-    const leavesRef = ref(db, LEAVES_COLLECTION);
-    const leavesQuery = query(leavesRef, orderByChild("teacherId"), equalTo(teacherId));
+    const leavesColl = collection(db, LEAVES_COLLECTION);
+    const q = query(leavesColl, where("teacherId", "==", teacherId));
 
-    const unsubscribe = onValue(leavesQuery, (snapshot) => {
-        const teacherLeaves: LeaveRequest[] = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            for (const id in data) {
-                teacherLeaves.push({ id, ...data[id] });
-            }
-        }
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const teacherLeaves = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LeaveRequest));
         callback(teacherLeaves.sort((a, b) => {
             if (a.status === 'Pending' && b.status !== 'Pending') return -1;
             if (a.status !== 'Pending' && b.status === 'Pending') return 1;
-            return b.appliedAt - a.appliedAt;
+            return b.appliedAt.toMillis() - a.appliedAt.toMillis();
         }));
     });
     return unsubscribe;
@@ -118,23 +101,15 @@ export const getLeaveRequestsForTeachers = (
     callback([]);
     return () => {};
   }
-  const leavesRef = ref(db, LEAVES_COLLECTION);
-  const leavesQuery = query(leavesRef, orderByChild("userRole"), equalTo("Teacher"));
+  const leavesColl = collection(db, LEAVES_COLLECTION);
+  const q = query(leavesColl, where("userRole", "==", "Teacher"), where("userId", "in", teacherIds));
 
-  const unsubscribe = onValue(leavesQuery, (snapshot) => {
-    const allLeaves: LeaveRequest[] = [];
-     if (snapshot.exists()) {
-      snapshot.forEach((childSnapshot) => {
-        const leave = childSnapshot.val();
-        if (teacherIds.includes(leave.userId)) {
-          allLeaves.push({ id: childSnapshot.key!, ...leave });
-        }
-      });
-    }
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const allLeaves = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LeaveRequest));
     callback(allLeaves.sort((a, b) => {
         if (a.status === 'Pending' && b.status !== 'Pending') return -1;
         if (a.status !== 'Pending' && b.status === 'Pending') return 1;
-        return b.appliedAt - a.appliedAt;
+        return b.appliedAt.toMillis() - a.appliedAt.toMillis();
     }));
   });
   return unsubscribe;
@@ -145,18 +120,11 @@ export const getLeaveRequestsForUser = (
   userId: string,
   callback: (leaves: LeaveRequest[]) => void
 ) => {
-  const leavesRef = ref(db, LEAVES_COLLECTION);
-  const leavesQuery = query(leavesRef, orderByChild("userId"), equalTo(userId));
+  const q = query(collection(db, LEAVES_COLLECTION), where("userId", "==", userId), orderBy("appliedAt", "desc"));
   
-  const unsubscribe = onValue(leavesQuery, (snapshot) => {
-    const userLeaves: LeaveRequest[] = [];
-    if(snapshot.exists()) {
-        const data = snapshot.val();
-        for (const id in data) {
-            userLeaves.push({id, ...data[id]});
-        }
-    }
-    callback(userLeaves.sort((a,b) => b.appliedAt - a.appliedAt));
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const userLeaves = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LeaveRequest));
+    callback(userLeaves);
   });
   return unsubscribe;
 }
@@ -167,6 +135,6 @@ export const updateLeaveRequest = async (
   leaveId: string,
   updates: Partial<LeaveRequest>
 ) => {
-  const leaveRef = ref(db, `${LEAVES_COLLECTION}/${leaveId}`);
-  await update(leaveRef, updates);
+  const leaveRef = doc(db, LEAVES_COLLECTION, leaveId);
+  await updateDoc(leaveRef, updates);
 };

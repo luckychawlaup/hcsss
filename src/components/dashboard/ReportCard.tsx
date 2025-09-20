@@ -16,6 +16,7 @@ import { app } from "@/lib/firebase";
 import { getExams, Exam } from "@/lib/firebase/exams";
 import { getMarksForStudent, Mark } from "@/lib/firebase/marks";
 import { Skeleton } from "../ui/skeleton";
+import { Timestamp } from "firebase/firestore";
 
 export default function ReportCardComponent() {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -78,7 +79,7 @@ export default function ReportCardComponent() {
             >
               <div>
                 <p className="font-semibold">{exam.name}</p>
-                <p className="text-sm text-muted-foreground">{new Date(exam.date).toLocaleDateString()}</p>
+                <p className="text-sm text-muted-foreground">{exam.date.toDate().toLocaleDateString()}</p>
               </div>
               <Button variant="outline" size="icon" asChild>
                 <Link href={`/report-card/${exam.id}`}>

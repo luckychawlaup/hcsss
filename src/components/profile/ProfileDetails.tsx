@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
+import { Timestamp } from "firebase/firestore";
 
 const DetailItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string | null }) => {
     if (!value) return null;
@@ -63,6 +64,13 @@ export function ProfileSkeleton() {
     )
 }
 
+function formatDateFromTimestamp(timestamp: Timestamp | number): string {
+    if (typeof timestamp === 'number') {
+        return new Date(timestamp).toLocaleDateString("en-GB");
+    }
+    return timestamp.toDate().toLocaleDateString("en-GB");
+}
+
 export function StudentProfile({ student }: { student: Student }) {
     return (
         <div className="w-full">
@@ -94,7 +102,7 @@ export function StudentProfile({ student }: { student: Student }) {
                 <Card>
                     <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><Home /> Contact &amp; Other Details</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
-                        <DetailItem icon={<Calendar size={20} />} label="Admission Date" value={new Date(student.admissionDate).toLocaleDateString("en-GB")} />
+                        <DetailItem icon={<Calendar size={20} />} label="Admission Date" value={formatDateFromTimestamp(student.admissionDate)} />
                         <DetailItem icon={<Home size={20} />} label="Address" value={student.address} />
                         <DetailItem icon={<Bus size={20} />} label="Transport" value={"School Transport"} />
                     </CardContent>
@@ -131,7 +139,7 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
                         <DetailItem icon={<Briefcase size={20} />} label="Role" value={teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'} />
                         <DetailItem icon={<BookOpen size={20} />} label={roleLabel} value={classAssignment} />
                         <DetailItem icon={<Book size={20} />} label="Primary Subject" value={teacher.subject} />
-                        <DetailItem icon={<Calendar size={20} />} label="Joining Date" value={new Date(teacher.joiningDate).toLocaleDateString("en-GB")} />
+                        <DetailItem icon={<Calendar size={20} />} label="Joining Date" value={formatDateFromTimestamp(teacher.joiningDate)} />
                     </CardContent>
                 </Card>
 

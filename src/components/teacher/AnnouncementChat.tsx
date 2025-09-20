@@ -52,7 +52,7 @@ function AttachmentPreview({ url }: { url: string }) {
 }
 
 function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: AnnouncementBubbleProps) {
-  const isRecent = (Date.now() - notice.createdAt) < 15 * 60 * 1000; // 15 minutes
+  const isRecent = (Date.now() - notice.createdAt.toMillis()) < 15 * 60 * 1000; // 15 minutes
 
   return (
     <div className={cn("flex items-end gap-2.5 group", isSender ? "justify-end" : "justify-start")}>
@@ -65,7 +65,7 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: Announcement
         <div className="flex items-center space-x-2 rtl:space-x-reverse">
           {!isSender && <span className="text-xs font-semibold text-foreground">{notice.creatorName}</span>}
           <span className="text-xs font-normal text-muted-foreground">
-            {new Date(notice.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            {notice.createdAt.toDate().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
         <div className={cn("relative p-3 rounded-lg shadow-sm", isSender ? "bg-primary text-primary-foreground rounded-ee-none" : "bg-secondary rounded-es-none")}>

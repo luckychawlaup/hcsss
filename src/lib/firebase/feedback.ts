@@ -1,6 +1,6 @@
 
 import { db } from "@/lib/firebase";
-import { ref, push, set } from "firebase/database";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 
 const FEEDBACK_COLLECTION = "feedback";
 
@@ -12,7 +12,7 @@ export interface Feedback {
   category: "Complaint" | "Suggestion" | "Feedback";
   subject: string;
   description: string;
-  submittedAt: number;
+  submittedAt: Timestamp;
   status: "New" | "In Progress" | "Resolved";
 }
 
@@ -20,14 +20,11 @@ export interface Feedback {
 export const addFeedback = async (
   feedbackData: Omit<Feedback, "id" | "submittedAt" | "status">
 ) => {
-  const feedbackRef = ref(db, FEEDBACK_COLLECTION);
-  const newFeedbackRef = push(feedbackRef);
-
   const newFeedback = {
     ...feedbackData,
-    submittedAt: Date.now(),
+    submittedAt: Timestamp.now(),
     status: "New" as const,
   };
 
-  await set(newFeedbackRef, newFeedback);
+  await addDoc(collection(db, FEEDBACK_COLLECTION), newFeedback);
 };

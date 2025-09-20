@@ -1,12 +1,12 @@
 
 import { db } from "@/lib/firebase";
 import {
-  ref,
-  set,
-  get,
-  onValue,
-  DataSnapshot
-} from "firebase/database";
+  doc,
+  setDoc,
+  getDoc,
+  onSnapshot,
+  collection,
+} from "firebase/firestore";
 
 const MARKS_COLLECTION = "marks";
 
@@ -17,7 +17,6 @@ export interface Mark {
     grade: string;
 }
 
-// Function to calculate grade
 const getGrade = (marks: number, maxMarks: number): string => {
     const percentage = (marks / maxMarks) * 100;
     if (percentage >= 90) return "A1";
@@ -36,52 +35,61 @@ export const setMarksForStudent = async (
     examId: string,
     marksData: { subject: string; marks: number; maxMarks: number }[]
 ) => {
-    const marksRef = ref(db, `${MARKS_COLLECTION}/${studentId}/${examId}`);
-    const finalMarks: Record<string, Omit<Mark, 'subject'>> = {};
+    // Marks for a specific exam are stored as a subcollection under the student
+    const examMarksCollRef = collection(db, STUDENTS_COLLECTION, studentId, "marks", examId, "subjects");
+    
+    const batch = writeBatch(db);
 
     marksData.forEach(m => {
-        finalMarks[m.subject] = {
+        const subjectDocRef = doc(examMarksCollRef, m.subject);
+        const markPayload = {
             marks: m.marks,
             maxMarks: m.maxMarks,
             grade: getGrade(m.marks, m.maxMarks)
         };
+        batch.set(subjectDocRef, markPayload);
     });
 
-    await set(marksRef, finalMarks);
+    await batch.commit();
 };
 
 // Get marks for a specific student and exam
 export const getStudentMarksForExam = async (studentId: string, examId: string): Promise<Mark[]> => {
-    const marksRef = ref(db, `${MARKS_COLLECTION}/${studentId}/${examId}`);
-    const snapshot = await get(marksRef);
+    const examMarksCollRef = collection(db, STUDENTS_COLLECTION, studentId, "marks", examId, "subjects");
+    const snapshot = await getDocs(examMarksCollRef);
     const marks: Mark[] = [];
-    if (snapshot.exists()) {
-        const data = snapshot.val();
-        for (const subject in data) {
-            marks.push({ subject, ...data[subject] });
-        }
+    if (!snapshot.empty) {
+        snapshot.forEach(doc => {
+            marks.push({ subject: doc.id, ...doc.data() } as Mark);
+        });
     }
     return marks;
 };
 
 // Get all marks for a student (for report card list)
 export const getMarksForStudent = (studentId: string, callback: (marksByExam: Record<string, Mark[]>) => void) => {
-    const studentMarksRef = ref(db, `${MARKS_COLLECTION}/${studentId}`);
+    const marksExamsCollRef = collection(db, STUDENTS_COLLECTION, studentId, "marks");
     
-    const unsubscribe = onValue(studentMarksRef, (snapshot: DataSnapshot) => {
+    const unsubscribe = onSnapshot(marksExamsCollRef, (examSnapshot) => {
         const marksByExam: Record<string, Mark[]> = {};
-        if (snapshot.exists()) {
-            const allExamsData = snapshot.val();
-            for(const examId in allExamsData) {
-                const examMarksData = allExamsData[examId];
-                const marks: Mark[] = [];
-                 for (const subject in examMarksData) {
-                    marks.push({ subject, ...examMarksData[subject] });
-                }
-                marksByExam[examId] = marks;
+        
+        const promises = examSnapshot.docs.map(async (examDoc) => {
+            const examId = examDoc.id;
+            const subjectsCollRef = collection(db, STUDENTS_COLLECTION, studentId, "marks", examId, "subjects");
+            const subjectsSnapshot = await getDocs(subjectsCollRef);
+            
+            const marks: Mark[] = [];
+            if (!subjectsSnapshot.empty) {
+                subjectsSnapshot.forEach(subjectDoc => {
+                    marks.push({ subject: subjectDoc.id, ...subjectDoc.data() } as Mark);
+                });
             }
-        }
-        callback(marksByExam);
+            marksByExam[examId] = marks;
+        });
+
+        Promise.all(promises).then(() => {
+            callback(marksByExam);
+        });
     });
 
     return unsubscribe;

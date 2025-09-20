@@ -1,13 +1,15 @@
 
 import { db } from "@/lib/firebase";
 import {
-  ref,
-  onValue,
-  get,
-  update,
-} from "firebase/database";
+  doc,
+  onSnapshot,
+  getDoc,
+  updateDoc,
+  setDoc,
+} from "firebase/firestore";
 
 const SETTINGS_COLLECTION = "school_settings";
+const SETTINGS_DOC_ID = "main"; // Use a single document for all settings
 
 export interface SchoolSettings {
   schoolName: string;
@@ -27,11 +29,13 @@ const defaultSettings: SchoolSettings = {
 export const getSchoolSettingsRT = (
     callback: (settings: SchoolSettings) => void
 ) => {
-  const settingsRef = ref(db, SETTINGS_COLLECTION);
-  const unsubscribe = onValue(settingsRef, (snapshot) => {
+  const settingsRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
+  const unsubscribe = onSnapshot(settingsRef, async (snapshot) => {
     if (snapshot.exists()) {
-      callback(snapshot.val());
+      callback(snapshot.data() as SchoolSettings);
     } else {
+      // If settings doc doesn't exist, create it with defaults
+      await setDoc(settingsRef, defaultSettings);
       callback(defaultSettings);
     }
   });
@@ -40,11 +44,13 @@ export const getSchoolSettingsRT = (
 
 // Get school settings once for server components
 export const getSchoolSettings = async (): Promise<SchoolSettings> => {
-    const settingsRef = ref(db, SETTINGS_COLLECTION);
-    const snapshot = await get(settingsRef);
+    const settingsRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
+    const snapshot = await getDoc(settingsRef);
     if(snapshot.exists()) {
-        return snapshot.val();
+        return snapshot.data() as SchoolSettings;
     }
+    // If it doesn't exist, create and return it
+    await setDoc(settingsRef, defaultSettings);
     return defaultSettings;
 }
 
@@ -53,6 +59,6 @@ export const getSchoolSettings = async (): Promise<SchoolSettings> => {
 export const updateSchoolSettings = async (
   updatedData: Partial<SchoolSettings>
 ) => {
-  const settingsRef = ref(db, SETTINGS_COLLECTION);
-  await update(settingsRef, updatedData);
+  const settingsRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
+  await updateDoc(settingsRef, updatedData);
 };

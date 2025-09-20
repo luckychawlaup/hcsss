@@ -2,19 +2,19 @@
 import { db } from "@/lib/firebase";
 import { uploadImage as uploadImageToImageKit } from "@/lib/imagekit";
 import {
-  ref,
-  push,
-  onValue,
+  collection,
+  addDoc,
+  onSnapshot,
   query,
-  orderByChild,
-  equalTo,
-  get,
-  DataSnapshot,
-  serverTimestamp,
-  set,
-  remove,
-  update,
-} from "firebase/database";
+  where,
+  getDocs,
+  Timestamp,
+  doc,
+  updateDoc,
+  deleteDoc,
+  orderBy,
+  or,
+} from "firebase/firestore";
 import type { DocumentData } from "firebase/firestore";
 
 const ANNOUNCEMENTS_COLLECTION = "announcements";
@@ -29,8 +29,8 @@ export interface Announcement extends DocumentData {
     type: "class" | "student";
     value: string; // class-section string or studentId
   };
-  createdAt: number;
-  editedAt?: number;
+  createdAt: Timestamp;
+  editedAt?: Timestamp;
   createdBy?: string;
   creatorName?: string;
   creatorRole?: "Principal" | "Owner" | "Teacher" | "Class Teacher" | "Subject Teacher";
@@ -44,17 +44,11 @@ export const addAnnouncement = async (
     attachment?: File
 ) => {
   try {
-    const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
-    const newAnnouncementRef = push(announcementsRef);
-    const newAnnouncementId = newAnnouncementRef.key;
-
-    if (!newAnnouncementId) {
-      throw new Error("Could not generate a new key for the announcement.");
-    }
-
+    const announcementsColl = collection(db, ANNOUNCEMENTS_COLLECTION);
+    
     let finalAnnouncementData: Omit<Announcement, 'id'> = {
         ...announcementData,
-        createdAt: Date.now()
+        createdAt: Timestamp.now()
     };
     
     if (attachment) {
@@ -62,7 +56,7 @@ export const addAnnouncement = async (
         finalAnnouncementData.attachmentUrl = attachmentUrl;
     }
 
-    await set(newAnnouncementRef, finalAnnouncementData);
+    await addDoc(announcementsColl, finalAnnouncementData);
   } catch (e) {
     console.error("Error adding document: ", e);
     throw e;
@@ -75,44 +69,36 @@ export const getAnnouncementsForStudent = (
     studentInfo: { classSection: string; studentId: string },
     callback: (announcements: Announcement[]) => void
 ) => {
-  const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
-  const announcementsQuery = query(announcementsRef, orderByChild('createdAt'));
+  const announcementsColl = collection(db, ANNOUNCEMENTS_COLLECTION);
+  
+  const announcementsQuery = query(announcementsColl,
+    or(
+        where("target", "in", ["students", "both"]),
+        where("targetAudience.value", "==", studentInfo.classSection),
+        where("targetAudience.value", "==", studentInfo.studentId)
+    ),
+    orderBy("createdAt", "asc")
+   );
 
-  const unsubscribe = onValue(announcementsQuery, (snapshot: DataSnapshot) => {
-    const allAnnouncements: Announcement[] = [];
-    if(snapshot.exists()) {
-        const data = snapshot.val();
-         for (const id in data) {
-            allAnnouncements.push({ id, ...data[id] });
-        }
-    }
+  const unsubscribe = onSnapshot(announcementsQuery, (snapshot) => {
+    const allAnnouncements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
     
-    // Filter announcements for the target audience
+    // Additional client-side filtering for more complex logic
     const filtered = allAnnouncements.filter(ann => {
-        // General announcements for all students or everyone from admin
-        if (ann.target === "students" && (ann.creatorRole === 'Principal' || ann.creatorRole === 'Owner')) {
-            return true;
-        }
-
-        if (ann.target === "both" && !ann.targetAudience) {
-            return true;
-        }
+        // General announcements for all students or everyone
+        if (ann.target === "students" && !ann.targetAudience) return true;
+        if (ann.target === "both" && !ann.targetAudience) return true;
         
         // Announcements targeted to the student's class
-        if (ann.targetAudience?.type === 'class' && ann.targetAudience.value === studentInfo.classSection) {
-            return true;
-        }
+        if (ann.targetAudience?.type === 'class' && ann.targetAudience.value === studentInfo.classSection) return true;
 
         // Announcements targeted specifically to the student
-        if (ann.targetAudience?.type === 'student' && ann.targetAudience.value === studentInfo.studentId) {
-            return true;
-        }
+        if (ann.targetAudience?.type === 'student' && ann.targetAudience.value === studentInfo.studentId) return true;
         
         return false;
     });
 
-    const sorted = filtered.sort((a, b) => a.createdAt - b.createdAt);
-    callback(sorted);
+    callback(filtered);
   });
   return unsubscribe;
 };
@@ -122,21 +108,16 @@ export const getAnnouncementsForClass = (
     classSection: string,
     callback: (announcements: Announcement[]) => void
 ) => {
-    const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
-    const announcementsQuery = query(announcementsRef, orderByChild('targetAudience/value'), equalTo(classSection));
+    const announcementsColl = collection(db, ANNOUNCEMENTS_COLLECTION);
+    const announcementsQuery = query(
+        announcementsColl, 
+        where('targetAudience.value', '==', classSection), 
+        orderBy('createdAt', 'asc')
+    );
 
-    const unsubscribe = onValue(announcementsQuery, (snapshot: DataSnapshot) => {
-        const classAnnouncements: Announcement[] = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            for (const id in data) {
-                // Additional check because the query is on a nested property
-                if(data[id].targetAudience?.value === classSection) {
-                    classAnnouncements.push({ id, ...data[id] });
-                }
-            }
-        }
-        callback(classAnnouncements.sort((a, b) => a.createdAt - b.createdAt));
+    const unsubscribe = onSnapshot(announcementsQuery, (snapshot) => {
+        const classAnnouncements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
+        callback(classAnnouncements);
     });
     return unsubscribe;
 }
@@ -145,20 +126,17 @@ export const getAnnouncementsForClass = (
 export const getAnnouncementsForTeachers = (
     callback: (announcements: Announcement[]) => void
 ) => {
-    const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
-    const announcementsQuery = query(announcementsRef, orderByChild('target'), equalTo('teachers'));
+    const announcementsColl = collection(db, ANNOUNCEMENTS_COLLECTION);
+    const announcementsQuery = query(
+        announcementsColl,
+        where('target', 'in', ['teachers', 'both']),
+        where('targetAudience', '==', null), // Ensure it's a general broadcast
+        orderBy('createdAt', 'asc')
+    );
 
-    const unsubscribe = onValue(announcementsQuery, (snapshot: DataSnapshot) => {
-        const teacherAnnouncements: Announcement[] = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            for (const id in data) {
-                 if(!data[id].targetAudience) {
-                    teacherAnnouncements.push({ id, ...data[id] });
-                }
-            }
-        }
-        callback(teacherAnnouncements.sort((a, b) => a.createdAt - b.createdAt));
+    const unsubscribe = onSnapshot(announcementsQuery, (snapshot) => {
+        const teacherAnnouncements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
+        callback(teacherAnnouncements);
     });
 
     return unsubscribe;
@@ -167,18 +145,12 @@ export const getAnnouncementsForTeachers = (
 
 // Get all announcements, intended for principal/admin views
 export const getAllAnnouncements = (callback: (announcements: Announcement[]) => void) => {
-    const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
-    const announcementsQuery = query(announcementsRef, orderByChild('createdAt'));
+    const announcementsColl = collection(db, ANNOUNCEMENTS_COLLECTION);
+    const announcementsQuery = query(announcementsColl, orderBy('createdAt', 'asc'));
 
-    const unsubscribe = onValue(announcementsQuery, (snapshot: DataSnapshot) => {
-        const allAnnouncements: Announcement[] = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            for (const id in data) {
-                allAnnouncements.push({ id, ...data[id] });
-            }
-        }
-        callback(allAnnouncements.sort((a, b) => a.createdAt - b.createdAt));
+    const unsubscribe = onSnapshot(announcementsQuery, (snapshot) => {
+        const allAnnouncements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Announcement));
+        callback(allAnnouncements);
     });
 
     return unsubscribe;
@@ -186,15 +158,15 @@ export const getAllAnnouncements = (callback: (announcements: Announcement[]) =>
 
 // Update an existing announcement
 export const updateAnnouncement = async (announcementId: string, content: string) => {
-  const announcementRef = ref(db, `${ANNOUNCEMENTS_COLLECTION}/${announcementId}`);
-  await update(announcementRef, {
+  const announcementRef = doc(db, ANNOUNCEMENTS_COLLECTION, announcementId);
+  await updateDoc(announcementRef, {
     content: content,
-    editedAt: Date.now()
+    editedAt: Timestamp.now()
   });
 };
 
 // Delete an announcement
 export const deleteAnnouncement = async (announcementId: string) => {
-  const announcementRef = ref(db, `${ANNOUNCEMENTS_COLLECTION}/${announcementId}`);
-  await remove(announcementRef);
+  const announcementRef = doc(db, ANNOUNCEMENTS_COLLECTION, announcementId);
+  await deleteDoc(announcementRef);
 };
