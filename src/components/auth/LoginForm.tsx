@@ -9,6 +9,7 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
   User,
 } from "firebase/auth";
 import { app } from "@/lib/firebase";
@@ -24,9 +25,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getRole } from "./AuthProvider";
+import { getStudentByAuthId } from "@/lib/firebase/students";
+import { getTeacherByAuthId } from "@/lib/firebase/teachers";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -45,6 +48,7 @@ export default function LoginForm({ role }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
+  const [passwordResetSent, setPasswordResetSent] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth(app);
@@ -61,6 +65,7 @@ export default function LoginForm({ role }: LoginFormProps) {
     setIsLoading(true);
     setError(null);
     setNeedsVerification(false);
+    setPasswordResetSent(false);
 
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -69,11 +74,8 @@ export default function LoginForm({ role }: LoginFormProps) {
         values.password
       );
       const user = userCredential.user;
-
-      // Post-login role validation
       const actualRole = await getRole(user);
       
-      // Special handling for principal/owner who might share a role type
       const isPrincipalOrOwner = role === 'principal' || role === 'owner';
       const actualIsPrincipalOrOwner = actualRole === 'principal' || actualRole === 'owner';
 
@@ -91,7 +93,22 @@ export default function LoginForm({ role }: LoginFormProps) {
            return;
       }
 
-      // Email verification check for students and teachers
+      let userProfile;
+      if (actualRole === 'teacher') {
+          userProfile = await getTeacherByAuthId(user.uid);
+      } else if (actualRole === 'student') {
+          userProfile = await getStudentByAuthId(user.uid);
+      }
+
+      // Handle mandatory password change via reset email
+      if (userProfile?.mustChangePassword) {
+          await sendPasswordResetEmail(auth, user.email!);
+          setPasswordResetSent(true);
+          await auth.signOut();
+          setIsLoading(false);
+          return;
+      }
+      
       if (actualRole === 'student' || actualRole === 'teacher') {
         if (!user.emailVerified) {
           setNeedsVerification(true);
@@ -109,7 +126,6 @@ export default function LoginForm({ role }: LoginFormProps) {
         }
       }
 
-      // Redirect on success
       if (actualRole === "principal" || actualRole === "owner") {
         router.push("/principal");
       } else if (actualRole === "teacher") {
@@ -141,6 +157,18 @@ export default function LoginForm({ role }: LoginFormProps) {
       setError(errorMessage);
       setIsLoading(false);
     }
+  }
+  
+  if (passwordResetSent) {
+      return (
+          <Alert variant="default" className="bg-primary/10 border-primary/20">
+            <CheckCircle className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary">Password Reset Required!</AlertTitle>
+            <AlertDescription>
+                For your security, a password reset link has been sent to your registered email address. Please use it to set your new password before logging in again.
+            </AlertDescription>
+        </Alert>
+      )
   }
 
   return (

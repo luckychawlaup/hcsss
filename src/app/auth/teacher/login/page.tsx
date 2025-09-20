@@ -15,18 +15,12 @@ export default function TeacherLoginPage() {
           <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4" />
           <h1 className="text-3xl font-bold text-center text-primary">Teacher Portal</h1>
           <p className="text-center text-muted-foreground mt-2">
-            Sign in or register with the details provided by the school.
+            Sign in with the details provided by the school.
           </p>
         </div>
         <LoginForm role="teacher" />
 
         <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p>
-                First time logging in?{" "}
-                <Link href="/auth/teacher/register" className="font-medium text-primary hover:underline">
-                    Register your account
-                </Link>
-            </p>
             <p className="mt-2">
                 <Link href="/auth/teacher/forgot-password"className="text-xs font-medium text-primary hover:underline">
                     Forgot Password?

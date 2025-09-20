@@ -23,10 +23,10 @@ import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, UserPlus, Plus, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
-import { registerTeacherDetails, Teacher, TeacherRegistrationData } from "@/lib/firebase/teachers";
+import { addTeacher } from "@/lib/firebase/teachers";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "../ui/separator";
 import { Checkbox } from "../ui/checkbox";
 import { uploadImage } from "@/lib/imagekit";
 
@@ -66,8 +66,7 @@ interface AddTeacherFormProps {
 export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [registrationInfo, setRegistrationInfo] = useState<{key: string; email: string} | null>(null);
-  const [addedTeacherName, setAddedTeacherName] = useState<string | null>(null);
+  const [registrationInfo, setRegistrationInfo] = useState<{password: string; name: string, email: string} | null>(null);
   const [qualificationInput, setQualificationInput] = useState("");
   const { toast } = useToast();
 
@@ -108,7 +107,6 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
     setIsLoading(true);
     setError(null);
     setRegistrationInfo(null);
-    setAddedTeacherName(null);
 
     try {
       const teacherPhotoFile = values.photo?.[0];
@@ -117,13 +115,20 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
       }
 
       const photoUrl = await uploadImage(teacherPhotoFile, "Photos (teachers)");
+      
+      const teacherRegistrationData = {
+          ...values,
+          dob: formatDate(values.dob, "yyyy-MM-dd"),
+          photoUrl: photoUrl
+      };
 
-      const { registrationKey, email } = await registerTeacherDetails({ ...values, photoUrl } as TeacherRegistrationData);
-      setRegistrationInfo({ key: registrationKey, email });
-      setAddedTeacherName(values.name);
+      const { tempPassword } = await addTeacher(teacherRegistrationData);
+
+      setRegistrationInfo({ password: tempPassword, name: values.name, email: values.email });
+      
       toast({
-        title: "Teacher Registered Successfully!",
-        description: `Registration details for ${values.name} have been saved.`,
+        title: "Teacher Added Successfully!",
+        description: `Login credentials for ${values.name} have been generated.`,
       });
       form.reset();
     } catch (e: any) {
@@ -137,32 +142,32 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
       navigator.clipboard.writeText(text);
       toast({
         title: "Copied!",
-        description: "Registration Key copied to clipboard.",
+        description: "Password copied to clipboard.",
       });
   };
 
   const handleAddAnother = () => {
     setRegistrationInfo(null);
-    setAddedTeacherName(null);
   }
 
-  if (registrationInfo && addedTeacherName) {
+  if (registrationInfo) {
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20 mt-6">
             <CheckCircle className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-primary">Teacher Registered!</AlertTitle>
+            <AlertTitle className="text-primary">Teacher Added!</AlertTitle>
             <AlertDescription className="space-y-4">
-                <p><strong>{addedTeacherName}</strong> has been registered. Please provide them with their unique one-time Registration Key to complete their account setup.</p>
+                <p><strong>{registrationInfo.name}</strong> has been added. Please provide them with their login credentials.</p>
+                <p className="text-sm"><strong>Email:</strong> {registrationInfo.email}</p>
                 
                 <div className="flex items-center justify-between rounded-md border border-primary/20 bg-background p-3">
-                    <p className="font-mono text-lg font-bold text-primary">{registrationInfo.key}</p>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(registrationInfo.key)}>
+                    <p className="font-mono text-lg font-bold text-primary">{registrationInfo.password}</p>
+                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(registrationInfo.password)}>
                         <Copy className="h-5 w-5 text-primary" />
                     </Button>
                 </div>
                 
                 <p className="text-xs text-muted-foreground">
-                    The teacher will need this key, their registered name, and email to create their account and set a password on the teacher login page.
+                    This is a one-time temporary password. The teacher will be required to reset it via email on their first login.
                 </p>
 
                  <div className="flex gap-2 pt-2">
@@ -484,7 +489,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
              </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Register Teacher
+            Add Teacher & Generate Credentials
           </Button>
         </form>
       </Form>

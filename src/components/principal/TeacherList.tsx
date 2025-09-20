@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
-import type { Teacher, PendingTeacher } from "@/lib/firebase/teachers";
+import type { Teacher } from "@/lib/firebase/teachers";
 import { regenerateTemporaryPassword } from "@/lib/firebase/teachers";
 import { useRouter } from "next/navigation";
 import {
@@ -93,7 +93,7 @@ const editTeacherSchema = z.object({
     path: ["classesTaught"],
 });
 
-type CombinedTeacher = (Teacher & { status: 'Registered' }) | (PendingTeacher & { status: 'Pending' });
+type CombinedTeacher = Teacher & { status: 'Registered' };
 
 interface TeacherListProps {
   teachers: CombinedTeacher[];
@@ -108,7 +108,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   const [selectedTeacher, setSelectedTeacher] = useState<CombinedTeacher | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [qualificationInput, setQualificationInput] = useState("");
-  const [newPassword, setNewPassword] = useState<string | null>(null);
+  const [newPasswordInfo, setNewPasswordInfo] = useState<string | null>(null);
   const [isGeneratingPassword, setIsGeneratingPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -142,7 +142,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   };
 
   const handleEditClick = (teacher: Teacher) => {
-    setSelectedTeacher(teacher);
+    setSelectedTeacher(teacher as CombinedTeacher);
     reset({
         ...teacher,
         dob: new Date(teacher.dob),
@@ -180,7 +180,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
 
   const handleExport = () => {
     const dataToExport = teachers.map(teacher => ({
-        "Teacher ID": teacher.status === 'Registered' ? teacher.authUid : 'N/A',
+        "Teacher ID": teacher.authUid,
         "Name": teacher.name,
         "Email": teacher.email,
         "Status": teacher.status,
@@ -190,7 +190,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
         "Phone Number": teacher.phoneNumber,
         "DOB": teacher.dob,
         "Qualifications": teacher.qualifications?.join(', '),
-        "Joining Date": teacher.status === 'Registered' ? new Date(teacher.joiningDate).toLocaleString('en-GB') : 'Pending Registration',
+        "Joining Date": new Date(teacher.joiningDate).toLocaleString('en-GB'),
         "Father's Name": teacher.fatherName,
         "Address": teacher.address,
     }));
@@ -202,20 +202,21 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   }
   
   const handleRegeneratePassword = async (teacher: Teacher) => {
-      setSelectedTeacher(teacher);
+      setSelectedTeacher(teacher as CombinedTeacher);
       setIsGeneratingPassword(true);
+      setNewPasswordInfo(null);
       try {
-          const tempPassword = await regenerateTemporaryPassword(teacher.authUid);
-          setNewPassword(tempPassword);
+          const info = await regenerateTemporaryPassword(teacher.authUid);
+          setNewPasswordInfo(info);
           toast({
-              title: "Password Regenerated",
-              description: `A new temporary password has been created for ${teacher.name}.`
+              title: "Password Reset Triggered",
+              description: `A password reset email has been sent to ${teacher.name}.`
           });
       } catch (error) {
           toast({
               variant: "destructive",
               title: "Error",
-              description: "Could not regenerate the password. Please try again."
+              description: "Could not trigger the password reset. Please try again."
           })
       } finally {
         setIsGeneratingPassword(false);
@@ -226,12 +227,12 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
       navigator.clipboard.writeText(text);
       toast({
         title: "Copied!",
-        description: "New password copied to clipboard.",
+        description: "Information copied to clipboard.",
       });
   };
 
   const closePasswordDialog = () => {
-      setNewPassword(null);
+      setNewPasswordInfo(null);
       setSelectedTeacher(null);
   }
 
@@ -339,7 +340,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                                     {isGeneratingPassword && selectedTeacher?.id === teacher.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Regenerate Password</TooltipContent>
+                            <TooltipContent>Force Password Reset</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -394,19 +395,16 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
         </AlertDialogContent>
       </AlertDialog>
       
-      <Dialog open={!!newPassword} onOpenChange={closePasswordDialog}>
+      <Dialog open={!!newPasswordInfo} onOpenChange={closePasswordDialog}>
         <DialogContent>
             <DialogHeader>
-                 <DialogTitle className="flex items-center gap-2"><CheckCircle className="text-primary"/>New Password Generated</DialogTitle>
+                 <DialogTitle className="flex items-center gap-2"><CheckCircle className="text-primary"/>Password Reset Initiated</DialogTitle>
                 <DialogDescription>
-                    A new temporary password has been generated for <strong>{selectedTeacher?.name}</strong>. Please share it with them securely. They will be required to change it on their next login.
+                    A password reset email has been sent to <strong>{selectedTeacher?.email}</strong>. The teacher must use the link in the email to set their new password.
                 </DialogDescription>
             </DialogHeader>
             <div className="flex items-center justify-between rounded-md border bg-secondary p-3">
-                <span className="font-mono text-lg text-primary">{newPassword}</span>
-                <Button size="sm" variant="ghost" onClick={() => copyToClipboard(newPassword!)}>
-                    <Copy className="mr-2 h-4 w-4" /> Copy
-                </Button>
+                <span className="font-mono text-sm text-primary">{newPasswordInfo}</span>
             </div>
             <DialogFooter>
                 <Button onClick={closePasswordDialog}>Done</Button>
@@ -648,5 +646,4 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     </>
   );
 }
-
     
