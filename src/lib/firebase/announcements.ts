@@ -60,7 +60,6 @@ export const addAnnouncement = async (
     if (attachment) {
         const attachmentUrl = await uploadImageToImageKit(attachment, "gallery");
         finalAnnouncementData.attachmentUrl = attachmentUrl;
-        // The path isn't stored as we don't have a backend to delete from ImageKit securely
     }
 
     await set(newAnnouncementRef, finalAnnouncementData);
@@ -90,8 +89,12 @@ export const getAnnouncementsForStudent = (
     
     // Filter announcements for the target audience
     const filtered = allAnnouncements.filter(ann => {
-        // General announcements for all students or everyone
-        if ((ann.target === "students" || ann.target === "both") && !ann.targetAudience) {
+        // General announcements for all students or everyone from admin
+        if (ann.target === "students" && (ann.creatorRole === 'Principal' || ann.creatorRole === 'Owner')) {
+            return true;
+        }
+
+        if (ann.target === "both" && !ann.targetAudience) {
             return true;
         }
         

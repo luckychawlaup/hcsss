@@ -1,12 +1,6 @@
 
 import { db } from "@/lib/firebase";
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} from "firebase/storage";
+import { uploadImage as uploadImageToImageKit } from "@/lib/imagekit";
 import {
   ref as dbRef,
   push,
@@ -22,7 +16,6 @@ import {
 } from "firebase/database";
 
 const HOMEWORK_COLLECTION = "homework";
-const storage = getStorage();
 
 export interface Homework {
   id: string;
@@ -51,12 +44,8 @@ export const addHomework = async (
   let finalHomeworkData: Omit<Homework, "id"> = { ...homeworkData };
 
   if (attachment) {
-    const filePath = `homework/${newHomeworkId}/${attachment.name}`;
-    const fileRef = storageRef(storage, filePath);
-    await uploadBytes(fileRef, attachment);
-    const downloadURL = await getDownloadURL(fileRef);
+    const downloadURL = await uploadImageToImageKit(attachment, 'gallery');
     finalHomeworkData.attachmentUrl = downloadURL;
-    finalHomeworkData.attachmentPath = filePath;
   }
   
   await set(dbRef(db, `${HOMEWORK_COLLECTION}/${newHomeworkId}`), finalHomeworkData);
@@ -71,21 +60,9 @@ export const updateHomework = async (
     const homeworkNodeRef = dbRef(db, `${HOMEWORK_COLLECTION}/${homeworkId}`);
     
     if (newAttachment) {
-        // If there's an old attachment, delete it
-        const existingHomeworkSnap = await get(homeworkNodeRef);
-        const existingHomework = existingHomeworkSnap.val();
-        if (existingHomework.attachmentPath) {
-            const oldFileRef = storageRef(storage, existingHomework.attachmentPath);
-            await deleteObject(oldFileRef).catch(e => console.warn("Old attachment not found, could not delete.", e));
-        }
-
-        // Upload new attachment
-        const filePath = `homework/${homeworkId}/${newAttachment.name}`;
-        const fileRef = storageRef(storage, filePath);
-        await uploadBytes(fileRef, newAttachment);
-        const downloadURL = await getDownloadURL(fileRef);
+        const downloadURL = await uploadImageToImageKit(newAttachment, 'gallery');
         updates.attachmentUrl = downloadURL;
-        updates.attachmentPath = filePath;
+        updates.attachmentPath = undefined; // We don't store path anymore
     }
 
     await update(homeworkNodeRef, updates);
@@ -94,18 +71,8 @@ export const updateHomework = async (
 // Delete homework
 export const deleteHomework = async (homeworkId: string) => {
     const homeworkNodeRef = dbRef(db, `${HOMEWORK_COLLECTION}/${homeworkId}`);
-    const snapshot = await get(homeworkNodeRef);
-
-    if (snapshot.exists()) {
-        const homeworkData = snapshot.val();
-        // If there's an attachment, delete it from storage
-        if (homeworkData.attachmentPath) {
-            const fileRef = storageRef(storage, homeworkData.attachmentPath);
-            await deleteObject(fileRef).catch(e => console.error("Error deleting attachment:", e));
-        }
-        // Delete the database record
-        await remove(homeworkNodeRef);
-    }
+    // No need to delete from storage as we don't control it via backend
+    await remove(homeworkNodeRef);
 };
 
 
@@ -161,5 +128,3 @@ export const getHomeworksByTeacher = (
     });
     return unsubscribe;
 }
-
-    
