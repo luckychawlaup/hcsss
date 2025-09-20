@@ -15,16 +15,14 @@
       ".write": "root.child('isAdmin').val()",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && (auth.uid === $uid || root.child('isAdmin').val() || (root.child('isTeacher').val() && root.child('teachers').child(auth.uid).child('classTeacherOf').val() === data.child('class').val() + '-' + data.child('section').val()))"
+        ".write": "(auth != null && auth.uid === $uid && !data.exists()) || root.child('isAdmin').val() || (root.child('isTeacher').val() && root.child('teachers').child(auth.uid).child('classTeacherOf').val() === data.child('class').val() + '-' + data.child('section').val())"
       }
     },
     "student_registrations": {
       ".read": "auth != null",
       ".write": "root.child('isAdmin').val()",
       "$key": {
-        // Allow an admin to create a registration key.
-        // Allow the claiming student to write their authUid to the record, then it gets deleted.
-        ".write": "auth != null && (root.child('isAdmin').val() || newData.child('authUid').val() === auth.uid)"
+        ".write": "auth != null && (root.child('isAdmin').val() || (newData.child('authUid').exists() && newData.child('authUid').val() === auth.uid) || !newData.exists())"
       }
     },
     "teachers": {
