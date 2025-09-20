@@ -39,7 +39,7 @@ import { format as formatDate, parseISO } from "date-fns";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 import { Input } from "../ui/input";
-import { Edit, Trash2, Loader2, ArrowLeft, FileDown, Search, Users, UserX, KeyRound, Copy } from "lucide-react";
+import { Edit, Trash2, Loader2, ArrowLeft, FileDown, Search, Users, UserX, KeyRound, Copy, Info } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { regenerateStudentKey } from "@/lib/firebase/students";
@@ -105,8 +105,9 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
 
   async function onEditSubmit(values: z.infer<typeof editStudentSchema>) {
       if (!studentToEdit) return;
+      const { email, ...updatableValues } = values;
       const updatedData = {
-          ...values,
+          ...updatableValues,
           dateOfBirth: formatDate(values.dateOfBirth, "yyyy-MM-dd"),
       };
       await onUpdateStudent(studentToEdit.id, updatedData);
@@ -348,7 +349,15 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                                     <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                  <FormField control={form.control} name="email" render={({ field }) => (
-                                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem>
+                                        <FormLabel>Email</FormLabel>
+                                        <FormControl><Input {...field} readOnly className="cursor-not-allowed bg-secondary/50" /></FormControl>
+                                        <FormMessage />
+                                        <div className='flex items-center gap-2 text-xs text-muted-foreground p-2 rounded-md border border-dashed border-amber-500/50 bg-amber-500/10'>
+                                            <Info className="h-4 w-4 text-amber-600"/>
+                                            <span>Email cannot be changed after registration.</span>
+                                        </div>
+                                    </FormItem>
                                 )}/>
                                 <FormField control={form.control} name="fatherName" render={({ field }) => (
                                     <FormItem><FormLabel>Father's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
