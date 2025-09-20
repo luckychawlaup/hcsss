@@ -9,6 +9,7 @@ import { getTeachersAndPending, updateTeacher, deleteTeacher, Teacher, PendingTe
 import { getStudentsAndPending, updateStudent, deleteStudent, Student, CombinedStudent } from "@/lib/firebase/students";
 import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/firebase/leaves";
 import type { LeaveRequest } from "@/lib/firebase/leaves";
+import { prepopulateExams } from "@/lib/firebase/exams";
 import { Skeleton } from "../ui/skeleton";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -198,6 +199,9 @@ export default function PrincipalDashboard() {
     });
 
     setIsLoading(true);
+
+    // Run prepopulation for exams, it will only run if exams don't exist.
+    prepopulateExams().catch(console.error);
 
     const unsubStudents = getStudentsAndPending(setAllStudents);
     const unsubTeachers = getTeachersAndPending(setAllTeachers);

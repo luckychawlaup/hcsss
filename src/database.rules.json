@@ -14,7 +14,7 @@
       ".read": "root.child('isAdmin').val() || root.child('isTeacher').val()",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "(auth != null && auth.uid === $uid && !data.exists()) || root.child('isAdmin').val() || (root.child('isTeacher').val() && root.child('teachers').child(auth.uid).child('classTeacherOf').val() === data.child('class').val() + '-' + data.child('section').val())"
+        ".write": "(auth != null && auth.uid === $uid && newData.exists() && !data.exists()) || root.child('isAdmin').val() || (root.child('isTeacher').val() && root.child('teachers').child(auth.uid).child('classTeacherOf').val() === data.child('class').val() + '-' + data.child('section').val())"
       }
     },
     "teachers": {

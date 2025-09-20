@@ -19,7 +19,7 @@ export interface Exam {
 }
 
 // Pre-populate some exams if they don't exist
-const prepopulateExams = async () => {
+export const prepopulateExams = async () => {
     const examsRef = ref(db, EXAMS_COLLECTION);
     const snapshot = await get(examsRef);
     if (!snapshot.exists()) {
@@ -30,7 +30,6 @@ const prepopulateExams = async () => {
         await set(examsRef, initialExams);
     }
 }
-prepopulateExams();
 
 
 // Get all exams with real-time updates
