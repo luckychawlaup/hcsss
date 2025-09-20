@@ -19,7 +19,7 @@
       }
     },
     "student_registrations": {
-      ".read": "root.child('isAdmin').val()",
+      ".read": "root.child('isAdmin').val() || root.child('isTeacher').val()",
       ".write": "root.child('isAdmin').val() || auth != null",
       "$key": {
         // Allow a student to claim their account
