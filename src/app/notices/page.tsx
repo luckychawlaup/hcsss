@@ -10,8 +10,25 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { getStudentByAuthId } from "@/lib/firebase/students";
 import { Card } from "@/components/ui/card";
-import { Info, Send } from "lucide-react";
+import { Info, Send, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+
+function AttachmentPreview({ url }: { url: string }) {
+    const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
+
+    return (
+        <div className="mt-2">
+            {isImage ? (
+                <Image src={url} alt="Attachment" width={200} height={200} className="rounded-md object-cover" />
+            ) : (
+                <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 underline flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" /> View Attachment
+                </a>
+            )}
+        </div>
+    )
+}
 
 function AnnouncementBubble({ notice }: { notice: Announcement }) {
   const isSender = false; // Students are always receivers
@@ -31,8 +48,9 @@ function AnnouncementBubble({ notice }: { notice: Announcement }) {
             <div className={cn("p-3 rounded-lg", isSender ? "bg-primary text-primary-foreground rounded-ee-none" : "bg-secondary rounded-es-none")}>
                 {notice.title && <p className="text-sm font-semibold pb-1">{notice.title}</p>}
                 <p className="text-sm font-normal">{notice.content}</p>
+                 {notice.attachmentUrl && <AttachmentPreview url={notice.attachmentUrl} />}
             </div>
-             <span className="text-xs font-normal text-muted-foreground">{notice.creatorRole}</span>
+             <span className="text-xs font-normal text-muted-foreground">{notice.creatorRole} ({notice.category})</span>
         </div>
     </div>
   )

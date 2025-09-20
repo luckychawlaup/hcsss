@@ -72,7 +72,7 @@ export default function TeacherAnnouncementsPage() {
         },
         createdBy: teacher?.id,
         creatorName: teacher?.name,
-        creatorRole: "Teacher" as const,
+        creatorRole: teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher' as const,
     };
     
      try {
@@ -114,7 +114,7 @@ export default function TeacherAnnouncementsPage() {
                         chatTitle={selectedClass}
                         onSendMessage={handleSendMessage}
                         senderName={teacher?.name || "Teacher"}
-                        senderRole="Teacher"
+                        senderRole={teacher?.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}
                     />
                 )}
             </div>

@@ -114,8 +114,8 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
         <Megaphone className="h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">Select a Class</h3>
-        <p className="text-muted-foreground mt-2">Choose a class from the list to view announcements or send a new one.</p>
+        <h3 className="mt-4 text-lg font-semibold">Select a Group</h3>
+        <p className="text-muted-foreground mt-2">Choose a class or group from the list to view announcements or send a new one.</p>
       </div>
     );
   }
