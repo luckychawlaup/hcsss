@@ -2,7 +2,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Home, ClipboardCheck, BookUp, User, Camera } from "lucide-react";
+import { Home, ClipboardCheck, BookUp, User, Camera, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { TeacherView } from "./TeacherDashboard";

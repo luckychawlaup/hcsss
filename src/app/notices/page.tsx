@@ -14,6 +14,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAnnouncements, Announcement } from "@/lib/firebase/announcements";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { app } from "@/lib/firebase";
+import { getStudentByAuthId } from "@/lib/firebase/students";
 
 const getCategoryVariant = (category: string) => {
   switch (category.toLowerCase()) {
@@ -49,16 +52,35 @@ function AnnouncementSkeleton() {
 export default function NoticesPage() {
   const [notices, setNotices] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const auth = getAuth(app);
 
   useEffect(() => {
     setIsLoading(true);
-    const unsubscribe = getAnnouncements("students", (announcements) => {
-      setNotices(announcements);
-      setIsLoading(false);
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+          const studentProfile = await getStudentByAuthId(user.uid);
+          if (studentProfile) {
+            const classSection = `${studentProfile.class}-${studentProfile.section}`;
+            const studentId = studentProfile.id;
+
+            const unsubscribeAnnouncements = getAnnouncements(
+              "students",
+              { classSection, studentId },
+              (announcements) => {
+                setNotices(announcements);
+                setIsLoading(false);
+              }
+            );
+
+            return () => unsubscribeAnnouncements();
+          }
+      }
+       setIsLoading(false);
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => unsubscribeAuth();
+  }, [auth]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -88,6 +110,7 @@ export default function NoticesPage() {
                           month: "long",
                           year: "numeric",
                         })}
+                         {notice.creatorName && ` - from ${notice.creatorName}`}
                       </CardDescription>
                     </div>
                     <Badge variant={getCategoryVariant(notice.category)}>

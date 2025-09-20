@@ -16,7 +16,7 @@ import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
 import { getStudentsForTeacher, Student } from "@/lib/firebase/students";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import dynamic from "next/dynamic";
 import TeacherNav from "./TeacherNav";
@@ -35,8 +35,12 @@ const AddHomeworkForm = dynamic(() => import('./AddHomeworkForm'), {
 const MarkAttendance = dynamic(() => import('./MarkAttendance'), {
   loading: () => <Skeleton className="h-96 w-full" />,
 });
+const MakeTeacherAnnouncementForm = dynamic(() => import('./MakeTeacherAnnouncementForm'), {
+    loading: () => <Skeleton className="h-80 w-full" />,
+});
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance";
+
+export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "makeAnnouncement";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -195,6 +199,27 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 );
+            case 'makeAnnouncement':
+                return (
+                    <Card>
+                        <CardHeader>
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <Megaphone />
+                                Make an Announcement
+                            </CardTitle>
+                            <CardDescription>
+                                Publish an announcement to a specific student or all students in a class.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <MakeTeacherAnnouncementForm teacher={teacher} students={assignedStudents} />
+                        </CardContent>
+                    </Card>
+                );
             default:
                 return (
                     <div className="space-y-6">
@@ -207,7 +232,7 @@ export default function TeacherDashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <NavCard title="My Students" description="View and manage student details" icon={Users} onClick={() => setActiveView("manageStudents")} />
                             <NavCard title="Approve Leaves" description="Review student leave requests" icon={CalendarCheck} onClick={() => setActiveView("approveLeaves")} />
-                            <NavCard title="Assign Homework" description="Create and post homework for classes" icon={BookUp} onClick={() => setActiveView("addHomework")} />
+                            <NavCard title="Make Announcement" description="Send notices to students or classes" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                             <NavCard title="Mark Attendance" description="Record daily attendance for students" icon={ClipboardCheck} onClick={() => setActiveView("markAttendance")} />
                         </div>
                     </div>

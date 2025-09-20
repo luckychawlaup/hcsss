@@ -1,4 +1,5 @@
 
+
 import { db } from "@/lib/firebase";
 import {
   ref,
@@ -21,7 +22,13 @@ export interface Announcement extends DocumentData {
   content: string;
   category: string;
   target: "students" | "teachers" | "both";
+  targetAudience?: {
+    type: "class" | "student";
+    value: string; // class-section string or studentId
+  };
   createdAt: number; // Use timestamp for ordering
+  createdBy?: string; // UID of creator (principal or teacher)
+  creatorName?: string;
 }
 
 // Add a new announcement
@@ -40,12 +47,11 @@ export const addAnnouncement = async (announcementData: Omit<Announcement, 'id' 
 
 // Get announcements with real-time updates based on target
 export const getAnnouncements = (
-    target: "students" | "teachers",
+    targetRole: "students" | "teachers",
+    studentInfo: { classSection: string; studentId: string } | null,
     callback: (announcements: Announcement[]) => void
 ) => {
   const announcementsRef = ref(db, ANNOUNCEMENTS_COLLECTION);
-  
-  // RTDB queries are less flexible than Firestore. We fetch all and filter client-side for "both" case.
   const announcementsQuery = query(announcementsRef, orderByChild('createdAt'));
 
   const unsubscribe = onValue(announcementsQuery, (snapshot: DataSnapshot) => {
@@ -58,9 +64,28 @@ export const getAnnouncements = (
     }
     
     // Filter announcements for the target audience
-    const filtered = allAnnouncements.filter(
-        (ann) => ann.target === target || ann.target === "both"
-    );
+    const filtered = allAnnouncements.filter(ann => {
+        // Principal-level announcements
+        if (ann.target === targetRole || ann.target === "both") {
+            // If it's a general announcement without specific audience, show it
+            if (!ann.targetAudience) {
+                return true;
+            }
+        }
+        
+        // Teacher-level announcements for a specific student or class
+        if (targetRole === 'students' && ann.targetAudience && studentInfo) {
+            const { type, value } = ann.targetAudience;
+            if (type === 'class' && value === studentInfo.classSection) {
+                return true;
+            }
+            if (type === 'student' && value === studentInfo.studentId) {
+                return true;
+            }
+        }
+        
+        return false;
+    });
 
     // Sort by most recent
     const sorted = filtered.sort((a, b) => b.createdAt - a.createdAt);
