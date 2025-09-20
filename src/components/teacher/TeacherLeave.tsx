@@ -177,7 +177,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="space-y-8">
       <Card className="border-0 shadow-none">
         <CardHeader className="p-0">
           <CardTitle>Request for Leave</CardTitle>

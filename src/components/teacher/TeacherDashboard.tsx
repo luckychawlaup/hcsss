@@ -16,12 +16,13 @@ import { getTeacherByAuthId, Teacher } from "@/lib/firebase/teachers";
 import { getStudentsForTeacher, Student } from "@/lib/firebase/students";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/firebase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import dynamic from "next/dynamic";
 import TeacherNav from "./TeacherNav";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
+import { TeacherLeave } from "./TeacherLeave";
 
 const TeacherStudentList = dynamic(() => import('./TeacherStudentList'), {
   loading: () => <Skeleton className="h-64 w-full" />,
@@ -37,7 +38,7 @@ const MarkAttendance = dynamic(() => import('./MarkAttendance'), {
 });
 
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "makeAnnouncement";
+export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "makeAnnouncement" | "teacherLeave";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -193,6 +194,27 @@ export default function TeacherDashboard() {
                         </CardHeader>
                          <CardContent>
                             <MarkAttendance teacher={teacher} students={assignedStudents} isLoading={isLoading} />
+                        </CardContent>
+                    </Card>
+                );
+            case 'teacherLeave':
+                return (
+                    <Card>
+                        <CardHeader>
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <CalendarPlus />
+                                Leave Application
+                            </CardTitle>
+                            <CardDescription>
+                                Apply for your own leave and track its status.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <TeacherLeave teacher={teacher} />
                         </CardContent>
                     </Card>
                 );

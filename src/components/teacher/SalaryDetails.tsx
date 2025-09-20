@@ -93,7 +93,7 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
   };
 
   return (
-    <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="mt-6 space-y-8">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -233,5 +233,3 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
     </div>
   );
 }
-
-    

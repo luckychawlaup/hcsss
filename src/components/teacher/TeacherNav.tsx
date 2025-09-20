@@ -2,14 +2,14 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Home, ClipboardCheck, BookUp, User, Camera, Megaphone } from "lucide-react";
+import { Home, ClipboardCheck, BookUp, User, Camera, Megaphone, CalendarPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { TeacherView } from "./TeacherDashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NavItem {
-  view: TeacherView | "profile" | "gallery" | "makeAnnouncement";
+  view: TeacherView | "profile" | "gallery" | "makeAnnouncement" | "teacherLeave";
   label: string;
   icon: React.ElementType;
   href?: string;
@@ -19,6 +19,7 @@ const mainNavItems: NavItem[] = [
   { view: "dashboard", label: "Home", icon: Home, href: "/teacher" },
   { view: "markAttendance", label: "Attendance", icon: ClipboardCheck },
   { view: "addHomework", label: "Homework", icon: BookUp },
+  { view: "teacherLeave", label: "Leave", icon: CalendarPlus },
   { view: "makeAnnouncement", label: "Announce", icon: Megaphone, href: "/teacher/announcements" },
   { view: "gallery", label: "Gallery", icon: Camera, href: "/gallery" },
   { view: "profile", label: "Profile", icon: User, href: "/profile" },
@@ -26,13 +27,13 @@ const mainNavItems: NavItem[] = [
 
 const mobileNavItems: NavItem[] = [
   { view: "dashboard", label: "Home", icon: Home, href: "/teacher" },
-  { view: "markAttendance", label: "Attendance", icon: ClipboardCheck },
   { view: "addHomework", label: "Homework", icon: BookUp },
+  { view: "teacherLeave", label: "Leave", icon: CalendarPlus },
   { view: "profile", label: "Profile", icon: User, href: "/profile" },
 ];
 
 interface TeacherNavProps {
-    activeView: TeacherView | "profile" | "gallery";
+    activeView: TeacherView | "profile" | "gallery" | "teacherLeave";
     setActiveView: (view: TeacherView) => void;
 }
 
