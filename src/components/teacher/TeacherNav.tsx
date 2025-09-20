@@ -24,6 +24,13 @@ const mainNavItems: NavItem[] = [
   { view: "profile", label: "Profile", icon: User, href: "/profile" },
 ];
 
+const mobileNavItems: NavItem[] = [
+  { view: "dashboard", label: "Home", icon: Home, href: "/teacher" },
+  { view: "markAttendance", label: "Attendance", icon: ClipboardCheck },
+  { view: "addHomework", label: "Homework", icon: BookUp },
+  { view: "profile", label: "Profile", icon: User, href: "/profile" },
+];
+
 interface TeacherNavProps {
     activeView: TeacherView | "profile" | "gallery";
     setActiveView: (view: TeacherView) => void;
@@ -57,8 +64,8 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
   if (isMobile) {
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-sm md:hidden">
-            <div className="grid h-16 grid-cols-6 items-center justify-items-center">
-                {mainNavItems.map(item => {
+            <div className="grid h-16 grid-cols-4 items-center justify-items-center">
+                {mobileNavItems.map(item => {
                     const isActive = getIsActive(item);
                     return (
                         <button
