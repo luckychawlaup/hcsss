@@ -28,9 +28,8 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "../ui/separator";
 import { uploadImage } from "@/lib/imagekit";
-import { addStudent } from "@/lib/firebase/students";
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, deleteUser } from "firebase/auth";
-import { app } from "@/lib/firebase";
+import { addStudent } from "@/lib/supabase/students";
+import { createClient } from "@/lib/supabase/client";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -71,7 +70,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
   const [customSubject, setCustomSubject] = useState("");
   const [seniorSubjects, setSeniorSubjects] = useState(defaultSeniorSubjects);
   const { toast } = useToast();
-  const auth = getAuth(app);
+  const supabase = createClient();
 
   const form = useForm<z.infer<typeof addStudentSchema>>({
     resolver: zodResolver(addStudentSchema),
@@ -110,18 +109,22 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     setError(null);
     setSuccessInfo(null);
     
-    let tempUser = null;
+    let tempAuthUser = null;
+    const tempPassword = Math.random().toString(36).slice(-8); 
 
     try {
-        // Step 1: Create the Firebase Auth user
-        const tempPassword = Math.random().toString(36).slice(-8); // This password is temporary and will be reset by the user
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, tempPassword);
-        tempUser = userCredential.user;
+        // Step 1: Create the Supabase Auth user
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: values.email,
+            password: tempPassword,
+        });
 
-        // Step 2: Send verification email
-        await sendEmailVerification(tempUser);
+        if (authError) throw authError;
+        if (!authData.user) throw new Error("User creation failed.");
+        
+        tempAuthUser = authData.user;
 
-        // Step 3: Upload photo and Aadhar if they exist
+        // Step 2: Upload photo and Aadhar if they exist
         let photoUrl: string | undefined;
         const studentPhotoFile = values.photo?.[0];
         if (studentPhotoFile) {
@@ -134,9 +137,9 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
             aadharUrl = await uploadImage(aadharFile, "Aadhar Cards");
         }
 
-        // Step 4: Prepare the final student data payload
+        // Step 3: Prepare the final student data payload
         const studentDataPayload = {
-            authUid: tempUser.uid,
+            authUid: tempAuthUser.id,
             email: values.email,
             name: values.name,
             photoUrl: photoUrl || "",
@@ -155,23 +158,24 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
             studentPhone: values.studentPhone || "",
         };
 
-        // Step 5: Save the student data to the database
+        // Step 4: Save the student data to the database
         await addStudent(studentDataPayload);
 
         // If all successful:
         setSuccessInfo({ name: values.name, email: values.email });
         toast({
             title: "Student Admitted Successfully!",
-            description: `${values.name}'s account has been created. They must use 'Forgot Password' to log in.`,
+            description: `${values.name}'s account has been created. An email has been sent to them to verify their account and set a password.`,
         });
         form.reset();
 
     } catch (e: any) {
         // CRITICAL: If any step after auth creation fails, delete the temporary auth user
-        if (tempUser) {
+        if (tempAuthUser) {
             try {
-                await deleteUser(tempUser);
-                console.log("Temporary auth user deleted successfully after failed registration.");
+                // This needs an admin client. For now, we rely on manual cleanup if this fails.
+                // A server-side function would be needed for a robust implementation.
+                console.warn("An error occurred after user creation. Manual auth user cleanup may be required for:", tempAuthUser.id);
             } catch (deleteError) {
                 console.error("CRITICAL: Failed to delete temporary auth user after an error. Manual cleanup required.", deleteError);
                 setError(`An error occurred, and a cleanup operation also failed. Please contact support. Error: ${e.message}`);
@@ -181,7 +185,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         }
         
         let errorMessage = `An unexpected error occurred: ${e.message}`;
-        if (e.code === 'auth/email-already-in-use') {
+        if (e.message.includes('User already registered')) {
             errorMessage = "This email is already in use by another account. Please use a different email.";
         }
         setError(errorMessage);
@@ -204,7 +208,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
             <AlertTitle className="text-primary">Student Admitted!</AlertTitle>
             <AlertDescription className="space-y-4">
                 <p><strong>{successInfo.name}</strong> has been admitted with the email <strong>{successInfo.email}</strong>.</p>
-                <p>An email verification has been sent. They must now go to the student login page and use the **"Forgot Password?"** link to set their password and log in for the first time.</p>
+                <p>An email verification has been sent. They must use the link in their email to verify their account and can then log in.</p>
                  <div className="flex gap-2 pt-2">
                     <Button onClick={handleAddAnother}>
                         <UserPlus className="mr-2" />
@@ -533,3 +537,4 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
+

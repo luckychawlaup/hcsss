@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, AlertCircle, CheckCircle, Copy, UserPlus, Plus, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
-import { addTeacher } from "@/lib/firebase/teachers";
+import { addTeacher } from "@/lib/supabase/teachers";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "../ui/separator";
