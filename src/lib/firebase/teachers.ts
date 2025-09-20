@@ -121,6 +121,19 @@ export const getTeacherByAuthId = async (
   }
 };
 
+// Get a single teacher by email
+export const getTeacherByEmail = async (email: string): Promise<Teacher | null> => {
+  const teachersRef = ref(db, TEACHERS_COLLECTION);
+  const q = query(teachersRef, orderByChild('email'), equalTo(email));
+  const snapshot = await get(q);
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    const id = Object.keys(data)[0];
+    return { id, authUid: id, ...data[id] };
+  }
+  return null;
+};
+
 
 // Find the class teacher for a specific class-section
 export const getTeacherForClass = async (classSection: string): Promise<Teacher | null> => {

@@ -20,6 +20,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getStudentByEmail } from "@/lib/firebase/students";
+import { getTeacherByEmail } from "@/lib/firebase/teachers";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -49,6 +51,21 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
     setIsSuccess(false);
 
     try {
+      // First, check if the user exists in our database
+      let userExists = false;
+      if (role === 'student') {
+        userExists = !!(await getStudentByEmail(values.email));
+      } else if (role === 'teacher') {
+        userExists = !!(await getTeacherByEmail(values.email));
+      }
+
+      if (!userExists) {
+        setError("This email address is not registered in our system.");
+        setIsLoading(false);
+        return;
+      }
+      
+      // If user exists, then send the reset email
       await sendPasswordResetEmail(auth, values.email);
       setIsSuccess(true);
       toast({
@@ -58,9 +75,11 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
       form.reset();
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
-       if (error.code === "auth/user-not-found") {
-         errorMessage = "This email address is not registered in our system.";
-       }
+      // Firebase's sendPasswordResetEmail doesn't throw auth/user-not-found by default
+      // for security reasons, but we handle other potential errors.
+      if (error.code === "auth/invalid-email") {
+        errorMessage = "Please enter a valid email address.";
+      }
       setError(errorMessage);
     } finally {
       setIsLoading(false);

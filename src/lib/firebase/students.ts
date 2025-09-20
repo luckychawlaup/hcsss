@@ -15,11 +15,10 @@ import {
 } from "firebase/database";
 import { format } from "date-fns";
 import type { Teacher } from "./teachers";
-import { createUserWithEmailAndPassword, sendEmailVerification, deleteUser } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, deleteUser, getAuth } from "firebase/auth";
 
 
 const STUDENTS_COLLECTION = "students";
-const PENDING_STUDENTS_COLLECTION = "student_registrations";
 
 export interface Student {
   id: string; // Firebase Auth UID
@@ -43,28 +42,7 @@ export interface Student {
   studentPhone?: string;
 }
 
-export interface PendingStudent {
-  id: string; // Registration Key
-  registrationKey: string;
-  email: string;
-  name: string;
-  photoUrl?: string;
-  fatherName: string;
-  motherName: string;
-  address: string;
-  class: string;
-  section: string;
-  admissionDate: number;
-  dateOfBirth: string; // YYYY-MM-DD
-  aadharNumber?: string;
-  aadharUrl?: string;
-  optedSubjects?: string[];
-  fatherPhone?: string;
-  motherPhone?: string;
-  studentPhone?: string;
-}
-
-export type CombinedStudent = (Student & { status: 'Registered' }) | (PendingStudent & { status: 'Pending' });
+export type CombinedStudent = (Student & { status: 'Registered' });
 
 
 export type AddStudentData = Omit<
@@ -122,7 +100,7 @@ export const getStudentsForTeacher = (teacher: Teacher, callback: (students: Com
         assignedClasses.add(teacher.classTeacherOf);
     }
     if (teacher.classesTaught) {
-        teacher.classesTaught.forEach(c => assignedClasses.add(c));
+        teacher.classesTaught.forEach(c => classes.add(c));
     }
     
     if (assignedClasses.size === 0) {
@@ -170,6 +148,19 @@ export const getStudentByAuthId = async (authUid: string): Promise<Student | nul
   return null;
 }
 
+// Get a single student by Email
+export const getStudentByEmail = async (email: string): Promise<Student | null> => {
+  const studentsRef = ref(db, STUDENTS_COLLECTION);
+  const q = query(studentsRef, orderByChild('email'), equalTo(email));
+  const snapshot = await get(q);
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    const id = Object.keys(data)[0];
+    return { id, ...data[id] };
+  }
+  return null;
+}
+
 
 // Update a student's details
 export const updateStudent = async (uid: string, updatedData: Partial<Student>) => {
@@ -187,42 +178,22 @@ export const deleteStudent = async (uid: string) => {
   const studentRef = ref(db, `${STUDENTS_COLLECTION}/${uid}`);
   
   try {
-    // First, get the student's data to retrieve their email
     const studentSnapshot = await get(studentRef);
     if (!studentSnapshot.exists()) {
       console.warn(`Student with UID ${uid} not found in database. Cannot complete deletion.`);
-      // If student doesn't exist, maybe they are in pending. Let's try to find them by authUid
-      const pendingQuery = query(ref(db, PENDING_STUDENTS_COLLECTION), orderByChild('authUid'), equalTo(uid));
-      const pendingSnapshot = await get(pendingQuery);
-       if (pendingSnapshot.exists()) {
-        const pendingKey = Object.keys(pendingSnapshot.val())[0];
-        await remove(ref(db, `${PENDING_STUDENTS_COLLECTION}/${pendingKey}`));
-      }
       return;
     }
     
-    const studentData = studentSnapshot.val() as Student;
-    const studentEmail = studentData.email;
+    // This is a placeholder for a backend function that would delete the auth user
+    const auth = getAuth();
+    const user = auth.currentUser;
 
-    // Now, delete the student record from the database
-    await remove(studentRef);
-
-    // Then, find and delete the pending registration if it exists
-    if (studentEmail) {
-        const pendingStudentQuery = query(ref(db, PENDING_STUDENTS_COLLECTION), orderByChild('email'), equalTo(studentEmail));
-        const pendingSnapshot = await get(pendingStudentQuery);
-        if (pendingSnapshot.exists()) {
-            const pendingKey = Object.keys(pendingSnapshot.val())[0];
-            await remove(ref(db, `${PENDING_STUDENTS_COLLECTION}/${pendingKey}`));
-        }
+    if (user) {
+        // This is a client-side simulation. In a real app, this MUST be a backend function.
+        console.log(`[SIMULATION] Deleting auth user for UID: ${uid}. This will likely fail on client.`);
     }
-    
-    // In a real app with a backend, you would now delete the Firebase Auth user.
-    // This is a client-side simulation placeholder. The following line WILL FAIL on the client
-    // due to insufficient permissions and is for demonstration purposes.
-    // For a real implementation, this needs to be a call to a Firebase Function.
-    console.log(`[SIMULATION] Would now call backend to delete auth user for UID: ${uid}`);
 
+    await remove(studentRef);
 
   } catch (e) {
     console.error("Error deleting student:", e);
@@ -230,40 +201,8 @@ export const deleteStudent = async (uid: string) => {
   }
 };
 
-
-
-export const regenerateStudentKey = async (oldKey: string): Promise<string> => {
-    const oldRef = ref(db, `${PENDING_STUDENTS_COLLECTION}/${oldKey}`);
-    const snapshot = await get(oldRef);
-    if (!snapshot.exists()) {
-        throw new Error("Student registration not found.");
-    }
-    const data = snapshot.val();
-    await remove(oldRef);
-
-    const newKey = push(ref(db, PENDING_STUDENTS_COLLECTION)).key;
-    if (!newKey) throw new Error("Could not generate new key");
-    
-    const newRef = ref(db, `${PENDING_STUDENTS_COLLECTION}/${newKey}`);
-    await set(newRef, { ...data, registrationKey: newKey });
-    
-    return newKey;
-}
-
 export const getStudentsAndPending = (callback: (students: CombinedStudent[]) => void) => {
     const studentsRef = ref(db, STUDENTS_COLLECTION);
-    const pendingStudentsRef = ref(db, PENDING_STUDENTS_COLLECTION);
-
-    let registeredStudents: Student[] = [];
-    let pendingStudents: PendingStudent[] = [];
-
-    const combineAndCallback = () => {
-        const combined: CombinedStudent[] = [
-            ...registeredStudents.map(s => ({ ...s, status: 'Registered' as const })),
-            ...pendingStudents.map(p => ({ ...p, status: 'Pending' as const }))
-        ];
-        callback(combined.sort((a,b) => a.name.localeCompare(b.name)));
-    };
 
     const unsubStudents = onValue(studentsRef, (snapshot) => {
         const students: Student[] = [];
@@ -272,23 +211,11 @@ export const getStudentsAndPending = (callback: (students: CombinedStudent[]) =>
                 students.push({ id: childSnapshot.key!, ...childSnapshot.val() });
             });
         }
-        registeredStudents = students;
-        combineAndCallback();
-    });
-
-    const unsubPending = onValue(pendingStudentsRef, (snapshot) => {
-        const students: PendingStudent[] = [];
-        if(snapshot.exists()){
-            snapshot.forEach((childSnapshot) => {
-                students.push({ id: childSnapshot.key!, ...childSnapshot.val() });
-            });
-        }
-        pendingStudents = students;
-        combineAndCallback();
+        const combined: CombinedStudent[] = students.map(s => ({ ...s, status: 'Registered' as const }));
+        callback(combined.sort((a,b) => a.name.localeCompare(b.name)));
     });
     
     return () => {
         unsubStudents();
-        unsubPending();
     }
 }
