@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/dashboard/Header";
 import {
     Card,
@@ -104,6 +104,11 @@ export default function TeacherDashboard() {
 
 
   const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
+  const classTeacherStudentsCount = useMemo(() => {
+    if (teacher?.role !== 'classTeacher' || !teacher.classTeacherOf) return 0;
+    return assignedStudents.filter(s => `${s.class}-${s.section}` === teacher.classTeacherOf).length;
+  }, [teacher, assignedStudents]);
+
 
    const renderContent = () => {
         switch(activeView) {
@@ -222,11 +227,16 @@ export default function TeacherDashboard() {
                 return (
                     <div className="space-y-6">
                         <div className="mx-auto grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-                            <StatCard title="Pending Leaves" value={isLoading ? '...' : (teacher?.role === 'classTeacher' ? pendingLeavesCount.toString() : 'N/A')} icon={CalendarCheck} />
-                            <StatCard title="Assignments Due" value="3" icon={ClipboardCheck} />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <NavCard title="Approve Leaves" description="Review student leave requests" icon={CalendarCheck} onClick={() => setActiveView("approveLeaves")} />
+                           {teacher?.role === 'classTeacher' && (
+                                <div className="cursor-pointer" onClick={() => setActiveView("manageStudents")}>
+                                    <StatCard title="Total Students" value={isLoading ? '...' : classTeacherStudentsCount.toString()} icon={Users} />
+                                </div>
+                            )}
+                             {teacher?.role === 'classTeacher' && (
+                                <div className="cursor-pointer" onClick={() => setActiveView("approveLeaves")}>
+                                    <StatCard title="Pending Leaves" value={isLoading ? '...' : pendingLeavesCount.toString()} icon={CalendarCheck} />
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
