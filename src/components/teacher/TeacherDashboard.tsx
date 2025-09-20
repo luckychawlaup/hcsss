@@ -230,8 +230,6 @@ export default function TeacherDashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <NavCard title="My Students" description="View and manage student details" icon={Users} onClick={() => setActiveView("manageStudents")} />
                             <NavCard title="Approve Leaves" description="Review student leave requests" icon={CalendarCheck} onClick={() => setActiveView("approveLeaves")} />
-                            <NavCard title="Assign Homework" description="Create and assign homework to classes" icon={BookUp} onClick={() => setActiveView("addHomework")}/>
-                            <NavCard title="Mark Attendance" description="Record daily attendance for students" icon={ClipboardCheck} onClick={() => setActiveView("markAttendance")} />
                         </div>
                     </div>
                 );
