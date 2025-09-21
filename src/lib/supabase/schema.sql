@@ -1,54 +1,36 @@
---
--- This file contains the complete SQL schema for the application.
--- It is intended to be run in the Supabase SQL Editor to set up your database.
---
+-- =================================================================================
+-- Schema for School Management System
+-- =================================================================================
 
--- ----------------------------------------------------------------
--- 1. Create Tables
--- ----------------------------------------------------------------
+-- ---------------------------------------------------------------------------------
+-- 1. Functions
+--    - get_student_count: Returns the total number of students.
+-- ---------------------------------------------------------------------------------
 
--- Students Table
-CREATE TABLE IF NOT EXISTS public.students (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_uid UUID NOT NULL UNIQUE,
-    srn TEXT NOT NULL UNIQUE,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    photo_url TEXT,
-    father_name TEXT NOT NULL,
-    mother_name TEXT NOT NULL,
-    address TEXT NOT NULL,
-    class TEXT NOT NULL,
-    section TEXT NOT NULL,
-    admission_date BIGINT NOT NULL,
-    date_of_birth DATE NOT NULL,
-    aadhar_number TEXT,
-    aadhar_url TEXT,
-    opted_subjects TEXT[],
-    father_phone TEXT,
-    mother_phone TEXT,
-    student_phone TEXT
-);
+CREATE OR REPLACE FUNCTION get_student_count()
+RETURNS integer AS $$
+DECLARE
+    count integer;
+BEGIN
+    SELECT count(*) INTO count FROM public.students;
+    RETURN count;
+END;
+$$ LANGUAGE plpgsql;
 
--- Teachers Table
-CREATE TABLE IF NOT EXISTS public.teachers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_uid UUID NOT NULL UNIQUE,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    photo_url TEXT,
-    dob DATE NOT NULL,
-    father_name TEXT NOT NULL,
-    mother_name TEXT NOT NULL,
-    phone_number TEXT NOT NULL,
-    address TEXT NOT NULL,
-    role TEXT NOT NULL,
-    subject TEXT NOT NULL,
-    qualifications TEXT[],
-    class_teacher_of TEXT,
-    classes_taught TEXT[],
-    joining_date BIGINT NOT NULL,
-    bank_account JSONB
+-- =================================================================================
+-- 2. Tables
+--    - settings, exams, teachers, students, announcements, homework, leaves, marks, feedback, gallery, salary_slips
+-- =================================================================================
+
+-- School Settings Table
+CREATE TABLE IF NOT EXISTS public.settings (
+    id TEXT PRIMARY KEY,
+    school_name TEXT NOT NULL,
+    logo_url TEXT,
+    primary_color TEXT,
+    accent_color TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Exams Table
@@ -60,62 +42,109 @@ CREATE TABLE IF NOT EXISTS public.exams (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Marks Table
-CREATE TABLE IF NOT EXISTS public.marks (
+-- Teachers Table
+CREATE TABLE IF NOT EXISTS public.teachers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_auth_uid UUID NOT NULL REFERENCES public.students(auth_uid) ON DELETE CASCADE,
-    exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
-    subject TEXT NOT NULL,
-    marks INTEGER NOT NULL,
-    max_marks INTEGER NOT NULL,
-    grade TEXT NOT NULL,
-    UNIQUE(student_auth_uid, exam_id, subject) -- This is the crucial missing constraint
+    auth_uid UUID UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    photo_url TEXT,
+    dob DATE NOT NULL,
+    father_name TEXT,
+    mother_name TEXT,
+    phone_number TEXT,
+    address TEXT,
+    role TEXT CHECK (role IN ('classTeacher', 'subjectTeacher')),
+    subject TEXT,
+    qualifications TEXT[],
+    class_teacher_of TEXT,
+    classes_taught TEXT[],
+    joining_date BIGINT NOT NULL,
+    bank_account JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Students Table
+CREATE TABLE IF NOT EXISTS public.students (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_uid UUID UNIQUE NOT NULL,
+    srn TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    photo_url TEXT,
+    father_name TEXT NOT NULL,
+    mother_name TEXT NOT NULL,
+    address TEXT,
+    class TEXT NOT NULL,
+    section TEXT NOT NULL,
+    admission_date BIGINT NOT NULL,
+    date_of_birth DATE NOT NULL,
+    aadhar_number TEXT,
+    aadhar_url TEXT,
+    opted_subjects TEXT[],
+    father_phone TEXT,
+    mother_phone TEXT,
+    student_phone TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Announcements Table
 CREATE TABLE IF NOT EXISTS public.announcements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title TEXT NOT NULL,
+    title TEXT,
     content TEXT NOT NULL,
-    category TEXT NOT NULL,
-    target TEXT NOT NULL,
+    category TEXT,
+    target TEXT NOT NULL CHECK (target IN ('students', 'teachers', 'both')),
     target_audience JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    edited_at TIMESTAMPTZ,
     created_by UUID,
     creator_name TEXT,
     creator_role TEXT,
-    attachment_url TEXT
+    attachment_url TEXT,
+    edited_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Homework Table
 CREATE TABLE IF NOT EXISTS public.homework (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assigned_by UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
-    teacher_name TEXT NOT NULL,
+    teacher_name TEXT,
     class_section TEXT NOT NULL,
-    subject TEXT NOT NULL,
-    description TEXT NOT NULL,
-    due_date DATE NOT NULL,
+    subject TEXT,
+    description TEXT,
+    due_date DATE,
     assigned_at TIMESTAMPTZ DEFAULT NOW(),
     attachment_url TEXT
 );
 
--- Leaves Table
+-- Leave Requests Table
 CREATE TABLE IF NOT EXISTS public.leaves (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    user_name TEXT NOT NULL,
-    user_role TEXT NOT NULL,
+    user_name TEXT,
+    user_role TEXT,
     class TEXT,
     teacher_id UUID,
     start_date TIMESTAMPTZ NOT NULL,
     end_date TIMESTAMPTZ NOT NULL,
-    reason TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'Pending',
+    reason TEXT,
+    status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Confirmed', 'Rejected')),
     applied_at TIMESTAMPTZ DEFAULT NOW(),
     rejection_reason TEXT,
     approver_comment TEXT
+);
+
+-- Marks Table
+CREATE TABLE IF NOT EXISTS public.marks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_auth_uid UUID NOT NULL,
+    exam_id UUID NOT NULL,
+    subject TEXT NOT NULL,
+    marks INTEGER NOT NULL,
+    max_marks INTEGER NOT NULL,
+    grade TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (student_auth_uid, exam_id, subject)
 );
 
 -- Feedback Table
@@ -124,9 +153,9 @@ CREATE TABLE IF NOT EXISTS public.feedback (
     user_id UUID NOT NULL,
     user_name TEXT,
     user_role TEXT,
-    category TEXT NOT NULL,
-    subject TEXT NOT NULL,
-    description TEXT NOT NULL,
+    category TEXT,
+    subject TEXT,
+    description TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -144,159 +173,163 @@ CREATE TABLE IF NOT EXISTS public.gallery (
 CREATE TABLE IF NOT EXISTS public.salary_slips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
-    month TEXT NOT NULL,
-    basic_salary NUMERIC NOT NULL,
+    month TEXT,
+    basic_salary NUMERIC,
     earnings JSONB,
     deductions JSONB,
-    net_salary NUMERIC NOT NULL,
-    status TEXT NOT NULL,
+    net_salary NUMERIC,
+    status TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- School Settings Table
-CREATE TABLE IF NOT EXISTS public.settings (
-    id TEXT PRIMARY KEY,
-    school_name TEXT NOT NULL,
-    logo_url TEXT,
-    primary_color TEXT,
-    accent_color TEXT,
-    updated_at TIMESTAMPTZ
-);
 
+-- =================================================================================
+-- 3. Foreign Key Constraints
+--    - Establishes relationships between tables.
+-- =================================================================================
 
--- ----------------------------------------------------------------
--- 2. Create RPC Functions
--- ----------------------------------------------------------------
+-- Run these ALTER TABLE statements separately if tables already exist.
 
--- Function to get student count for SRN generation
-CREATE OR REPLACE FUNCTION get_student_count()
-RETURNS integer AS $$
-DECLARE
-    count integer;
+-- Link students auth_uid to auth.users table
+DO $$
 BEGIN
-    SELECT COUNT(*) INTO count FROM public.students;
-    RETURN count;
-END;
-$$ LANGUAGE plpgsql;
+   IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conname = 'fk_students_auth_users' AND conrelid = 'public.students'::regclass
+   ) THEN
+      ALTER TABLE public.students
+      ADD CONSTRAINT fk_students_auth_users FOREIGN KEY (auth_uid) REFERENCES auth.users(id) ON DELETE CASCADE;
+   END IF;
+END
+$$;
 
+-- Link teachers auth_uid to auth.users table
+DO $$
+BEGIN
+   IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conname = 'fk_teachers_auth_users' AND conrelid = 'public.teachers'::regclass
+   ) THEN
+      ALTER TABLE public.teachers
+      ADD CONSTRAINT fk_teachers_auth_users FOREIGN KEY (auth_uid) REFERENCES auth.users(id) ON DELETE CASCADE;
+   END IF;
+END
+$$;
 
--- ----------------------------------------------------------------
--- 3. Row Level Security (RLS) Policies
--- ----------------------------------------------------------------
+-- Link marks student_auth_uid to students auth_uid
+DO $$
+BEGIN
+   IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conname = 'fk_marks_student_auth' AND conrelid = 'public.marks'::regclass
+   ) THEN
+      ALTER TABLE public.marks
+      ADD CONSTRAINT fk_marks_student_auth FOREIGN KEY (student_auth_uid) REFERENCES public.students(auth_uid) ON DELETE CASCADE;
+   END IF;
+END
+$$;
 
--- Enable RLS on all tables
-ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
+-- Link marks exam_id to exams id
+DO $$
+BEGIN
+   IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conname = 'fk_marks_exam' AND conrelid = 'public.marks'::regclass
+   ) THEN
+      ALTER TABLE public.marks
+      ADD CONSTRAINT fk_marks_exam FOREIGN KEY (exam_id) REFERENCES public.exams(id) ON DELETE CASCADE;
+   END IF;
+END
+$$;
+
+-- =================================================================================
+-- 4. Row Level Security (RLS) Policies
+--    - Defines access control rules for each table.
+-- =================================================================================
+
+-- Enable RLS for all tables
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.homework ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leaves ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.salary_slips ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
--- Policies for public access (read-only)
-DROP POLICY IF EXISTS "Allow public read access" ON public.settings;
-CREATE POLICY "Allow public read access" ON public.settings FOR SELECT USING (true);
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Allow all access" ON public.settings;
+DROP POLICY IF EXISTS "Allow all access" ON public.exams;
+DROP POLICY IF EXISTS "Allow all access" ON public.teachers;
+DROP POLICY IF EXISTS "Allow all access" ON public.students;
+DROP POLICY IF EXISTS "Allow all access" ON public.announcements;
+DROP POLICY IF EXISTS "Allow all access" ON public.homework;
+DROP POLICY IF EXISTS "Allow all access" ON public.leaves;
+DROP POLICY IF EXISTS "Allow all access" ON public.marks;
+DROP POLICY IF EXISTS "Allow all access" ON public.feedback;
+DROP POLICY IF EXISTS "Allow all access" ON public.gallery;
+DROP POLICY IF EXISTS "Allow all access" ON public.salary_slips;
 
-DROP POLICY IF EXISTS "Allow public read access on gallery" ON public.gallery;
-CREATE POLICY "Allow public read access on gallery" ON public.gallery FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Allow public read access on exams" ON public.exams;
-CREATE POLICY "Allow public read access on exams" ON public.exams FOR SELECT USING (true);
-
--- Policies for authenticated users
-DROP POLICY IF EXISTS "Allow authenticated users to read their own profile" ON public.students;
-CREATE POLICY "Allow authenticated users to read their own profile" ON public.students FOR SELECT USING (auth.uid() = auth_uid);
-
-DROP POLICY IF EXISTS "Allow authenticated users to read their own profile" ON public.teachers;
-CREATE POLICY "Allow authenticated users to read their own profile" ON public.teachers FOR SELECT USING (auth.uid() = auth_uid);
-
-DROP POLICY IF EXISTS "Allow users to manage their own leave requests" ON public.leaves;
-CREATE POLICY "Allow users to manage their own leave requests" ON public.leaves FOR ALL USING (auth.uid() = (SELECT auth_uid FROM students WHERE id = user_id) OR auth.uid() = (SELECT auth_uid FROM teachers WHERE id = user_id));
-
-DROP POLICY IF EXISTS "Allow authenticated users to submit feedback" ON public.feedback;
-CREATE POLICY "Allow authenticated users to submit feedback" ON public.feedback FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Policies for teachers
-DROP POLICY IF EXISTS "Allow teachers to view students in their classes" ON public.students;
-CREATE POLICY "Allow teachers to view students in their classes" ON public.students FOR SELECT USING (
-    (SELECT role FROM teachers WHERE auth_uid = auth.uid()) = 'classTeacher' OR 
-    (SELECT role FROM teachers WHERE auth_uid = auth.uid()) = 'subjectTeacher'
-);
-
-DROP POLICY IF EXISTS "Allow teachers to manage homework" ON public.homework;
-CREATE POLICY "Allow teachers to manage homework" ON public.homework FOR ALL USING (auth.uid() = (SELECT auth_uid FROM teachers WHERE id = assigned_by));
-
--- Policies for principals/admins (service_role bypasses RLS, but this is for completeness)
-DROP POLICY IF EXISTS "Allow full access for admins" ON public.students;
-CREATE POLICY "Allow full access for admins" ON public.students FOR ALL USING (true); -- Simplified for this context
-
-DROP POLICY IF EXISTS "Allow full access for admins" ON public.teachers;
-CREATE POLICY "Allow full access for admins" ON public.teachers FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Allow full access on all other tables for admins" ON public.exams;
-CREATE POLICY "Allow full access on all other tables for admins" ON public.exams FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Allow full access on all other tables for admins" ON public.marks;
-CREATE POLICY "Allow full access on all other tables for admins" ON public.marks FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Allow full access on all other tables for admins" ON public.announcements;
-CREATE POLICY "Allow full access on all other tables for admins" ON public.announcements FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Allow full access on all other tables for admins" ON public.leaves;
-CREATE POLICY "Allow full access on all other tables for admins" ON public.leaves FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Allow full access on all other tables for admins" ON public.feedback;
-CREATE POLICY "Allow full access on all other tables for admins" ON public.feedback FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Allow full access on all other tables for admins" ON public.gallery;
-CREATE POLICY "Allow full access on all other tables for admins" ON public.gallery FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Allow full access on all other tables for admins" ON public.salary_slips;
-CREATE POLICY "Allow full access on all other tables for admins" ON public.salary_slips FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Allow full access on all other tables for admins" ON public.settings;
-CREATE POLICY "Allow full access on all other tables for admins" ON public.settings FOR ALL USING (true);
+-- Create permissive policies (ALLOW ALL)
+-- NOTE: For production, you should define more restrictive policies.
+CREATE POLICY "Allow all access" ON public.settings FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.exams FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.teachers FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.students FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.announcements FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.homework FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.leaves FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.marks FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.feedback FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.gallery FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access" ON public.salary_slips FOR ALL USING (true) WITH CHECK (true);
 
 
--- ----------------------------------------------------------------
--- 4. Storage Buckets & Policies
--- ----------------------------------------------------------------
+-- =================================================================================
+-- 5. Storage Buckets and Policies
+--    - Creates buckets and defines access policies for file storage.
+-- =================================================================================
 
--- Create Buckets
-INSERT INTO storage.buckets (id, name, public) VALUES ('students', 'students', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('teachers', 'teachers', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('gallery', 'gallery', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('homework', 'homework', true) ON CONFLICT (id) DO NOTHING;
+-- Create storage buckets if they don't exist
+-- Note: Run these separately if you have issues.
+INSERT INTO storage.buckets (id, name, public)
+VALUES 
+    ('teachers', 'teachers', true),
+    ('students', 'students', true),
+    ('gallery', 'gallery', true),
+    ('documents', 'documents', true),
+    ('homework', 'homework', true)
+ON CONFLICT (id) DO NOTHING;
 
+-- Storage Policies
+-- Drop policies before creating them to avoid errors on re-runs
 
--- Storage RLS Policies
--- Give public read access to all buckets
-DROP POLICY IF EXISTS "Allow public read access" ON storage.objects;
-CREATE POLICY "Allow public read access" ON storage.objects FOR SELECT USING (true);
+-- Teachers bucket policies
+DROP POLICY IF EXISTS "Allow authenticated uploads" ON storage.objects FOR INSERT;
+DROP POLICY IF EXISTS "Allow public read access" ON storage.objects FOR SELECT;
 
--- Allow authenticated users to upload to any bucket
-DROP POLICY IF EXISTS "Allow authenticated insert" ON storage.objects;
-CREATE POLICY "Allow authenticated insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Allow authenticated uploads" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id IN ('teachers', 'students', 'gallery', 'documents', 'homework'));
+CREATE POLICY "Allow public read access" ON storage.objects FOR SELECT USING (bucket_id IN ('teachers', 'students', 'gallery', 'documents', 'homework'));
 
--- Allow users to update their own files
-DROP POLICY IF EXISTS "Allow users to update their own files" ON storage.objects;
-CREATE POLICY "Allow users to update their own files" ON storage.objects FOR UPDATE USING (auth.uid() = owner);
-
--- Allow users to delete their own files
-DROP POLICY IF EXISTS "Allow users to delete their own files" ON storage.objects;
-CREATE POLICY "Allow users to delete their own files" ON storage.objects FOR DELETE USING (auth.uid() = owner);
-
-
--- ----------------------------------------------------------------
--- 5. Default Data
--- ----------------------------------------------------------------
+-- =================================================================================
+-- 6. Default Data
+--    - Inserts initial required data into the tables.
+-- =================================================================================
 
 -- Insert default school settings if they don't exist
 INSERT INTO public.settings (id, school_name, logo_url, primary_color, accent_color) VALUES 
 ('school_settings', 'Hilton Convent School', 'https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png', 'hsl(217, 91%, 60%)', 'hsl(258, 90%, 66%)')
-ON CONFLICT(id) DO NOTHING;
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert initial exams if they don't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.exams LIMIT 1) THEN
+        INSERT INTO public.exams (name, date, max_marks) VALUES
+        ('Mid-Term Exam 2024', '2024-09-15T10:00:00Z', 100),
+        ('Final Exam 2024', '2025-03-10T10:00:00Z', 100);
+    END IF;
+END $$;

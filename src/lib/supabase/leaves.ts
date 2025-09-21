@@ -5,7 +5,7 @@ const LEAVES_COLLECTION = 'leaves';
 
 export interface LeaveRequest {
   id: string;
-  userId: string;
+  user_id: string;
   userName: string;
   userRole: 'Student' | 'Teacher';
   class?: string; // e.g., 10-A for students
