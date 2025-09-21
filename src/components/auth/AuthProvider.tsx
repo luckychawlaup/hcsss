@@ -20,6 +20,7 @@ const publicPaths = [
     "/auth/teacher/register",
     "/auth/student/forgot-password",
     "/auth/teacher/forgot-password",
+    "/auth/update-password",
 ];
 
 const principalUID = "6cc51c80-e098-4d6d-8450-5ff5931b7391";
@@ -65,6 +66,12 @@ export default function AuthProvider({
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+            router.push('/auth/update-password');
+            setLoading(false);
+            return;
+        }
+        
         const authUser = session?.user ?? null;
         if (authUser) {
             const role = await getRole(authUser);

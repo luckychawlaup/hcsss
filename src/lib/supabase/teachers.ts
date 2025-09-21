@@ -101,7 +101,6 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
     }
 
     // Send password reset email so they can set their own password
-    // Removing redirectTo will make Supabase use the Site URL from the dashboard
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(teacherData.email);
     if(resetError) {
         console.warn("Teacher created, but failed to send password reset email.", resetError);
@@ -110,9 +109,7 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
 
 export const getRegistrationKeyForTeacher = async (email: string): Promise<string | null> => {
     // This function is a placeholder as the current flow creates teachers directly.
-    // In a flow where teachers register themselves, you would query a registration_keys table.
-    // For now, we will return a mock key for the joining letter to work.
-    // A robust implementation would involve generating and storing a real, single-use key.
+    // In a real app with a separate registration step, this would query a real key.
     console.warn("getRegistrationKeyForTeacher is returning a mock key. For production, implement a secure key generation and storage system.");
     return `REG-KEY-FOR-${email.split('@')[0]}`.toUpperCase();
 }
@@ -157,26 +154,7 @@ export const getTeacherByEmail = async (email: string): Promise<Teacher | null> 
 };
 
 export const updateTeacher = async (id: string, updates: Partial<Teacher>) => {
-    const updateData: { [key: string]: any } = {};
-
-    // Map camelCase to snake_case for the database
-    if (updates.fatherName) updateData.father_name = updates.fatherName;
-    if (updates.motherName) updateData.mother_name = updates.motherName;
-    if (updates.phoneNumber) updateData.phone_number = updates.phoneNumber;
-    if (updates.joiningDate) updateData.joining_date = updates.joiningDate;
-    if (updates.classTeacherOf) updateData.class_teacher_of = updates.classTeacherOf;
-    if (updates.classesTaught) updateData.classes_taught = updates.classesTaught;
-    if (updates.bankAccount) updateData.bank_account = updates.bankAccount;
-    
-    // Direct mapping for fields that are already snake_case or don't need mapping
-    const directFields: (keyof Partial<Teacher>)[] = ['name', 'email', 'dob', 'address', 'role', 'subject', 'qualifications'];
-    directFields.forEach(field => {
-        if (updates[field] !== undefined) {
-            updateData[field as string] = updates[field];
-        }
-    });
-
-    const { error } = await supabase.from(TEACHERS_COLLECTION).update(updateData).eq('id', id);
+    const { error } = await supabase.from(TEACHERS_COLLECTION).update(updates).eq('id', id);
     if (error) throw error;
 };
 
