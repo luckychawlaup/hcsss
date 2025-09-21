@@ -21,6 +21,7 @@ const publicPaths = [
     "/auth/student/forgot-password",
     "/auth/teacher/forgot-password",
     "/auth/update-password",
+    "/auth/callback"
 ];
 
 const principalUID = "6cc51c80-e098-4d6d-8450-5ff5931b7391";
@@ -66,39 +67,27 @@ export default function AuthProvider({
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const authUser = session?.user ?? null;
+        
         if (event === 'PASSWORD_RECOVERY') {
             router.push('/auth/update-password');
             setLoading(false);
             return;
         }
-        
-        const authUser = session?.user ?? null;
+
         if (authUser) {
             const role = await getRole(authUser);
-            
+            const targetPath = role === 'principal' || role === 'owner' ? '/principal' : role === 'teacher' ? '/teacher' : '/';
+
             if (isPublicPath) {
-                // If on a public page (like login) but already authenticated, redirect
-                if (role === 'principal' || role === 'owner') {
-                    router.replace('/principal');
-                } else if (role === 'teacher') {
-                    router.replace('/teacher');
-                } else {
-                    router.replace('/');
-                }
+                router.replace(targetPath);
             } else {
-                // If on a protected page, enforce role-based access
-                if (role === 'principal' || role === 'owner') {
-                    if (!pathname.startsWith('/principal')) {
-                        router.replace('/principal');
-                    }
+                 if (role === 'principal' || role === 'owner') {
+                    if (!pathname.startsWith('/principal')) router.replace('/principal');
                 } else if (role === 'teacher') {
-                    if (!pathname.startsWith('/teacher') && !pathname.startsWith('/principal')) {
-                        router.replace('/teacher');
-                    }
+                    if (!pathname.startsWith('/teacher') && !pathname.startsWith('/principal')) router.replace('/teacher');
                 } else { // Assumed student
-                    if (pathname.startsWith('/teacher') || pathname.startsWith('/principal')) {
-                        router.replace('/');
-                    }
+                    if (pathname.startsWith('/teacher') || pathname.startsWith('/principal')) router.replace('/');
                 }
                 setLoading(false);
             }
