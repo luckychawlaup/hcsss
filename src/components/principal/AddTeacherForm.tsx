@@ -29,6 +29,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "../ui/separator";
 import { Checkbox } from "../ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -474,5 +475,3 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
     </>
   );
 }
-
-    
