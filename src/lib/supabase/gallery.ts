@@ -52,7 +52,7 @@ export const getGalleryImages = (callback: (images: GalleryImage[]) => void) => 
 };
 
 export const uploadImage = async (file: File, caption: string, uploadedBy: string, uploaderId: string): Promise<void> => {
-    const imageUrl = await uploadFileToSupabase(file, 'photos', 'gallery');
+    const imageUrl = await uploadFileToSupabase(file, 'gallery', 'images');
 
     const { error } = await supabase.from('gallery').insert([{
         url: imageUrl,
@@ -64,8 +64,8 @@ export const uploadImage = async (file: File, caption: string, uploadedBy: strin
     if (error) {
         console.error("Error saving image metadata to Supabase gallery:", error);
         // Optional: attempt to delete the uploaded file from storage if the DB insert fails
-        const filePath = imageUrl.split('/photos/')[1];
-        if(filePath) await supabase.storage.from('photos').remove([filePath]);
+        const filePath = imageUrl.split('/gallery/')[1];
+        if(filePath) await supabase.storage.from('gallery').remove([filePath]);
         throw error;
     }
 };
@@ -88,9 +88,9 @@ export const deleteImage = async (id: string): Promise<void> => {
 
     // If DB deletion is successful, delete from storage
     try {
-        const filePath = image.url.split('/photos/')[1];
+        const filePath = image.url.split('/gallery/')[1];
         if (filePath) {
-            const { error: storageError } = await supabase.storage.from('photos').remove([filePath]);
+            const { error: storageError } = await supabase.storage.from('gallery').remove([filePath]);
             if(storageError) {
                  console.error("Error deleting file from Supabase Storage, but DB record was deleted:", storageError);
             }

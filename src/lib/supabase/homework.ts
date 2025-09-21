@@ -96,7 +96,7 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
 };
 
 export const updateHomework = async (homeworkId: string, updatedData: Partial<Homework>, newAttachment?: File) => {
-    let updatePayload = { ...updatedData };
+    let updatePayload: Partial<Homework> & { attachment_url?: string } = { ...updatedData };
     if (newAttachment) {
         const attachment_url = await uploadFileToSupabase(newAttachment, 'documents', 'homework');
         updatePayload.attachment_url = attachment_url;

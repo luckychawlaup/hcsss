@@ -52,7 +52,7 @@ export const addStudent = async (studentData: Omit<Student, 'id' | 'srn' | 'phot
     
     let photoUrl: string | undefined;
     if (studentData.photo) {
-        photoUrl = await uploadFileToSupabase(studentData.photo, 'photos', 'students');
+        photoUrl = await uploadFileToSupabase(studentData.photo, 'students', 'avatars');
     }
 
     let aadharUrl: string | undefined;

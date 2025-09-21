@@ -69,7 +69,7 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
         throw new Error("Could not create user for teacher.");
     }
     
-    const photoUrl = await uploadFileToSupabase(teacherData.photo, 'photos', 'teachers');
+    const photoUrl = await uploadFileToSupabase(teacherData.photo, 'teachers', 'avatars');
 
     const { photo, ...restOfTeacherData } = teacherData;
 
@@ -83,6 +83,8 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
 
     if (dbError) {
         console.error("Error saving teacher to DB:", dbError, "Auth user created but DB insert failed. Manual cleanup of auth user may be required:", authData.user.id);
+        // In a real production scenario, you might want to automatically delete the auth user here.
+        // await supabase.auth.admin.deleteUser(authData.user.id);
         throw dbError;
     }
 
@@ -99,7 +101,7 @@ export const getTeachersAndPending = (callback: (teachers: CombinedTeacher[]) =>
     const channel = supabase.channel('teachers-and-pending')
         .on('postgres_changes', { event: '*', schema: 'public', table: TEACHERS_COLLECTION }, async () => {
             const { data: teachers } = await supabase.from(TEACHERS_COLLECTION).select('*');
-            callback([...(teachers || []).map(t => ({ ...t, status: 'Registered' }))]);
+            callback([...(teachers || []).map(t => ({ ...t, status: 'Registered' as const }))]);
         })
         .subscribe();
     
