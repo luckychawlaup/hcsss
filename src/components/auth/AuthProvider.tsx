@@ -92,7 +92,7 @@ export default function AuthProvider({
                         router.replace('/principal');
                     }
                 } else if (role === 'teacher') {
-                    if (!pathname.startsWith('/teacher') || pathname.startsWith('/principal')) {
+                    if (!pathname.startsWith('/teacher') && !pathname.startsWith('/principal')) {
                         router.replace('/teacher');
                     }
                 } else { // Assumed student

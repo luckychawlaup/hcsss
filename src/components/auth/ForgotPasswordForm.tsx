@@ -64,12 +64,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
         return;
       }
       
-      // Construct the redirect URL for the update password page
-      const redirectUrl = `${window.location.origin}/auth/callback`;
-
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: redirectUrl,
-      });
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email);
 
       if(resetError) throw resetError;
 

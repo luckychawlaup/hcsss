@@ -1,11 +1,12 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -39,6 +40,23 @@ export default function UpdatePasswordPage() {
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
+  
+  useEffect(() => {
+    // This effect handles the case where the user lands on this page
+    // after clicking the password reset link.
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          // The form is now displayed, ready for user input.
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
 
   const form = useForm<z.infer<typeof updatePasswordSchema>>({
     resolver: zodResolver(updatePasswordSchema),
@@ -66,7 +84,6 @@ export default function UpdatePasswordPage() {
       });
       form.reset();
       
-      // Sign out the user after password update to force a fresh login
       await supabase.auth.signOut();
 
     } catch (error: any) {

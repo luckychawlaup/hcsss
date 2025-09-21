@@ -1,5 +1,4 @@
 
-
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 const TEACHERS_COLLECTION = 'teachers';
@@ -46,12 +45,10 @@ const uploadFileToSupabase = async (file: File, bucket: string, folder: string):
 
 export type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 'photo_url' | 'joining_date'> & { photo: File, joining_date: number }) => {
-    const tempPassword = Math.random().toString(36).slice(-8);
-
+export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 'photo_url'> & { photo: File }) => {
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email: teacherData.email,
-        password: tempPassword,
+        password: Math.random().toString(36).slice(-8), // Temporary password
         options: {
             data: {
                 full_name: teacherData.name,
@@ -95,13 +92,10 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
 
     if (dbError) {
         console.error("Error saving teacher to DB:", dbError, "Auth user created but DB insert failed. Manual cleanup of auth user may be required:", authData.user.id);
-        // In a real production scenario, you might want to automatically delete the auth user here.
         // await supabase.auth.admin.deleteUser(authData.user.id);
         throw dbError;
     }
 
-    // Send password reset email so they can set their own password
-    // We remove redirectTo so Supabase uses the Site URL from the dashboard
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(teacherData.email);
     if(resetError) {
         console.warn("Teacher created, but failed to send password reset email.", resetError);
@@ -109,10 +103,7 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
 };
 
 export const getRegistrationKeyForTeacher = async (email: string): Promise<string | null> => {
-    // This function is a placeholder as the current flow creates teachers directly.
-    // In a real app with a separate registration step, this would query a real key.
-    console.warn("getRegistrationKeyForTeacher is returning a mock key. For production, implement a secure key generation and storage system.");
-    return `REG-KEY-FOR-${email.split('@')[0]}`.toUpperCase();
+    return null;
 }
 
 
@@ -160,18 +151,15 @@ export const updateTeacher = async (id: string, updates: Partial<Teacher>) => {
 };
 
 export const deleteTeacher = async (id: string) => {
-    // Get teacher to find auth_uid
     const { data: teacher, error: fetchError } = await supabase.from(TEACHERS_COLLECTION).select('auth_uid').eq('id', id).single();
     if (fetchError) {
         console.error("Error fetching teacher for deletion:", fetchError);
         throw fetchError;
     }
     
-    // Delete from DB
     const { error } = await supabase.from(TEACHERS_COLLECTION).delete().eq('id', id);
     if (error) throw error;
 
-    // Call edge function to delete auth user
      if (teacher.auth_uid) {
         const { error: funcError } = await supabase.functions.invoke('delete-user', {
             body: { uid: teacher.auth_uid },

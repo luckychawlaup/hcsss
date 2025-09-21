@@ -97,18 +97,10 @@ export default function LoginForm({ role }: LoginFormProps) {
           return;
         }
       }
-
-      if (actualRole === "principal" || actualRole === "owner") {
-        router.push("/principal");
-      } else if (actualRole === "teacher") {
-        router.push("/teacher");
-      } else {
-        router.push("/");
-      }
-
+      
       toast({
         title: "Login Successful",
-        description: `Welcome!`,
+        description: `Welcome! Redirecting...`,
       });
 
       router.refresh();
