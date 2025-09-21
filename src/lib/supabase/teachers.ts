@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 const TEACHERS_COLLECTION = 'teachers';
@@ -81,15 +82,14 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
     const { error: dbError } = await supabase.from(TEACHERS_COLLECTION).insert([finalTeacherData]);
 
     if (dbError) {
-        // IMPORTANT: If DB insert fails, we should delete the created auth user
-        // This requires admin privileges, so for now we'll log a warning.
-        // In a real production app, this should be handled by a server-side function.
         console.error("Error saving teacher to DB:", dbError, "Auth user created but DB insert failed. Manual cleanup of auth user may be required:", authData.user.id);
         throw dbError;
     }
 
     // Send password reset email so they can set their own password
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(teacherData.email);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(teacherData.email, {
+        redirectTo: `${window.location.origin}/`,
+    });
     if(resetError) {
         console.warn("Teacher created, but failed to send password reset email.", resetError);
     }
@@ -150,6 +150,16 @@ export const deleteTeacher = async (id: string) => {
     const { error } = await supabase.from(TEACHERS_COLLECTION).delete().eq('id', id);
     if (error) throw error;
 
-    // Delete auth user - this requires service_role key and should be done in a server environment
-    // console.warn(`DB record for teacher ${id} deleted. Please manually delete the auth user with UID: ${teacher.auth_uid}`);
+    // Call edge function to delete auth user
+     if (teacher.auth_uid) {
+        const { error: funcError } = await supabase.functions.invoke('delete-user', {
+            body: { uid: teacher.auth_uid },
+        });
+        if (funcError) {
+            console.error("DB record deleted, but failed to delete auth user:", funcError);
+            throw new Error("DB record deleted, but failed to delete auth user.");
+        }
+    }
 };
+
+    

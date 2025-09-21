@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
@@ -127,8 +128,25 @@ export const updateStudent = async (id: string, updates: Partial<Student>) => {
 };
 
 export const deleteStudent = async (studentId: string) => {
+    const { data: student, error: fetchError } = await supabase.from(STUDENTS_COLLECTION).select('auth_uid').eq('id', studentId).single();
+    if (fetchError) {
+        console.error("Error fetching student for deletion:", fetchError);
+        throw fetchError;
+    }
+    
     const { error } = await supabase.from(STUDENTS_COLLECTION).delete().eq('id', studentId);
     if(error) throw error;
+    
+    // Call edge function to delete auth user
+    if (student.auth_uid) {
+        const { error: funcError } = await supabase.functions.invoke('delete-user', {
+            body: { uid: student.auth_uid },
+        });
+        if (funcError) {
+            console.error("DB record deleted, but failed to delete auth user:", funcError);
+            throw new Error("DB record deleted, but failed to delete auth user.");
+        }
+    }
 };
 
 export const getStudentsForTeacher = (teacher: any, callback: (students: CombinedStudent[]) => void) => {
@@ -151,3 +169,6 @@ export const getStudentsForTeacher = (teacher: any, callback: (students: Combine
 
     return () => supabase.removeChannel(channel);
 }
+
+
+    

@@ -146,8 +146,8 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
             <CheckCircle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-primary">Teacher Added!</AlertTitle>
             <AlertDescription className="space-y-4">
-                <p><strong>{successInfo.name}</strong> has been added with the email <strong>{successInfo.email}</strong>.</p>
-                <p>An email verification has been sent. They must now go to the teacher login page and use the **"Forgot Password?"** link to set their password and log in for the first time.</p>
+                <p><strong>{successInfo.name}</strong> has been registered with the email <strong>{successInfo.email}</strong>.</p>
+                <p>An email has been sent to them with a link to set their password. They must use this link to log in for the first time.</p>
                  <div className="flex gap-2 pt-2">
                     <Button onClick={handleAddAnother}>
                         <UserPlus className="mr-2" />
@@ -474,3 +474,5 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
     </>
   );
 }
+
+    
