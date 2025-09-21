@@ -35,7 +35,7 @@ const uploadFileToSupabase = async (file: File, bucket: string, folder: string):
 export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment?: File) => {
     let attachment_url;
     if (attachment) {
-        attachment_url = await uploadFileToSupabase(attachment, 'media', 'homework');
+        attachment_url = await uploadFileToSupabase(attachment, 'homework', 'files');
     }
 
     const { error } = await supabase.from(HOMEWORK_COLLECTION).insert([{ ...homeworkData, attachment_url }]);
@@ -99,7 +99,7 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
 export const updateHomework = async (homeworkId: string, updatedData: Partial<Homework>, newAttachment?: File) => {
     let updatePayload: Partial<Homework> & { attachment_url?: string } = { ...updatedData };
     if (newAttachment) {
-        const attachment_url = await uploadFileToSupabase(newAttachment, 'media', 'homework');
+        const attachment_url = await uploadFileToSupabase(newAttachment, 'homework', 'files');
         updatePayload.attachment_url = attachment_url;
     }
 
@@ -130,3 +130,5 @@ export const deleteHomework = async (homeworkId: string) => {
         }
     }
 };
+
+    

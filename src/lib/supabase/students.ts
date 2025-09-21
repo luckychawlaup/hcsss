@@ -1,5 +1,4 @@
 
-
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
@@ -45,28 +44,40 @@ const uploadFileToSupabase = async (file: File, bucket: string, folder: string):
 
 export type CombinedStudent = (Student & { status: 'Registered' });
 
-export const addStudent = async (studentData: Omit<Student, 'id' | 'srn' | 'photo_url' | 'aadhar_url'> & { photo?: File, aadharCard?: File }) => {
+export const addStudent = async (studentData: any) => {
     const { data: countData, error: countError } = await supabase.rpc('get_student_count');
     if (countError) throw countError;
     const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
     
     let photoUrl: string | undefined;
     if (studentData.photo) {
-        photoUrl = await uploadFileToSupabase(studentData.photo, 'media', 'students/photos');
+        photoUrl = await uploadFileToSupabase(studentData.photo, 'students', 'photos');
     }
 
     let aadharUrl: string | undefined;
     if (studentData.aadharCard) {
-        aadharUrl = await uploadFileToSupabase(studentData.aadharCard, 'media', 'students/documents');
+        aadharUrl = await uploadFileToSupabase(studentData.aadharCard, 'documents', 'students');
     }
 
-    const { photo, aadharCard, ...restOfStudentData } = studentData;
-
     const finalStudentData = { 
-        ...restOfStudentData,
+        auth_uid: studentData.authUid,
         srn,
+        name: studentData.name,
+        email: studentData.email,
         photo_url: photoUrl,
-        aadhar_url: aadharUrl
+        father_name: studentData.fatherName,
+        mother_name: studentData.motherName,
+        address: studentData.address,
+        class: studentData.class,
+        section: studentData.section,
+        admission_date: studentData.admissionDate,
+        date_of_birth: studentData.dateOfBirth,
+        aadhar_number: studentData.aadharNumber,
+        aadhar_url: aadharUrl,
+        opted_subjects: studentData.optedSubjects,
+        father_phone: studentData.fatherPhone,
+        mother_phone: studentData.motherPhone,
+        student_phone: studentData.studentPhone,
     };
 
     const { error } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
@@ -122,8 +133,20 @@ export const getStudentByEmail = async (email: string): Promise<Student | null> 
   return data;
 };
 
-export const updateStudent = async (id: string, updates: Partial<Student>) => {
-    const { error } = await supabase.from(STUDENTS_COLLECTION).update(updates).eq('id', id);
+export const updateStudent = async (id: string, updates: Partial<any>) => {
+    const dbUpdates = {
+        name: updates.name,
+        father_name: updates.fatherName,
+        mother_name: updates.motherName,
+        address: updates.address,
+        class: updates.class,
+        section: updates.section,
+        date_of_birth: updates.dateOfBirth,
+        father_phone: updates.fatherPhone,
+        mother_phone: updates.motherPhone,
+        student_phone: updates.studentPhone,
+    };
+    const { error } = await supabase.from(STUDENTS_COLLECTION).update(dbUpdates).eq('id', id);
     if (error) throw error;
 };
 
@@ -150,25 +173,31 @@ export const deleteStudent = async (studentId: string) => {
 };
 
 export const getStudentsForTeacher = (teacher: any, callback: (students: CombinedStudent[]) => void) => {
+    if (!teacher) return () => {};
+
     const assignedClasses = new Set<string>();
     if(teacher.class_teacher_of) assignedClasses.add(teacher.class_teacher_of);
     if(teacher.classes_taught) teacher.classes_taught.forEach((c: string) => assignedClasses.add(c));
     const classList = Array.from(assignedClasses);
 
+    if (classList.length === 0) {
+        callback([]);
+        return () => {};
+    }
+
     const channel = supabase.channel(`students-for-teacher-${teacher.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: STUDENTS_COLLECTION }, async () => {
-             const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class', classList.map(c => c.split('-')[0])).in('section', classList.map(c => c.split('-')[1]));
+             const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class_section', classList);
              if(data) callback(data.map(s => ({...s, status: 'Registered'})));
         })
         .subscribe();
     
     (async () => {
-        const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class', classList.map(c => c.split('-')[0])).in('section', classList.map(c => c.split('-')[1]));
+        const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class_section', classList);
         if(data) callback(data.map(s => ({...s, status: 'Registered'})));
     })();
 
     return () => supabase.removeChannel(channel);
 }
-
 
     

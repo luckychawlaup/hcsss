@@ -116,9 +116,20 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
       }
       
       const teacherRegistrationData = {
-          ...values,
-          dob: formatDate(values.dob, "yyyy-MM-dd"),
+          name: values.name,
+          email: values.email,
           photo: teacherPhotoFile,
+          dob: formatDate(values.dob, "yyyy-MM-dd"),
+          father_name: values.fatherName,
+          mother_name: values.motherName,
+          phone_number: values.phoneNumber,
+          address: values.address,
+          role: values.role,
+          subject: values.subject,
+          qualifications: values.qualifications,
+          class_teacher_of: values.classTeacherOf,
+          classes_taught: values.classesTaught,
+          joining_date: Date.now(),
       };
 
       await addTeacher(teacherRegistrationData as any);
@@ -475,3 +486,5 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
     </>
   );
 }
+
+    

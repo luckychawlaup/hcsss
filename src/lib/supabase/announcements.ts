@@ -47,7 +47,7 @@ export const addAnnouncement = async (
     let finalAnnouncementData: any = { ...announcementData };
     
     if (attachment) {
-        const attachmentUrl = await uploadFileToSupabase(attachment, 'media', 'announcements');
+        const attachmentUrl = await uploadFileToSupabase(attachment, 'documents', 'announcements');
         finalAnnouncementData.attachment_url = attachmentUrl;
     }
 
@@ -188,3 +188,5 @@ export const deleteAnnouncement = async (announcementId: string) => {
   const { error } = await supabase.from('announcements').delete().eq('id', announcementId);
   if (error) throw error;
 };
+
+    
