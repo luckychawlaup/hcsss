@@ -1,12 +1,16 @@
 -- =================================================================================
--- Schema for School Management System (v3 - Corrected Execution Order)
--- =================================================================================
--- This script is designed to be idempotent and safe to run multiple times.
+-- Schema for School Management System
+-- Version: Final
+-- Description: This script creates all necessary tables, functions, RLS policies,
+--              storage buckets, and foreign key constraints for the application.
+-- Execution: Run this entire script in the Supabase SQL Editor.
 -- =================================================================================
 
 -- ---------------------------------------------------------------------------------
 -- Section 1: Functions
 -- ---------------------------------------------------------------------------------
+
+-- Function to get the total number of students, used for generating SRNs.
 CREATE OR REPLACE FUNCTION get_student_count()
 RETURNS integer AS $$
 DECLARE
@@ -20,10 +24,11 @@ $$ LANGUAGE plpgsql;
 
 -- =================================================================================
 -- Section 2: Table Creation
--- All tables are created here without foreign key constraints.
--- Constraints will be added in a later section after all tables exist.
+-- All tables are created here without foreign key constraints initially.
+-- Constraints are added in a later section to ensure correct execution order.
 -- =================================================================================
 
+-- School Settings Table
 CREATE TABLE IF NOT EXISTS public.settings (
     id TEXT PRIMARY KEY,
     school_name TEXT NOT NULL,
@@ -34,6 +39,7 @@ CREATE TABLE IF NOT EXISTS public.settings (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Exams Table
 CREATE TABLE IF NOT EXISTS public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -42,6 +48,7 @@ CREATE TABLE IF NOT EXISTS public.exams (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Teachers Table
 CREATE TABLE IF NOT EXISTS public.teachers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_uid UUID UNIQUE NOT NULL,
@@ -63,6 +70,7 @@ CREATE TABLE IF NOT EXISTS public.teachers (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Students Table
 CREATE TABLE IF NOT EXISTS public.students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_uid UUID UNIQUE NOT NULL,
@@ -86,6 +94,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Announcements Table
 CREATE TABLE IF NOT EXISTS public.announcements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT,
@@ -101,6 +110,7 @@ CREATE TABLE IF NOT EXISTS public.announcements (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Homework Table
 CREATE TABLE IF NOT EXISTS public.homework (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assigned_by UUID NOT NULL,
@@ -113,6 +123,7 @@ CREATE TABLE IF NOT EXISTS public.homework (
     attachment_url TEXT
 );
 
+-- Leave Requests Table
 CREATE TABLE IF NOT EXISTS public.leaves (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
@@ -129,6 +140,7 @@ CREATE TABLE IF NOT EXISTS public.leaves (
     approver_comment TEXT
 );
 
+-- Marks Table
 CREATE TABLE IF NOT EXISTS public.marks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_auth_uid UUID NOT NULL,
@@ -141,6 +153,7 @@ CREATE TABLE IF NOT EXISTS public.marks (
     UNIQUE (student_auth_uid, exam_id, subject)
 );
 
+-- Feedback Table
 CREATE TABLE IF NOT EXISTS public.feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
@@ -152,6 +165,7 @@ CREATE TABLE IF NOT EXISTS public.feedback (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Gallery Table
 CREATE TABLE IF NOT EXISTS public.gallery (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     url TEXT NOT NULL,
@@ -161,6 +175,7 @@ CREATE TABLE IF NOT EXISTS public.gallery (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Salary Slips Table
 CREATE TABLE IF NOT EXISTS public.salary_slips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID NOT NULL,
@@ -173,86 +188,42 @@ CREATE TABLE IF NOT EXISTS public.salary_slips (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+
 -- =================================================================================
 -- Section 3: Foreign Key Constraint Cleanup
--- Drops existing constraints to prevent errors on re-running the script.
+-- Drops constraints if they exist, to allow for a clean re-creation.
 -- =================================================================================
 
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'fk_students_auth_users' AND conrelid = 'public.students'::regclass
-    ) THEN
-        ALTER TABLE public.students DROP CONSTRAINT fk_students_auth_users;
-    END IF;
-    
-    IF EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'fk_teachers_auth_users' AND conrelid = 'public.teachers'::regclass
-    ) THEN
-        ALTER TABLE public.teachers DROP CONSTRAINT fk_teachers_auth_users;
-    END IF;
-
-    IF EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'fk_marks_student_auth' AND conrelid = 'public.marks'::regclass
-    ) THEN
-        ALTER TABLE public.marks DROP CONSTRAINT fk_marks_student_auth;
-    END IF;
-    
-    IF EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'fk_marks_exam' AND conrelid = 'public.marks'::regclass
-    ) THEN
-        ALTER TABLE public.marks DROP CONSTRAINT fk_marks_exam;
-    END IF;
-END;
-$$;
+-- Use DO blocks to safely drop constraints without errors if they don't exist.
+DO $$ BEGIN ALTER TABLE public.students DROP CONSTRAINT IF EXISTS fk_students_auth_users; EXCEPTION WHEN anystring THEN END; $$;
+DO $$ BEGIN ALTER TABLE public.teachers DROP CONSTRAINT IF EXISTS fk_teachers_auth_users; EXCEPTION WHEN anystring THEN END; $$;
+DO $$ BEGIN ALTER TABLE public.marks DROP CONSTRAINT IF EXISTS fk_marks_student_auth; EXCEPTION WHEN anystring THEN END; $$;
+DO $$ BEGIN ALTER TABLE public.marks DROP CONSTRAINT IF EXISTS fk_marks_exam; EXCEPTION WHEN anystring THEN END; $$;
 
 
 -- =================================================================================
 -- Section 4: Foreign Key Constraint Creation
--- Adds constraints now that all tables are guaranteed to exist.
+-- Establishes relationships between tables after all tables are created.
 -- =================================================================================
 
-DO $$
-BEGIN
-   -- Link students.auth_uid to auth.users.id
-   ALTER TABLE public.students ADD CONSTRAINT fk_students_auth_users FOREIGN KEY (auth_uid) REFERENCES auth.users(id) ON DELETE CASCADE;
-EXCEPTION
-   WHEN duplicate_object THEN NULL;
-END $$;
+-- Link students.auth_uid -> auth.users.id
+ALTER TABLE public.students ADD CONSTRAINT fk_students_auth_users FOREIGN KEY (auth_uid) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-DO $$
-BEGIN
-   -- Link teachers.auth_uid to auth.users.id
-   ALTER TABLE public.teachers ADD CONSTRAINT fk_teachers_auth_users FOREIGN KEY (auth_uid) REFERENCES auth.users(id) ON DELETE CASCADE;
-EXCEPTION
-   WHEN duplicate_object THEN NULL;
-END $$;
+-- Link teachers.auth_uid -> auth.users.id
+ALTER TABLE public.teachers ADD CONSTRAINT fk_teachers_auth_users FOREIGN KEY (auth_uid) REFERENCES auth.users(id) ON DELETE CASCADE;
 
-DO $$
-BEGIN
-   -- Link marks.student_auth_uid to students.auth_uid
-   ALTER TABLE public.marks ADD CONSTRAINT fk_marks_student_auth FOREIGN KEY (student_auth_uid) REFERENCES public.students(auth_uid) ON DELETE CASCADE;
-EXCEPTION
-   WHEN duplicate_object THEN NULL;
-END $$;
+-- Link marks.student_auth_uid -> students.auth_uid
+ALTER TABLE public.marks ADD CONSTRAINT fk_marks_student_auth FOREIGN KEY (student_auth_uid) REFERENCES public.students(auth_uid) ON DELETE CASCADE;
 
-DO $$
-BEGIN
-   -- Link marks.exam_id to exams.id
-   ALTER TABLE public.marks ADD CONSTRAINT fk_marks_exam FOREIGN KEY (exam_id) REFERENCES public.exams(id) ON DELETE CASCADE;
-EXCEPTION
-   WHEN duplicate_object THEN NULL;
-END $$;
+-- Link marks.exam_id -> exams.id
+ALTER TABLE public.marks ADD CONSTRAINT fk_marks_exam FOREIGN KEY (exam_id) REFERENCES public.exams(id) ON DELETE CASCADE;
 
 
 -- =================================================================================
--- 5. Row Level Security (RLS) Policies
+-- Section 5: Row Level Security (RLS) Policies
 -- =================================================================================
 
+-- Enable RLS for all tables
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
@@ -265,6 +236,7 @@ ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.salary_slips ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies to avoid conflicts
 DROP POLICY IF EXISTS "Allow all access" ON public.settings;
 DROP POLICY IF EXISTS "Allow all access" ON public.exams;
 DROP POLICY IF EXISTS "Allow all access" ON public.teachers;
@@ -277,6 +249,7 @@ DROP POLICY IF EXISTS "Allow all access" ON public.feedback;
 DROP POLICY IF EXISTS "Allow all access" ON public.gallery;
 DROP POLICY IF EXISTS "Allow all access" ON public.salary_slips;
 
+-- Create permissive policies for development (ALLOW ALL)
 CREATE POLICY "Allow all access" ON public.settings FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access" ON public.exams FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access" ON public.teachers FOR ALL USING (true) WITH CHECK (true);
@@ -291,40 +264,62 @@ CREATE POLICY "Allow all access" ON public.salary_slips FOR ALL USING (true) WIT
 
 
 -- =================================================================================
--- 6. Storage Buckets and Policies
+-- Section 6: Storage Buckets and Policies
 -- =================================================================================
 
-INSERT INTO storage.buckets (id, name, public) VALUES ('teachers', 'teachers', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('students', 'students', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('gallery', 'gallery', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('homework', 'homework', true) ON CONFLICT (id) DO NOTHING;
+-- Create one 'media' bucket for all application files.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('media', 'media', true)
+ON CONFLICT (id) DO NOTHING;
 
-DROP POLICY IF EXISTS "Allow public read access on all buckets" ON storage.objects;
-CREATE POLICY "Allow public read access on all buckets" ON storage.objects FOR SELECT USING (true);
+-- Drop existing storage policies for 'media' bucket
+DROP POLICY IF EXISTS "Allow media public read access" ON storage.objects;
+DROP POLICY IF EXISTS "Allow media authenticated uploads" ON storage.objects;
+DROP POLICY IF EXISTS "Allow media authenticated updates" ON storage.objects;
+DROP POLICY IF EXISTS "Allow media authenticated deletes" ON storage.objects;
 
-DROP POLICY IF EXISTS "Allow authenticated uploads on all buckets" ON storage.objects;
-CREATE POLICY "Allow authenticated uploads on all buckets" ON storage.objects FOR INSERT TO authenticated WITH CHECK (true);
+-- Create Storage Policies for 'media' bucket
+CREATE POLICY "Allow media public read access"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'media');
 
-DROP POLICY IF EXISTS "Allow authenticated updates on all buckets" ON storage.objects;
-CREATE POLICY "Allow authenticated updates on all buckets" ON storage.objects FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Allow media authenticated uploads"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'media');
 
-DROP POLICY IF EXISTS "Allow authenticated deletes on all buckets" ON storage.objects;
-CREATE POLICY "Allow authenticated deletes on all buckets" ON storage.objects FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Allow media authenticated updates"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (auth.uid() = owner)
+WITH CHECK (bucket_id = 'media');
+
+CREATE POLICY "Allow media authenticated deletes"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (auth.uid() = owner);
 
 
 -- =================================================================================
--- 7. Default Data
+-- Section 7: Default Data
 -- =================================================================================
 
-INSERT INTO public.settings (id, school_name, logo_url, primary_color, accent_color) 
+-- Insert default school settings if they don't exist
+INSERT INTO public.settings (id, school_name, logo_url, primary_color, accent_color)
 VALUES ('school_settings', 'Hilton Convent School', 'https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png', 'hsl(217, 91%, 60%)', 'hsl(258, 90%, 66%)')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.exams (name, date, max_marks) 
+-- Insert initial exams (only if no exams exist)
+INSERT INTO public.exams (name, date, max_marks)
 SELECT 'Mid-Term Exam 2024', '2024-09-15T10:00:00Z', 100
 WHERE NOT EXISTS (SELECT 1 FROM public.exams WHERE name = 'Mid-Term Exam 2024');
 
-INSERT INTO public.exams (name, date, max_marks) 
+INSERT INTO public.exams (name, date, max_marks)
 SELECT 'Final Exam 2024', '2025-03-10T10:00:00Z', 100
 WHERE NOT EXISTS (SELECT 1 FROM public.exams WHERE name = 'Final Exam 2024');
+
+
+-- =================================================================================
+-- End of Script
+-- =================================================================================
