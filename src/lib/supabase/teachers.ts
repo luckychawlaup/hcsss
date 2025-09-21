@@ -69,7 +69,7 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
         throw new Error("Could not create user for teacher.");
     }
     
-    const photoUrl = await uploadFileToSupabase(teacherData.photo, 'teachers', 'avatars');
+    const photoUrl = await uploadFileToSupabase(teacherData.photo, 'media', 'teachers/photos');
 
     const { photo, ...restOfTeacherData } = teacherData;
 

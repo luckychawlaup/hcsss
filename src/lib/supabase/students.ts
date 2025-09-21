@@ -52,12 +52,12 @@ export const addStudent = async (studentData: Omit<Student, 'id' | 'srn' | 'phot
     
     let photoUrl: string | undefined;
     if (studentData.photo) {
-        photoUrl = await uploadFileToSupabase(studentData.photo, 'students', 'avatars');
+        photoUrl = await uploadFileToSupabase(studentData.photo, 'media', 'students/photos');
     }
 
     let aadharUrl: string | undefined;
     if (studentData.aadharCard) {
-        aadharUrl = await uploadFileToSupabase(studentData.aadharCard, 'documents', 'aadhar');
+        aadharUrl = await uploadFileToSupabase(studentData.aadharCard, 'media', 'students/documents');
     }
 
     const { photo, aadharCard, ...restOfStudentData } = studentData;

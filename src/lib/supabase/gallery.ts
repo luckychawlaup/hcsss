@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -52,7 +53,7 @@ export const getGalleryImages = (callback: (images: GalleryImage[]) => void) => 
 };
 
 export const uploadImage = async (file: File, caption: string, uploadedBy: string, uploaderId: string): Promise<void> => {
-    const imageUrl = await uploadFileToSupabase(file, 'gallery', 'images');
+    const imageUrl = await uploadFileToSupabase(file, 'media', 'gallery');
 
     const { error } = await supabase.from('gallery').insert([{
         url: imageUrl,

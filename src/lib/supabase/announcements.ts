@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -46,7 +47,7 @@ export const addAnnouncement = async (
     let finalAnnouncementData: any = { ...announcementData };
     
     if (attachment) {
-        const attachmentUrl = await uploadFileToSupabase(attachment, 'documents', 'announcements');
+        const attachmentUrl = await uploadFileToSupabase(attachment, 'media', 'announcements');
         finalAnnouncementData.attachment_url = attachmentUrl;
     }
 
