@@ -1,10 +1,12 @@
 -- =================================================================================
--- Schema for School Management System
+-- Schema for School Management System (Fixed for Supabase)
 -- =================================================================================
 
 -- ---------------------------------------------------------------------------------
 -- 1. Functions
+--    - get_student_count: Returns the total number of students.
 -- ---------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION get_student_count()
 RETURNS integer AS $$
 DECLARE
@@ -17,8 +19,10 @@ $$ LANGUAGE plpgsql;
 
 -- =================================================================================
 -- 2. Tables
+--    - settings, exams, teachers, students, announcements, homework, leaves, marks, feedback, gallery, salary_slips
 -- =================================================================================
 
+-- School Settings Table
 CREATE TABLE IF NOT EXISTS public.settings (
     id TEXT PRIMARY KEY,
     school_name TEXT NOT NULL,
@@ -29,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.settings (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Exams Table
 CREATE TABLE IF NOT EXISTS public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -37,6 +42,7 @@ CREATE TABLE IF NOT EXISTS public.exams (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Teachers Table
 CREATE TABLE IF NOT EXISTS public.teachers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_uid UUID UNIQUE NOT NULL,
@@ -58,6 +64,7 @@ CREATE TABLE IF NOT EXISTS public.teachers (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Students Table
 CREATE TABLE IF NOT EXISTS public.students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_uid UUID UNIQUE NOT NULL,
@@ -81,6 +88,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Announcements Table
 CREATE TABLE IF NOT EXISTS public.announcements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT,
@@ -96,6 +104,7 @@ CREATE TABLE IF NOT EXISTS public.announcements (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Homework Table
 CREATE TABLE IF NOT EXISTS public.homework (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assigned_by UUID NOT NULL,
@@ -108,6 +117,7 @@ CREATE TABLE IF NOT EXISTS public.homework (
     attachment_url TEXT
 );
 
+-- Leave Requests Table
 CREATE TABLE IF NOT EXISTS public.leaves (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
@@ -124,6 +134,7 @@ CREATE TABLE IF NOT EXISTS public.leaves (
     approver_comment TEXT
 );
 
+-- Marks Table
 CREATE TABLE IF NOT EXISTS public.marks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_auth_uid UUID NOT NULL,
@@ -136,6 +147,7 @@ CREATE TABLE IF NOT EXISTS public.marks (
     UNIQUE (student_auth_uid, exam_id, subject)
 );
 
+-- Feedback Table
 CREATE TABLE IF NOT EXISTS public.feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
@@ -147,6 +159,7 @@ CREATE TABLE IF NOT EXISTS public.feedback (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Gallery Table
 CREATE TABLE IF NOT EXISTS public.gallery (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     url TEXT NOT NULL,
@@ -156,6 +169,7 @@ CREATE TABLE IF NOT EXISTS public.gallery (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Salary Slips Table
 CREATE TABLE IF NOT EXISTS public.salary_slips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID NOT NULL,
@@ -172,17 +186,11 @@ CREATE TABLE IF NOT EXISTS public.salary_slips (
 -- 3. Foreign Key Constraints
 -- =================================================================================
 
--- Drop existing constraints if they exist to avoid errors on re-run
-ALTER TABLE public.students DROP CONSTRAINT IF EXISTS fk_students_auth_users;
-ALTER TABLE public.teachers DROP CONSTRAINT IF EXISTS fk_teachers_auth_users;
-ALTER TABLE public.marks DROP CONSTRAINT IF EXISTS fk_marks_student_auth;
-ALTER TABLE public.marks DROP CONSTRAINT IF EXISTS fk_marks_exam;
-
--- Add Foreign Key Constraints
 ALTER TABLE public.students ADD CONSTRAINT fk_students_auth_users FOREIGN KEY (auth_uid) REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE public.teachers ADD CONSTRAINT fk_teachers_auth_users FOREIGN KEY (auth_uid) REFERENCES auth.users(id) ON DELETE CASCADE;
-ALTER TABLE public.marks ADD CONSTRAINT fk_marks_student_auth FOREIGN KEY (student_auth_uid) REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.marks ADD CONSTRAINT fk_marks_student_auth FOREIGN KEY (student_auth_uid) REFERENCES public.students(auth_uid) ON DELETE CASCADE;
 ALTER TABLE public.marks ADD CONSTRAINT fk_marks_exam FOREIGN KEY (exam_id) REFERENCES public.exams(id) ON DELETE CASCADE;
+
 
 -- =================================================================================
 -- 4. Row Level Security (RLS) Policies
@@ -228,54 +236,24 @@ CREATE POLICY "Allow all access" ON public.salary_slips FOR ALL USING (true) WIT
 -- 5. Storage Buckets and Policies
 -- =================================================================================
 
-INSERT INTO storage.buckets (id, name, public)
-VALUES 
-    ('teachers', 'teachers', true),
-    ('students', 'students', true),
-    ('gallery', 'gallery', true),
-    ('documents', 'documents', true),
-    ('homework', 'homework', true)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('teachers', 'teachers', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('students', 'students', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('gallery', 'gallery', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('homework', 'homework', true) ON CONFLICT (id) DO NOTHING;
 
-DROP POLICY IF EXISTS "Allow authenticated uploads on teachers" ON storage.objects;
-DROP POLICY IF EXISTS "Allow public read on teachers" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to manage own files in teachers" ON storage.objects;
+DROP POLICY IF EXISTS "Allow all on teachers bucket" ON storage.objects;
+DROP POLICY IF EXISTS "Allow all on students bucket" ON storage.objects;
+DROP POLICY IF EXISTS "Allow all on gallery bucket" ON storage.objects;
+DROP POLICY IF EXISTS "Allow all on documents bucket" ON storage.objects;
+DROP POLICY IF EXISTS "Allow all on homework bucket" ON storage.objects;
 
-CREATE POLICY "Allow authenticated uploads on teachers" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'teachers');
-CREATE POLICY "Allow public read on teachers" ON storage.objects FOR SELECT USING (bucket_id = 'teachers');
-CREATE POLICY "Allow authenticated users to manage own files in teachers" ON storage.objects FOR UPDATE USING (auth.uid() = owner);
+CREATE POLICY "Allow all on teachers bucket" ON storage.objects FOR ALL USING (bucket_id = 'teachers') WITH CHECK (bucket_id = 'teachers');
+CREATE POLICY "Allow all on students bucket" ON storage.objects FOR ALL USING (bucket_id = 'students') WITH CHECK (bucket_id = 'students');
+CREATE POLICY "Allow all on gallery bucket" ON storage.objects FOR ALL USING (bucket_id = 'gallery') WITH CHECK (bucket_id = 'gallery');
+CREATE POLICY "Allow all on documents bucket" ON storage.objects FOR ALL USING (bucket_id = 'documents') WITH CHECK (bucket_id = 'documents');
+CREATE POLICY "Allow all on homework bucket" ON storage.objects FOR ALL USING (bucket_id = 'homework') WITH CHECK (bucket_id = 'homework');
 
-DROP POLICY IF EXISTS "Allow authenticated uploads on students" ON storage.objects;
-DROP POLICY IF EXISTS "Allow public read on students" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to manage own files in students" ON storage.objects;
-
-CREATE POLICY "Allow authenticated uploads on students" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'students');
-CREATE POLICY "Allow public read on students" ON storage.objects FOR SELECT USING (bucket_id = 'students');
-CREATE POLICY "Allow authenticated users to manage own files in students" ON storage.objects FOR UPDATE USING (auth.uid() = owner);
-
-DROP POLICY IF EXISTS "Allow authenticated uploads on gallery" ON storage.objects;
-DROP POLICY IF EXISTS "Allow public read on gallery" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to manage own files in gallery" ON storage.objects;
-
-CREATE POLICY "Allow authenticated uploads on gallery" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'gallery');
-CREATE POLICY "Allow public read on gallery" ON storage.objects FOR SELECT USING (bucket_id = 'gallery');
-CREATE POLICY "Allow authenticated users to manage own files in gallery" ON storage.objects FOR UPDATE USING (auth.uid() = owner);
-
-DROP POLICY IF EXISTS "Allow authenticated uploads on documents" ON storage.objects;
-DROP POLICY IF EXISTS "Allow public read on documents" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to manage own files in documents" ON storage.objects;
-
-CREATE POLICY "Allow authenticated uploads on documents" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'documents');
-CREATE POLICY "Allow public read on documents" ON storage.objects FOR SELECT USING (bucket_id = 'documents');
-CREATE POLICY "Allow authenticated users to manage own files in documents" ON storage.objects FOR UPDATE USING (auth.uid() = owner);
-
-DROP POLICY IF EXISTS "Allow authenticated uploads on homework" ON storage.objects;
-DROP POLICY IF EXISTS "Allow public read on homework" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to manage own files in homework" ON storage.objects;
-
-CREATE POLICY "Allow authenticated uploads on homework" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'homework');
-CREATE POLICY "Allow public read on homework" ON storage.objects FOR SELECT USING (bucket_id = 'homework');
-CREATE POLICY "Allow authenticated users to manage own files in homework" ON storage.objects FOR UPDATE USING (auth.uid() = owner);
 
 -- =================================================================================
 -- 6. Default Data
@@ -283,11 +261,7 @@ CREATE POLICY "Allow authenticated users to manage own files in homework" ON sto
 
 INSERT INTO public.settings (id, school_name, logo_url, primary_color, accent_color) 
 VALUES ('school_settings', 'Hilton Convent School', 'https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png', 'hsl(217, 91%, 60%)', 'hsl(258, 90%, 66%)')
-ON CONFLICT (id) DO UPDATE SET
-school_name = EXCLUDED.school_name,
-logo_url = EXCLUDED.logo_url,
-primary_color = EXCLUDED.primary_color,
-accent_color = EXCLUDED.accent_color;
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.exams (name, date, max_marks) 
 SELECT 'Mid-Term Exam 2024', '2024-09-15T10:00:00Z', 100
