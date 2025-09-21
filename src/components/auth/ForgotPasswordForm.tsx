@@ -64,9 +64,12 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
         return;
       }
       
-      // If user exists, then send the reset email
-      // We remove redirectTo so Supabase uses the Site URL from the dashboard
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email);
+      // Construct the redirect URL for the update password page
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: redirectUrl,
+      });
 
       if(resetError) throw resetError;
 
