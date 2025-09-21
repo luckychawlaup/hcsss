@@ -46,7 +46,7 @@ const uploadFileToSupabase = async (file: File, bucket: string, folder: string):
 
 export type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 'photo_url'> & { photo: File }) => {
+export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 'photo_url' | 'joining_date'> & { photo: File, joining_date: number }) => {
     const tempPassword = Math.random().toString(36).slice(-8);
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -74,7 +74,19 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
     const { photo, ...restOfTeacherData } = teacherData;
 
     const finalTeacherData = {
-        ...restOfTeacherData,
+        name: restOfTeacherData.name,
+        email: restOfTeacherData.email,
+        dob: restOfTeacherData.dob,
+        father_name: restOfTeacherData.father_name,
+        mother_name: restOfTeacherData.mother_name,
+        phone_number: restOfTeacherData.phone_number,
+        address: restOfTeacherData.address,
+        role: restOfTeacherData.role,
+        subject: restOfTeacherData.subject,
+        qualifications: restOfTeacherData.qualifications,
+        class_teacher_of: restOfTeacherData.class_teacher_of,
+        classes_taught: restOfTeacherData.classes_taught,
+        joining_date: restOfTeacherData.joining_date,
         auth_uid: authData.user.id,
         photo_url: photoUrl,
     };
@@ -89,13 +101,22 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
     }
 
     // Send password reset email so they can set their own password
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(teacherData.email, {
-        redirectTo: `${window.location.origin}/`,
-    });
+    // Removing redirectTo will make Supabase use the Site URL from the dashboard
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(teacherData.email);
     if(resetError) {
         console.warn("Teacher created, but failed to send password reset email.", resetError);
     }
 };
+
+export const getRegistrationKeyForTeacher = async (email: string): Promise<string | null> => {
+    // This function is a placeholder as the current flow creates teachers directly.
+    // In a flow where teachers register themselves, you would query a registration_keys table.
+    // For now, we will return a mock key for the joining letter to work.
+    // A robust implementation would involve generating and storing a real, single-use key.
+    console.warn("getRegistrationKeyForTeacher is returning a mock key. For production, implement a secure key generation and storage system.");
+    return `REG-KEY-FOR-${email.split('@')[0]}`.toUpperCase();
+}
+
 
 export const getTeachersAndPending = (callback: (teachers: CombinedTeacher[]) => void) => {
     const channel = supabase.channel('teachers-and-pending')
@@ -135,18 +156,27 @@ export const getTeacherByEmail = async (email: string): Promise<Teacher | null> 
   return data;
 };
 
-export const getRegistrationKeyForTeacher = async (email: string): Promise<string | null> => {
-    // This function is a placeholder as the current flow creates teachers directly.
-    // In a flow where teachers register themselves, you would query a registration_keys table.
-    // For now, we will return a mock key for the joining letter to work.
-    // A robust implementation would involve generating and storing a real, single-use key.
-    console.warn("getRegistrationKeyForTeacher is returning a mock key. For production, implement a secure key generation and storage system.");
-    return `REG-KEY-FOR-${email.split('@')[0]}`.toUpperCase();
-}
-
-
 export const updateTeacher = async (id: string, updates: Partial<Teacher>) => {
-    const { error } = await supabase.from(TEACHERS_COLLECTION).update(updates).eq('id', id);
+    const updateData: { [key: string]: any } = {};
+
+    // Map camelCase to snake_case for the database
+    if (updates.fatherName) updateData.father_name = updates.fatherName;
+    if (updates.motherName) updateData.mother_name = updates.motherName;
+    if (updates.phoneNumber) updateData.phone_number = updates.phoneNumber;
+    if (updates.joiningDate) updateData.joining_date = updates.joiningDate;
+    if (updates.classTeacherOf) updateData.class_teacher_of = updates.classTeacherOf;
+    if (updates.classesTaught) updateData.classes_taught = updates.classesTaught;
+    if (updates.bankAccount) updateData.bank_account = updates.bankAccount;
+    
+    // Direct mapping for fields that are already snake_case or don't need mapping
+    const directFields: (keyof Partial<Teacher>)[] = ['name', 'email', 'dob', 'address', 'role', 'subject', 'qualifications'];
+    directFields.forEach(field => {
+        if (updates[field] !== undefined) {
+            updateData[field as string] = updates[field];
+        }
+    });
+
+    const { error } = await supabase.from(TEACHERS_COLLECTION).update(updateData).eq('id', id);
     if (error) throw error;
 };
 
@@ -173,5 +203,3 @@ export const deleteTeacher = async (id: string) => {
         }
     }
 };
-
-    
