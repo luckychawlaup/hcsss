@@ -1,7 +1,10 @@
--- Create Students Table
-CREATE TABLE students (
+-- Create users table (if you want to add custom user data not in auth.users)
+-- This app uses user metadata, so this table is not strictly required.
+
+-- Create students table
+CREATE TABLE IF NOT EXISTS public.students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_uid UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+    auth_uid UUID UNIQUE REFERENCES auth.users(id),
     srn TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -11,7 +14,7 @@ CREATE TABLE students (
     address TEXT NOT NULL,
     class TEXT NOT NULL,
     section TEXT NOT NULL,
-    admission_date BIGINT NOT NULL,
+    admission_date BIGINT NOT NULL, -- Using bigint for timestamp
     date_of_birth DATE NOT NULL,
     aadhar_number TEXT,
     aadhar_url TEXT,
@@ -19,35 +22,96 @@ CREATE TABLE students (
     father_phone TEXT,
     mother_phone TEXT,
     student_phone TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- RLS for students
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to students" ON public.students;
+CREATE POLICY "Allow all access to students" ON public.students FOR ALL USING (true) WITH CHECK (true);
 
--- Create Teachers Table
-CREATE TABLE teachers (
+-- Create teachers table
+CREATE TABLE IF NOT EXISTS public.teachers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_uid UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+    auth_uid UUID UNIQUE REFERENCES auth.users(id),
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    photo_url TEXT NOT NULL,
+    photo_url TEXT,
     dob DATE NOT NULL,
     father_name TEXT NOT NULL,
     mother_name TEXT NOT NULL,
     phone_number TEXT NOT NULL,
     address TEXT NOT NULL,
-    role TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('classTeacher', 'subjectTeacher')),
     subject TEXT NOT NULL,
     qualifications TEXT[],
     class_teacher_of TEXT,
     classes_taught TEXT[],
-    joining_date BIGINT NOT NULL,
+    joining_date BIGINT NOT NULL, -- Using bigint for timestamp
     bank_account JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- RLS for teachers
+ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to teachers" ON public.teachers;
+CREATE POLICY "Allow all access to teachers" ON public.teachers FOR ALL USING (true) WITH CHECK (true);
 
--- Create Homework Table
-CREATE TABLE homework (
+
+-- Create exams table
+CREATE TABLE IF NOT EXISTS public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    assigned_by UUID REFERENCES teachers(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    date DATE NOT NULL,
+    max_marks INTEGER NOT NULL DEFAULT 100
+);
+-- RLS for exams
+ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to exams" ON public.exams;
+CREATE POLICY "Allow all access to exams" ON public.exams FOR ALL USING (true) WITH CHECK (true);
+
+
+-- Create marks table
+CREATE TABLE IF NOT EXISTS public.marks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_auth_uid UUID NOT NULL REFERENCES auth.users(id),
+    exam_id UUID NOT NULL REFERENCES public.exams(id),
+    subject TEXT NOT NULL,
+    marks INTEGER NOT NULL,
+    max_marks INTEGER NOT NULL,
+    grade TEXT NOT NULL,
+    UNIQUE (student_auth_uid, exam_id, subject)
+);
+-- RLS for marks
+ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to marks" ON public.marks;
+CREATE POLICY "Allow all access to marks" ON public.marks FOR ALL USING (true) WITH CHECK (true);
+
+-- Create leaves table
+CREATE TABLE IF NOT EXISTS public.leaves (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL, -- This can be student ID or teacher ID
+    user_name TEXT NOT NULL,
+    user_role TEXT NOT NULL,
+    class TEXT, -- For students
+    teacher_id UUID, -- For teachers
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ NOT NULL,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Pending',
+    applied_at TIMESTAMPTZ DEFAULT NOW(),
+    rejection_reason TEXT,
+    approver_comment TEXT
+);
+-- RLS for leaves
+ALTER TABLE public.leaves ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to leaves" ON public.leaves;
+CREATE POLICY "Allow all access to leaves" ON public.leaves FOR ALL USING (true) WITH CHECK (true);
+
+-- Create homework table
+CREATE TABLE IF NOT EXISTS public.homework (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assigned_by UUID NOT NULL REFERENCES public.teachers(id),
     teacher_name TEXT NOT NULL,
     class_section TEXT NOT NULL,
     subject TEXT NOT NULL,
@@ -56,9 +120,14 @@ CREATE TABLE homework (
     assigned_at TIMESTAMPTZ DEFAULT NOW(),
     attachment_url TEXT
 );
+-- RLS for homework
+ALTER TABLE public.homework ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to homework" ON public.homework;
+CREATE POLICY "Allow all access to homework" ON public.homework FOR ALL USING (true) WITH CHECK (true);
 
--- Create Announcements Table
-CREATE TABLE announcements (
+
+-- Create announcements table
+CREATE TABLE IF NOT EXISTS public.announcements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     content TEXT NOT NULL,
@@ -72,46 +141,45 @@ CREATE TABLE announcements (
     creator_role TEXT,
     attachment_url TEXT
 );
+-- RLS for announcements
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to announcements" ON public.announcements;
+CREATE POLICY "Allow all access to announcements" ON public.announcements FOR ALL USING (true) WITH CHECK (true);
 
--- Create Leaves Table
-CREATE TABLE leaves (
+-- Create salary_slips table
+CREATE TABLE IF NOT EXISTS public.salary_slips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL,
-    user_name TEXT NOT NULL,
-    user_role TEXT NOT NULL,
-    class TEXT,
-    teacher_id UUID,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    reason TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'Pending',
-    applied_at TIMESTAMPTZ DEFAULT NOW(),
-    rejection_reason TEXT,
-    approver_comment TEXT
+    teacher_id UUID NOT NULL REFERENCES public.teachers(id),
+    month TEXT NOT NULL,
+    basic_salary NUMERIC NOT NULL,
+    earnings JSONB,
+    deductions JSONB,
+    net_salary NUMERIC NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Paid',
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- RLS for salary_slips
+ALTER TABLE public.salary_slips ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to salary slips" ON public.salary_slips;
+CREATE POLICY "Allow all access to salary slips" ON public.salary_slips FOR ALL USING (true) WITH CHECK (true);
 
--- Create Exams Table
-CREATE TABLE exams (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    date DATE NOT NULL,
-    max_marks INT NOT NULL
-);
 
--- Create Marks Table
-CREATE TABLE marks (
+-- Create gallery table
+CREATE TABLE IF NOT EXISTS public.gallery (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_auth_uid UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    exam_id TEXT REFERENCES exams(id) ON DELETE CASCADE,
-    subject TEXT NOT NULL,
-    marks INT NOT NULL,
-    max_marks INT NOT NULL,
-    grade TEXT NOT NULL,
-    UNIQUE (student_auth_uid, exam_id, subject)
+    url TEXT NOT NULL,
+    caption TEXT,
+    uploaded_by TEXT,
+    uploader_id UUID,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- RLS for gallery
+ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to gallery" ON public.gallery;
+CREATE POLICY "Allow all access to gallery" ON public.gallery FOR ALL USING (true) WITH CHECK (true);
 
--- Create Feedback Table
-CREATE TABLE feedback (
+-- Create feedback table
+CREATE TABLE IF NOT EXISTS public.feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     user_name TEXT NOT NULL,
@@ -121,113 +189,59 @@ CREATE TABLE feedback (
     description TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- RLS for feedback
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to feedback" ON public.feedback;
+CREATE POLICY "Allow all access to feedback" ON public.feedback FOR ALL USING (true) WITH CHECK (true);
 
--- Create Gallery Table
-CREATE TABLE gallery (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    url TEXT NOT NULL,
-    caption TEXT,
-    uploaded_by TEXT,
-    uploader_id UUID,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
 
--- Create Salary Slips Table
-CREATE TABLE salary_slips (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    teacher_id UUID REFERENCES teachers(id) ON DELETE CASCADE,
-    month TEXT NOT NULL,
-    basic_salary NUMERIC NOT NULL,
-    earnings JSONB,
-    deductions JSONB,
-    net_salary NUMERIC NOT NULL,
-    status TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Create Settings Table
-CREATE TABLE settings (
+-- Create settings table
+CREATE TABLE IF NOT EXISTS public.settings (
     id TEXT PRIMARY KEY,
-    school_name TEXT,
-    logo_url TEXT,
-    primary_color TEXT,
-    accent_color TEXT
+    "schoolName" TEXT,
+    "logoUrl" TEXT,
+    "primaryColor" TEXT,
+    "accentColor" TEXT
 );
+-- RLS for settings
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access to settings" ON public.settings;
+CREATE POLICY "Allow all access to settings" ON public.settings FOR ALL USING (true) WITH CHECK (true);
 
--- RPC for student count (for SRN generation)
+-- Function to get student count for SRN generation
 CREATE OR REPLACE FUNCTION get_student_count()
 RETURNS integer AS $$
 DECLARE
     count integer;
 BEGIN
-    SELECT COUNT(*) INTO count FROM students;
+    SELECT COUNT(*) INTO count FROM public.students;
     RETURN count;
 END;
 $$ LANGUAGE plpgsql;
 
--- Enable Row Level Security (RLS) for all tables
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE teachers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE homework ENABLE ROW LEVEL SECURITY;
-ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
-ALTER TABLE leaves ENABLE ROW LEVEL SECURITY;
-ALTER TABLE exams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE marks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gallery ENABLE ROW LEVEL SECURITY;
-ALTER TABLE salary_slips ENABLE ROW LEVEL SECURITY;
-ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+-- Insert default settings if not present
+INSERT INTO public.settings (id, "schoolName", "logoUrl", "primaryColor", "accentColor")
+VALUES ('school_settings', 'Hilton Convent School', 'https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png', 'hsl(217, 91%, 60%)', 'hsl(258, 90%, 66%)')
+ON CONFLICT (id) DO NOTHING;
 
--- Policies for public access (anon role)
-CREATE POLICY "Allow public read on settings" ON settings FOR SELECT USING (true);
-CREATE POLICY "Allow public read on exams" ON exams FOR SELECT USING (true);
-CREATE POLICY "Allow anon insert on exams" ON exams FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public read on gallery" ON gallery FOR SELECT USING (true);
-CREATE POLICY "Allow public read on announcements" ON announcements FOR SELECT USING (true);
+-- Create Storage Buckets
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('photos', 'photos', true)
+ON CONFLICT (id) DO NOTHING;
 
--- Policies for authenticated users
-CREATE POLICY "Allow users to read their own student profile" ON students FOR SELECT USING (auth.uid() = auth_uid);
-CREATE POLICY "Allow users to read their own teacher profile" ON teachers FOR SELECT USING (auth.uid() = auth_uid);
-CREATE POLICY "Allow authenticated users to read all teacher profiles" ON teachers FOR SELECT USING (auth.role() = 'authenticated');
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('documents', 'documents', true)
+ON CONFLICT (id) DO NOTHING;
 
-CREATE POLICY "Allow authenticated users to submit feedback" ON feedback FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Allow authenticated users to apply for leave" ON leaves FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Allow users to view their own leave requests" ON leaves FOR SELECT USING (auth.uid() = user_id);
+-- Set up policies for buckets
+DROP POLICY IF EXISTS "Allow public read access to photos" ON storage.objects;
+CREATE POLICY "Allow public read access to photos" ON storage.objects FOR SELECT USING ( bucket_id = 'photos' );
 
-CREATE POLICY "Allow students to view their homework" ON homework FOR SELECT USING (
-    auth.role() = 'authenticated' AND
-    class_section IN (
-        SELECT class || '-' || section FROM students WHERE auth_uid = auth.uid()
-    )
-);
+DROP POLICY IF EXISTS "Allow all access to photos for authenticated users" ON storage.objects;
+CREATE POLICY "Allow all access to photos for authenticated users" ON storage.objects FOR ALL USING ( bucket_id = 'photos' AND auth.role() = 'authenticated' );
 
-CREATE POLICY "Allow students to view their marks" ON marks FOR SELECT USING (auth.uid() = student_auth_uid);
+DROP POLICY IF EXISTS "Allow public read access to documents" ON storage.objects;
+CREATE POLICY "Allow public read access to documents" ON storage.objects FOR SELECT USING ( bucket_id = 'documents' );
 
-CREATE POLICY "Allow authenticated users to upload to gallery" ON gallery FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
-
--- Policies for service_role (and by extension, admin users)
--- Principals and owners will generally use the service_role key from a secure server environment (or serverless function) to bypass RLS.
--- For client-side admin actions, we define specific policies.
-
-CREATE POLICY "Allow admin full access" ON students FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow admin full access" ON teachers FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow admin full access" ON homework FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow admin full access" ON announcements FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow admin full access" ON leaves FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow admin full access" ON marks FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow admin full access" ON salary_slips FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow admin full access" ON settings FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow admin full access" ON feedback FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow admin full access" ON gallery FOR ALL USING (true) WITH CHECK (true);
-
--- Create Storage Buckets and Policies
-INSERT INTO storage.buckets (id, name, public) VALUES ('photos', 'photos', true) ON CONFLICT (id) DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', false) ON CONFLICT (id) DO NOTHING;
-
-CREATE POLICY "Allow public read on photo bucket" ON storage.objects FOR SELECT USING (bucket_id = 'photos');
-CREATE POLICY "Allow authenticated insert on photo bucket" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'photos');
-CREATE POLICY "Allow authenticated update on own photos" ON storage.objects FOR UPDATE USING (auth.uid() = owner) WITH CHECK (bucket_id = 'photos');
-CREATE POLICY "Allow authenticated delete on own photos" ON storage.objects FOR DELETE USING (auth.uid() = owner);
-
-CREATE POLICY "Allow authenticated access to documents" ON storage.objects FOR ALL USING (bucket_id = 'documents' AND auth.role() = 'authenticated') WITH CHECK (bucket_id = 'documents' AND auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow all access to documents for authenticated users" ON storage.objects;
+CREATE POLICY "Allow all access to documents for authenticated users" ON storage.objects FOR ALL USING ( bucket_id = 'documents' AND auth.role() = 'authenticated' );
