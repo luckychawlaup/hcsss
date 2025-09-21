@@ -113,8 +113,8 @@ export default function TeacherDashboard() {
 
   const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
   const classTeacherStudentsCount = useMemo(() => {
-    if (teacher?.role !== 'classTeacher' || !teacher.classTeacherOf) return 0;
-    return assignedStudents.filter(s => `${s.class}-${s.section}` === teacher.classTeacherOf).length;
+    if (teacher?.role !== 'classTeacher' || !teacher.class_teacher_of) return 0;
+    return assignedStudents.filter(s => `${s.class}-${s.section}` === teacher.class_teacher_of).length;
   }, [teacher, assignedStudents]);
 
 
@@ -296,3 +296,5 @@ export default function TeacherDashboard() {
     </div>
   );
 }
+
+    

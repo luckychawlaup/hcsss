@@ -39,22 +39,22 @@ const addStudentSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
   photo: z.instanceof(FileList).optional(),
-  fatherName: z.string().min(2, "Father's name is required."),
-  motherName: z.string().min(2, "Mother's name is required."),
+  father_name: z.string().min(2, "Father's name is required."),
+  mother_name: z.string().min(2, "Mother's name is required."),
   address: z.string().min(10, "Address is too short."),
   class: z.string({ required_error: "Please select a class."}),
   section: z.string({ required_error: "Please select a section."}),
-  admissionDate: z.date({ required_error: "Admission date is required." }),
-  dateOfBirth: z.date({ required_error: "Date of birth is required." }),
+  admission_date: z.date({ required_error: "Admission date is required." }),
+  date_of_birth: z.date({ required_error: "Date of birth is required." }),
   aadharCard: z.instanceof(FileList).optional(),
-  aadharNumber: z.string().optional(),
-  optedSubjects: z.array(z.string()).optional(),
-  fatherPhone: z.string().optional(),
-  motherPhone: z.string().optional(),
-  studentPhone: z.string().optional(),
-}).refine(data => !!data.fatherPhone || !!data.motherPhone || !!data.studentPhone, {
+  aadhar_number: z.string().optional(),
+  opted_subjects: z.array(z.string()).optional(),
+  father_phone: z.string().optional(),
+  mother_phone: z.string().optional(),
+  student_phone: z.string().optional(),
+}).refine(data => !!data.father_phone || !!data.mother_phone || !!data.student_phone, {
   message: "At least one phone number (Father's, Mother's, or Student's) must be provided.",
-  path: ["fatherPhone"],
+  path: ["father_phone"],
 });
 
 
@@ -76,28 +76,28 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     defaultValues: {
       name: "",
       email: "",
-      fatherName: "",
-      motherName: "",
+      father_name: "",
+      mother_name: "",
       address: "",
       class: "",
       section: "",
-      admissionDate: new Date(),
-      optedSubjects: [],
-      aadharNumber: "",
-      fatherPhone: "",
-      motherPhone: "",
-      studentPhone: "",
+      admission_date: new Date(),
+      opted_subjects: [],
+      aadhar_number: "",
+      father_phone: "",
+      mother_phone: "",
+      student_phone: "",
     },
   });
 
   const selectedClass = form.watch("class");
-  const optedSubjects = form.watch("optedSubjects") || [];
+  const optedSubjects = form.watch("opted_subjects") || [];
 
   const handleAddCustomSubject = () => {
     if (customSubject.trim() && !seniorSubjects.includes(customSubject.trim())) {
         const newSubject = customSubject.trim();
         setSeniorSubjects(prev => [...prev, newSubject]);
-        form.setValue("optedSubjects", [...optedSubjects, newSubject]);
+        form.setValue("opted_subjects", [...optedSubjects, newSubject]);
         setCustomSubject("");
     }
   }
@@ -125,23 +125,10 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
 
         // Step 2: Prepare the student data payload including files
         const studentDataPayload = {
-            authUid: tempAuthUser.id,
-            email: values.email,
-            name: values.name,
+            ...values,
+            auth_uid: tempAuthUser.id,
             photo: values.photo?.[0],
-            fatherName: values.fatherName,
-            motherName: values.motherName,
-            address: values.address,
-            class: values.class,
-            section: values.section,
-            admissionDate: values.admissionDate.getTime(),
-            dateOfBirth: formatDate(values.dateOfBirth, "yyyy-MM-dd"),
-            aadharNumber: values.aadharNumber || "",
             aadharCard: values.aadharCard?.[0],
-            optedSubjects: values.optedSubjects || [],
-            fatherPhone: values.fatherPhone || "",
-            motherPhone: values.motherPhone || "",
-            studentPhone: values.studentPhone || "",
         };
 
         // Step 3: Save the student data to the database (which also handles uploads)
@@ -250,7 +237,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 />
                 <FormField
                     control={form.control}
-                    name="dateOfBirth"
+                    name="date_of_birth"
                     render={({ field }) => (
                     <FormItem className="flex flex-col">
                         <FormLabel>Date of Birth</FormLabel>
@@ -276,7 +263,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 />
                  <FormField
                     control={form.control}
-                    name="admissionDate"
+                    name="admission_date"
                     render={({ field }) => (
                     <FormItem className="flex flex-col">
                         <FormLabel>Admission Date</FormLabel>
@@ -342,7 +329,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 />
                  <FormField
                     control={form.control}
-                    name="fatherName"
+                    name="father_name"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Father's Name</FormLabel>
@@ -355,7 +342,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 />
                  <FormField
                     control={form.control}
-                    name="motherName"
+                    name="mother_name"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Mother's Name</FormLabel>
@@ -369,7 +356,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 
                  <FormField
                     control={form.control}
-                    name="fatherPhone"
+                    name="father_phone"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Father's Phone</FormLabel>
@@ -382,7 +369,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 />
                 <FormField
                     control={form.control}
-                    name="motherPhone"
+                    name="mother_phone"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Mother's Phone</FormLabel>
@@ -395,7 +382,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 />
                 <FormField
                     control={form.control}
-                    name="studentPhone"
+                    name="student_phone"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Student's Phone (Optional)</FormLabel>
@@ -408,7 +395,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 />
                  <FormField
                     control={form.control}
-                    name="aadharNumber"
+                    name="aadhar_number"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Aadhar Number (Optional)</FormLabel>
@@ -452,7 +439,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 <Separator/>
                 <FormField
                     control={form.control}
-                    name="optedSubjects"
+                    name="opted_subjects"
                     render={() => (
                         <FormItem>
                             <div className="mb-4">
@@ -463,7 +450,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                                     <FormField
                                         key={subject}
                                         control={form.control}
-                                        name="optedSubjects"
+                                        name="opted_subjects"
                                         render={({ field }) => {
                                             return (
                                             <FormItem key={subject} className="flex flex-row items-start space-x-3 space-y-0">
@@ -514,3 +501,5 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
+
+    

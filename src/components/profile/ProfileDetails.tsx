@@ -72,8 +72,8 @@ export function StudentProfile({ student }: { student: Student }) {
         <div className="w-full">
              <div className="bg-card p-6 text-center">
                 <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
-                    {student.photoUrl ? (
-                         <Image src={student.photoUrl} alt={student.name} width={96} height={96} className="object-cover" />
+                    {student.photo_url ? (
+                         <Image src={student.photo_url} alt={student.name} width={96} height={96} className="object-cover" />
                     ) : (
                         <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${student.name}`} alt={student.name} />
                     )}
@@ -87,18 +87,18 @@ export function StudentProfile({ student }: { student: Student }) {
                 <Card>
                     <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><User /> Family Information</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
-                        <DetailItem icon={<User size={20} />} label="Father's Name" value={student.fatherName} />
-                        <DetailItem icon={<Phone size={20} />} label="Father's Phone" value={student.fatherPhone} />
-                        <DetailItem icon={<User size={20} />} label="Mother's Name" value={student.motherName} />
-                        <DetailItem icon={<Phone size={20} />} label="Mother's Phone" value={student.motherPhone} />
-                        <DetailItem icon={<Phone size={20} />} label="Student's Phone" value={student.studentPhone} />
+                        <DetailItem icon={<User size={20} />} label="Father's Name" value={student.father_name} />
+                        <DetailItem icon={<Phone size={20} />} label="Father's Phone" value={student.father_phone} />
+                        <DetailItem icon={<User size={20} />} label="Mother's Name" value={student.mother_name} />
+                        <DetailItem icon={<Phone size={20} />} label="Mother's Phone" value={student.mother_phone} />
+                        <DetailItem icon={<Phone size={20} />} label="Student's Phone" value={student.student_phone} />
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><Home /> Contact &amp; Other Details</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
-                        <DetailItem icon={<Calendar size={20} />} label="Admission Date" value={formatDateFromTimestamp(student.admissionDate)} />
+                        <DetailItem icon={<Calendar size={20} />} label="Admission Date" value={formatDateFromTimestamp(student.admission_date)} />
                         <DetailItem icon={<Home size={20} />} label="Address" value={student.address} />
                         <DetailItem icon={<Bus size={20} />} label="Transport" value={"School Transport"} />
                     </CardContent>
@@ -109,22 +109,22 @@ export function StudentProfile({ student }: { student: Student }) {
 }
 
 export function TeacherProfile({ teacher }: { teacher: Teacher }) {
-    const classAssignment = teacher.role === 'classTeacher' ? teacher.classTeacherOf : teacher.classesTaught?.join(', ');
+    const classAssignment = teacher.role === 'classTeacher' ? teacher.class_teacher_of : teacher.classes_taught?.join(', ');
     const roleLabel = teacher.role === 'classTeacher' ? 'Class Teacher Of' : 'Teaches Classes';
 
     return (
          <div className="w-full">
              <div className="bg-card p-6 text-center">
                 <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
-                     {teacher.photoUrl ? (
-                         <Image src={teacher.photoUrl} alt={teacher.name} width={96} height={96} className="object-cover" />
+                     {teacher.photo_url ? (
+                         <Image src={teacher.photo_url} alt={teacher.name} width={96} height={96} className="object-cover" />
                     ) : (
                         <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${teacher.name}`} alt={teacher.name} />
                     )}
                     <AvatarFallback>{teacher.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{teacher.name}</h1>
-                <p className="text-muted-foreground text-xs">Teacher ID: {teacher.authUid}</p>
+                <p className="text-muted-foreground text-xs">Teacher ID: {teacher.auth_uid}</p>
                  {teacher.email && <p className="text-sm text-muted-foreground mt-1">{teacher.email}</p>}
             </div>
       
@@ -135,7 +135,7 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
                         <DetailItem icon={<Briefcase size={20} />} label="Role" value={teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'} />
                         <DetailItem icon={<BookOpen size={20} />} label={roleLabel} value={classAssignment} />
                         <DetailItem icon={<Book size={20} />} label="Primary Subject" value={teacher.subject} />
-                        <DetailItem icon={<Calendar size={20} />} label="Joining Date" value={formatDateFromTimestamp(teacher.joiningDate)} />
+                        <DetailItem icon={<Calendar size={20} />} label="Joining Date" value={formatDateFromTimestamp(teacher.joining_date)} />
                     </CardContent>
                 </Card>
 
@@ -143,7 +143,7 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
                     <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><User /> Personal Information</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4">
                         <DetailItem icon={<Calendar size={20} />} label="Date of Birth" value={new Date(teacher.dob).toLocaleDateString("en-GB")} />
-                        <DetailItem icon={<Phone size={20} />} label="Phone Number" value={teacher.phoneNumber} />
+                        <DetailItem icon={<Phone size={20} />} label="Phone Number" value={teacher.phone_number} />
                         <DetailItem icon={<Home size={20} />} label="Address" value={teacher.address} />
                          {teacher.qualifications && teacher.qualifications.length > 0 && (
                             <div className="sm:col-span-2 flex items-start gap-4 p-4 rounded-lg">
@@ -164,3 +164,5 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
         </div>
     )
 }
+
+    

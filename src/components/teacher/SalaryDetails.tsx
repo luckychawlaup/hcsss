@@ -69,10 +69,10 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
   const form = useForm<z.infer<typeof bankAccountSchema>>({
     resolver: zodResolver(bankAccountSchema),
     defaultValues: {
-      accountHolderName: teacher?.bankAccount?.accountHolderName || "",
-      accountNumber: teacher?.bankAccount?.accountNumber || "",
-      ifscCode: teacher?.bankAccount?.ifscCode || "",
-      bankName: teacher?.bankAccount?.bankName || "",
+      accountHolderName: teacher?.bank_account?.accountHolderName || "",
+      accountNumber: teacher?.bank_account?.accountNumber || "",
+      ifscCode: teacher?.bank_account?.ifscCode || "",
+      bankName: teacher?.bank_account?.bankName || "",
     },
   });
 
@@ -81,7 +81,7 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
   const onSubmit = async (values: z.infer<typeof bankAccountSchema>) => {
     if (!teacher) return;
     try {
-        await updateTeacher(teacher.id, { bankAccount: values });
+        await updateTeacher(teacher.id, { bank_account: values });
         toast({
             title: "Bank Details Updated",
             description: "Your bank account details have been saved successfully."
@@ -237,3 +237,5 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
     </div>
   );
 }
+
+    

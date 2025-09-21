@@ -38,15 +38,15 @@ const sections = ["A", "B"];
 const editStudentSchema = z.object({
     name: z.string().min(2, "Name is required."),
     email: z.string().email("A valid email is required."),
-    fatherName: z.string().min(2, "Father's name is required."),
-    motherName: z.string().min(2, "Mother's name is required."),
+    father_name: z.string().min(2, "Father's name is required."),
+    mother_name: z.string().min(2, "Mother's name is required."),
     address: z.string().min(10, "Address is required."),
     class: z.string(),
     section: z.string(),
-    dateOfBirth: z.date(),
-    fatherPhone: z.string().optional(),
-    motherPhone: z.string().optional(),
-    studentPhone: z.string().optional(),
+    date_of_birth: z.date(),
+    father_phone: z.string().optional(),
+    mother_phone: z.string().optional(),
+    student_phone: z.string().optional(),
 });
 
 
@@ -75,7 +75,7 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
     setStudentToEdit(student);
     reset({
         ...student,
-        dateOfBirth: parseISO(student.dateOfBirth),
+        date_of_birth: parseISO(student.date_of_birth),
     });
     setIsEditOpen(true);
   }
@@ -84,9 +84,9 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
       if (!studentToEdit) return;
       const updatedData = {
           ...values,
-          dateOfBirth: formatDate(values.dateOfBirth, "yyyy-MM-dd"),
+          date_of_birth: formatDate(values.date_of_birth, "yyyy-MM-dd"),
       };
-      await onUpdateStudent(studentToEdit.id, updatedData);
+      await onUpdateStudent(studentToEdit.id, updatedData as Partial<Student>);
       toast({ title: "Student Updated", description: `${values.name}'s details have been updated.`});
       setIsEditOpen(false);
       setStudentToEdit(null);
@@ -101,14 +101,14 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
   }, [students, searchTerm]);
 
    const handleExport = () => {
-    const dataToExport = filteredStudents.map(({ id, authUid, ...student }) => ({
+    const dataToExport = filteredStudents.map(({ id, auth_uid, ...student }) => ({
         "SRN": student.status === 'Registered' ? student.srn : 'Pending',
         "Name": student.name,
         "Class": `${student.class}-${student.section}`,
-        "Father's Name": student.fatherName,
-        "Father's Phone": student.fatherPhone || 'N/A',
-        "Mother's Name": student.motherName,
-        "Mother's Phone": student.motherPhone || 'N/A',
+        "Father's Name": student.father_name,
+        "Father's Phone": student.father_phone || 'N/A',
+        "Mother's Name": student.mother_name,
+        "Mother's Phone": student.mother_phone || 'N/A',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -172,8 +172,8 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
                       </div>
                   </TableCell>
                   <TableCell>{student.class}-{student.section}</TableCell>
-                  <TableCell>{student.fatherName}</TableCell>
-                  <TableCell>{student.fatherPhone || student.motherPhone}</TableCell>
+                  <TableCell>{student.father_name}</TableCell>
+                  <TableCell>{student.father_phone || student.mother_phone}</TableCell>
                    {isClassTeacher && (
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => handleEditClick(student)}>
@@ -209,22 +209,22 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
                           <FormField control={form.control} name="email" render={({ field }) => (
                               <FormItem><FormLabel>Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
-                          <FormField control={form.control} name="fatherName" render={({ field }) => (
+                          <FormField control={form.control} name="father_name" render={({ field }) => (
                               <FormItem><FormLabel>Father's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
-                          <FormField control={form.control} name="motherName" render={({ field }) => (
+                          <FormField control={form.control} name="mother_name" render={({ field }) => (
                               <FormItem><FormLabel>Mother's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
-                          <FormField control={form.control} name="fatherPhone" render={({ field }) => (
+                          <FormField control={form.control} name="father_phone" render={({ field }) => (
                               <FormItem><FormLabel>Father's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
-                          <FormField control={form.control} name="motherPhone" render={({ field }) => (
+                          <FormField control={form.control} name="mother_phone" render={({ field }) => (
                               <FormItem><FormLabel>Mother's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
-                          <FormField control={form.control} name="studentPhone" render={({ field }) => (
+                          <FormField control={form.control} name="student_phone" render={({ field }) => (
                               <FormItem><FormLabel>Student's Phone (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
-                          <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
+                          <FormField control={form.control} name="date_of_birth" render={({ field }) => (
                                 <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
                                     <Popover><PopoverTrigger asChild><FormControl>
                                         <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
@@ -271,3 +271,5 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
     </div>
   );
 }
+
+    

@@ -4,7 +4,6 @@
 import { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import type { Teacher } from "@/lib/supabase/teachers";
-import { regenerateTemporaryPassword } from "@/lib/supabase/teachers";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -65,34 +64,34 @@ const editTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
   dob: z.date({ required_error: "Date of birth is required." }),
-  fatherName: z.string().min(2, "Father's name is required."),
-  motherName: z.string().min(2, "Mother's name is required."),
-  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
+  father_name: z.string().min(2, "Father's name is required."),
+  mother_name: z.string().min(2, "Mother's name is required."),
+  phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
   address: z.string().min(10, "Address is too short."),
   role: z.enum(["classTeacher", "subjectTeacher"], { required_error: "You must select a role."}),
   subject: z.string().min(2, "Subject is required."),
   qualifications: z.array(z.string()).optional().default([]),
-  classTeacherOf: z.string().optional(),
-  classesTaught: z.array(z.string()).optional().default([]),
-  joiningDate: z.number(),
-  bankAccount: z.object({
+  class_teacher_of: z.string().optional(),
+  classes_taught: z.array(z.string()).optional().default([]),
+  joining_date: z.number(),
+  bank_account: z.object({
       accountHolderName: z.string().optional(),
       accountNumber: z.string().optional(),
       ifscCode: z.string().optional(),
       bankName: z.string().optional(),
   }).optional(),
 }).refine(data => {
-    if (data.role === 'classTeacher') return !!data.classTeacherOf;
+    if (data.role === 'classTeacher') return !!data.class_teacher_of;
     return true;
 }, {
     message: "Please select a class for the Class Teacher.",
-    path: ["classTeacherOf"],
+    path: ["class_teacher_of"],
 }).refine(data => {
-    if (data.role === 'subjectTeacher') return data.classesTaught && data.classesTaught.length > 0;
+    if (data.role === 'subjectTeacher') return data.classes_taught && data.classes_taught.length > 0;
     return true;
 }, {
     message: "Please select at least one class.",
-    path: ["classesTaught"],
+    path: ["classes_taught"],
 });
 
 type CombinedTeacher = Teacher & { status: 'Registered' | 'Pending' };
@@ -149,8 +148,8 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
         ...teacher,
         dob: new Date(teacher.dob),
         qualifications: teacher.qualifications || [],
-        classesTaught: teacher.classesTaught || [],
-        bankAccount: teacher.bankAccount || { accountHolderName: "", accountNumber: "", ifscCode: "", bankName: "" },
+        classes_taught: teacher.classes_taught || [],
+        bank_account: teacher.bank_account || { accountHolderName: "", accountNumber: "", ifscCode: "", bankName: "" },
     });
     setIsEditOpen(true);
   };
@@ -182,18 +181,18 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
 
   const handleExport = () => {
     const dataToExport = teachers.map(teacher => ({
-        "Teacher ID": teacher.status === 'Registered' ? teacher.authUid : 'N/A',
+        "Teacher ID": teacher.status === 'Registered' ? teacher.auth_uid : 'N/A',
         "Name": teacher.name,
         "Email": teacher.email,
         "Status": teacher.status,
         "Role": teacher.status === 'Registered' ? (teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher') : 'N/A',
-        "Assignment": teacher.status === 'Registered' ? (teacher.role === 'classTeacher' ? teacher.classTeacherOf : teacher.classesTaught?.join(', ')) : 'N/A',
+        "Assignment": teacher.status === 'Registered' ? (teacher.role === 'classTeacher' ? teacher.class_teacher_of : teacher.classes_taught?.join(', ')) : 'N/A',
         "Subject": teacher.status === 'Registered' ? teacher.subject : 'N/A',
-        "Phone Number": teacher.status === 'Registered' ? teacher.phoneNumber : 'N/A',
+        "Phone Number": teacher.status === 'Registered' ? teacher.phone_number : 'N/A',
         "DOB": teacher.dob,
         "Qualifications": teacher.status === 'Registered' ? teacher.qualifications?.join(', ') : 'N/A',
-        "Joining Date": new Date(teacher.joiningDate).toLocaleDateString('en-GB'),
-        "Father's Name": teacher.fatherName,
+        "Joining Date": new Date(teacher.joining_date).toLocaleDateString('en-GB'),
+        "Father's Name": teacher.father_name,
         "Address": teacher.address,
     }));
 
@@ -315,17 +314,17 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                 </TableCell>
                 <TableCell>
                   {teacher.status === 'Registered' && teacher.role === 'classTeacher' ? (
-                    <Badge variant="secondary">Class Teacher: {teacher.classTeacherOf}</Badge>
+                    <Badge variant="secondary">Class Teacher: {teacher.class_teacher_of}</Badge>
                   ) : teacher.status === 'Registered' ? (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Badge variant="outline" className="cursor-pointer">
                                 Subject Teacher
-                                {teacher.classesTaught && <Info className="ml-1.5 h-3 w-3" />}
+                                {teacher.classes_taught && <Info className="ml-1.5 h-3 w-3" />}
                             </Badge>
                         </TooltipTrigger>
-                       {teacher.classesTaught && <TooltipContent>
-                            <p>Teaches: {teacher.classesTaught?.join(', ')}</p>
+                       {teacher.classes_taught && <TooltipContent>
+                            <p>Teaches: {teacher.classes_taught?.join(', ')}</p>
                         </TooltipContent>}
                     </Tooltip>
                   ) : (
@@ -334,7 +333,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                 </TableCell>
                 <TableCell>{teacher.status === "Registered" ? teacher.subject : "N/A"}</TableCell>
                 <TableCell>
-                    {formatDate(new Date(teacher.joiningDate), 'dd MMM, yyyy')}
+                    {formatDate(new Date(teacher.joining_date), 'dd MMM, yyyy')}
                 </TableCell>
                 <TableCell className="text-right">
                     {teacher.status === 'Registered' && (
@@ -349,7 +348,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher.id)}>
+                                <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher.auth_uid)}>
                                     <Printer className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
@@ -511,7 +510,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                             {role === "classTeacher" && (
                                 <FormField
                                     control={form.control}
-                                    name="classTeacherOf"
+                                    name="class_teacher_of"
                                     render={({ field }) => (
                                         <FormItem>
                                         <FormLabel>Class Teacher Of</FormLabel>
@@ -534,7 +533,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                             )}
                              <FormField
                                 control={form.control}
-                                name="classesTaught"
+                                name="classes_taught"
                                 render={() => (
                                     <FormItem>
                                         <div className="mb-4">
@@ -547,7 +546,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                                                 <FormField
                                                     key={item}
                                                     control={form.control}
-                                                    name="classesTaught"
+                                                    name="classes_taught"
                                                     render={({ field }) => {
                                                         return (
                                                         <FormItem
@@ -589,7 +588,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                              <FormField
                                 control={form.control}
-                                name="bankAccount.accountHolderName"
+                                name="bank_account.accountHolderName"
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Account Holder Name</FormLabel>
@@ -600,7 +599,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                             />
                              <FormField
                                 control={form.control}
-                                name="bankAccount.accountNumber"
+                                name="bank_account.accountNumber"
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Account Number</FormLabel>
@@ -611,7 +610,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                             />
                              <FormField
                                 control={form.control}
-                                name="bankAccount.ifscCode"
+                                name="bank_account.ifscCode"
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>IFSC Code</FormLabel>
@@ -622,7 +621,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                             />
                              <FormField
                                 control={form.control}
-                                name="bankAccount.bankName"
+                                name="bank_account.bankName"
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Bank Name</FormLabel>
@@ -652,3 +651,4 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   );
 }
 
+    

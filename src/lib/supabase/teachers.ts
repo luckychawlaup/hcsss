@@ -73,22 +73,9 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
     const { photo, ...restOfTeacherData } = teacherData;
 
     const finalTeacherData = {
+        ...restOfTeacherData,
         auth_uid: authData.user.id,
-        name: restOfTeacherData.name,
-        email: restOfTeacherData.email,
         photo_url: photoUrl,
-        dob: restOfTeacherData.dob,
-        father_name: restOfTeacherData.father_name,
-        mother_name: restOfTeacherData.mother_name,
-        phone_number: restOfTeacherData.phone_number,
-        address: restOfTeacherData.address,
-        role: restOfTeacherData.role,
-        subject: restOfTeacherData.subject,
-        qualifications: restOfTeacherData.qualifications,
-        class_teacher_of: restOfTeacherData.class_teacher_of,
-        classes_taught: restOfTeacherData.classes_taught,
-        joining_date: restOfTeacherData.joining_date,
-        bank_account: restOfTeacherData.bank_account,
     };
 
     const { error: dbError } = await supabase.from(TEACHERS_COLLECTION).insert([finalTeacherData]);
@@ -148,24 +135,7 @@ export const getTeacherByEmail = async (email: string): Promise<Teacher | null> 
 };
 
 export const updateTeacher = async (id: string, updates: Partial<Teacher>) => {
-    // Map camelCase to snake_case for the DB
-    const dbUpdates = {
-        name: updates.name,
-        email: updates.email,
-        dob: updates.dob,
-        father_name: updates.father_name,
-        mother_name: updates.mother_name,
-        phone_number: updates.phone_number,
-        address: updates.address,
-        role: updates.role,
-        subject: updates.subject,
-        qualifications: updates.qualifications,
-        class_teacher_of: updates.class_teacher_of,
-        classes_taught: updates.classes_taught,
-        joining_date: updates.joining_date,
-        bank_account: updates.bank_account,
-    };
-    const { error } = await supabase.from(TEACHERS_COLLECTION).update(dbUpdates).eq('id', id);
+    const { error } = await supabase.from(TEACHERS_COLLECTION).update(updates).eq('id', id);
     if (error) throw error;
 };
 
