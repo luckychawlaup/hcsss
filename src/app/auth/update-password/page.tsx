@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -36,21 +36,35 @@ export default function UpdatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
-  
+
   useEffect(() => {
-    // This effect handles the case where the user lands on this page
-    // after clicking the password reset link.
+    // This effect runs once on mount to check if Supabase has detected
+    // a password recovery session from the URL fragment.
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === "PASSWORD_RECOVERY") {
-          // The form is now displayed, ready for user input.
+           setHasSession(true);
+        } else {
+            // If the user navigates here directly without a valid token,
+            // we should not show the form.
+            setHasSession(false);
         }
       }
     );
+
+    // Initial check in case the event already fired
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        // This is a bit of a trick. After a password recovery link, Supabase
+        // creates a temporary session. We can check for its existence.
+        if (session) {
+            setHasSession(true);
+        }
+    });
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -84,6 +98,7 @@ export default function UpdatePasswordPage() {
       });
       form.reset();
       
+      // Sign out to clear the temporary recovery session
       await supabase.auth.signOut();
 
     } catch (error: any) {
@@ -99,9 +114,6 @@ export default function UpdatePasswordPage() {
         <div className="flex flex-col items-center justify-center mb-8">
           <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4" />
           <h1 className="text-3xl font-bold text-center text-primary">Update Your Password</h1>
-          <p className="text-center text-muted-foreground mt-2">
-            Enter and confirm your new password below.
-          </p>
         </div>
 
         {isSuccess ? (
@@ -117,8 +129,11 @@ export default function UpdatePasswordPage() {
                     </div>
                 </AlertDescription>
             </Alert>
-        ) : (
+        ) : hasSession ? (
              <>
+                <p className="text-center text-muted-foreground mt-2 mb-4">
+                    Enter and confirm your new password below.
+                </p>
                 {error && (
                     <Alert variant="destructive" className="my-4">
                     <AlertCircle className="h-4 w-4" />
@@ -160,6 +175,19 @@ export default function UpdatePasswordPage() {
                     </form>
                 </Form>
             </>
+        ) : (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Invalid or Expired Link</AlertTitle>
+                <AlertDescription className="space-y-4">
+                    The password reset link is either invalid or has expired. Please request a new one.
+                    <div className="pt-2">
+                        <Button asChild variant="outline">
+                            <Link href="/login">Back to Login</Link>
+                        </Button>
+                    </div>
+                </AlertDescription>
+            </Alert>
         )}
        
       </div>

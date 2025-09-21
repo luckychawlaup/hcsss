@@ -20,7 +20,8 @@ const publicPaths = [
     "/auth/student/forgot-password",
     "/auth/teacher/forgot-password",
     "/auth/update-password",
-    "/auth/callback"
+    "/auth/callback",
+    "/principal/joining-letter", // This page is public for sharing
 ];
 
 function Preloader() {
@@ -54,7 +55,8 @@ export default function AuthProvider({
         const authUser = session?.user ?? null;
         
         if (event === 'PASSWORD_RECOVERY') {
-            router.push('/auth/update-password');
+            // This event is now handled directly on the update-password page.
+            // Here, we just let it proceed.
             setLoading(false);
             return;
         }
