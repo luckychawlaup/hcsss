@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from "react";
@@ -29,31 +30,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import {
   CalendarPlus,
-  Calendar as CalendarIcon,
   Upload,
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const leaveSchema = z.object({
-  dateRange: z.object(
-    {
-      from: z.date({ required_error: "Start date is required." }),
-      to: z.date().optional(),
-    },
-    { required_error: "Please select a date or date range." }
-  ),
+  startDate: z.string().min(1, "Start date is required."),
+  endDate: z.string().optional(),
   reason: z.string().min(10, "Reason must be at least 10 characters long."),
   document: z.any().optional(),
 });
@@ -65,6 +53,8 @@ export default function LeaveApplication() {
     resolver: zodResolver(leaveSchema),
     defaultValues: {
       reason: "",
+      startDate: "",
+      endDate: "",
     },
   });
 
@@ -116,53 +106,34 @@ export default function LeaveApplication() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="dateRange"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Leave Dates</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value?.from && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value?.from ? (
-                              field.value.to ? (
-                                <>
-                                  {format(field.value.from, "LLL dd, y")} -{" "}
-                                  {format(field.value.to, "LLL dd, y")}
-                                </>
-                              ) : (
-                                format(field.value.from, "LLL dd, y")
-                              )
-                            ) : (
-                              <span>Pick a date or range</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          initialFocus
-                          mode="range"
-                          defaultMonth={field.value?.from}
-                          selected={{ from: field.value?.from, to: field.value?.to }}
-                          onSelect={field.onChange}
-                          numberOfMonths={1}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input placeholder="DD/MM/YYYY" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="DD/MM/YYYY" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
@@ -220,5 +191,3 @@ export default function LeaveApplication() {
     </>
   );
 }
-
-    

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -15,12 +16,10 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Calendar } from "../ui/calendar";
-import { CalendarIcon, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
+import { Input } from "../ui/input";
 
 interface MarkAttendanceProps {
   teacher: Teacher | null;
@@ -32,7 +31,7 @@ type AttendanceStatus = "present" | "absent" | "half-day";
 
 export default function MarkAttendance({ teacher, students, isLoading }: MarkAttendanceProps) {
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
+  const [attendanceDate, setAttendanceDate] = useState<string>(format(new Date(), "dd/MM/yyyy"));
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -40,11 +39,11 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   const assignedClasses = useMemo(() => {
     if (!teacher) return [];
     const classes = new Set<string>();
-    if (teacher.classTeacherOf) {
-      classes.add(teacher.classTeacherOf);
+    if (teacher.class_teacher_of) {
+      classes.add(teacher.class_teacher_of);
     }
-    if (teacher.classesTaught) {
-      teacher.classesTaught.forEach(c => classes.add(c));
+    if (teacher.classes_taught) {
+      teacher.classes_taught.forEach(c => classes.add(c));
     }
     return Array.from(classes).sort();
   }, [teacher]);
@@ -74,7 +73,7 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    console.log("Submitting attendance for", selectedClass, "on", format(attendanceDate, "yyyy-MM-dd"));
+    console.log("Submitting attendance for", selectedClass, "on", attendanceDate);
     console.log(attendance);
     // Here you would typically save to Supabase
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -104,29 +103,12 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
             ))}
           </SelectContent>
         </Select>
-         <Popover>
-            <PopoverTrigger asChild>
-                <Button
-                    variant={"outline"}
-                    className={cn(
-                        "w-full md:w-auto justify-start text-left font-normal",
-                        !attendanceDate && "text-muted-foreground"
-                    )}
-                    >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {attendanceDate ? format(attendanceDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                    mode="single"
-                    selected={attendanceDate}
-                    onSelect={(d) => setAttendanceDate(d || new Date())}
-                    disabled={(date) => date > new Date()}
-                    initialFocus
-                />
-            </PopoverContent>
-        </Popover>
+        <Input 
+            className="w-full md:w-auto"
+            placeholder="DD/MM/YYYY"
+            value={attendanceDate}
+            onChange={(e) => setAttendanceDate(e.target.value)}
+        />
       </div>
 
        {selectedClass && (

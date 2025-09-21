@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -41,10 +42,7 @@ import * as z from "zod";
 import { format as formatDate } from "date-fns";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
@@ -63,7 +61,7 @@ const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 const editTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
-  dob: z.date({ required_error: "Date of birth is required." }),
+  dob: z.string().min(1, "Date of birth is required."),
   father_name: z.string().min(2, "Father's name is required."),
   mother_name: z.string().min(2, "Mother's name is required."),
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
@@ -146,7 +144,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     setSelectedTeacher(teacher as CombinedTeacher);
     reset({
         ...teacher,
-        dob: new Date(teacher.dob),
+        dob: teacher.dob,
         qualifications: teacher.qualifications || [],
         classes_taught: teacher.classes_taught || [],
         bank_account: teacher.bank_account || { accountHolderName: "", accountNumber: "", ifscCode: "", bankName: "" },
@@ -169,11 +167,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
 
   async function onEditSubmit(values: z.infer<typeof editTeacherSchema>) {
     if(selectedTeacher && selectedTeacher.status === 'Registered') {
-        const updatedData: Partial<Teacher> = {
-            ...values,
-            dob: formatDate(values.dob, "yyyy-MM-dd"),
-        };
-        await onUpdateTeacher(selectedTeacher.id, updatedData);
+        await onUpdateTeacher(selectedTeacher.id, values);
         setIsEditOpen(false);
         setSelectedTeacher(null);
     }
@@ -333,7 +327,7 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                 </TableCell>
                 <TableCell>{teacher.status === "Registered" ? teacher.subject : "N/A"}</TableCell>
                 <TableCell>
-                    {formatDate(new Date(teacher.joining_date), 'dd MMM, yyyy')}
+                    {teacher.joining_date ? formatDate(new Date(teacher.joining_date), 'dd MMM, yyyy') : 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">
                     {teacher.status === 'Registered' && (
@@ -650,5 +644,3 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     </>
   );
 }
-
-    

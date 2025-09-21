@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -32,11 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -55,7 +51,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, Upload, BookCheck, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -70,7 +65,7 @@ const homeworkSchema = z.object({
   description: z
     .string()
     .min(10, "Description must be at least 10 characters."),
-  dueDate: z.date({ required_error: "Due date is required." }),
+  dueDate: z.string().min(1, "Due date is required."),
   attachment: z.any().optional(),
 });
 
@@ -92,12 +87,12 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     
     const classes = new Set<string>();
     
-    if (teacher.classTeacherOf) {
-        classes.add(teacher.classTeacherOf);
+    if (teacher.class_teacher_of) {
+        classes.add(teacher.class_teacher_of);
     }
 
-    if (teacher.classesTaught) {
-        teacher.classesTaught.forEach(c => classes.add(c));
+    if (teacher.classes_taught) {
+        teacher.classes_taught.forEach(c => classes.add(c));
     }
     
     return Array.from(classes).sort();
@@ -110,7 +105,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     defaultValues: {
       subject: teacher?.subject || "",
       description: "",
-      dueDate: new Date(),
+      dueDate: format(new Date(), "dd/MM/yyyy"),
     },
   });
 
@@ -135,7 +130,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         classSection: editingHomework.class_section,
         subject: editingHomework.subject,
         description: editingHomework.description,
-        dueDate: parseISO(editingHomework.due_date),
+        dueDate: editingHomework.due_date,
         attachment: undefined,
       });
     } else {
@@ -143,7 +138,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         subject: teacher?.subject || "",
         description: "",
         classSection: "",
-        dueDate: new Date(),
+        dueDate: format(new Date(), "dd/MM/yyyy"),
         attachment: undefined,
       });
     }
@@ -170,7 +165,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
             class_section: values.classSection,
             subject: values.subject,
             description: values.description,
-            due_date: format(values.dueDate, "yyyy-MM-dd"),
+            due_date: values.dueDate,
         }
         await updateHomework(editingHomework.id, updatedData, file);
         toast({
@@ -186,7 +181,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
             class_section: values.classSection,
             subject: values.subject,
             description: values.description,
-            due_date: format(values.dueDate, "yyyy-MM-dd"),
+            due_date: values.dueDate,
             assigned_at: new Date().toISOString(),
         };
         await addHomework(homeworkData, file);
@@ -200,7 +195,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         subject: teacher?.subject || "",
         description: "",
         classSection: "",
-        dueDate: new Date(),
+        dueDate: format(new Date(), "dd/MM/yyyy"),
         attachment: undefined,
       });
       
@@ -315,37 +310,11 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                 control={form.control}
                 name="dueDate"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>Due Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < startOfDay(new Date())}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <Input placeholder="DD/MM/YYYY" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -487,23 +456,13 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                             control={form.control}
                             name="dueDate"
                             render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel>Due Date</FormLabel>
-                                <Popover>
-                                <PopoverTrigger asChild>
+                                <FormItem>
+                                    <FormLabel>Due Date</FormLabel>
                                     <FormControl>
-                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
-                                    </Button>
+                                    <Input placeholder="DD/MM/YYYY" {...field} />
                                     </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < startOfDay(new Date())} initialFocus />
-                                </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                            </FormItem>
+                                    <FormMessage />
+                                </FormItem>
                             )}
                         />
                          <FormField

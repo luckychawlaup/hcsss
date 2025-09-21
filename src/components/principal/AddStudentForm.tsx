@@ -17,8 +17,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -44,8 +42,8 @@ const addStudentSchema = z.object({
   address: z.string().min(10, "Address is too short."),
   class: z.string({ required_error: "Please select a class."}),
   section: z.string({ required_error: "Please select a section."}),
-  admission_date: z.date({ required_error: "Admission date is required." }),
-  date_of_birth: z.date({ required_error: "Date of birth is required." }),
+  admission_date: z.string().min(1, "Admission date is required."),
+  date_of_birth: z.string().min(1, "Date of birth is required."),
   aadharCard: z.instanceof(FileList).optional(),
   aadhar_number: z.string().optional(),
   opted_subjects: z.array(z.string()).optional(),
@@ -81,7 +79,8 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
       address: "",
       class: "",
       section: "",
-      admission_date: new Date(),
+      admission_date: formatDate(new Date(), "dd/MM/yyyy"),
+      date_of_birth: "",
       opted_subjects: [],
       aadhar_number: "",
       father_phone: "",
@@ -239,24 +238,11 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                     control={form.control}
                     name="date_of_birth"
                     render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                         <FormLabel>Date of Birth</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <FormControl>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                                </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1990-01-01")} initialFocus />
-                            </PopoverContent>
-                        </Popover>
+                        <FormControl>
+                            <Input placeholder="DD/MM/YYYY" {...field} />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -265,24 +251,11 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                     control={form.control}
                     name="admission_date"
                     render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                         <FormLabel>Admission Date</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <FormControl>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                                </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                            </PopoverContent>
-                        </Popover>
+                        <FormControl>
+                            <Input placeholder="DD/MM/YYYY" {...field} />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -501,5 +474,3 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
-
-    

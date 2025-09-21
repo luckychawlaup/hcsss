@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -44,9 +45,6 @@ import { Card, CardContent } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { regenerateStudentKey } from "@/lib/supabase/students";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
@@ -57,15 +55,15 @@ const sections = ["A", "B"];
 const editStudentSchema = z.object({
     name: z.string().min(2, "Name is required."),
     email: z.string().email("A valid email is required."),
-    fatherName: z.string().min(2, "Father's name is required."),
-    motherName: z.string().min(2, "Mother's name is required."),
+    father_name: z.string().min(2, "Father's name is required."),
+    mother_name: z.string().min(2, "Mother's name is required."),
     address: z.string().min(10, "Address is required."),
     class: z.string(),
     section: z.string(),
-    dateOfBirth: z.date(),
-    fatherPhone: z.string().optional(),
-    motherPhone: z.string().optional(),
-    studentPhone: z.string().optional(),
+    date_of_birth: z.string().min(1, "Date of birth is required"),
+    father_phone: z.string().optional(),
+    mother_phone: z.string().optional(),
+    student_phone: z.string().optional(),
 });
 
 interface StudentListProps {
@@ -98,19 +96,20 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
     setStudentToEdit(student);
     reset({
         ...student,
-        dateOfBirth: parseISO(student.dateOfBirth),
+        father_name: student.father_name,
+        mother_name: student.mother_name,
+        date_of_birth: student.date_of_birth,
+        father_phone: student.father_phone,
+        mother_phone: student.mother_phone,
+        student_phone: student.student_phone,
     });
     setIsEditOpen(true);
   }
 
   async function onEditSubmit(values: z.infer<typeof editStudentSchema>) {
       if (!studentToEdit) return;
-      const { email, ...updatableValues } = values;
-      const updatedData = {
-          ...updatableValues,
-          dateOfBirth: formatDate(values.dateOfBirth, "yyyy-MM-dd"),
-      };
-      await onUpdateStudent(studentToEdit.id, updatedData);
+      
+      await onUpdateStudent(studentToEdit.id, values as Partial<Student>);
       toast({ title: "Student Updated", description: `${values.name}'s details have been updated.`});
       setIsEditOpen(false);
       setStudentToEdit(null);
@@ -176,26 +175,26 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (student.status === "Registered" && student.srn && student.srn.toLowerCase().includes(searchTerm.toLowerCase())) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.fatherName && student.fatherName.toLowerCase().includes(searchTerm.toLowerCase()))
+      (student.father_name && student.father_name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [selectedClass, studentsByClass, searchTerm]);
 
   const handleExport = () => {
     if (!selectedClass) return;
 
-    const dataToExport = filteredStudents.map(({ authUid, ...student }) => ({
+    const dataToExport = filteredStudents.map(({ auth_uid, ...student }) => ({
         "SRN": student.status === 'Registered' ? student.srn : 'Pending',
         "Name": student.name,
         "Email": student.email,
         "Class": `${student.class}-${student.section}`,
         "Status": student.status,
-        "Father's Name": student.fatherName,
-        "Mother's Name": student.motherName,
-        "Father's Phone": student.fatherPhone || 'N/A',
-        "Mother's Phone": student.motherPhone || 'N/A',
-        "Student's Phone": student.studentPhone || 'N/A',
+        "Father's Name": student.father_name,
+        "Mother's Name": student.mother_name,
+        "Father's Phone": student.father_phone || 'N/A',
+        "Mother's Phone": student.mother_phone || 'N/A',
+        "Student's Phone": student.student_phone || 'N/A',
         "Address": student.address,
-        "Admission Date": new Date(student.admissionDate).toLocaleDateString('en-GB')
+        "Admission Date": student.admission_date ? new Date(student.admission_date).toLocaleDateString('en-GB') : 'N/A'
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -266,8 +265,8 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                                 </div>
                             </TableCell>
                             <TableCell>{student.email}</TableCell>
-                            <TableCell>{student.fatherName}</TableCell>
-                            <TableCell>{student.fatherPhone || student.motherPhone || student.studentPhone}</TableCell>
+                            <TableCell>{student.father_name}</TableCell>
+                            <TableCell>{student.father_phone || student.mother_phone || student.student_phone}</TableCell>
                             <TableCell className="text-right">
                                 {student.status === 'Pending' && (
                                      <Button variant="ghost" size="icon" onClick={() => handleViewKey(student)}>
@@ -359,32 +358,26 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                                         </div>
                                     </FormItem>
                                 )}/>
-                                <FormField control={form.control} name="fatherName" render={({ field }) => (
+                                <FormField control={form.control} name="father_name" render={({ field }) => (
                                     <FormItem><FormLabel>Father's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                 <FormField control={form.control} name="motherName" render={({ field }) => (
+                                 <FormField control={form.control} name="mother_name" render={({ field }) => (
                                     <FormItem><FormLabel>Mother's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                <FormField control={form.control} name="fatherPhone" render={({ field }) => (
+                                <FormField control={form.control} name="father_phone" render={({ field }) => (
                                     <FormItem><FormLabel>Father's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                 <FormField control={form.control} name="motherPhone" render={({ field }) => (
+                                 <FormField control={form.control} name="mother_phone" render={({ field }) => (
                                     <FormItem><FormLabel>Mother's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                 <FormField control={form.control} name="studentPhone" render={({ field }) => (
+                                 <FormField control={form.control} name="student_phone" render={({ field }) => (
                                     <FormItem><FormLabel>Student's Phone (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
-                                <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
-                                     <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel>
-                                         <Popover><PopoverTrigger asChild><FormControl>
-                                             <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                 {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
-                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                             </Button>
-                                         </FormControl></PopoverTrigger>
-                                         <PopoverContent className="w-auto p-0" align="start">
-                                             <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1990-01-01")} initialFocus />
-                                         </PopoverContent></Popover><FormMessage />
+                                <FormField control={form.control} name="date_of_birth" render={({ field }) => (
+                                     <FormItem>
+                                        <FormLabel>Date of Birth</FormLabel>
+                                        <FormControl><Input placeholder="DD/MM/YYYY" {...field} /></FormControl>
+                                        <FormMessage />
                                      </FormItem>
                                 )}/>
                                 <FormField control={form.control} name="class" render={({ field }) => (
