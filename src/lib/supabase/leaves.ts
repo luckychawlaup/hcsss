@@ -14,7 +14,7 @@ export interface LeaveRequest {
   endDate: string; // ISO string
   reason: string;
   status: 'Pending' | 'Confirmed' | 'Rejected';
-  appliedAt: number; // Timestamp
+  appliedAt: string; // ISO string
   rejectionReason?: string;
   approverComment?: string;
 }
@@ -26,14 +26,14 @@ export const addLeaveRequest = async (leaveRequest: Omit<LeaveRequest, 'id'>) =>
 
 export const getLeaveRequestsForUser = (userId: string, callback: (leaves: LeaveRequest[]) => void) => {
     const channel = supabase.channel(`leaves-user-${userId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION, filter: `userId=eq.${userId}` },
+        .on('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION, filter: `user_id=eq.${userId}` },
         async () => {
-            const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').eq('userId', userId).order('appliedAt', { ascending: false });
+            const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').eq('user_id', userId).order('appliedAt', { ascending: false });
             if (data) callback(data);
         }).subscribe();
     
     (async () => {
-        const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').eq('userId', userId).order('appliedAt', { ascending: false });
+        const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').eq('user_id', userId).order('appliedAt', { ascending: false });
         if (data) callback(data);
     })();
 
@@ -45,12 +45,12 @@ export const getLeaveRequestsForStudents = (studentIds: string[], callback: (lea
     const channel = supabase.channel('student-leaves')
         .on('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION },
         async () => {
-            const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('userId', studentIds).order('appliedAt', { ascending: false });
+            const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('user_id', studentIds).order('appliedAt', { ascending: false });
             if (data) callback(data);
         }).subscribe();
 
     (async () => {
-        const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('userId', studentIds).order('appliedAt', { ascending: false });
+        const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('user_id', studentIds).order('appliedAt', { ascending: false });
         if (data) callback(data);
     })();
 
@@ -61,12 +61,12 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
      const channel = supabase.channel('teacher-leaves')
         .on('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION },
         async () => {
-            const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('teacherId', teacherIds).order('appliedAt', { ascending: false });
+            const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('teacher_id', teacherIds).order('appliedAt', { ascending: false });
             if (data) callback(data);
         }).subscribe();
 
     (async () => {
-        const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('teacherId', teacherIds).order('appliedAt', { ascending: false });
+        const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('teacher_id', teacherIds).order('appliedAt', { ascending: false });
         if (data) callback(data);
     })();
 

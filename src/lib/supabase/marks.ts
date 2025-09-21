@@ -44,7 +44,7 @@ export const setMarksForStudent = async (studentAuthUid: string, examId: string,
 export const getStudentMarksForExam = async (studentAuthUid: string, examId: string): Promise<Mark[]> => {
     const { data, error } = await supabase
         .from('marks')
-        .select('*')
+        .select('*, exams(max_marks)')
         .eq('student_auth_uid', studentAuthUid)
         .eq('exam_id', examId);
     
@@ -52,7 +52,12 @@ export const getStudentMarksForExam = async (studentAuthUid: string, examId: str
         console.error("Error fetching marks:", error);
         return [];
     }
-    return data || [];
+
+    // Transform the data to include maxMarks in the top-level object
+    return (data || []).map((mark: any) => ({
+        ...mark,
+        maxMarks: mark.exams.max_marks
+    }));
 };
 
 export const getMarksForStudent = (studentAuthUid: string, callback: (marksByExam: Record<string, Mark[]>) => void) => {
