@@ -26,14 +26,47 @@ export interface Student {
     student_phone?: string;
 }
 
+const uploadFileToSupabase = async (file: File, bucket: string, folder: string): Promise<string> => {
+    const filePath = `${folder}/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from(bucket).upload(filePath, file);
+    if (error) {
+        console.error('Error uploading to Supabase Storage:', error);
+        throw error;
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    if (!data.publicUrl) {
+        throw new Error('Could not get public URL for uploaded file.');
+    }
+    return data.publicUrl;
+};
+
+
 export type CombinedStudent = (Student & { status: 'Registered' });
 
-export const addStudent = async (studentData: Omit<Student, 'id' | 'srn'>) => {
+export const addStudent = async (studentData: Omit<Student, 'id' | 'srn' | 'photo_url' | 'aadhar_url'> & { photo?: File, aadharCard?: File }) => {
     const { data: countData, error: countError } = await supabase.rpc('get_student_count');
     if (countError) throw countError;
     const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
     
-    const finalStudentData = { ...studentData, srn };
+    let photoUrl: string | undefined;
+    if (studentData.photo) {
+        photoUrl = await uploadFileToSupabase(studentData.photo, 'photos', 'students');
+    }
+
+    let aadharUrl: string | undefined;
+    if (studentData.aadharCard) {
+        aadharUrl = await uploadFileToSupabase(studentData.aadharCard, 'documents', 'aadhar');
+    }
+
+    const { photo, aadharCard, ...restOfStudentData } = studentData;
+
+    const finalStudentData = { 
+        ...restOfStudentData,
+        srn,
+        photo_url: photoUrl,
+        aadhar_url: aadharUrl
+    };
 
     const { error } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
 

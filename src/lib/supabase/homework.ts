@@ -1,6 +1,5 @@
 
 import { createClient } from "@/lib/supabase/client";
-import { uploadImage as uploadImageToImageKit } from "@/lib/imagekit";
 
 const supabase = createClient();
 const HOMEWORK_COLLECTION = 'homework';
@@ -17,10 +16,25 @@ export interface Homework {
   attachment_url?: string;
 }
 
+const uploadFileToSupabase = async (file: File, bucket: string, folder: string): Promise<string> => {
+    const filePath = `${folder}/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from(bucket).upload(filePath, file);
+    if (error) {
+        console.error('Error uploading to Supabase Storage:', error);
+        throw error;
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    if (!data.publicUrl) {
+        throw new Error('Could not get public URL for uploaded file.');
+    }
+    return data.publicUrl;
+};
+
 export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment?: File) => {
     let attachment_url;
     if (attachment) {
-        attachment_url = await uploadImageToImageKit(attachment, 'gallery');
+        attachment_url = await uploadFileToSupabase(attachment, 'documents', 'homework');
     }
 
     const { error } = await supabase.from(HOMEWORK_COLLECTION).insert([{ ...homeworkData, attachment_url }]);
@@ -84,7 +98,7 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
 export const updateHomework = async (homeworkId: string, updatedData: Partial<Homework>, newAttachment?: File) => {
     let updatePayload = { ...updatedData };
     if (newAttachment) {
-        const attachment_url = await uploadImageToImageKit(newAttachment, 'gallery');
+        const attachment_url = await uploadFileToSupabase(newAttachment, 'documents', 'homework');
         updatePayload.attachment_url = attachment_url;
     }
 
@@ -97,10 +111,21 @@ export const updateHomework = async (homeworkId: string, updatedData: Partial<Ho
 };
 
 export const deleteHomework = async (homeworkId: string) => {
-    const { error } = await supabase
-        .from(HOMEWORK_COLLECTION)
-        .delete()
-        .eq('id', homeworkId);
-
+    // Fetch homework to get attachment URL
+    const { data: hw, error: fetchError } = await supabase.from(HOMEWORK_COLLECTION).select('attachment_url').eq('id', homeworkId).single();
+    if(fetchError) {
+        console.error("Could not fetch homework to delete attachment", fetchError);
+    }
+    
+    // Delete DB record
+    const { error } = await supabase.from(HOMEWORK_COLLECTION).delete().eq('id', homeworkId);
     if (error) throw error;
+
+    // If DB deletion is successful, delete from storage
+    if (hw?.attachment_url) {
+        const filePath = hw.attachment_url.split('/documents/')[1];
+        if (filePath) {
+            await supabase.storage.from('documents').remove([filePath]);
+        }
+    }
 };

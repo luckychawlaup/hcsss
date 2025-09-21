@@ -28,11 +28,24 @@ export interface Teacher {
     };
 }
 
+const uploadFileToSupabase = async (file: File, bucket: string, folder: string): Promise<string> => {
+    const filePath = `${folder}/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from(bucket).upload(filePath, file);
+    if (error) {
+        console.error('Error uploading to Supabase Storage:', error);
+        throw error;
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    if (!data.publicUrl) {
+        throw new Error('Could not get public URL for uploaded file.');
+    }
+    return data.publicUrl;
+};
+
 export type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid'>) => {
-    // This function will now directly add to the teachers table
-    // creating a temporary password and then sending a reset link is a good flow
+export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 'photo_url'> & { photo: File }) => {
     const tempPassword = Math.random().toString(36).slice(-8);
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -54,18 +67,24 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid'>) 
     if (!authData.user) {
         throw new Error("Could not create user for teacher.");
     }
+    
+    const photoUrl = await uploadFileToSupabase(teacherData.photo, 'photos', 'teachers');
+
+    const { photo, ...restOfTeacherData } = teacherData;
 
     const finalTeacherData = {
-        ...teacherData,
-        auth_uid: authData.user.id
+        ...restOfTeacherData,
+        auth_uid: authData.user.id,
+        photo_url: photoUrl
     };
 
     const { error: dbError } = await supabase.from(TEACHERS_COLLECTION).insert([finalTeacherData]);
 
     if (dbError) {
         // IMPORTANT: If DB insert fails, we should delete the created auth user
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        console.error("Error saving teacher to DB:", dbError);
+        // This requires admin privileges, so for now we'll log a warning.
+        // In a real production app, this should be handled by a server-side function.
+        console.error("Error saving teacher to DB:", dbError, "Auth user created but DB insert failed. Manual cleanup of auth user may be required:", authData.user.id);
         throw dbError;
     }
 
@@ -120,6 +139,17 @@ export const updateTeacher = async (id: string, updates: Partial<Teacher>) => {
 };
 
 export const deleteTeacher = async (id: string) => {
+    // Get teacher to find auth_uid
+    const { data: teacher, error: fetchError } = await supabase.from(TEACHERS_COLLECTION).select('auth_uid').eq('id', id).single();
+    if (fetchError) {
+        console.error("Error fetching teacher for deletion:", fetchError);
+        throw fetchError;
+    }
+    
+    // Delete from DB
     const { error } = await supabase.from(TEACHERS_COLLECTION).delete().eq('id', id);
     if (error) throw error;
+
+    // Delete auth user - this requires service_role key and should be done in a server environment
+    // console.warn(`DB record for teacher ${id} deleted. Please manually delete the auth user with UID: ${teacher.auth_uid}`);
 };

@@ -27,7 +27,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "../ui/separator";
-import { uploadImage } from "@/lib/imagekit";
 import { addStudent } from "@/lib/supabase/students";
 import { createClient } from "@/lib/supabase/client";
 
@@ -124,25 +123,12 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         
         tempAuthUser = authData.user;
 
-        // Step 2: Upload photo and Aadhar if they exist
-        let photoUrl: string | undefined;
-        const studentPhotoFile = values.photo?.[0];
-        if (studentPhotoFile) {
-            photoUrl = await uploadImage(studentPhotoFile, "Photos (students)");
-        }
-        
-        let aadharUrl: string | undefined;
-        const aadharFile = values.aadharCard?.[0];
-        if (aadharFile) {
-            aadharUrl = await uploadImage(aadharFile, "Aadhar Cards");
-        }
-
-        // Step 3: Prepare the final student data payload
+        // Step 2: Prepare the student data payload including files
         const studentDataPayload = {
             authUid: tempAuthUser.id,
             email: values.email,
             name: values.name,
-            photoUrl: photoUrl || "",
+            photo: values.photo?.[0],
             fatherName: values.fatherName,
             motherName: values.motherName,
             address: values.address,
@@ -151,15 +137,15 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
             admissionDate: values.admissionDate.getTime(),
             dateOfBirth: formatDate(values.dateOfBirth, "yyyy-MM-dd"),
             aadharNumber: values.aadharNumber || "",
-            aadharUrl: aadharUrl || "",
+            aadharCard: values.aadharCard?.[0],
             optedSubjects: values.optedSubjects || [],
             fatherPhone: values.fatherPhone || "",
             motherPhone: values.motherPhone || "",
             studentPhone: values.studentPhone || "",
         };
 
-        // Step 4: Save the student data to the database
-        await addStudent(studentDataPayload);
+        // Step 3: Save the student data to the database (which also handles uploads)
+        await addStudent(studentDataPayload as any);
 
         // If all successful:
         setSuccessInfo({ name: values.name, email: values.email });
@@ -170,18 +156,9 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         form.reset();
 
     } catch (e: any) {
-        // CRITICAL: If any step after auth creation fails, delete the temporary auth user
+        // CRITICAL: If any step after auth creation fails, a server-side function would be needed to delete the temporary auth user for a robust implementation.
         if (tempAuthUser) {
-            try {
-                // This needs an admin client. For now, we rely on manual cleanup if this fails.
-                // A server-side function would be needed for a robust implementation.
-                console.warn("An error occurred after user creation. Manual auth user cleanup may be required for:", tempAuthUser.id);
-            } catch (deleteError) {
-                console.error("CRITICAL: Failed to delete temporary auth user after an error. Manual cleanup required.", deleteError);
-                setError(`An error occurred, and a cleanup operation also failed. Please contact support. Error: ${e.message}`);
-                setIsLoading(false);
-                return;
-            }
+            console.warn("An error occurred after user creation. Manual auth user cleanup may be required for:", tempAuthUser.id);
         }
         
         let errorMessage = `An unexpected error occurred: ${e.message}`;
@@ -537,4 +514,3 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
-

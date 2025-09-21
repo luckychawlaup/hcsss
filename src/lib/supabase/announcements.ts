@@ -1,6 +1,5 @@
 
 import { createClient } from "@/lib/supabase/client";
-import { uploadImage as uploadImageToImageKit } from "@/lib/imagekit";
 
 const supabase = createClient();
 
@@ -22,6 +21,22 @@ export interface Announcement {
   attachment_url?: string;
 }
 
+const uploadFileToSupabase = async (file: File, bucket: string, folder: string): Promise<string> => {
+    const filePath = `${folder}/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from(bucket).upload(filePath, file);
+    if (error) {
+        console.error('Error uploading to Supabase Storage:', error);
+        throw error;
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    if (!data.publicUrl) {
+        throw new Error('Could not get public URL for uploaded file.');
+    }
+    return data.publicUrl;
+};
+
+
 // Add a new announcement
 export const addAnnouncement = async (
     announcementData: Omit<Announcement, 'id' | 'created_at'>,
@@ -31,7 +46,7 @@ export const addAnnouncement = async (
     let finalAnnouncementData: any = { ...announcementData };
     
     if (attachment) {
-        const attachmentUrl = await uploadImageToImageKit(attachment, "gallery");
+        const attachmentUrl = await uploadFileToSupabase(attachment, 'documents', 'announcements');
         finalAnnouncementData.attachment_url = attachmentUrl;
     }
 
