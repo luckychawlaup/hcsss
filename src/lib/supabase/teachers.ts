@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 const TEACHERS_COLLECTION = 'teachers';
@@ -133,6 +134,16 @@ export const getTeacherByEmail = async (email: string): Promise<Teacher | null> 
   
   return data;
 };
+
+export const getRegistrationKeyForTeacher = async (email: string): Promise<string | null> => {
+    // This function is a placeholder as the current flow creates teachers directly.
+    // In a flow where teachers register themselves, you would query a registration_keys table.
+    // For now, we will return a mock key for the joining letter to work.
+    // A robust implementation would involve generating and storing a real, single-use key.
+    console.warn("getRegistrationKeyForTeacher is returning a mock key. For production, implement a secure key generation and storage system.");
+    return `REG-KEY-FOR-${email.split('@')[0]}`.toUpperCase();
+}
+
 
 export const updateTeacher = async (id: string, updates: Partial<Teacher>) => {
     const { error } = await supabase.from(TEACHERS_COLLECTION).update(updates).eq('id', id);
