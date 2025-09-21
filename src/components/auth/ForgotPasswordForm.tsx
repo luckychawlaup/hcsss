@@ -59,7 +59,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
       }
 
       if (!userExists) {
-        setError("This email address is not registered in our system.");
+        setError("This email address is not registered in our system for the selected role.");
         setIsLoading(false);
         return;
       }
