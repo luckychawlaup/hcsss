@@ -1,10 +1,9 @@
 -- =================================================================================
--- Schema for School Management System (Fixed for Supabase)
+-- Schema for School Management System
 -- =================================================================================
 
 -- ---------------------------------------------------------------------------------
 -- 1. Functions
---    - get_student_count: Returns the total number of students.
 -- ---------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION get_student_count()
@@ -17,9 +16,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
 -- =================================================================================
 -- 2. Tables
---    - settings, exams, teachers, students, announcements, homework, leaves, marks, feedback, gallery, salary_slips
 -- =================================================================================
 
 -- School Settings Table
@@ -45,7 +44,7 @@ CREATE TABLE IF NOT EXISTS public.exams (
 -- Teachers Table
 CREATE TABLE IF NOT EXISTS public.teachers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_uid UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    auth_uid UUID UNIQUE NOT NULL,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     photo_url TEXT,
@@ -67,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.teachers (
 -- Students Table
 CREATE TABLE IF NOT EXISTS public.students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_uid UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    auth_uid UUID UNIQUE NOT NULL,
     srn TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -107,7 +106,7 @@ CREATE TABLE IF NOT EXISTS public.announcements (
 -- Homework Table
 CREATE TABLE IF NOT EXISTS public.homework (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    assigned_by UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
+    assigned_by UUID NOT NULL,
     teacher_name TEXT,
     class_section TEXT NOT NULL,
     subject TEXT,
@@ -121,24 +120,24 @@ CREATE TABLE IF NOT EXISTS public.homework (
 CREATE TABLE IF NOT EXISTS public.leaves (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    user_name TEXT,
-    user_role TEXT,
+    userName TEXT,
+    userRole TEXT,
     class TEXT,
-    teacher_id UUID,
-    start_date TIMESTAMPTZ NOT NULL,
-    end_date TIMESTAMPTZ NOT NULL,
+    teacherId UUID,
+    startDate TIMESTAMPTZ NOT NULL,
+    endDate TIMESTAMPTZ NOT NULL,
     reason TEXT,
     status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Confirmed', 'Rejected')),
-    applied_at TIMESTAMPTZ DEFAULT NOW(),
-    rejection_reason TEXT,
-    approver_comment TEXT
+    appliedAt TIMESTAMPTZ DEFAULT NOW(),
+    rejectionReason TEXT,
+    approverComment TEXT
 );
 
 -- Marks Table
 CREATE TABLE IF NOT EXISTS public.marks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_auth_uid UUID NOT NULL REFERENCES public.students(auth_uid) ON DELETE CASCADE,
-    exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
+    student_auth_uid UUID NOT NULL,
+    exam_id UUID NOT NULL,
     subject TEXT NOT NULL,
     marks INTEGER NOT NULL,
     max_marks INTEGER NOT NULL,
@@ -172,7 +171,7 @@ CREATE TABLE IF NOT EXISTS public.gallery (
 -- Salary Slips Table
 CREATE TABLE IF NOT EXISTS public.salary_slips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
+    teacher_id UUID NOT NULL,
     month TEXT,
     basic_salary NUMERIC,
     earnings JSONB,
@@ -184,8 +183,23 @@ CREATE TABLE IF NOT EXISTS public.salary_slips (
 
 
 -- =================================================================================
+-- 3. Foreign Key Constraints
+-- =================================================================================
+-- Note: Run these separately if tables are already created.
+-- Dropping constraints if they exist
+ALTER TABLE public.marks DROP CONSTRAINT IF EXISTS fk_marks_student_auth;
+ALTER TABLE public.marks DROP CONSTRAINT IF EXISTS fk_marks_exam;
+
+-- Adding constraints
+ALTER TABLE public.marks
+ADD CONSTRAINT fk_marks_student_auth FOREIGN KEY (student_auth_uid) REFERENCES public.students(auth_uid) ON DELETE CASCADE;
+
+ALTER TABLE public.marks
+ADD CONSTRAINT fk_marks_exam FOREIGN KEY (exam_id) REFERENCES public.exams(id) ON DELETE CASCADE;
+
+
+-- =================================================================================
 -- 4. Row Level Security (RLS) Policies
---    - Defines access control rules for each table.
 -- =================================================================================
 
 -- Enable RLS for all tables
@@ -215,7 +229,6 @@ DROP POLICY IF EXISTS "Allow all access" ON public.gallery;
 DROP POLICY IF EXISTS "Allow all access" ON public.salary_slips;
 
 -- Create permissive policies (ALLOW ALL)
--- NOTE: For production, you should define more restrictive policies.
 CREATE POLICY "Allow all access" ON public.settings FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access" ON public.exams FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access" ON public.teachers FOR ALL USING (true) WITH CHECK (true);
@@ -228,56 +241,31 @@ CREATE POLICY "Allow all access" ON public.feedback FOR ALL USING (true) WITH CH
 CREATE POLICY "Allow all access" ON public.gallery FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access" ON public.salary_slips FOR ALL USING (true) WITH CHECK (true);
 
+
 -- =================================================================================
 -- 5. Storage Buckets and Policies
---    - Creates buckets and defines access policies for file storage.
 -- =================================================================================
 
 -- Create storage buckets if they don't exist
-INSERT INTO storage.buckets (id, name, public)
-VALUES 
-    ('teachers', 'teachers', true),
-    ('students', 'students', true),
-    ('gallery', 'gallery', true),
-    ('documents', 'documents', true),
-    ('homework', 'homework', true)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('teachers', 'teachers', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('students', 'students', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('gallery', 'gallery', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('homework', 'homework', true) ON CONFLICT (id) DO NOTHING;
 
--- Storage Policies (Simplified approach)
--- Drop existing policies
-DROP POLICY IF EXISTS "Allow authenticated uploads" ON storage.objects;
+-- Drop existing storage policies (use simpler syntax)
 DROP POLICY IF EXISTS "Allow public read access" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to update their own files" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to delete their own files" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated uploads" ON storage.objects;
 
--- Create storage policies
-CREATE POLICY "Allow authenticated uploads" 
-ON storage.objects 
-FOR INSERT 
-TO authenticated 
-WITH CHECK (bucket_id IN ('teachers', 'students', 'gallery', 'documents', 'homework'));
+-- Create policies for public read access on all buckets
+CREATE POLICY "Allow public read access" ON storage.objects FOR SELECT USING (true);
 
-CREATE POLICY "Allow public read access" 
-ON storage.objects 
-FOR SELECT 
-USING (bucket_id IN ('teachers', 'students', 'gallery', 'documents', 'homework'));
-
-CREATE POLICY "Allow authenticated users to update their own files" 
-ON storage.objects 
-FOR UPDATE 
-TO authenticated 
-USING (auth.uid() = owner);
-
-CREATE POLICY "Allow authenticated users to delete their own files" 
-ON storage.objects 
-FOR DELETE 
-TO authenticated 
-USING (auth.uid() = owner);
+-- Create policy for authenticated users to upload to any bucket
+CREATE POLICY "Allow authenticated uploads" ON storage.objects FOR INSERT TO authenticated WITH CHECK (true);
 
 
 -- =================================================================================
 -- 6. Default Data
---    - Inserts initial required data into the tables.
 -- =================================================================================
 
 -- Insert default school settings if they don't exist
