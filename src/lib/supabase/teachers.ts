@@ -101,6 +101,7 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
     }
 
     // Send password reset email so they can set their own password
+    // We remove redirectTo so Supabase uses the Site URL from the dashboard
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(teacherData.email);
     if(resetError) {
         console.warn("Teacher created, but failed to send password reset email.", resetError);
