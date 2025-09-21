@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getRole } from "./AuthProvider";
+import { getRole } from "@/lib/getRole";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -102,7 +102,9 @@ export default function LoginForm({ role }: LoginFormProps) {
         title: "Login Successful",
         description: `Welcome! Redirecting...`,
       });
-
+      
+      const targetPath = actualRole === 'principal' || actualRole === 'owner' ? '/principal' : actualRole === 'teacher' ? '/teacher' : '/';
+      router.push(targetPath);
       router.refresh();
 
     } catch (error: any) {

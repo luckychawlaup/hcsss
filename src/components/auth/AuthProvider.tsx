@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
-import { getTeacherByAuthId } from "@/lib/supabase/teachers";
 import { useTheme } from "../theme/ThemeProvider";
 
 const publicPaths = [
@@ -24,9 +23,6 @@ const publicPaths = [
     "/auth/callback"
 ];
 
-const principalUID = "6cc51c80-e098-4d6d-8450-5ff5931b7391";
-const ownerUID = "946ba406-1ba6-49cf-ab78-f611d1350f33";
-
 function Preloader() {
     const { settings } = useTheme();
     return (
@@ -39,18 +35,6 @@ function Preloader() {
             </div>
         </div>
     );
-}
-
-export const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'owner' | 'principal' | null> => {
-    if (!user) return null;
-    if (user.id === principalUID) return 'principal';
-    if (user.id === ownerUID) return 'owner';
-    
-    // Check for teacher role by looking up their profile.
-    const teacher = await getTeacherByAuthId(user.id);
-    if (teacher) return 'teacher';
-    
-    return 'student'; // Default to student if not principal, owner, or teacher
 }
 
 export default function AuthProvider({
@@ -75,28 +59,10 @@ export default function AuthProvider({
             return;
         }
 
-        if (authUser) {
-            const role = await getRole(authUser);
-            const targetPath = role === 'principal' || role === 'owner' ? '/principal' : role === 'teacher' ? '/teacher' : '/';
-
-            if (isPublicPath) {
-                router.replace(targetPath);
-            } else {
-                 if (role === 'principal' || role === 'owner') {
-                    if (!pathname.startsWith('/principal')) router.replace('/principal');
-                } else if (role === 'teacher') {
-                    if (!pathname.startsWith('/teacher') && !pathname.startsWith('/principal')) router.replace('/teacher');
-                } else { // Assumed student
-                    if (pathname.startsWith('/teacher') || pathname.startsWith('/principal')) router.replace('/');
-                }
-                setLoading(false);
-            }
+        if (!authUser && !isPublicPath) {
+            router.replace('/login');
         } else {
-            if (!isPublicPath) {
-                router.replace('/login');
-            } else {
-                setLoading(false);
-            }
+            setLoading(false);
         }
     });
 
