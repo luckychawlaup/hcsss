@@ -36,35 +36,19 @@ export default function UpdatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
-  const router = useRouter();
+  const [canUpdate, setCanUpdate] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
 
   useEffect(() => {
-    // This effect runs once on mount to check if Supabase has detected
-    // a password recovery session from the URL fragment.
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === "PASSWORD_RECOVERY") {
-           setHasSession(true);
-        } else {
-            // If the user navigates here directly without a valid token,
-            // we should not show the form.
-            setHasSession(false);
+           setCanUpdate(true);
         }
       }
     );
-
-    // Initial check in case the event already fired
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        // This is a bit of a trick. After a password recovery link, Supabase
-        // creates a temporary session. We can check for its existence.
-        if (session) {
-            setHasSession(true);
-        }
-    });
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -84,28 +68,25 @@ export default function UpdatePasswordPage() {
     setIsLoading(true);
     setError(null);
     
-    try {
-      const { error: updateError } = await supabase.auth.updateUser({
+    const { error: updateError } = await supabase.auth.updateUser({
         password: values.password,
-      });
+    });
 
-      if (updateError) throw updateError;
+    if (updateError) {
+        setError(updateError.message || "An unknown error occurred.");
+        setIsLoading(false);
+        return;
+    }
       
-      setIsSuccess(true);
-      toast({
+    setIsSuccess(true);
+    toast({
         title: "Password Updated",
         description: "Your password has been changed successfully. You can now log in.",
-      });
-      form.reset();
-      
-      // Sign out to clear the temporary recovery session
-      await supabase.auth.signOut();
-
-    } catch (error: any) {
-      setError(error.message || "An unknown error occurred.");
-    } finally {
-      setIsLoading(false);
-    }
+    });
+    
+    // Sign out to clear the temporary recovery session
+    await supabase.auth.signOut();
+    setIsLoading(false);
   }
   
   return (
@@ -129,7 +110,7 @@ export default function UpdatePasswordPage() {
                     </div>
                 </AlertDescription>
             </Alert>
-        ) : hasSession ? (
+        ) : canUpdate ? (
              <>
                 <p className="text-center text-muted-foreground mt-2 mb-4">
                     Enter and confirm your new password below.
@@ -180,7 +161,7 @@ export default function UpdatePasswordPage() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Invalid or Expired Link</AlertTitle>
                 <AlertDescription className="space-y-4">
-                    The password reset link is either invalid or has expired. Please request a new one.
+                    The password reset link is either invalid or has expired. Please request a new one from the login page.
                     <div className="pt-2">
                         <Button asChild variant="outline">
                             <Link href="/login">Back to Login</Link>

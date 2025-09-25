@@ -15,13 +15,10 @@ const publicPaths = [
     "/auth/teacher/login",
     "/auth/principal/login",
     "/auth/owner/login",
-    "/auth/student/register",
-    "/auth/teacher/register",
     "/auth/student/forgot-password",
     "/auth/teacher/forgot-password",
     "/auth/update-password",
     "/auth/callback",
-    "/principal/joining-letter", // This page is public for sharing
 ];
 
 function Preloader() {
@@ -48,20 +45,18 @@ export default function AuthProvider({
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+  useEffect(() => {
+    if (isPublicPath) {
+        setLoading(false);
+        return;
+    }
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
         const authUser = session?.user ?? null;
         
-        if (event === 'PASSWORD_RECOVERY') {
-            // This event is now handled directly on the update-password page.
-            // Here, we just let it proceed.
-            setLoading(false);
-            return;
-        }
-
-        if (!authUser && !isPublicPath) {
+        if (!authUser) {
             router.replace('/login');
         } else {
             setLoading(false);
@@ -71,7 +66,11 @@ export default function AuthProvider({
     return () => {
         authListener.subscription.unsubscribe();
     };
-  }, [supabase, pathname, router]);
+  }, [supabase, pathname, router, isPublicPath]);
+
+  if (isPublicPath) {
+      return <>{children}</>;
+  }
 
   if (loading) {
     return <Preloader />;

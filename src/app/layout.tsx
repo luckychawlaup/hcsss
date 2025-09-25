@@ -4,6 +4,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import AuthProvider from "@/components/auth/AuthProvider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -11,8 +12,6 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-// This function runs on the server and cannot have user-specific logic or auth.
-// Using static default values to prevent permission errors.
 export const metadata: Metadata = {
     title: "Hilton Convent School",
     description: `Student Dashboard for Hilton Convent School`,
@@ -39,8 +38,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // initialSettings is passed to the client-side provider to avoid a flicker.
-  // The provider will then subscribe to real-time updates.
   const initialSettings = {
     schoolName: "Hilton Convent School",
     logoUrl: "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png",
@@ -53,7 +50,9 @@ export default function RootLayout({
       <head/>
       <body className="antialiased bg-background">
         <ThemeProvider settings={initialSettings}>
-            {children}
+            <AuthProvider>
+                {children}
+            </AuthProvider>
             <Toaster />
         </ThemeProvider>
       </body>
