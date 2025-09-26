@@ -17,10 +17,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getStudentByEmail } from "@/lib/supabase/students";
 import { getTeacherByEmail } from "@/lib/supabase/teachers";
+import { useRouter } from "next/navigation";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -33,9 +34,9 @@ interface ForgotPasswordFormProps {
 export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -47,7 +48,6 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
   async function onSubmit(values: z.infer<typeof forgotPasswordSchema>) {
     setIsLoading(true);
     setError(null);
-    setIsSuccess(false);
 
     try {
       // First, check if the user exists in our database
@@ -64,16 +64,20 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
         return;
       }
       
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email);
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+      });
 
       if(resetError) throw resetError;
-
-      setIsSuccess(true);
+      
       toast({
         title: "Password Reset Email Sent",
         description: "Please check your inbox for instructions to reset your password.",
       });
-      form.reset();
+      // Redirect to a page that tells them to check their email
+      // and that the link is valid for a short time.
+      router.push(`/auth/update-password?email=${encodeURIComponent(values.email)}`);
+
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
       if (error.message.includes("For security purposes, you can only request this once every")) {
@@ -85,23 +89,12 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
     }
   }
   
-  if (isSuccess) {
-    return (
-        <Alert variant="default" className="bg-primary/10 border-primary/20">
-            <CheckCircle className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-primary">Email Sent!</AlertTitle>
-            <AlertDescription>
-                A password reset link has been sent to your email address. Please check your inbox and follow the instructions.
-            </AlertDescription>
-        </Alert>
-    )
-  }
-
   return (
     <>
       {error && (
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}

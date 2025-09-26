@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import AuthProvider from "@/components/auth/AuthProvider";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -15,6 +16,7 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
+// List of public paths that do not require authentication
 const publicPaths = [
     "/login",
     "/auth/student/login",
@@ -27,13 +29,29 @@ const publicPaths = [
     "/auth/callback",
 ];
 
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isPublicPage = publicPaths.some(path => pathname.startsWith(path));
+
+  return (
+    <>
+      {isPublicPage ? (
+        children
+      ) : (
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      )}
+    </>
+  );
+}
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  const isPublicPage = publicPaths.some(path => pathname.startsWith(path));
 
   const initialSettings = {
     schoolName: "Hilton Convent School",
@@ -67,13 +85,9 @@ export default function RootLayout({
       <head/>
       <body className="antialiased bg-background">
         <ThemeProvider settings={initialSettings}>
-            {isPublicPage ? (
-                children
-            ) : (
-                <AuthProvider>
-                    {children}
-                </AuthProvider>
-            )}
+            <Suspense>
+              <LayoutContent>{children}</LayoutContent>
+            </Suspense>
             <Toaster />
         </ThemeProvider>
       </body>
