@@ -35,9 +35,26 @@ export default function UpdatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const [isChecking, setIsChecking] = useState(true);
+
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setSession(session);
+      }
+      setIsChecking(false);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
 
   const form = useForm<z.infer<typeof updatePasswordSchema>>({
     resolver: zodResolver(updatePasswordSchema),
@@ -51,9 +68,7 @@ export default function UpdatePasswordPage() {
     setIsLoading(true);
     setError(null);
     
-    // The user session is automatically handled by the Supabase client
-    // when they arrive from a recovery link.
-    const { data, error: updateError } = await supabase.auth.updateUser({
+    const { error: updateError } = await supabase.auth.updateUser({
         password: values.password,
     });
 
@@ -63,7 +78,6 @@ export default function UpdatePasswordPage() {
         return;
     }
       
-    // Sign out to clear the recovery session
     await supabase.auth.signOut();
 
     setIsSuccess(true);
@@ -75,15 +89,30 @@ export default function UpdatePasswordPage() {
     setIsLoading(false);
   }
   
-  return (
-     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md flex-1 flex flex-col justify-center">
-        <div className="flex flex-col items-center justify-center mb-8">
-          <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4" />
-          <h1 className="text-3xl font-bold text-center text-primary">Update Your Password</h1>
-        </div>
+  const renderContent = () => {
+    if (isChecking) {
+       return <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />;
+    }
 
-        {isSuccess ? (
+    if (error) {
+        return (
+             <Alert variant="destructive" className="my-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Update Failed</AlertTitle>
+                <AlertDescription>
+                    {error}
+                     <div className="pt-4">
+                        <Button asChild>
+                            <Link href="/login">Return to Login</Link>
+                        </Button>
+                    </div>
+                </AlertDescription>
+            </Alert>
+        )
+    }
+
+    if (isSuccess) {
+        return (
              <Alert variant="default" className="bg-primary/10 border-primary/20">
                 <CheckCircle className="h-4 w-4 text-primary" />
                 <AlertTitle className="text-primary">Password Updated!</AlertTitle>
@@ -96,18 +125,15 @@ export default function UpdatePasswordPage() {
                     </div>
                 </AlertDescription>
             </Alert>
-        ) : (
-             <>
+        )
+    }
+
+    if (session) {
+        return (
+            <>
                 <p className="text-center text-muted-foreground mt-2 mb-4">
                     Enter and confirm your new password below.
                 </p>
-                {error && (
-                    <Alert variant="destructive" className="my-4">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Update Failed</AlertTitle>
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                )}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
@@ -143,7 +169,36 @@ export default function UpdatePasswordPage() {
                     </form>
                 </Form>
             </>
-        )}
+        )
+    }
+
+    // Default case if no session and no error
+    return (
+         <Alert variant="destructive" className="my-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Invalid Link</AlertTitle>
+            <AlertDescription>
+                The password reset link is invalid or has expired. Please request a new one.
+                 <div className="pt-4">
+                    <Button asChild>
+                        <Link href="/login">Return to Login</Link>
+                    </Button>
+                </div>
+            </AlertDescription>
+        </Alert>
+    );
+
+  }
+  
+  return (
+     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md flex-1 flex flex-col justify-center">
+        <div className="flex flex-col items-center justify-center mb-8">
+          <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4" />
+          <h1 className="text-3xl font-bold text-center text-primary">Update Your Password</h1>
+        </div>
+
+        {renderContent()}
        
       </div>
       <footer className="py-4">

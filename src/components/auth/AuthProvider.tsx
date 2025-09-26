@@ -34,30 +34,29 @@ export default function AuthProvider({
 }) {
   const supabase = createClient();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        const authUser = session?.user ?? null;
-        
-        if (!authUser) {
-            router.replace('/login');
-        } else {
-            setLoading(false);
-        }
-    });
-
-    // Check initial session
+    // Check initial session to see if user is already logged in
     const checkInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.replace('/login');
       } else {
-        setLoading(false);
+        setIsAuthReady(true);
       }
     };
 
     checkInitialSession();
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+            router.replace('/login');
+        } else if (event === 'SIGNED_IN') {
+             setIsAuthReady(true);
+        }
+    });
 
     return () => {
         authListener.subscription.unsubscribe();
@@ -65,7 +64,7 @@ export default function AuthProvider({
   }, [supabase, router]);
 
 
-  if (loading) {
+  if (!isAuthReady) {
     return <Preloader />;
   }
 
