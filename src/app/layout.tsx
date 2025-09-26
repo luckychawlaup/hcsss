@@ -41,8 +41,8 @@ export default function RootLayout({
   const initialSettings = {
     schoolName: "Hilton Convent School",
     logoUrl: "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png",
-    primaryColor: "hsl(217, 91%, 60%)",
-    accentColor: "hsl(258, 90%, 66%)",
+    primaryColor: "hsl(358, 80%, 47%)",
+    accentColor: "hsl(358, 80%, 47%)",
   };
 
   return (
