@@ -50,6 +50,14 @@ export default function UpdatePasswordPage() {
       }
     );
 
+    // Also check immediately in case the event was missed
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+            // A session on this page without being logged in means it's a recovery session
+             setCanUpdate(true);
+        }
+    });
+
     return () => {
       authListener.subscription.unsubscribe();
     };
