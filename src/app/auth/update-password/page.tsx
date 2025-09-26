@@ -35,23 +35,9 @@ export default function UpdatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [session, setSession] = useState<any>(null);
-
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setSession(session);
-      }
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
 
   const form = useForm<z.infer<typeof updatePasswordSchema>>({
     resolver: zodResolver(updatePasswordSchema),
@@ -65,12 +51,14 @@ export default function UpdatePasswordPage() {
     setIsLoading(true);
     setError(null);
     
+    // The user session is automatically handled by the Supabase client
+    // when they arrive from a recovery link.
     const { data, error: updateError } = await supabase.auth.updateUser({
         password: values.password,
     });
 
     if (updateError) {
-        setError("Your password reset link may be invalid or has expired. Please try requesting a new one.");
+        setError("Your password reset link may be invalid or has expired. Please request a new one.");
         setIsLoading(false);
         return;
     }
