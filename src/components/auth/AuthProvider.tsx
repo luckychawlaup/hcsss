@@ -47,6 +47,18 @@ export default function AuthProvider({
         }
     });
 
+    // Check initial session
+    const checkInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.replace('/login');
+      } else {
+        setLoading(false);
+      }
+    };
+
+    checkInitialSession();
+
     return () => {
         authListener.subscription.unsubscribe();
     };
