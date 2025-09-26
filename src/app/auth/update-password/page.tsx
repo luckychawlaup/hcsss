@@ -1,12 +1,11 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -36,40 +35,9 @@ export default function UpdatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [canUpdate, setCanUpdate] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
-
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        // This event fires when the user clicks the password reset link
-        if (event === "PASSWORD_RECOVERY") {
-           setCanUpdate(true);
-        } else if (event === "SIGNED_IN" && session?.user?.aud !== 'authenticated') {
-           // This handles the initial session from the recovery link
-           setCanUpdate(true);
-        }
-      }
-    );
-
-    // Also check immediately in case the event was missed
-    const checkSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        // A session on this page without being logged in means it's a recovery session
-        if (session && session.user.aud !== 'authenticated') {
-             setCanUpdate(true);
-        }
-    }
-    checkSession();
-
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [supabase]);
-
 
   const form = useForm<z.infer<typeof updatePasswordSchema>>({
     resolver: zodResolver(updatePasswordSchema),
@@ -83,24 +51,28 @@ export default function UpdatePasswordPage() {
     setIsLoading(true);
     setError(null);
     
-    const { error: updateError } = await supabase.auth.updateUser({
+    // The Supabase client automatically handles the session from the recovery link.
+    // We just need to call updateUser with the new password.
+    const { data, error: updateError } = await supabase.auth.updateUser({
         password: values.password,
     });
 
     if (updateError) {
-        setError(updateError.message || "An unknown error occurred.");
+        setError("Your password reset link may be invalid or has expired. Please try requesting a new one.");
         setIsLoading(false);
         return;
     }
       
+    // This part is crucial. After updating the password, the temporary recovery session
+    // is elevated to a full session. We MUST sign out to clear it.
+    await supabase.auth.signOut();
+
     setIsSuccess(true);
     toast({
         title: "Password Updated",
         description: "Your password has been changed successfully. You can now log in.",
     });
     
-    // Sign out to clear the temporary recovery session
-    await supabase.auth.signOut();
     setIsLoading(false);
   }
   
@@ -125,65 +97,53 @@ export default function UpdatePasswordPage() {
                     </div>
                 </AlertDescription>
             </Alert>
-        ) : canUpdate ? (
+        ) : (
              <>
                 <p className="text-center text-muted-foreground mt-2 mb-4">
                     Enter and confirm your new password below.
                 </p>
                 {error && (
                     <Alert variant="destructive" className="my-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Update Failed</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 )}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>New Password</FormLabel>
-                            <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Confirm New Password</FormLabel>
-                            <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Update Password
-                    </Button>
+                        <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>New Password</FormLabel>
+                                <FormControl>
+                                <Input type="password" placeholder="••••••••" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Confirm New Password</FormLabel>
+                                <FormControl>
+                                <Input type="password" placeholder="••••••••" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Update Password
+                        </Button>
                     </form>
                 </Form>
             </>
-        ) : (
-            <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Invalid or Expired Link</AlertTitle>
-                <AlertDescription className="space-y-4">
-                    The password reset link is either invalid or has expired. Please request a new one from the login page.
-                    <div className="pt-2">
-                        <Button asChild variant="outline">
-                            <Link href="/login">Back to Login</Link>
-                        </Button>
-                    </div>
-                </AlertDescription>
-            </Alert>
         )}
        
       </div>
