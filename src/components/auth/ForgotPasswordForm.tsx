@@ -52,14 +52,15 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
         redirectTo: `${window.location.origin}/auth/update-password`,
       });
 
-      // For security reasons, don't reveal if an email is registered or not.
-      // The resetError is only thrown for unexpected issues like network errors or rate-limiting, not for a non-existent email.
-      if(resetError) throw resetError;
+      if (resetError) {
+        throw resetError;
+      }
       
       setIsSuccess(true);
     } catch (error: any) {
       let errorMessage = "An unknown error occurred. Please try again later.";
-      if (error.message.includes("For security purposes, you can only request this once every")) {
+      // Check for Supabase rate-limiting error
+      if (error.message && error.message.includes("For security purposes, you can only request this once every")) {
         errorMessage = "A password reset email has already been sent recently. Please check your inbox or wait a minute before trying again.";
       }
       setError(errorMessage);
