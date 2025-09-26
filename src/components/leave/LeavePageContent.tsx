@@ -69,6 +69,7 @@ const formatLeaveDate = (startDate: string, endDate: string) => {
 
 export default function LeavePageContent() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
@@ -109,7 +110,7 @@ export default function LeavePageContent() {
     },
   });
 
-  const { formState: { isSubmitting }, handleSubmit, reset } = form;
+  const { handleSubmit, reset } = form;
 
   async function onSubmit(values: z.infer<typeof leaveSchema>) {
     if(!currentUser || !currentStudent) {
@@ -117,19 +118,20 @@ export default function LeavePageContent() {
         return;
     }
     
-    const newLeave: Omit<LeaveRequest, 'id'> = {
-        user_id: currentStudent.id,
-        userName: currentStudent.name,
-        class: `${currentStudent.class}-${currentStudent.section}`,
-        userRole: "Student",
-        startDate: values.startDate,
-        endDate: values.endDate || values.startDate,
-        reason: values.reason,
-        status: "Pending",
-        appliedAt: new Date().toISOString(),
-    }
-    
-     try {
+    setIsSubmitting(true);
+    try {
+        const newLeave: Omit<LeaveRequest, 'id'> = {
+            user_id: currentStudent.id,
+            userName: currentStudent.name,
+            class: `${currentStudent.class}-${currentStudent.section}`,
+            userRole: "Student",
+            startDate: values.startDate,
+            endDate: values.endDate || values.startDate,
+            reason: values.reason,
+            status: "Pending",
+            appliedAt: new Date().toISOString(),
+        }
+        
         await addLeaveRequest(newLeave);
         toast({
             title: "Leave Application Submitted",
@@ -147,6 +149,8 @@ export default function LeavePageContent() {
         }
     } catch(error) {
          toast({ variant: 'destructive', title: "Submission Failed", description: "Could not submit your leave request. Please try again."});
+    } finally {
+        setIsSubmitting(false);
     }
   }
 

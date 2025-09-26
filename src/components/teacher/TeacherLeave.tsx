@@ -72,6 +72,7 @@ interface TeacherLeaveProps {
 
 export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
 
   useEffect(() => {
@@ -96,7 +97,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     },
   });
 
-  const { formState: { isSubmitting }, handleSubmit, reset } = form;
+  const { handleSubmit, reset } = form;
 
   async function onSubmit(values: z.infer<typeof leaveSchema>) {
     if (!teacher) {
@@ -107,41 +108,43 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
       });
       return;
     }
-
-    const newLeave: Omit<LeaveRequest, "id"> = {
-      user_id: teacher.id,
-      userName: teacher.name,
-      userRole: "Teacher",
-      startDate: values.startDate,
-      endDate: values.endDate || values.startDate,
-      reason: values.reason,
-      status: "Pending",
-      appliedAt: new Date().toISOString(),
-      teacherId: teacher.id,
-    };
-    
+    setIsSubmitting(true);
     try {
-      await addLeaveRequest(newLeave);
-      toast({
-        title: "Leave Application Submitted",
-        description: "Your leave request has been sent for approval.",
-      });
-      reset({
-        startDate: "",
-        endDate: "",
-        reason: "",
-        document: undefined,
-      });
-      const fileInput = document.getElementById("leave-document-teacher") as HTMLInputElement;
-      if (fileInput) {
-        fileInput.value = "";
-      }
+        const newLeave: Omit<LeaveRequest, "id"> = {
+          user_id: teacher.id,
+          userName: teacher.name,
+          userRole: "Teacher",
+          startDate: values.startDate,
+          endDate: values.endDate || values.startDate,
+          reason: values.reason,
+          status: "Pending",
+          appliedAt: new Date().toISOString(),
+          teacherId: teacher.id,
+        };
+        
+        await addLeaveRequest(newLeave);
+        toast({
+            title: "Leave Application Submitted",
+            description: "Your leave request has been sent for approval.",
+        });
+        reset({
+            startDate: "",
+            endDate: "",
+            reason: "",
+            document: undefined,
+        });
+        const fileInput = document.getElementById("leave-document-teacher") as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = "";
+        }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: "Could not submit your leave request. Please try again.",
-      });
+        toast({
+            variant: "destructive",
+            title: "Submission Failed",
+            description: "Could not submit your leave request. Please try again.",
+        });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
