@@ -19,8 +19,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getStudentByEmail } from "@/lib/supabase/students";
-import { getTeacherByEmail } from "@/lib/supabase/teachers";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -50,34 +48,17 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
     setIsSuccess(false);
 
     try {
-      // First, check if the user exists in our database
-      let userExists = false;
-      if (role === 'student') {
-        userExists = !!(await getStudentByEmail(values.email));
-      } else if (role === 'teacher') {
-        userExists = !!(await getTeacherByEmail(values.email));
-      }
-
-      if (!userExists) {
-        setError("This email address is not registered in our system for the selected role.");
-        setIsLoading(false);
-        return;
-      }
-      
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: `${window.location.origin}/auth/update-password`,
       });
 
+      // For security reasons, don't reveal if an email is registered or not.
+      // The resetError is only thrown for unexpected issues like network errors or rate-limiting, not for a non-existent email.
       if(resetError) throw resetError;
       
       setIsSuccess(true);
-      toast({
-        title: "Password Reset Email Sent",
-        description: "Please check your inbox for a link to reset your password.",
-      });
-
     } catch (error: any) {
-      let errorMessage = "An unknown error occurred.";
+      let errorMessage = "An unknown error occurred. Please try again later.";
       if (error.message.includes("For security purposes, you can only request this once every")) {
         errorMessage = "A password reset email has already been sent recently. Please check your inbox or wait a minute before trying again.";
       }
@@ -93,7 +74,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
             <CheckCircle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-primary">Check your email!</AlertTitle>
             <AlertDescription>
-                A password reset link has been sent to your registered email address. Please follow the instructions in the email to continue.
+                If an account exists for the email you provided, a password reset link has been sent. Please follow the instructions in the email.
             </AlertDescription>
         </Alert>
     )
