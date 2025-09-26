@@ -27,12 +27,12 @@ export default function RoleSelectionPage() {
 
   const ActionCard = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string }) => (
      <Link href={href} className="block">
-        <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Icon className="h-6 w-6" />
+        <div className="flex items-center gap-4 rounded-lg border p-3 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="h-5 w-5" />
             </div>
             <div>
-                <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+                <h2 className="text-md font-semibold text-foreground">{title}</h2>
                 <p className="text-sm text-muted-foreground">{description}</p>
             </div>
         </div>
@@ -40,8 +40,8 @@ export default function RoleSelectionPage() {
   )
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
+      <div className="w-full max-w-md flex-1 flex flex-col justify-center">
         <div className="mb-8 flex flex-col items-center justify-center">
           <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={90} height={90} className="mb-4 rounded-full" />
           <h1 className="text-center text-3xl font-bold text-primary">{settings.schoolName || "Hilton Convent School"}</h1>
@@ -67,14 +67,12 @@ export default function RoleSelectionPage() {
             <Separator className="flex-1" />
         </div>
 
-        <Card className="shadow-lg">
-           <CardContent className="space-y-4 p-6">
-               <ActionCard href="/apply/teacher" icon={ClipboardSignature} title="Apply for a Job" description="Submit your application for a teaching position." />
-               <ActionCard href="/apply/student" icon={FilePenLine} title="New Admission Registration" description="Apply for the new admission entrance test." />
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+           <ActionCard href="/apply/teacher" icon={ClipboardSignature} title="Apply for a Job" description="Submit your application for a teaching position." />
+           <ActionCard href="/apply/student" icon={FilePenLine} title="New Admission Registration" description="Apply for the new admission entrance test." />
+        </div>
       </div>
-       <footer className="py-8 text-center text-xs text-muted-foreground absolute bottom-0 w-full">
+       <footer className="py-4 text-center text-xs text-muted-foreground w-full">
         <p>
           © {new Date().getFullYear()} {settings.schoolName || "Hilton Convent School"}. All rights reserved.
         </p>
