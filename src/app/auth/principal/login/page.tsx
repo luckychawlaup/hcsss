@@ -8,6 +8,7 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function PrincipalLoginPage() {
   const { settings } = useTheme();
@@ -17,7 +18,10 @@ export default function PrincipalLoginPage() {
         <Card className="shadow-lg">
            <CardHeader className="items-center text-center">
               <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
-              <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
+                <Badge variant="outline" className="border-primary/50 text-primary">Beta</Badge>
+              </div>
               <CardDescription>
                 Sign in to the administrative portal.
               </CardDescription>
