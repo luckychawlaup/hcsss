@@ -6,7 +6,7 @@ import type { Teacher } from "@/lib/supabase/teachers";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format, addMonths, differenceInDays, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import {
   Card,
   CardHeader,
@@ -22,20 +22,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import {
-  Calendar as CalendarIcon,
   Loader2,
   Send,
   History,
   AlertCircle,
+  Clock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -47,30 +40,12 @@ import {
 } from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
-const leaveSchema = z
-  .object({
-    dateRange: z.object(
-      {
-        from: z.date({ required_error: "Start date is required." }),
-        to: z.date().optional(),
-      },
-      { required_error: "Please select a date or date range." }
-    ),
+const leaveSchema = z.object({
+    startDate: z.string().min(1, "Start date is required."),
+    endDate: z.string().optional(),
     reason: z.string().min(10, "Reason must be at least 10 characters long."),
     document: z.any().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.dateRange.to) {
-        return differenceInDays(data.dateRange.to, data.dateRange.from) <= 30;
-      }
-      return true;
-    },
-    {
-      message: "Leave duration cannot exceed 30 days.",
-      path: ["dateRange"],
-    }
-  );
+});
 
 const getStatusVariant = (status: LeaveRequest["status"]) => {
   switch (status) {
@@ -99,6 +74,7 @@ interface TeacherLeaveProps {
 export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const { toast } = useToast();
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
+  const [isHalfDayLoading, setIsHalfDayLoading] = useState(false);
 
   useEffect(() => {
     if (teacher) {
@@ -116,9 +92,8 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const form = useForm<z.infer<typeof leaveSchema>>({
     resolver: zodResolver(leaveSchema),
     defaultValues: {
-      dateRange: {
-        from: startOfDay(new Date()),
-      },
+      startDate: "",
+      endDate: "",
       reason: "",
     },
   });
@@ -127,41 +102,16 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     formState: { isSubmitting },
   } = form;
 
-  const fromDate = form.watch("dateRange.from");
-
-  async function onSubmit(values: z.infer<typeof leaveSchema>) {
-    if (!teacher) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "You must be logged in to apply for leave.",
-      });
-      return;
-    }
-
-    const startDate = values.dateRange.from.toISOString();
-    const endDate = (values.dateRange.to || values.dateRange.from).toISOString();
-
-    const newLeave: Omit<LeaveRequest, "id"> = {
-      user_id: teacher.id,
-      userName: teacher.name,
-      userRole: "Teacher",
-      startDate,
-      endDate,
-      reason: values.reason,
-      status: "Pending",
-      appliedAt: new Date().toISOString(),
-      teacherId: teacher.id,
-    };
-
+  async function handleLeaveSubmit(values: Omit<LeaveRequest, "id">) {
     try {
-      await addLeaveRequest(newLeave);
+      await addLeaveRequest(values);
       toast({
         title: "Leave Application Submitted",
         description: "Your leave request has been sent for approval.",
       });
       form.reset({
-        dateRange: { from: startOfDay(new Date()) },
+        startDate: "",
+        endDate: "",
         reason: "",
         document: undefined,
       });
@@ -180,6 +130,53 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     }
   }
 
+  async function onSubmit(values: z.infer<typeof leaveSchema>) {
+    if (!teacher) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You must be logged in to apply for leave.",
+      });
+      return;
+    }
+
+    const newLeave: Omit<LeaveRequest, "id"> = {
+      user_id: teacher.id,
+      userName: teacher.name,
+      userRole: "Teacher",
+      startDate: values.startDate,
+      endDate: values.endDate || values.startDate,
+      reason: values.reason,
+      status: "Pending",
+      appliedAt: new Date().toISOString(),
+      teacherId: teacher.id,
+    };
+    await handleLeaveSubmit(newLeave);
+  }
+
+  const handleHalfDayLeave = async () => {
+    if (!teacher) {
+      toast({ variant: 'destructive', title: "Error", description: "You must be logged in to apply for leave."});
+      return;
+    }
+    setIsHalfDayLoading(true);
+    const today = new Date().toISOString();
+    const newLeave: Omit<LeaveRequest, 'id'> = {
+      user_id: teacher.id,
+      userName: teacher.name,
+      userRole: "Teacher",
+      startDate: today,
+      endDate: today,
+      reason: "Half Day Leave",
+      status: "Pending",
+      appliedAt: today,
+      teacherId: teacher.id,
+    }
+    await handleLeaveSubmit(newLeave);
+    setIsHalfDayLoading(false);
+  };
+
+
   return (
     <div className="space-y-8">
       <Card className="border-0 shadow-none">
@@ -189,60 +186,34 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
         <CardContent className="p-0 mt-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="dateRange"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Leave Dates</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Date</FormLabel>
                         <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value?.from && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value?.from ? (
-                              field.value.to ? (
-                                <>
-                                  {format(field.value.from, "LLL dd, y")} -{" "}
-                                  {format(field.value.to, "LLL dd, y")}
-                                </>
-                              ) : (
-                                format(field.value.from, "LLL dd, y")
-                              )
-                            ) : (
-                              <span>Pick a date or range</span>
-                            )}
-                          </Button>
+                          <Input placeholder="DD/MM/YYYY" {...field} />
                         </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          initialFocus
-                          mode="range"
-                          defaultMonth={field.value?.from}
-                          selected={{
-                            from: field.value?.from,
-                            to: field.value?.to,
-                          }}
-                          onSelect={field.onChange}
-                          numberOfMonths={1}
-                          disabled={{ before: startOfDay(new Date()) }}
-                          toDate={
-                            fromDate ? addMonths(fromDate, 1) : undefined
-                          }
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Date (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="DD/MM/YYYY" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+               </div>
 
               <FormField
                 control={form.control}
@@ -278,19 +249,34 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Submit Request
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button type="submit" disabled={isSubmitting || isHalfDayLoading} className="w-full">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Submit Full Day Request
+                    </>
+                  )}
+                </Button>
+                 <Button type="button" variant="outline" onClick={handleHalfDayLeave} disabled={isSubmitting || isHalfDayLoading} className="w-full">
+                    {isHalfDayLoading ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                    </>
+                    ) : (
+                    <>
+                        <Clock className="mr-2 h-4 w-4" />
+                        Apply for Half Day
+                    </>
+                    )}
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>
