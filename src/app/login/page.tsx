@@ -22,45 +22,45 @@ export default function RoleSelectionPage() {
         
         <div className="space-y-4">
             <Link href="/auth/student/login" className="block">
-                <div className="flex items-center gap-4 rounded-lg border p-4 hover:bg-accent hover:text-accent-foreground transition-colors">
+                <div className="flex items-center gap-4 rounded-lg border p-4 hover:bg-accent/10 hover:border-accent transition-colors">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <User className="h-6 w-6" />
                     </div>
                     <div>
-                        <h2 className="font-semibold text-lg">I am a Student</h2>
+                        <h2 className="font-semibold text-lg text-foreground">I am a Student</h2>
                         <p className="text-sm text-muted-foreground">Sign in to your dashboard.</p>
                     </div>
                 </div>
             </Link>
              <Link href="/auth/teacher/login" className="block">
-                <div className="flex items-center gap-4 rounded-lg border p-4 hover:bg-accent hover:text-accent-foreground transition-colors">
+                <div className="flex items-center gap-4 rounded-lg border p-4 hover:bg-accent/10 hover:border-accent transition-colors">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <Briefcase className="h-6 w-6" />
                     </div>
                     <div>
-                        <h2 className="font-semibold text-lg">I am a Teacher</h2>
+                        <h2 className="font-semibold text-lg text-foreground">I am a Teacher</h2>
                         <p className="text-sm text-muted-foreground">Access your teacher portal.</p>
                     </div>
                 </div>
             </Link>
              <Link href="/auth/principal/login" className="block">
-                <div className="flex items-center gap-4 rounded-lg border p-4 hover:bg-accent hover:text-accent-foreground transition-colors">
+                <div className="flex items-center gap-4 rounded-lg border p-4 hover:bg-accent/10 hover:border-accent transition-colors">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <School className="h-6 w-6" />
                     </div>
                     <div>
-                        <h2 className="font-semibold text-lg">I am the Principal</h2>
+                        <h2 className="font-semibold text-lg text-foreground">I am the Principal</h2>
                         <p className="text-sm text-muted-foreground">Access the admin dashboard.</p>
                     </div>
                 </div>
             </Link>
             <Link href="/auth/owner/login" className="block">
-                <div className="flex items-center gap-4 rounded-lg border p-4 hover:bg-accent hover:text-accent-foreground transition-colors">
+                <div className="flex items-center gap-4 rounded-lg border p-4 hover:bg-accent/10 hover:border-accent transition-colors">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <Crown className="h-6 w-6" />
                     </div>
                     <div>
-                        <h2 className="font-semibold text-lg">I am the Owner</h2>
+                        <h2 className="font-semibold text-lg text-foreground">I am the Owner</h2>
                         <p className="text-sm text-muted-foreground">Access the owner's dashboard.</p>
                     </div>
                 </div>
@@ -75,5 +75,3 @@ export default function RoleSelectionPage() {
     </div>
   );
 }
-
-    

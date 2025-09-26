@@ -25,6 +25,11 @@ export default function StudentLoginPage() {
                     Forgot Password?
                 </Link>
             </p>
+             <p className="mt-4">
+                <Link href="/login" className="text-xs font-medium text-primary hover:underline">
+                    Go back to role selection
+                </Link>
+            </p>
         </div>
       </div>
        <footer className="py-4">
