@@ -44,7 +44,7 @@ export default function RoleSelectionPage() {
       <div className="flex w-full max-w-md flex-1 flex-col justify-center">
         <div className="mb-8 flex flex-col items-center justify-center">
           <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={90} height={90} className="mb-4 rounded-full" />
-          <h1 className="text-center text-3xl font-bold text-primary">{settings.schoolName || "Hilton Convent School"}</h1>
+          <h1 className="text-center text-3xl font-bold text-primary">HCSSS</h1>
           <p className="mt-2 text-center text-muted-foreground">
             Welcome! Please select your role to sign in.
           </p>

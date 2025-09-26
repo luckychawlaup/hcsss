@@ -17,7 +17,7 @@ export default function OwnerLoginPage() {
         <Card className="shadow-lg">
            <CardHeader className="items-center text-center">
               <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
-              <CardTitle className="text-2xl font-bold text-primary">Owner Dashboard</CardTitle>
+              <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
               <CardDescription>
                 Sign in to the owner's portal.
               </CardDescription>

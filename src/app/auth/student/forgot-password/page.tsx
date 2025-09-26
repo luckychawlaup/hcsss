@@ -15,7 +15,7 @@ export default function StudentForgotPasswordPage() {
         <Card className="shadow-lg">
            <CardHeader className="items-center text-center">
               <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
-              <CardTitle className="text-2xl font-bold text-primary">Forgot Password</CardTitle>
+              <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
               <CardDescription>
                 Enter your email to reset your student account password.
               </CardDescription>

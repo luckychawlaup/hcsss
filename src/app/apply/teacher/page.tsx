@@ -141,7 +141,7 @@ export default function TeacherApplicationPage() {
         </div>
         <AlertTitle className="text-primary text-xl">Application Sent!</AlertTitle>
         <AlertDescription className="space-y-4">
-            Thank you for applying for a teaching post at {settings.schoolName}. We have received your application and will review it. If your profile is shortlisted, we will contact you to schedule an interview.
+            Thank you for applying for a teaching post at HCSSS. We have received your application and will review it. If your profile is shortlisted, we will contact you to schedule an interview.
         </AlertDescription>
     </Alert>
   );
@@ -152,7 +152,7 @@ export default function TeacherApplicationPage() {
         <Card className="shadow-lg">
            <CardHeader className="items-center text-center">
               <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
-              <CardTitle className="text-2xl font-bold text-primary">Teacher Application</CardTitle>
+              <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
               <CardDescription>
                 Fill out the form below to apply for a teaching post.
               </CardDescription>

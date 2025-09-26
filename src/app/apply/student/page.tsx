@@ -124,7 +124,7 @@ export default function StudentApplicationPage() {
         </div>
         <AlertTitle className="text-primary text-xl">Application Received!</AlertTitle>
         <AlertDescription className="space-y-4">
-            Thank you for your interest in {settings.schoolName}. We have received your application and will review it shortly. We will contact you regarding the date and time for the entrance test.
+            Thank you for your interest in HCSSS. We have received your application and will review it shortly. We will contact you regarding the date and time for the entrance test.
         </AlertDescription>
     </Alert>
   );
@@ -135,7 +135,7 @@ export default function StudentApplicationPage() {
         <Card className="shadow-lg">
            <CardHeader className="items-center text-center">
               <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
-              <CardTitle className="text-2xl font-bold text-primary">New Admission Registration</CardTitle>
+              <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
               <CardDescription>
                 Fill out the form below to register for the new admission entrance test.
               </CardDescription>
