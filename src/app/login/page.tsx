@@ -3,9 +3,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { User, Briefcase, School, Crown } from "lucide-react";
+import { User, Briefcase, School, Crown, ClipboardSignature, FilePenLine } from "lucide-react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export default function RoleSelectionPage() {
   const { settings } = useTheme();
@@ -63,6 +64,39 @@ export default function RoleSelectionPage() {
                       <div>
                           <h2 className="text-lg font-semibold text-foreground">I am the Owner</h2>
                           <p className="text-sm text-muted-foreground">Access the owner's dashboard.</p>
+                      </div>
+                  </div>
+              </Link>
+          </CardContent>
+        </Card>
+        
+        <div className="my-6 flex items-center">
+            <Separator className="flex-1" />
+            <span className="px-4 text-sm text-muted-foreground">OR</span>
+            <Separator className="flex-1" />
+        </div>
+
+        <Card className="shadow-lg">
+           <CardContent className="space-y-4 p-6">
+               <Link href="/apply/teacher" className="block">
+                  <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <ClipboardSignature className="h-6 w-6" />
+                      </div>
+                      <div>
+                          <h2 className="text-lg font-semibold text-foreground">Apply for a Job</h2>
+                          <p className="text-sm text-muted-foreground">Submit your application for a teaching position.</p>
+                      </div>
+                  </div>
+              </Link>
+              <Link href="/apply/student" className="block">
+                  <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <FilePenLine className="h-6 w-6" />
+                      </div>
+                      <div>
+                          <h2 className="text-lg font-semibold text-foreground">New Admission Registration</h2>
+                          <p className="text-sm text-muted-foreground">Apply for the new admission entrance test.</p>
                       </div>
                   </div>
               </Link>
