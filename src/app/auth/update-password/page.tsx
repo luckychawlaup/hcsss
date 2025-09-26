@@ -44,19 +44,26 @@ export default function UpdatePasswordPage() {
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // This event fires when the user clicks the password reset link
         if (event === "PASSWORD_RECOVERY") {
+           setCanUpdate(true);
+        } else if (event === "SIGNED_IN" && session?.user?.aud !== 'authenticated') {
+           // This handles the initial session from the recovery link
            setCanUpdate(true);
         }
       }
     );
 
     // Also check immediately in case the event was missed
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-            // A session on this page without being logged in means it's a recovery session
+    const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        // A session on this page without being logged in means it's a recovery session
+        if (session && session.user.aud !== 'authenticated') {
              setCanUpdate(true);
         }
-    });
+    }
+    checkSession();
+
 
     return () => {
       authListener.subscription.unsubscribe();
