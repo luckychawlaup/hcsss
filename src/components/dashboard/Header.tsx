@@ -17,6 +17,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "../theme/ThemeProvider";
+import { ThemeToggle } from "../theme/ThemeToggle";
 
 interface HeaderProps {
     title?: string;
@@ -50,6 +51,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
         </h1>
       </Link>
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         {!isPrincipal && (
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
             <Link href={noticesLink}>
@@ -98,5 +100,3 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
     </header>
   );
 }
-
-    

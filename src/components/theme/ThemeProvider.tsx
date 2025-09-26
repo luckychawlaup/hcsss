@@ -4,54 +4,50 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { SchoolSettings } from '@/lib/supabase/settings';
 import { getSchoolSettingsRT } from '@/lib/supabase/settings';
-import { Skeleton } from '../ui/skeleton';
+import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from 'next-themes';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  settings: SchoolSettings; // Accept initial settings to prevent flicker
-}
-
-interface ThemeContextType {
   settings: SchoolSettings;
-  setSettings: React.Dispatch<React.SetStateAction<SchoolSettings>>;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+interface AppThemeContextType {
+  schoolSettings: SchoolSettings;
+  setSchoolSettings: React.Dispatch<React.SetStateAction<SchoolSettings>>;
+}
+
+const AppThemeContext = createContext<AppThemeContextType | undefined>(undefined);
 
 function hslToCssVar(hsl: string | undefined) {
     if (!hsl) return '';
-    // This regex is safer and handles different spacing
-    const match = hsl.match(/hsl\(\s*(\d+)\s*,\s*(\d+%)\s*,\s*(\d+%)\s*\)/);
+    const match = hsl.match(/hsl\(\s*(\d+)\s*,\s*([\d.]+%)\s*,\s*([\d.]+%)\s*\)/);
     if (match) {
         return `${match[1]} ${match[2]} ${match[3]}`;
     }
     return '';
 }
 
-
-export function ThemeProvider({ children, settings: initialSettings }: ThemeProviderProps) {
-  const [settings, setSettings] = useState<SchoolSettings>(initialSettings);
-  const [isLoading, setIsLoading] = useState(true);
+function CustomThemeProvider({ children, initialSettings }: { children: React.ReactNode, initialSettings: SchoolSettings }) {
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(initialSettings);
   
   useEffect(() => {
-    // Apply initial settings immediately to prevent flicker
     if (initialSettings.primaryColor) {
       document.documentElement.style.setProperty('--primary', hslToCssVar(initialSettings.primaryColor));
+      document.documentElement.style.setProperty('--ring', hslToCssVar(initialSettings.primaryColor));
     }
     if (initialSettings.accentColor) {
       document.documentElement.style.setProperty('--accent', hslToCssVar(initialSettings.accentColor));
     }
 
-    // Then, subscribe to real-time updates which will overwrite the initial settings
     const channel = getSchoolSettingsRT((newSettings) => {
-        setSettings(newSettings);
+        setSchoolSettings(newSettings);
         if (newSettings.primaryColor) {
             document.documentElement.style.setProperty('--primary', hslToCssVar(newSettings.primaryColor));
+            document.documentElement.style.setProperty('--ring', hslToCssVar(newSettings.primaryColor));
         }
         if (newSettings.accentColor) {
             document.documentElement.style.setProperty('--accent', hslToCssVar(newSettings.accentColor));
         }
-        setIsLoading(false);
     });
 
     return () => {
@@ -62,16 +58,33 @@ export function ThemeProvider({ children, settings: initialSettings }: ThemeProv
   }, [initialSettings]);
 
   return (
-    <ThemeContext.Provider value={{ settings, setSettings }}>
+    <AppThemeContext.Provider value={{ schoolSettings, setSchoolSettings }}>
       {children}
-    </ThemeContext.Provider>
+    </AppThemeContext.Provider>
   );
 }
 
+export function ThemeProvider({ children, settings }: ThemeProviderProps) {
+  return (
+    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
+      <CustomThemeProvider initialSettings={settings}>
+        {children}
+      </CustomThemeProvider>
+    </NextThemesProvider>
+  )
+}
+
 export function useTheme() {
-  const context = useContext(ThemeContext);
+  const context = useContext(AppThemeContext);
+  const nextThemeContext = useNextTheme();
+
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
-  return context;
+
+  return { 
+    settings: context.schoolSettings, 
+    setSettings: context.setSchoolSettings,
+    ...nextThemeContext 
+  };
 }
