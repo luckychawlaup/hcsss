@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -35,9 +35,23 @@ export default function UpdatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [session, setSession] = useState<any>(null);
+
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setSession(session);
+      }
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const form = useForm<z.infer<typeof updatePasswordSchema>>({
     resolver: zodResolver(updatePasswordSchema),
@@ -51,8 +65,6 @@ export default function UpdatePasswordPage() {
     setIsLoading(true);
     setError(null);
     
-    // The Supabase client automatically handles the session from the recovery link.
-    // We just need to call updateUser with the new password.
     const { data, error: updateError } = await supabase.auth.updateUser({
         password: values.password,
     });
@@ -63,8 +75,7 @@ export default function UpdatePasswordPage() {
         return;
     }
       
-    // This part is crucial. After updating the password, the temporary recovery session
-    // is elevated to a full session. We MUST sign out to clear it.
+    // Sign out to clear the recovery session
     await supabase.auth.signOut();
 
     setIsSuccess(true);

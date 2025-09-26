@@ -9,18 +9,6 @@ import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useTheme } from "../theme/ThemeProvider";
 
-const publicPaths = [
-    "/login",
-    "/auth/student/login",
-    "/auth/teacher/login",
-    "/auth/principal/login",
-    "/auth/owner/login",
-    "/auth/student/forgot-password",
-    "/auth/teacher/forgot-password",
-    "/auth/update-password",
-    "/auth/callback",
-];
-
 function Preloader() {
     const { settings } = useTheme();
     return (
@@ -46,17 +34,9 @@ export default function AuthProvider({
 }) {
   const supabase = createClient();
   const router = useRouter();
-  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
 
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
-
   useEffect(() => {
-    if (isPublicPath) {
-        setLoading(false);
-        return;
-    }
-
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
         const authUser = session?.user ?? null;
         
@@ -70,11 +50,8 @@ export default function AuthProvider({
     return () => {
         authListener.subscription.unsubscribe();
     };
-  }, [supabase, pathname, router, isPublicPath]);
+  }, [supabase, router]);
 
-  if (isPublicPath) {
-      return <>{children}</>;
-  }
 
   if (loading) {
     return <Preloader />;
