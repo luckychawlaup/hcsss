@@ -68,8 +68,8 @@ export default function RoleSelectionPage() {
         </div>
 
         <div className="w-full space-y-4">
-           <ActionCard href="/apply/teacher" icon={ClipboardSignature} title="Apply for teaching post" description="Apply for a teaching post." />
            <ActionCard href="/apply/student" icon={FilePenLine} title="Apply for Admission" description="entrance exam needs to be passed" />
+           <ActionCard href="/apply/teacher" icon={ClipboardSignature} title="Apply for teaching post" description="Apply for a teaching post." />
         </div>
       </div>
        <footer className="py-4 text-center text-xs text-muted-foreground w-full">
