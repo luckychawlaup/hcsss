@@ -72,11 +72,6 @@ export default function RoleSelectionPage() {
            <ActionCard href="/apply/teacher" icon={ClipboardSignature} title="Apply for Teaching Post" description="interview needs to be passed" />
         </div>
       </div>
-       <footer className="py-4 text-center text-xs text-muted-foreground w-full">
-        <p>
-          © {new Date().getFullYear()} {settings.schoolName || "Hilton Convent School"}. All rights reserved.
-        </p>
-      </footer>
     </div>
   );
 }

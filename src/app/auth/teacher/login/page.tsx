@@ -40,11 +40,6 @@ export default function TeacherLoginPage() {
           </CardFooter>
         </Card>
       </div>
-       <footer className="py-8 text-center text-xs text-muted-foreground absolute bottom-0 w-full">
-        <p>
-          © {new Date().getFullYear()} {settings.schoolName || "Hilton Convent School"}. All rights reserved.
-        </p>
-      </footer>
     </div>
   );
 }

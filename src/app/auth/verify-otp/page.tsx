@@ -204,11 +204,6 @@ function VerifyOtpContent() {
           </CardContent>
         </Card>
       </div>
-       <footer className="py-8">
-        <p className="text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} {settings.schoolName || "Hilton Convent School"}. All rights reserved.
-        </p>
-      </footer>
     </div>
   );
 }
