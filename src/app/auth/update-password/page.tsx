@@ -22,7 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "@/components/theme/ThemeProvider";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const updatePasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters long."),
@@ -37,30 +37,29 @@ function UpdatePasswordContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasSentLink, setHasSentLink] = useState(false);
-  const [session, setSession] = useState<any>(null);
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
-  const searchParams = useSearchParams();
-  const emailFromQuery = searchParams.get("email");
+  const router = useRouter();
+
 
   useEffect(() => {
-    // This listener handles the session when the user lands from the email link
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // This will be triggered when the user is redirected back from the email link.
       if (event === "PASSWORD_RECOVERY") {
-        setSession(session);
+        // At this point, the user has a temporary session and can update their password.
+        // We don't need to do anything here, just let the form handle the update.
+      } else if (event === "USER_UPDATED") {
+          // After a successful password update, sign the user out to force a fresh login.
+          await supabase.auth.signOut();
+          router.push('/login');
       }
     });
-
-    if (emailFromQuery) {
-        setHasSentLink(true);
-    }
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [supabase, emailFromQuery]);
+  }, [supabase, router]);
 
   const form = useForm<z.infer<typeof updatePasswordSchema>>({
     resolver: zodResolver(updatePasswordSchema),
@@ -81,7 +80,6 @@ function UpdatePasswordContent() {
         return;
     }
       
-    await supabase.auth.signOut();
     setIsSuccess(true);
     toast({
         title: "Password Updated",
@@ -108,15 +106,21 @@ function UpdatePasswordContent() {
         </Alert>
       );
     }
-
-    if (session) {
-      return (
+    
+    return (
         <>
           <p className="text-center text-muted-foreground mt-2 mb-4">
-            Enter and confirm your new password below.
+            You have been securely authenticated. Enter and confirm your new password below.
           </p>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               <FormField control={form.control} name="password" render={({ field }) => (
                 <FormItem>
                   <FormLabel>New Password</FormLabel>
@@ -139,41 +143,6 @@ function UpdatePasswordContent() {
           </Form>
         </>
       );
-    }
-    
-    if (hasSentLink) {
-        return (
-            <Alert variant="default" className="bg-primary/10 border-primary/20">
-                <Mail className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-primary">Check Your Email</AlertTitle>
-                <AlertDescription>
-                    A password reset link has been sent to <strong>{emailFromQuery}</strong>. Please click the link in the email to proceed.
-                    <div className="pt-4">
-                        <Button asChild variant="outline">
-                            <Link href="/login">Return to Login</Link>
-                        </Button>
-                    </div>
-                </AlertDescription>
-            </Alert>
-        )
-    }
-
-    // Default case if no session, no success, and not just sent a link.
-    // This implies an invalid link or direct navigation.
-    return (
-      <Alert variant="destructive" className="my-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Invalid Link</AlertTitle>
-        <AlertDescription>
-          This page should be accessed via a password reset link from your email. The link may be invalid or has expired.
-          <div className="pt-4">
-            <Button asChild>
-              <Link href="/login">Return to Login</Link>
-            </Button>
-          </div>
-        </AlertDescription>
-      </Alert>
-    );
   };
   
   return (

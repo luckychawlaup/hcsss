@@ -70,13 +70,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
 
       if(resetError) throw resetError;
       
-      toast({
-        title: "Password Reset Email Sent",
-        description: "Please check your inbox for instructions to reset your password.",
-      });
-      // Redirect to a page that tells them to check their email
-      // and that the link is valid for a short time.
-      router.push(`/auth/update-password?email=${encodeURIComponent(values.email)}`);
+      router.push(`/auth/verify-otp?email=${encodeURIComponent(values.email)}`);
 
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
@@ -119,7 +113,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
           />
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Send Reset Link
+            Send Reset Code
           </Button>
         </form>
       </Form>
