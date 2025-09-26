@@ -37,24 +37,18 @@ export default function AuthProvider({
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    // Check initial session to see if user is already logged in
-    const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.replace('/login');
-      } else {
-        setIsAuthReady(true);
-      }
-    };
-
-    checkInitialSession();
-
-    // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-            router.replace('/login');
+        // This event fires on initial load, SIGN_IN, SIGN_OUT, PASSWORD_RECOVERY etc.
+        // It provides a consistent way to know when auth state is resolved.
+        if (event === 'INITIAL_SESSION') {
+             if (!session) {
+                router.replace('/login');
+            }
+            setIsAuthReady(true);
         } else if (event === 'SIGNED_IN') {
              setIsAuthReady(true);
+        } else if (event === 'SIGNED_OUT') {
+            router.replace('/login');
         }
     });
 

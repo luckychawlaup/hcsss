@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function StudentLoginPage() {
   const { settings } = useTheme();
@@ -39,8 +40,8 @@ export default function StudentLoginPage() {
           </CardFooter>
         </Card>
       </div>
-       <footer className="py-8">
-        <p className="text-center text-xs text-muted-foreground">
+       <footer className="py-8 text-center text-xs text-muted-foreground absolute bottom-0 w-full">
+        <p>
           © {new Date().getFullYear()} {settings.schoolName || "Hilton Convent School"}. All rights reserved.
         </p>
       </footer>
