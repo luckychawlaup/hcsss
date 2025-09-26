@@ -68,7 +68,7 @@ export default function RoleSelectionPage() {
         </div>
 
         <div className="space-y-4">
-           <ActionCard href="/apply/teacher" icon={ClipboardSignature} title="Apply for a Job" description="Submit your application for a teaching position." />
+           <ActionCard href="/apply/teacher" icon={ClipboardSignature} title="Apply for a Job" description="Apply for a teaching post." />
            <ActionCard href="/apply/student" icon={FilePenLine} title="New Admission Registration" description="Apply for the new admission entrance test." />
         </div>
       </div>

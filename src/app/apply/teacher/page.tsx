@@ -18,7 +18,7 @@ export default function TeacherApplicationPage() {
               <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
               <CardTitle className="text-2xl font-bold text-primary">Teacher Application</CardTitle>
               <CardDescription>
-                Fill out the form below to apply for a teaching position.
+                Fill out the form below to apply for a teaching post.
               </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
