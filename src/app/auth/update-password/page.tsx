@@ -23,6 +23,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 
 const updatePasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters long."),
@@ -37,6 +38,7 @@ function UpdatePasswordContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasActiveSession, setHasActiveSession] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
@@ -45,19 +47,16 @@ function UpdatePasswordContent() {
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "PASSWORD_RECOVERY") {
-        // Supabase client has handled the token from the URL.
-        // The form can now be used to update the password.
+        setHasActiveSession(true);
       } else if (event === "USER_UPDATED") {
-          // After a successful password update, sign the user out to force a fresh login.
-          await supabase.auth.signOut();
-          router.push('/login');
+          // This case is for success after update
       }
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [supabase, router]);
+  }, [supabase]);
 
   const form = useForm<z.infer<typeof updatePasswordSchema>>({
     resolver: zodResolver(updatePasswordSchema),
@@ -84,6 +83,8 @@ function UpdatePasswordContent() {
         description: "Your password has been changed successfully. You can now log in.",
     });
     
+    // Sign out to clear the recovery session
+    await supabase.auth.signOut();
     setIsLoading(false);
   }
 
@@ -107,9 +108,6 @@ function UpdatePasswordContent() {
     
     return (
         <>
-          <p className="text-center text-muted-foreground mt-2 mb-4">
-            You have been securely authenticated. Enter and confirm your new password below.
-          </p>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {error && (
@@ -144,15 +142,22 @@ function UpdatePasswordContent() {
   };
   
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md flex-1 flex flex-col justify-center">
-        <div className="flex flex-col items-center justify-center mb-8">
-          <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={100} height={100} className="mb-4" />
-          <h1 className="text-3xl font-bold text-center text-primary">Reset Your Password</h1>
-        </div>
-        {renderContent()}
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
+      <div className="w-full max-w-md">
+        <Card className="shadow-lg">
+           <CardHeader className="items-center text-center">
+              <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
+              <CardTitle className="text-2xl font-bold text-primary">Reset Your Password</CardTitle>
+              <CardDescription>
+                Enter and confirm your new password below.
+              </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            {renderContent()}
+          </CardContent>
+        </Card>
       </div>
-      <footer className="py-4">
+      <footer className="py-8">
         <p className="text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} {settings.schoolName || "Hilton Convent School"}. All rights reserved.
         </p>

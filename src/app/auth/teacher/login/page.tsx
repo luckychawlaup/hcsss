@@ -5,36 +5,42 @@ import LoginForm from "@/components/auth/LoginForm";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function TeacherLoginPage() {
     const { settings } = useTheme();
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md flex-1 flex flex-col justify-center">
-        <div className="flex flex-col items-center justify-center mb-8">
-          <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4" />
-          <h1 className="text-3xl font-bold text-center text-primary">Teacher Portal</h1>
-          <p className="text-center text-muted-foreground mt-2">
-            Sign in with the details provided by the school.
-          </p>
-        </div>
-        <LoginForm role="teacher" />
-
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p className="mt-2">
-                <Link href="/auth/teacher/forgot-password"className="text-xs font-medium text-primary hover:underline">
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
+       <div className="w-full max-w-md">
+        <Card className="shadow-lg">
+           <CardHeader className="items-center text-center">
+              <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
+              <CardTitle className="text-2xl font-bold text-primary">Teacher Portal</CardTitle>
+              <CardDescription>
+                Sign in with the details provided by the school.
+              </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <LoginForm role="teacher" />
+          </CardContent>
+          <CardFooter className="flex flex-col items-center gap-4 p-6 pt-0">
+             <p className="text-sm text-muted-foreground">
+                <Link href="/auth/teacher/forgot-password"className="font-medium text-primary hover:underline">
                     Forgot Password?
                 </Link>
             </p>
-             <p className="mt-4">
-                <Link href="/login" className="text-xs font-medium text-primary hover:underline">
+             <Button variant="link" asChild className="text-muted-foreground">
+                <Link href="/login">
+                    <ArrowLeft className="mr-2"/>
                     Go back to role selection
                 </Link>
-            </p>
-        </div>
-
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
-      <footer className="py-4">
+       <footer className="py-8">
         <p className="text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} {settings.schoolName || "Hilton Convent School"}. All rights reserved.
         </p>
