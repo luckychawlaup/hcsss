@@ -17,12 +17,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle, Mail } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "@/components/theme/ThemeProvider";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 const updatePasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters long."),
@@ -42,13 +42,11 @@ function UpdatePasswordContent() {
   const { settings } = useTheme();
   const router = useRouter();
 
-
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // This will be triggered when the user is redirected back from the email link.
       if (event === "PASSWORD_RECOVERY") {
-        // At this point, the user has a temporary session and can update their password.
-        // We don't need to do anything here, just let the form handle the update.
+        // Supabase client has handled the token from the URL.
+        // The form can now be used to update the password.
       } else if (event === "USER_UPDATED") {
           // After a successful password update, sign the user out to force a fresh login.
           await supabase.auth.signOut();

@@ -17,11 +17,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getStudentByEmail } from "@/lib/supabase/students";
 import { getTeacherByEmail } from "@/lib/supabase/teachers";
-import { useRouter } from "next/navigation";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -33,10 +32,10 @@ interface ForgotPasswordFormProps {
 
 export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const supabase = createClient();
-  const router = useRouter();
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -48,6 +47,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
   async function onSubmit(values: z.infer<typeof forgotPasswordSchema>) {
     setIsLoading(true);
     setError(null);
+    setIsSuccess(false);
 
     try {
       // First, check if the user exists in our database
@@ -70,7 +70,11 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
 
       if(resetError) throw resetError;
       
-      router.push(`/auth/verify-otp?email=${encodeURIComponent(values.email)}`);
+      setIsSuccess(true);
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Please check your inbox for a link to reset your password.",
+      });
 
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
@@ -83,6 +87,18 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
     }
   }
   
+  if (isSuccess) {
+    return (
+        <Alert variant="default" className="bg-primary/10 border-primary/20">
+            <CheckCircle className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary">Check your email!</AlertTitle>
+            <AlertDescription>
+                A password reset link has been sent to your registered email address. Please follow the instructions in the email to continue.
+            </AlertDescription>
+        </Alert>
+    )
+  }
+
   return (
     <>
       {error && (
@@ -113,7 +129,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
           />
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Send Reset Code
+            Send Reset Link
           </Button>
         </form>
       </Form>

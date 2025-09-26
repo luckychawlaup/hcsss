@@ -27,7 +27,6 @@ const publicPaths = [
     "/auth/teacher/forgot-password",
     "/auth/update-password",
     "/auth/callback",
-    "/auth/verify-otp",
 ];
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
