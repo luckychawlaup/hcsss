@@ -61,12 +61,12 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
      const channel = supabase.channel('teacher-leaves')
         .on('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION },
         async () => {
-            const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('teacher_id', teacherIds).order('appliedAt', { ascending: false });
+            const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('teacherId', teacherIds).order('appliedAt', { ascending: false });
             if (data) callback(data);
         }).subscribe();
 
     (async () => {
-        const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('teacher_id', teacherIds).order('appliedAt', { ascending: false });
+        const { data, error } = await supabase.from(LEAVES_COLLECTION).select('*').in('teacherId', teacherIds).order('appliedAt', { ascending: false });
         if (data) callback(data);
     })();
 

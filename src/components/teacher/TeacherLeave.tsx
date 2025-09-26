@@ -143,7 +143,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     const endDate = (values.dateRange.to || values.dateRange.from).toISOString();
 
     const newLeave: Omit<LeaveRequest, "id"> = {
-      userId: teacher.id,
+      user_id: teacher.id,
       userName: teacher.name,
       userRole: "Teacher",
       startDate,
