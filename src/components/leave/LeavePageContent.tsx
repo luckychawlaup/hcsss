@@ -27,7 +27,6 @@ import {
   Send,
   History,
   AlertCircle,
-  Clock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -74,7 +73,6 @@ export default function LeavePageContent() {
   const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
   const supabase = createClient();
-  const [isHalfDayLoading, setIsHalfDayLoading] = useState(false);
 
 
   useEffect(() => {
@@ -111,31 +109,7 @@ export default function LeavePageContent() {
     },
   });
 
-  const {
-    formState: { isSubmitting },
-  } = form;
-
-  async function handleLeaveSubmit(values: Omit<LeaveRequest, 'id'>) {
-     try {
-        await addLeaveRequest(values);
-        toast({
-            title: "Leave Application Submitted",
-            description: "Your leave request has been sent for approval.",
-        });
-        form.reset({
-            startDate: "",
-            endDate: "",
-            reason: "",
-            document: undefined
-        });
-        const fileInput = document.getElementById('leave-document') as HTMLInputElement;
-        if (fileInput) {
-            fileInput.value = '';
-        }
-    } catch(error) {
-         toast({ variant: 'destructive', title: "Submission Failed", description: "Could not submit your leave request. Please try again."});
-    }
-  }
+  const { formState: { isSubmitting }, handleSubmit, reset } = form;
 
   async function onSubmit(values: z.infer<typeof leaveSchema>) {
     if(!currentUser || !currentStudent) {
@@ -154,30 +128,28 @@ export default function LeavePageContent() {
         status: "Pending",
         appliedAt: new Date().toISOString(),
     }
-    await handleLeaveSubmit(newLeave);
+    
+     try {
+        await addLeaveRequest(newLeave);
+        toast({
+            title: "Leave Application Submitted",
+            description: "Your leave request has been sent for approval.",
+        });
+        reset({
+            startDate: "",
+            endDate: "",
+            reason: "",
+            document: undefined
+        });
+        const fileInput = document.getElementById('leave-document') as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    } catch(error) {
+         toast({ variant: 'destructive', title: "Submission Failed", description: "Could not submit your leave request. Please try again."});
+    }
   }
 
-  const handleHalfDayLeave = async () => {
-    if(!currentUser || !currentStudent) {
-        toast({ variant: 'destructive', title: "Error", description: "You must be logged in to apply for leave."});
-        return;
-    }
-    setIsHalfDayLoading(true);
-    const today = new Date().toISOString();
-    const newLeave: Omit<LeaveRequest, 'id'> = {
-        user_id: currentStudent.id,
-        userName: currentStudent.name,
-        class: `${currentStudent.class}-${currentStudent.section}`,
-        userRole: "Student",
-        startDate: today,
-        endDate: today,
-        reason: "Half Day Leave",
-        status: "Pending",
-        appliedAt: today,
-    }
-    await handleLeaveSubmit(newLeave);
-    setIsHalfDayLoading(false);
-  }
 
   return (
     <div className="space-y-8 p-4 sm:p-6 lg:p-8">
@@ -187,7 +159,7 @@ export default function LeavePageContent() {
         </CardHeader>
         <CardContent className="p-0 mt-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -247,34 +219,19 @@ export default function LeavePageContent() {
                   </FormItem>
                 )}
               />
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button type="submit" disabled={isSubmitting || isHalfDayLoading} className="w-full">
-                    {isSubmitting ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Submitting...
-                    </>
-                    ) : (
-                    <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Submit Full Day Request
-                    </>
-                    )}
-                </Button>
-                 <Button type="button" variant="outline" onClick={handleHalfDayLeave} disabled={isSubmitting || isHalfDayLoading} className="w-full">
-                    {isHalfDayLoading ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Submitting...
-                    </>
-                    ) : (
-                    <>
-                        <Clock className="mr-2 h-4 w-4" />
-                        Apply for Half Day
-                    </>
-                    )}
-                </Button>
-              </div>
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                </>
+                ) : (
+                <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Submit Request
+                </>
+                )}
+              </Button>
             </form>
           </Form>
         </CardContent>
