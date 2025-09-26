@@ -10,6 +10,35 @@ import { Separator } from "@/components/ui/separator";
 
 export default function RoleSelectionPage() {
   const { settings } = useTheme();
+  
+  const RoleCard = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string }) => (
+    <Link href={href} className="block">
+      <div className="flex flex-col items-center justify-center text-center gap-2 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50 h-full">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Icon className="h-6 w-6" />
+        </div>
+        <div>
+          <h2 className="text-md font-semibold text-foreground">{title}</h2>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+    </Link>
+  );
+
+  const ActionCard = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string }) => (
+     <Link href={href} className="block">
+        <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="h-6 w-6" />
+            </div>
+            <div>
+                <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+                <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+        </div>
+    </Link>
+  )
+
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md">
@@ -22,51 +51,13 @@ export default function RoleSelectionPage() {
         </div>
         
         <Card className="shadow-lg">
-          <CardContent className="space-y-4 p-6">
-              <Link href="/auth/student/login" className="block">
-                  <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <User className="h-6 w-6" />
-                      </div>
-                      <div>
-                          <h2 className="text-lg font-semibold text-foreground">I am a Student</h2>
-                          <p className="text-sm text-muted-foreground">Sign in to your student dashboard.</p>
-                      </div>
-                  </div>
-              </Link>
-              <Link href="/auth/teacher/login" className="block">
-                  <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <Briefcase className="h-6 w-6" />
-                      </div>
-                      <div>
-                          <h2 className="text-lg font-semibold text-foreground">I am a Teacher</h2>
-                          <p className="text-sm text-muted-foreground">Access your teacher portal.</p>
-                      </div>
-                  </div>
-              </Link>
-              <Link href="/auth/principal/login" className="block">
-                  <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover-border-primary/50 hover:bg-accent/50">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <School className="h-6 w-6" />
-                      </div>
-                      <div>
-                          <h2 className="text-lg font-semibold text-foreground">I am the Principal</h2>
-                          <p className="text-sm text-muted-foreground">Access the admin dashboard.</p>
-                      </div>
-                  </div>
-              </Link>
-              <Link href="/auth/owner/login" className="block">
-                  <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover-border-primary/50 hover:bg-accent/50">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <Crown className="h-6 w-6" />
-                      </div>
-                      <div>
-                          <h2 className="text-lg font-semibold text-foreground">I am the Owner</h2>
-                          <p className="text-sm text-muted-foreground">Access the owner's dashboard.</p>
-                      </div>
-                  </div>
-              </Link>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-2 gap-4">
+                <RoleCard href="/auth/student/login" icon={User} title="Student" description="Student Portal" />
+                <RoleCard href="/auth/teacher/login" icon={Briefcase} title="Teacher" description="Teacher Portal" />
+                <RoleCard href="/auth/principal/login" icon={School} title="Principal" description="Admin Dashboard" />
+                <RoleCard href="/auth/owner/login" icon={Crown} title="Owner" description="Owner Dashboard" />
+            </div>
           </CardContent>
         </Card>
         
@@ -78,28 +69,8 @@ export default function RoleSelectionPage() {
 
         <Card className="shadow-lg">
            <CardContent className="space-y-4 p-6">
-               <Link href="/apply/teacher" className="block">
-                  <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <ClipboardSignature className="h-6 w-6" />
-                      </div>
-                      <div>
-                          <h2 className="text-lg font-semibold text-foreground">Apply for a Job</h2>
-                          <p className="text-sm text-muted-foreground">Submit your application for a teaching position.</p>
-                      </div>
-                  </div>
-              </Link>
-              <Link href="/apply/student" className="block">
-                  <div className="flex items-center gap-4 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <FilePenLine className="h-6 w-6" />
-                      </div>
-                      <div>
-                          <h2 className="text-lg font-semibold text-foreground">New Admission Registration</h2>
-                          <p className="text-sm text-muted-foreground">Apply for the new admission entrance test.</p>
-                      </div>
-                  </div>
-              </Link>
+               <ActionCard href="/apply/teacher" icon={ClipboardSignature} title="Apply for a Job" description="Submit your application for a teaching position." />
+               <ActionCard href="/apply/student" icon={FilePenLine} title="New Admission Registration" description="Apply for the new admission entrance test." />
           </CardContent>
         </Card>
       </div>
