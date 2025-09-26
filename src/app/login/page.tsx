@@ -7,6 +7,7 @@ import { User, Briefcase, School, Crown, ClipboardSignature, FilePenLine } from 
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 export default function RoleSelectionPage() {
   const { settings } = useTheme();
@@ -44,7 +45,10 @@ export default function RoleSelectionPage() {
       <div className="flex w-full max-w-md flex-1 flex-col justify-center">
         <div className="mb-8 flex flex-col items-center justify-center">
           <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={90} height={90} className="mb-4 rounded-full" />
-          <h1 className="text-center text-3xl font-bold text-primary">HCSSS</h1>
+           <div className="flex items-center gap-2">
+            <h1 className="text-center text-3xl font-bold text-primary">HCSSS</h1>
+            <Badge variant="outline" className="border-primary/50 text-primary">Beta</Badge>
+          </div>
           <p className="mt-2 text-center text-muted-foreground">
             Welcome! Please select your role to sign in.
           </p>
