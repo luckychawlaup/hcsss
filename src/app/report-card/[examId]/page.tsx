@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState, Suspense } from 'react';
-import { useParams, notFound } from 'next/navigation';
+import { useParams, notFound, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { User } from "@supabase/supabase-js";
 import { createClient } from '@/lib/supabase/client';
 import { getStudentByAuthId, Student } from '@/lib/supabase/students';
@@ -14,6 +15,8 @@ import Image from 'next/image';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+
 
 function ReportCardSkeleton() {
     return (
@@ -32,6 +35,7 @@ function ReportCardContent() {
 
     const { settings } = useTheme();
     const params = useParams();
+    const router = useRouter();
     const examId = params.examId as string;
     const supabase = createClient();
 
@@ -80,12 +84,18 @@ function ReportCardContent() {
     const totalMaxMarks = marks.reduce((acc, m) => acc + m.maxMarks, 0);
     const overallPercentage = totalMaxMarks > 0 ? (totalMarksObtained / totalMaxMarks) * 100 : 0;
     
+    const hasFailedAnySubject = marks.some(m => (m.marks / m.maxMarks) < 0.33);
+    
     const getResultStatus = () => {
-        const failingGrades = ['E'];
-        const hasFailed = marks.some(m => failingGrades.includes(m.grade));
-        return hasFailed ? { text: "NEEDS IMPROVEMENT", color: "text-red-500" } : { text: "PASS", color: "text-green-600" };
+        return hasFailedAnySubject ? { text: "NEEDS IMPROVEMENT", color: "text-red-500" } : { text: "PASS", color: "text-green-600" };
     }
     const resultStatus = getResultStatus();
+
+    const getSubjectStatus = (marks: number, maxMarks: number) => {
+        if (maxMarks === 0) return { text: "N/A", variant: "secondary" as const };
+        const percentage = (marks / maxMarks) * 100;
+        return percentage >= 33 ? { text: "Pass", variant: "default" as const } : { text: "Fail", variant: "destructive" as const };
+    }
 
     if (isLoading) return <ReportCardSkeleton />;
     if (!student || !exam) return notFound();
@@ -139,23 +149,31 @@ function ReportCardContent() {
                                 <TableHead className="text-center">Max Marks</TableHead>
                                 <TableHead className="text-center">Marks Obtained</TableHead>
                                 <TableHead className="text-center">Grade</TableHead>
+                                <TableHead className="text-center">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {marks.map(m => (
-                                <TableRow key={m.subject}>
-                                    <TableCell className="font-medium">{m.subject}</TableCell>
-                                    <TableCell className="text-center">{m.maxMarks}</TableCell>
-                                    <TableCell className="text-center">{m.marks}</TableCell>
-                                    <TableCell className="text-center font-semibold">{m.grade}</TableCell>
-                                </TableRow>
-                            ))}
+                            {marks.map(m => {
+                                const subjectStatus = getSubjectStatus(m.marks, m.maxMarks);
+                                return (
+                                    <TableRow key={m.subject}>
+                                        <TableCell className="font-medium">{m.subject}</TableCell>
+                                        <TableCell className="text-center">{m.maxMarks}</TableCell>
+                                        <TableCell className="text-center">{m.marks}</TableCell>
+                                        <TableCell className="text-center font-semibold">{m.grade}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant={subjectStatus.variant}>{subjectStatus.text}</Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
                         </TableBody>
                         <TableFooter>
                             <TableRow className="bg-secondary">
                                 <TableCell className="font-bold">Total</TableCell>
                                 <TableCell className="text-center font-bold">{totalMaxMarks}</TableCell>
                                 <TableCell className="text-center font-bold">{totalMarksObtained}</TableCell>
+                                <TableCell />
                                 <TableCell />
                             </TableRow>
                         </TableFooter>
