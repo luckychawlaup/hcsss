@@ -22,104 +22,46 @@ CREATE TABLE IF NOT EXISTS public.exams (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create teachers table
-CREATE TABLE IF NOT EXISTS public.teachers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    email TEXT UNIQUE,
-    subject TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Create students table
-CREATE TABLE IF NOT EXISTS public.students (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    email TEXT UNIQUE,
-    student_key TEXT UNIQUE,
-    class TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Create settings table
-CREATE TABLE IF NOT EXISTS public.settings (
-    id TEXT PRIMARY KEY,
-    value JSONB NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Enable RLS (Row Level Security) - Optional but recommended
+-- Enable RLS (Row Level Security)
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
--- Create permissive policies for development (adjust for production)
 -- Drop existing policies if they exist, then recreate them
-DO $ 
-BEGIN
-    -- Drop existing policies if they exist
-    DROP POLICY IF EXISTS "Allow all operations on exams" ON public.exams;
-    DROP POLICY IF EXISTS "Allow all operations on teachers" ON public.teachers;
-    DROP POLICY IF EXISTS "Allow all operations on students" ON public.students;
-    DROP POLICY IF EXISTS "Allow all operations on settings" ON public.settings;
-    
-    -- Create new policies
-    CREATE POLICY "Allow all operations on exams" ON public.exams FOR ALL USING (true);
-    CREATE POLICY "Allow all operations on teachers" ON public.teachers FOR ALL USING (true);
-    CREATE POLICY "Allow all operations on students" ON public.students FOR ALL USING (true);
-    CREATE POLICY "Allow all operations on settings" ON public.settings FOR ALL USING (true);
-END $;
+DROP POLICY IF EXISTS "Allow all operations on exams" ON public.exams;
+DROP POLICY IF EXISTS "Allow authenticated users to manage exams" ON public.exams;
 
--- Insert default school settings
-INSERT INTO public.settings (id, value) VALUES 
-('school_settings', '{"school_name": "My School", "academic_year": "2024-2025"}')
-ON CONFLICT (id) DO NOTHING;
+-- Create new policy that allows any authenticated user to manage exams
+CREATE POLICY "Allow authenticated users to manage exams"
+ON public.exams FOR ALL
+USING (auth.role() = 'authenticated');
 `;
 
 // Helper function to check if tables exist
 export const checkTablesExist = async (): Promise<{
     exams: boolean;
-    teachers: boolean;
-    students: boolean;
-    settings: boolean;
 }> => {
     const results = {
         exams: false,
-        teachers: false,
-        students: false,
-        settings: false
     };
 
     try {
-        // Test each table
-        const tables = ['exams', 'teachers', 'students', 'settings'];
+        const { error } = await supabase
+            .from('exams')
+            .select('*')
+            .limit(0);
         
-        for (const table of tables) {
-            try {
-                const { error } = await supabase
-                    .from(table)
-                    .select('*')
-                    .limit(0);
-                
-                results[table as keyof typeof results] = !error;
-                
-                if (error) {
-                    console.log(`Table '${table}' check result:`, {
-                        exists: false,
-                        code: error.code,
-                        message: error.message
-                    });
-                } else {
-                    console.log(`✅ Table '${table}' exists`);
-                }
-            } catch (e) {
-                console.log(`❌ Table '${table}' does not exist or is inaccessible`);
-            }
+        results.exams = !error;
+        
+        if (error) {
+            console.log(`Table 'exams' check result:`, {
+                exists: false,
+                code: error.code,
+                message: error.message
+            });
+        } else {
+            console.log(`✅ Table 'exams' exists`);
         }
     } catch (e) {
-        console.error("Error checking tables:", e);
+        console.log(`❌ Table 'exams' does not exist or is inaccessible`);
     }
 
     return results;
@@ -130,7 +72,7 @@ export const showSetupInstructions = () => {
     console.log(`
 🔧 SUPABASE SETUP REQUIRED 🔧
 
-Your Supabase database tables don't exist yet. Please follow these steps:
+Your Supabase database table for exams has a permission issue. Please follow these steps to fix it:
 
 1. Go to your Supabase project dashboard
 2. Click on "SQL Editor" in the left sidebar
@@ -168,7 +110,7 @@ const fetchAndCallbackExams = async (callback: (exams: Exam[]) => void) => {
         const { data, error } = await supabase.from(EXAMS_COLLECTION).select('*');
         
         if (error) {
-            if (error.code === 'PGRST106') {
+            if (error.code === '42P01') { // relation does not exist
                 console.error("❌ Exams table doesn't exist. Please run the setup SQL first.");
                 showSetupInstructions();
             } else {
@@ -189,7 +131,6 @@ export const prepopulateExams = async (): Promise<boolean> => {
     try {
         console.log("🚀 Starting exam prepopulation process...");
         
-        // First check if tables exist
         const tablesStatus = await checkTablesExist();
         
         if (!tablesStatus.exams) {
@@ -200,60 +141,23 @@ export const prepopulateExams = async (): Promise<boolean> => {
             return false;
         }
         
-        // Check if exams already exist
         const { data: existingExams, error: fetchError } = await supabase
             .from(EXAMS_COLLECTION)
             .select('id')
             .limit(1);
 
         if (fetchError) {
-            console.error("Error checking existing exams:", {
-                code: fetchError.code,
-                message: fetchError.message,
-                details: fetchError.details
-            });
+            console.error("Error checking existing exams:", fetchError);
             return false;
         }
 
+        // We are ensuring no default exams are added.
         if (existingExams && existingExams.length > 0) {
-            console.log("✅ Exams already exist, skipping prepopulation");
-            return true;
-        }
-
-        // Prepopulate with initial data - REMOVED DEFAULT EXAMS
-        const initialExams:any[] = [];
-        
-        if (initialExams.length === 0) {
-            console.log("✅ No default exams to add. Skipping prepopulation.");
+            console.log("✅ Exams table contains data, skipping prepopulation.");
             return true;
         }
         
-        console.log("📝 Inserting initial exams:", initialExams);
-        
-        const { data, error } = await supabase
-            .from(EXAMS_COLLECTION)
-            .insert(initialExams)
-            .select();
-        
-        if (error) {
-            console.error("❌ Error prepopulating exams:", {
-                code: error.code,
-                message: error.message,
-                details: error.details,
-                hint: error.hint
-            });
-            
-            // Provide specific guidance based on error codes
-            if (error.code === 'PGRST106') {
-                showSetupInstructions();
-            } else if (error.code === '42703') {
-                console.error("Column mismatch detected. Please verify your table schema matches the expected structure.");
-            }
-            
-            return false;
-        }
-        
-        console.log("✅ Successfully prepopulated exams:", data);
+        console.log("✅ Exams table is empty. No default exams to add.");
         return true;
         
     } catch (e) {
@@ -268,17 +172,18 @@ export const addExam = async (exam: Omit<Exam, 'id' | 'created_at'>): Promise<Ex
         const { data, error } = await supabase
             .from(EXAMS_COLLECTION)
             .insert([exam])
-            .select();
+            .select()
+            .single(); // Using single() as we are inserting one record and expect one back.
         
         if (error) {
-            console.error("Error adding exam:", error);
-            throw error;
+            // Throw a more informative error
+            throw new Error(error.message || `Database error: ${error.details}`);
         }
         
-        return data?.[0] || null;
-    } catch (e) {
-        console.error("Unexpected error adding exam:", e);
-        throw e;
+        return data;
+    } catch (e: any) {
+        console.error("Unexpected error adding exam:", e.message);
+        throw e; // Re-throw the error to be caught by the calling function
     }
 };
 
@@ -333,12 +238,9 @@ export const initializeDatabase = async (): Promise<boolean> => {
     console.log("🔄 Checking database initialization...");
     
     const tablesStatus = await checkTablesExist();
-    const missingTables = Object.entries(tablesStatus)
-        .filter(([_, exists]) => !exists)
-        .map(([table, _]) => table);
     
-    if (missingTables.length > 0) {
-        console.error(`❌ Missing tables: ${missingTables.join(', ')}`);
+    if (!tablesStatus.exams) {
+        console.error(`❌ Missing table: exams`);
         showSetupInstructions();
         return false;
     }
