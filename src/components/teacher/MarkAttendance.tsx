@@ -44,20 +44,20 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   useEffect(() => {
     if (classTeacherOf && attendanceDate) {
         setIsFetching(true);
-        console.log(`Loading attendance for ${classTeacherOf} on ${attendanceDate}`);
         getAttendanceForDate(classTeacherOf, attendanceDate)
             .then(records => {
-                console.log(`Fetched attendance records:`, records);
-                const fetchedAttendance: Record<string, AttendanceStatus> = {};
-                // First set all students to present by default
+                const newAttendanceState: Record<string, AttendanceStatus> = {};
+                // Default all to present
                 studentsInClass.forEach(student => {
-                    fetchedAttendance[student.id] = 'present';
+                    newAttendanceState[student.id] = 'present';
                 });
-                // Then overwrite with actual records from DB
+                // Overwrite with fetched records
                 records.forEach(record => {
-                    fetchedAttendance[record.student_id] = record.status;
+                    if (newAttendanceState.hasOwnProperty(record.student_id)) {
+                        newAttendanceState[record.student_id] = record.status;
+                    }
                 });
-                setAttendance(fetchedAttendance);
+                setAttendance(newAttendanceState);
             })
             .catch(error => {
                 console.error("Error loading attendance:", error);
@@ -69,7 +69,7 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
             })
             .finally(() => setIsFetching(false));
     }
-  }, [attendanceDate, classTeacherOf, studentsInClass.length]); // depends on length to refetch if students are added/removed
+  }, [attendanceDate, classTeacherOf]); 
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -104,7 +104,6 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
             marked_by: teacher.id
         }));
         
-        console.log("Submitting attendance data:", attendanceData);
         await setAttendance(attendanceData);
         
         toast({
