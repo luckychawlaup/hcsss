@@ -47,7 +47,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
     const [exams, setExams] = useState<Exam[]>([]);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-    const [marks, setMarks] = useState<Record<string, { marks: number | undefined, subject: string }>>({});
+    const [marks, setMarks] = useState<Record<string, { marks?: number, maxMarks?: number, subject: string }>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFetchingMarks, setIsFetchingMarks] = useState(false);
     const [isCreateExamOpen, setIsCreateExamOpen] = useState(false);
@@ -79,14 +79,14 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
         if (selectedStudent && selectedExam) {
             setIsFetchingMarks(true);
             getStudentMarksForExam(selectedStudent.auth_uid, selectedExam.id).then(existingMarks => {
-                const marksMap: Record<string, { marks: number | undefined, subject: string }> = {};
+                const marksMap: Record<string, { marks?: number, maxMarks?: number, subject: string }> = {};
                 existingMarks.forEach(mark => {
-                    marksMap[mark.subject] = { marks: mark.marks, subject: mark.subject };
+                    marksMap[mark.subject] = { marks: mark.marks, maxMarks: mark.maxMarks, subject: mark.subject };
                 });
                 // Also prepopulate with student's opted subjects
                 (selectedStudent.opted_subjects || []).forEach(subject => {
                     if (!marksMap[subject]) {
-                        marksMap[subject] = { marks: undefined, subject: subject };
+                        marksMap[subject] = { marks: undefined, maxMarks: 100, subject: subject };
                     }
                 })
 
@@ -100,7 +100,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
         const newSubjectName = `Subject${Object.keys(marks).length + 1}`;
         setMarks(prev => ({
             ...prev,
-            [newSubjectName]: { marks: undefined, subject: newSubjectName }
+            [newSubjectName]: { marks: undefined, maxMarks: 100, subject: newSubjectName }
         }));
     };
     
@@ -126,10 +126,21 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
     const handleMarksChange = (subject: string, value: string) => {
         const newMarks = { ...marks };
         const numValue = parseInt(value, 10);
-        if (!isNaN(numValue) && numValue >= 0 && numValue <= (selectedExam?.max_marks || 100)) {
+        if (!isNaN(numValue) && numValue >= 0) {
             newMarks[subject].marks = numValue;
         } else if (value === '') {
             newMarks[subject].marks = undefined;
+        }
+        setMarks(newMarks);
+    };
+
+    const handleMaxMarksChange = (subject: string, value: string) => {
+        const newMarks = { ...marks };
+        const numValue = parseInt(value, 10);
+        if (!isNaN(numValue) && numValue > 0) {
+            newMarks[subject].maxMarks = numValue;
+        } else if (value === '') {
+            newMarks[subject].maxMarks = undefined;
         }
         setMarks(newMarks);
     };
@@ -151,7 +162,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
             const marksData = validMarks.map(m => ({
                 subject: m.subject,
                 marks: m.marks || 0,
-                maxMarks: selectedExam.max_marks
+                maxMarks: m.maxMarks || 100
             }));
             await setMarksForStudent(selectedStudent.auth_uid, selectedExam.id, marksData);
             toast({ title: "Marks Saved!", description: `Marks for ${selectedStudent.name} have been successfully saved.` });
@@ -173,7 +184,6 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
             const newExam = await addExam({
                 name: values.name,
                 date: new Date().toISOString(),
-                max_marks: 100, // Default max marks
             });
             if (newExam) {
                 toast({ title: "Exam Created", description: `${newExam.name} has been added.`});
@@ -251,15 +261,26 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                                           placeholder="Subject Name"
                                         />
                                     </div>
-                                     <div>
+                                     <div className="w-24">
                                         <Label htmlFor={`marks-${key}`}>Marks</Label>
                                         <Input 
                                             id={`marks-${key}`}
                                             type="number"
-                                            placeholder={`/${selectedExam.max_marks}`}
+                                            placeholder="e.g. 85"
                                             value={value.marks ?? ''}
                                             onChange={(e) => handleMarksChange(key, e.target.value)}
-                                            max={selectedExam.max_marks}
+                                            max={value.maxMarks || 100}
+                                            min={0}
+                                        />
+                                    </div>
+                                    <div className="w-24">
+                                        <Label htmlFor={`max-marks-${key}`}>Max Marks</Label>
+                                        <Input 
+                                            id={`max-marks-${key}`}
+                                            type="number"
+                                            placeholder="e.g. 100"
+                                            value={value.maxMarks ?? ''}
+                                            onChange={(e) => handleMaxMarksChange(key, e.target.value)}
                                             min={0}
                                         />
                                     </div>
@@ -284,7 +305,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Create New Exam</DialogTitle>
-                        <DialogDescription>Define a new exam for which you can record marks. Max marks will be set to 100.</DialogDescription>
+                        <DialogDescription>Define a new exam for which you can record marks.</DialogDescription>
                     </DialogHeader>
                     <FormProvider {...createExamForm}>
                         <form onSubmit={createExamForm.handleSubmit(handleCreateExam)} className="space-y-4">

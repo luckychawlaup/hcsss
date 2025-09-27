@@ -8,7 +8,6 @@ export interface Exam {
     id: string;
     name: string;
     date: string;
-    max_marks: number;
     created_at?: string;
 }
 
@@ -19,7 +18,6 @@ CREATE TABLE IF NOT EXISTS public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     date TIMESTAMPTZ NOT NULL,
-    max_marks INTEGER NOT NULL DEFAULT 100,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -226,12 +224,10 @@ export const prepopulateExams = async (): Promise<boolean> => {
             { 
                 name: "Mid-Term Exam 2024", 
                 date: "2024-09-15T10:00:00Z", 
-                max_marks: 100 
             },
             { 
                 name: "Final Exam 2024", 
                 date: "2025-03-10T10:00:00Z", 
-                max_marks: 100 
             },
         ];
         
