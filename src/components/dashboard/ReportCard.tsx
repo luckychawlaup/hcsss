@@ -20,24 +20,20 @@ export default function ReportCardComponent() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [marks, setMarks] = useState<Record<string, Mark[]>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  const supabase = createClient();
 
   useEffect(() => {
+    const supabase = createClient();
     const fetchData = async () => {
       setIsLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
-          setUserId(null);
           setExams([]);
           setMarks({});
+          setIsLoading(false);
           return;
         }
-
-        setUserId(user.id);
 
         const [allExams, studentMarks] = await Promise.all([
           new Promise<Exam[]>((resolve) => {
@@ -62,7 +58,7 @@ export default function ReportCardComponent() {
     };
 
     fetchData();
-  }, [supabase]);
+  }, []);
 
   const availableReportCards = exams
     .filter((exam) => marks[exam.id] && marks[exam.id].length > 0)

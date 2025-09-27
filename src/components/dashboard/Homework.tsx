@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -107,7 +108,7 @@ export default function Homework() {
         supabase.removeChannel(channel);
       }
     };
-  }, []); // Remove supabase dependency to prevent recreation
+  }, []);
 
   const groupedHomework = useMemo(() => {
     if (!homeworks.length) return {};

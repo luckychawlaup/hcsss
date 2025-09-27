@@ -119,8 +119,7 @@ export const getHomeworks = (
     fetchAndCallback();
 
     // Set up real-time subscription
-    const dateFilterSuffix = options?.dateFilter === 'today' ? 'today' : (typeof options?.dateFilter === 'number' ? `last${options.dateFilter}days` : 'all');
-    const channelName = `homework-${classSection.replace('-', '_')}-${dateFilterSuffix}`;
+    const channelName = `homework-${classSection.replace('-', '_')}`;
 
     console.log('Setting up real-time channel:', channelName);
     

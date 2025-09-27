@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -105,7 +106,7 @@ export default function TodayHomework() {
         supabase.removeChannel(channel);
       }
     };
-  }, []); // Remove supabase dependency to prevent recreation
+  }, []);
 
   if (error) {
     return (
