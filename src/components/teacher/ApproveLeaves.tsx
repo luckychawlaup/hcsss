@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from "react";
@@ -212,7 +213,7 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                         </Alert>
                     )}
                 </CardContent>
-                <CardFooter className="flex flex-wrap gap-2 sm:justify-end">
+                <CardFooter className="flex flex-wrap gap-2 justify-end">
                     {leave.document_url && (
                         <Button asChild variant="secondary" size="sm">
                             <Link href={leave.document_url} target="_blank">
@@ -324,5 +325,3 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
     </>
   );
 }
-
-    

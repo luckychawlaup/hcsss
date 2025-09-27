@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -135,7 +136,8 @@ export default function LeavePageContent() {
     
     setIsSubmitting(true);
     try {
-        const newLeave: Omit<LeaveRequest, 'id' | 'user_id' | 'document_url'> = {
+        const newLeave: Omit<LeaveRequest, 'id' | 'document_url'> = {
+            user_id: currentStudent.auth_uid,
             userName: currentStudent.name,
             class: `${currentStudent.class}-${currentStudent.section}`,
             userRole: "Student",
@@ -304,5 +306,3 @@ export default function LeavePageContent() {
     </div>
   );
 }
-
-    

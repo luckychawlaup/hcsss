@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 const LEAVES_COLLECTION = 'leaves';
@@ -301,5 +302,3 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
 
     return channel;
 };
-
-    

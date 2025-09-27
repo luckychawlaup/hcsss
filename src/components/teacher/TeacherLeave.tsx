@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -87,12 +88,12 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
     let channel: any;
     if (teacher) {
         setIsLoading(true);
+        const supabase = createClient();
         channel = getLeaveRequestsForUser(teacher.auth_uid, (leaves) => {
             setPastLeaves(leaves || []);
             setIsLoading(false);
@@ -102,7 +103,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     }
     return () => {
         if (channel) {
-            supabase.removeChannel(channel);
+            channel.unsubscribe();
         }
     };
   }, [teacher]);
@@ -343,5 +344,3 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     </div>
   );
 }
-
-    
