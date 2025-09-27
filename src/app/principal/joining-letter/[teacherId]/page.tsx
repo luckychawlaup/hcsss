@@ -65,7 +65,7 @@ export default function JoiningLetterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:bg-white print:p-0">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:p-0">
         <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:hidden">
             <h1 className="text-[12rem] font-bold text-gray-200/50 transform -rotate-45 select-none whitespace-nowrap">
                 {settings.schoolName || "Hilton Convent School"}
@@ -106,7 +106,7 @@ export default function JoiningLetterPage() {
         <div className="flex items-center justify-between mt-8">
             <div/>
             <div className="flex flex-col items-end">
-                 <p className="font-semibold">{new Date(teacher.joiningDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                 <p className="font-semibold">{new Date(teacher.joining_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                  <div className="print:hidden mt-2">
                     <Button onClick={handlePrint}><Printer className="mr-2"/>Print Letter</Button>
                 </div>
@@ -125,11 +125,11 @@ export default function JoiningLetterPage() {
             <p className="mt-8">Dear {teacher.name},</p>
 
             <p className="mt-4">
-                We are pleased to offer you the position of <strong>{teacher.subject} Teacher</strong> at {settings.schoolName || "Hilton Convent School"}, effective from {new Date(teacher.joiningDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
+                We are pleased to offer you the position of <strong>{teacher.subject} Teacher</strong> at {settings.schoolName || "Hilton Convent School"}, effective from {new Date(teacher.joining_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
             </p>
 
             <p className="mt-4">
-                Your role as a {teacher.role === 'classTeacher' ? `Class Teacher for ${teacher.classTeacherOf}`: 'Subject Teacher'} will be integral to our academic team. We were impressed with your qualifications and believe your expertise will be a valuable asset to our students and the school community.
+                Your role as a {teacher.role === 'classTeacher' ? `Class Teacher for ${teacher.class_teacher_of}`: 'Subject Teacher'} will be integral to our academic team. We were impressed with your qualifications and believe your expertise will be a valuable asset to our students and the school community.
             </p>
 
             <p className="mt-4">
@@ -184,5 +184,3 @@ export default function JoiningLetterPage() {
     </div>
   );
 }
-
-    

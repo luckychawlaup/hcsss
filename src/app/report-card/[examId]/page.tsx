@@ -114,7 +114,7 @@ function ReportCardContent() {
     }
 
     return (
-        <div className="bg-muted/40 p-4 sm:p-8 print:bg-white print:p-0">
+        <div className="bg-muted/40 p-4 sm:p-8 print:p-0">
             <div className="mx-auto max-w-4xl bg-card p-6 sm:p-10 shadow-lg print:shadow-none relative z-10 border rounded-lg">
                 <header className="flex items-start justify-between pb-4 border-b-2 border-primary">
                     <div className="flex-shrink-0">

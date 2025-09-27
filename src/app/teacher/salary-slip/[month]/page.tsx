@@ -86,7 +86,7 @@ function SalarySlipContent() {
   }
 
   return (
-    <div className="bg-gray-100 p-4 sm:p-8 print:bg-white print:p-0">
+    <div className="bg-gray-100 p-4 sm:p-8 print:p-0">
        <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:hidden">
             <div className="text-[10vw] font-bold text-gray-200/50 transform -rotate-45 select-none whitespace-nowrap opacity-50">
                 Hilton Convent School
@@ -117,12 +117,12 @@ function SalarySlipContent() {
             <div className="border rounded-lg p-4">
                 <h3 className="font-semibold text-primary mb-3">Employee Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    <div className="flex justify-between"><span className="font-medium text-muted-foreground">Employee ID:</span><span>{teacher.authUid.substring(0, 10).toUpperCase()}</span></div>
+                    <div className="flex justify-between"><span className="font-medium text-muted-foreground">Employee ID:</span><span>{teacher.auth_uid.substring(0, 10).toUpperCase()}</span></div>
                     <div className="flex justify-between"><span className="font-medium text-muted-foreground">Name:</span><span>{teacher.name}</span></div>
                     <div className="flex justify-between"><span className="font-medium text-muted-foreground">Designation:</span><span>{teacher.subject} Teacher</span></div>
-                    <div className="flex justify-between"><span className="font-medium text-muted-foreground">Joining Date:</span><span>{new Date(teacher.joiningDate).toLocaleDateString('en-GB')}</span></div>
-                    <div className="flex justify-between"><span className="font-medium text-muted-foreground">Bank:</span><span>{teacher.bankAccount?.bankName || 'N/A'}</span></div>
-                    <div className="flex justify-between"><span className="font-medium text-muted-foreground">Account No:</span><span>{teacher.bankAccount?.accountNumber || 'N/A'}</span></div>
+                    <div className="flex justify-between"><span className="font-medium text-muted-foreground">Joining Date:</span><span>{new Date(teacher.joining_date).toLocaleDateString('en-GB')}</span></div>
+                    <div className="flex justify-between"><span className="font-medium text-muted-foreground">Bank:</span><span>{teacher.bank_account?.bankName || 'N/A'}</span></div>
+                    <div className="flex justify-between"><span className="font-medium text-muted-foreground">Account No:</span><span>{teacher.bank_account?.accountNumber || 'N/A'}</span></div>
                 </div>
             </div>
 
