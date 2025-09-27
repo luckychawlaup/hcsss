@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
 import type { Teacher } from "@/lib/supabase/teachers";
 import type { Student } from "@/lib/supabase/students";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -42,22 +41,31 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   }, [students, classTeacherOf]);
   
   useEffect(() => {
-    if (classTeacherOf && attendanceDate) {
+    if (classTeacherOf && attendanceDate && studentsInClass.length > 0) {
         setIsFetching(true);
+        
         // Initialize all students as present
         const initialAttendance: Record<string, AttendanceStatus> = {};
         studentsInClass.forEach(student => {
             initialAttendance[student.id] = 'present';
         });
 
+        console.log(`Loading attendance for ${classTeacherOf} on ${attendanceDate}`);
+
         getAttendanceForDate(classTeacherOf, attendanceDate)
             .then(records => {
+                console.log("Fetched attendance records:", records);
                 // Update with fetched records
                 records.forEach(record => {
                     if (initialAttendance.hasOwnProperty(record.student_id)) {
                         initialAttendance[record.student_id] = record.status;
                     }
                 });
+                setAttendance(initialAttendance);
+            })
+            .catch(error => {
+                console.error("Error loading attendance:", error);
+                // Still set initial attendance even if fetch fails
                 setAttendance(initialAttendance);
             })
             .finally(() => setIsFetching(false));
@@ -77,28 +85,40 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   }
 
   const handleSubmit = async () => {
-    if (!classTeacherOf || !teacher) return;
+    if (!classTeacherOf || !teacher || studentsInClass.length === 0) {
+        toast({
+            variant: "destructive",
+            title: "Cannot Submit",
+            description: "Missing required data for attendance submission."
+        });
+        return;
+    }
+
     setIsSubmitting(true);
     
-    const attendanceData: Omit<AttendanceRecord, 'id' | 'created_at'>[] = Object.entries(attendance).map(([student_id, status]) => ({
-        student_id,
-        class_section: classTeacherOf,
-        date: startOfDay(new Date(attendanceDate)).toISOString(),
-        status,
-        marked_by: teacher!.id
-    }));
-    
     try {
+        const attendanceData: Omit<AttendanceRecord, 'id' | 'created_at'>[] = Object.entries(attendance).map(([student_id, status]) => ({
+            student_id,
+            class_section: classTeacherOf,
+            date: attendanceDate, // Send as YYYY-MM-DD format
+            status,
+            marked_by: teacher.id
+        }));
+
+        console.log("Submitting attendance data:", attendanceData);
+        
         await setAttendance(attendanceData);
+        
         toast({
-            title: "Attendance Submitted",
-            description: `Attendance for ${classTeacherOf} on ${format(new Date(attendanceDate), 'do MMM, yyyy')} has been recorded.`
+            title: "Attendance Recorded",
+            description: `Attendance for ${classTeacherOf} on ${format(new Date(attendanceDate), 'do MMM, yyyy')} has been successfully saved.`
         });
     } catch (error) {
+        console.error("Attendance submission error:", error);
         toast({
             variant: "destructive",
             title: "Submission Failed",
-            description: "Could not save attendance records. Please try again."
+            description: error instanceof Error ? error.message : "Could not save attendance records. Please try again."
         });
     } finally {
         setIsSubmitting(false);
@@ -118,7 +138,6 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
       </div>
     );
   }
-
 
   return (
     <div className="space-y-6">
@@ -182,7 +201,6 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
           <p className="text-muted-foreground">No students found for your class.</p>
         </div>
       )}
-
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 import { createClient } from "@/lib/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
@@ -70,20 +69,28 @@ USING (
 // Upsert attendance records for a class on a specific date
 export const setAttendance = async (records: Omit<AttendanceRecord, 'id' | 'created_at'>[]): Promise<void> => {
     if (!records || records.length === 0) {
-        return;
+        throw new Error("No attendance records provided");
     }
-    const { error } = await supabase.from(ATTENDANCE_COLLECTION).upsert(records, {
+
+    console.log("Attempting to upsert attendance records:", records);
+    
+    const { data, error } = await supabase.from(ATTENDANCE_COLLECTION).upsert(records, {
         onConflict: 'student_id,date',
+        ignoreDuplicates: false
     });
 
     if (error) {
         console.error("Error setting attendance:", error);
-        throw error;
+        throw new Error(`Failed to save attendance: ${error.message}`);
     }
+
+    console.log("Successfully upserted attendance records:", data);
 };
 
 // Get attendance for a specific class on a specific date
 export const getAttendanceForDate = async (classSection: string, date: string): Promise<AttendanceRecord[]> => {
+    console.log(`Fetching attendance for class ${classSection} on date ${date}`);
+    
     const { data, error } = await supabase
         .from(ATTENDANCE_COLLECTION)
         .select('*')
@@ -94,13 +101,15 @@ export const getAttendanceForDate = async (classSection: string, date: string): 
         console.error("Error fetching attendance for date:", error);
         return [];
     }
+    
+    console.log("Fetched attendance records:", data);
     return data || [];
 };
 
 // Get a student's attendance for a given month with real-time updates
 export const getAttendanceForStudent = (studentId: string, month: Date, callback: (records: AttendanceRecord[]) => void) => {
-    const fromDate = startOfMonth(month).toISOString();
-    const toDate = endOfMonth(month).toISOString();
+    const fromDate = format(startOfMonth(month), 'yyyy-MM-dd');
+    const toDate = format(endOfMonth(month), 'yyyy-MM-dd');
 
     const fetchAndCallback = async () => {
         const { data, error } = await supabase

@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId } from "@/lib/supabase/students";
 import { getAttendanceForStudent, AttendanceRecord } from "@/lib/supabase/attendance";
 import { Skeleton } from "../ui/skeleton";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // Example holidays - this should eventually come from a dynamic source
 const holidays: string[] = ["2024-08-15"];
@@ -40,12 +41,21 @@ export default function Attendance() {
   const supabase = createClient();
   
   useEffect(() => {
-    let channel: any;
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-        const user = session?.user;
-        if(user) {
+    let channel: RealtimeChannel | null = null;
+
+    const setupSubscription = async () => {
+        setIsLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
             const student = await getStudentByAuthId(user.id);
-            if(student) {
+            if (student) {
+                // If a channel already exists, unsubscribe from it first.
+                if (channel) {
+                    supabase.removeChannel(channel);
+                    channel = null;
+                }
+                
                 channel = getAttendanceForStudent(student.id, currentMonth, (records) => {
                     setAttendanceRecords(records || []);
                     setIsLoading(false);
@@ -56,15 +66,17 @@ export default function Attendance() {
         } else {
             setIsLoading(false);
         }
-    });
+    };
+
+    setupSubscription();
 
     return () => {
-        authListener.subscription.unsubscribe();
-        if(channel) {
+        if (channel) {
             supabase.removeChannel(channel);
         }
-    }
-  }, [supabase, currentMonth]);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMonth]);
 
 
   const monthName = format(currentMonth, "MMMM yyyy");
@@ -80,7 +92,7 @@ export default function Attendance() {
   const pastSchoolDays = allDaysInMonth.filter(day => 
       !isSunday(day) && 
       !holidays.includes(format(day, "yyyy-MM-dd")) &&
-      isAfter(today, day)
+      !isAfter(day, today)
   );
   
   const totalPastSchoolDays = pastSchoolDays.length;
@@ -97,7 +109,7 @@ export default function Attendance() {
   const absentDays = attendanceRecords.filter(r => r.status === 'absent');
   const halfDays = attendanceRecords.filter(r => r.status === 'half-day');
   
-  const absentDaysCount = absentDays.length + (halfDays.length * 0.5);
+  const totalAbsentDays = totalPastSchoolDays - effectivePresentDays;
   
   const absentDates = absentDays.map(r => format(new Date(r.date), "do MMM"));
   const halfDayDates = halfDays.map(r => format(new Date(r.date), "do MMM"));
@@ -141,10 +153,10 @@ export default function Attendance() {
                 )}
             </div>
         </div>
-         {attendancePercentage < 100 && attendancePercentage > 0 && (
-             <p className="text-xs text-center text-muted-foreground mt-4">Total days counted as absent: {absentDaysCount}. Unmarked past days are also counted as absent.</p>
+         {totalAbsentDays > 0 && (
+             <p className="text-xs text-center text-muted-foreground mt-4">Total days counted as absent: {totalAbsentDays}. Unmarked past days are also counted as absent.</p>
          )}
-         {attendancePercentage === 100 && (
+         {totalAbsentDays <= 0 && (
               <p className="text-sm text-center text-green-600 font-semibold mt-4">Perfect attendance this month. Keep it up!</p>
          )}
       </CardContent>
