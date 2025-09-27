@@ -104,7 +104,7 @@ USING (
 );
 `;
 
-export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveRequest, 'id' | 'user_id' | 'document_url'>, document?: File) => {
+export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveRequest, 'id' | 'document_url'>, document?: File) => {
     try {
         let document_url: string | undefined;
         if (document) {
@@ -301,3 +301,5 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
 
     return channel;
 };
+
+    

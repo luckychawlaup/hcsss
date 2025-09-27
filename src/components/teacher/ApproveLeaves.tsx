@@ -34,13 +34,14 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { ThumbsUp, ThumbsDown, CalendarX2, Loader2, MessageSquare, Calendar as CalendarIcon, Pencil } from "lucide-react";
+import { ThumbsUp, ThumbsDown, CalendarX2, Loader2, MessageSquare, Calendar as CalendarIcon, Pencil, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateLeaveRequest } from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 
 interface ApproveLeavesProps {
@@ -211,7 +212,14 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                         </Alert>
                     )}
                 </CardContent>
-                <CardFooter className="flex flex-wrap justify-end gap-2">
+                <CardFooter className="flex flex-wrap gap-2 sm:justify-end">
+                    {leave.document_url && (
+                        <Button asChild variant="secondary" size="sm">
+                            <Link href={leave.document_url} target="_blank">
+                                <FileText className="mr-2" /> View Document
+                            </Link>
+                        </Button>
+                    )}
                     {leave.status === 'Pending' && (
                         <>
                         <Button variant="outline" size="sm" onClick={() => handleOpenDialog('reject', leave)}>
@@ -316,3 +324,5 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
     </>
   );
 }
+
+    

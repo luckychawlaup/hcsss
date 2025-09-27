@@ -343,3 +343,5 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     </div>
   );
 }
+
+    
