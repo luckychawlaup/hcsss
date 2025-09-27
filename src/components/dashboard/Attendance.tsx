@@ -10,12 +10,13 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { UserCheck } from "lucide-react";
-import { format, getDaysInMonth, startOfMonth, eachDayOfInterval, isSunday, isAfter, startOfToday } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, eachDayOfInterval, isSunday, isAfter, startOfToday, getDay } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId } from "@/lib/supabase/students";
 import { getAttendanceForStudent, AttendanceRecord } from "@/lib/supabase/attendance";
 import { Skeleton } from "../ui/skeleton";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { cn } from "@/lib/utils";
 
 function AttendanceSkeleton() {
     return (
@@ -28,6 +29,22 @@ function AttendanceSkeleton() {
                 <Skeleton className="h-4 w-3/4" />
             </CardContent>
         </Card>
+    )
+}
+
+const DayCell = ({ day, status }: { day: number, status: 'present' | 'absent' | 'half-day' | 'sunday' | 'future' | 'unmarked' }) => {
+    const statusClasses = {
+        present: "bg-green-500 text-white",
+        absent: "bg-red-500 text-white",
+        "half-day": "bg-yellow-500 text-white",
+        sunday: "bg-muted text-muted-foreground",
+        future: "bg-secondary text-secondary-foreground",
+        unmarked: "bg-red-500/20 text-red-700",
+    }
+    return (
+        <div className={cn("flex items-center justify-center h-10 w-10 rounded-full text-sm font-semibold", statusClasses[status])}>
+            {day}
+        </div>
     )
 }
 
@@ -84,6 +101,7 @@ export default function Attendance() {
   
   const today = startOfToday();
 
+  // Exclude Sundays and future days for percentage calculation
   const pastSchoolDays = allDaysInMonth.filter(day => 
       !isSunday(day) &&
       !isAfter(day, today)
@@ -100,13 +118,30 @@ export default function Attendance() {
       ? Math.round((effectivePresentDays / totalPastSchoolDays) * 100) 
       : 100;
 
-  const absentDays = attendanceRecords.filter(r => r.status === 'absent');
-  const halfDays = attendanceRecords.filter(r => r.status === 'half-day');
+  const firstDayOfMonth = startOfMonth(currentMonth);
+  const startingDayOfWeek = getDay(firstDayOfMonth) === 0 ? 6 : getDay(firstDayOfMonth) - 1; // Monday is 0
+
+  const calendarDays = Array.from({ length: startingDayOfWeek }, (_, i) => <div key={`empty-${i}`}/>);
   
-  const totalAbsentDays = totalPastSchoolDays - effectivePresentDays;
-  
-  const absentDates = absentDays.map(r => format(new Date(r.date), "do MMM"));
-  const halfDayDates = halfDays.map(r => format(new Date(r.date), "do MMM"));
+  allDaysInMonth.forEach(day => {
+    const date = day.getDate();
+    let status: 'present' | 'absent' | 'half-day' | 'sunday' | 'future' | 'unmarked' = 'future';
+
+    if (isSunday(day)) {
+      status = 'sunday';
+    } else if (isAfter(day, today)) {
+      status = 'future';
+    } else {
+      const record = attendanceRecords.find(r => format(new Date(r.date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'));
+      if (record) {
+        status = record.status;
+      } else {
+        status = 'unmarked'; // Unmarked past day
+      }
+    }
+    
+    calendarDays.push(<DayCell key={date} day={date} status={status} />);
+  })
 
   if (isLoading) {
       return <AttendanceSkeleton />;
@@ -122,37 +157,33 @@ export default function Attendance() {
             </CardTitle>
              <p className="font-bold text-lg">{monthName}</p>
         </div>
+        <div className="flex items-center justify-between pt-4">
+            <p className="text-muted-foreground text-sm">Monthly Attendance</p>
+            <p className="font-bold text-lg">{attendancePercentage}%</p>
+        </div>
+        <Progress value={attendancePercentage} className="mt-1 h-2"/>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between mb-2">
-            <p className="text-muted-foreground">Monthly Progress</p>
-            <p className="font-bold">{attendancePercentage}%</p>
-        </div>
-        <Progress value={attendancePercentage} />
-        <div className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-                <h4 className="font-semibold text-sm">Absent Days ({absentDays.length})</h4>
-                {absentDays.length > 0 ? (
-                    <p className="text-sm text-destructive/80 mt-1">{absentDates.join(", ")}</p>
-                ) : (
-                    <p className="text-sm text-muted-foreground mt-1">No full-day absences.</p>
-                )}
-            </div>
-             <div>
-                <h4 className="font-semibold text-sm">Half Days ({halfDays.length})</h4>
-                {halfDays.length > 0 ? (
-                    <p className="text-sm text-yellow-600/80 mt-1">{halfDayDates.join(", ")}</p>
-                ) : (
-                    <p className="text-sm text-muted-foreground mt-1">No half-days taken.</p>
-                )}
-            </div>
-        </div>
-         {totalAbsentDays > 0 && (
-             <p className="text-xs text-center text-muted-foreground mt-4">Total days counted as absent: {totalAbsentDays}. Unmarked past days are also counted as absent.</p>
-         )}
-         {totalAbsentDays <= 0 && (
-              <p className="text-sm text-center text-green-600 font-semibold mt-4">Perfect attendance this month. Keep it up!</p>
-         )}
+          <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground mb-2">
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+              <span>Sun</span>
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {calendarDays}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 text-xs">
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-green-500"/> Present</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-red-500"/> Absent</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-red-500/20"/> Unmarked</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-yellow-500"/> Half-day</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-muted"/> Sunday</div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 text-center">Unmarked past school days are counted as absent.</p>
       </CardContent>
     </Card>
   );
