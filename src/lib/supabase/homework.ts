@@ -115,7 +115,6 @@ export const getHomeworks = (
             table: HOMEWORK_COLLECTION, 
             filter: `class_section=eq.${classSection}` 
         }, (payload) => {
-            console.log('Real-time update received for homework:', payload);
             fetchAndCallback();
         })
         .subscribe((status) => {
