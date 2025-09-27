@@ -4,21 +4,15 @@
 import { useState, useMemo, useEffect } from "react";
 import type { Teacher } from "@/lib/supabase/teachers";
 import type { Student } from "@/lib/supabase/students";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Loader2, UserX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 import { Input } from "../ui/input";
+import { getAttendanceForDate, setAttendance, AttendanceRecord } from "@/lib/supabase/attendance";
 
 interface MarkAttendanceProps {
   teacher: Teacher | null;
@@ -32,6 +26,7 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   const [attendanceDate, setAttendanceDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const { toast } = useToast();
 
   const classTeacherOf = useMemo(() => {
@@ -46,6 +41,22 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
     return students.filter(s => `${s.class}-${s.section}` === classTeacherOf);
   }, [students, classTeacherOf]);
   
+  useEffect(() => {
+    if (classTeacherOf && attendanceDate) {
+        setIsFetching(true);
+        getAttendanceForDate(classTeacherOf, attendanceDate)
+            .then(records => {
+                const newAttendance: Record<string, AttendanceStatus> = {};
+                studentsInClass.forEach(student => {
+                    const record = records.find(r => r.student_id === student.id);
+                    newAttendance[student.id] = record?.status || 'present';
+                });
+                setAttendance(newAttendance);
+            })
+            .finally(() => setIsFetching(false));
+    }
+  }, [attendanceDate, classTeacherOf, studentsInClass]);
+
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
   };
@@ -59,16 +70,32 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   }
 
   const handleSubmit = async () => {
+    if (!classTeacherOf) return;
     setIsSubmitting(true);
-    console.log("Submitting attendance for", classTeacherOf, "on", attendanceDate);
-    console.log(attendance);
-    // Here you would typically save to Supabase
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    toast({
-        title: "Attendance Submitted",
-        description: `Attendance for ${classTeacherOf} has been recorded successfully.`
-    })
-    setIsSubmitting(false);
+    
+    const attendanceData: Omit<AttendanceRecord, 'id' | 'created_at'>[] = Object.entries(attendance).map(([student_id, status]) => ({
+        student_id,
+        class_section: classTeacherOf,
+        date: startOfDay(new Date(attendanceDate)).toISOString(),
+        status,
+        marked_by: teacher!.id
+    }));
+    
+    try {
+        await setAttendance(attendanceData);
+        toast({
+            title: "Attendance Submitted",
+            description: `Attendance for ${classTeacherOf} on ${format(new Date(attendanceDate), 'do MMM, yyyy')} has been recorded.`
+        });
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Submission Failed",
+            description: "Could not save attendance records. Please try again."
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
   if (isLoading) {
@@ -106,34 +133,40 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
                 <Button variant="outline" size="sm" onClick={() => handleMarkAll('present')}>Mark All Present</Button>
                 <Button variant="outline" size="sm" onClick={() => handleMarkAll('absent')}>Mark All Absent</Button>
             </div>
-            <div className="space-y-4 rounded-md border p-4">
-                {studentsInClass.map(student => (
-                <div key={student.id} className="flex flex-col md:flex-row items-start md:items-center justify-between">
-                    <p className="font-medium">{student.name} <span className="font-mono text-xs text-muted-foreground">({student.srn})</span></p>
-                    <RadioGroup
-                    value={attendance[student.id] || "present"}
-                    onValueChange={(value: AttendanceStatus) => handleStatusChange(student.id, value)}
-                    className="flex items-center gap-4 mt-2 md:mt-0"
-                    >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="present" id={`present-${student.id}`} />
-                        <Label htmlFor={`present-${student.id}`} className="font-normal text-green-600">Present</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="absent" id={`absent-${student.id}`} />
-                        <Label htmlFor={`absent-${student.id}`} className="font-normal text-red-600">Absent</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="half-day" id={`half-day-${student.id}`} />
-                        <Label htmlFor={`half-day-${student.id}`} className="font-normal text-yellow-600">Half Day</Label>
-                    </div>
-                    </RadioGroup>
+            {isFetching ? (
+                <div className="flex items-center justify-center h-48">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
                 </div>
-                ))}
-            </div>
+            ) : (
+                <div className="space-y-4 rounded-md border p-4">
+                    {studentsInClass.map(student => (
+                    <div key={student.id} className="flex flex-col md:flex-row items-start md:items-center justify-between">
+                        <p className="font-medium">{student.name} <span className="font-mono text-xs text-muted-foreground">({student.srn})</span></p>
+                        <RadioGroup
+                        value={attendance[student.id] || "present"}
+                        onValueChange={(value: AttendanceStatus) => handleStatusChange(student.id, value)}
+                        className="flex items-center gap-4 mt-2 md:mt-0"
+                        >
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="present" id={`present-${student.id}`} />
+                            <Label htmlFor={`present-${student.id}`} className="font-normal text-green-600">Present</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="absent" id={`absent-${student.id}`} />
+                            <Label htmlFor={`absent-${student.id}`} className="font-normal text-red-600">Absent</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="half-day" id={`half-day-${student.id}`} />
+                            <Label htmlFor={`half-day-${student.id}`} className="font-normal text-yellow-600">Half Day</Label>
+                        </div>
+                        </RadioGroup>
+                    </div>
+                    ))}
+                </div>
+            )}
 
-            <Button onClick={handleSubmit} disabled={isSubmitting || studentsInClass.length === 0} className="w-full">
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleSubmit} disabled={isSubmitting || studentsInClass.length === 0 || isFetching} className="w-full">
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Submit Attendance for {classTeacherOf}
             </Button>
          </>
