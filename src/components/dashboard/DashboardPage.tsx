@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle } from "../ui/card";
 import { Camera } from "lucide-react";
 import Link from "next/link";
 import StudentNav from "./StudentNav";
+import SchoolStatus from "./SchoolStatus";
 
 
 export default function DashboardPage({ children }: { children?: React.ReactNode }) {
@@ -18,6 +19,7 @@ export default function DashboardPage({ children }: { children?: React.ReactNode
         <Header />
         <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
            <div className="mx-auto w-full max-w-4xl space-y-6">
+              <SchoolStatus />
               <TodayHomework />
               <Attendance />
           </div>

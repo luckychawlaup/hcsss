@@ -10,10 +10,11 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { UserCheck } from "lucide-react";
-import { format, getDaysInMonth, startOfMonth, eachDayOfInterval, isSunday, isAfter, startOfToday, getDay } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, eachDayOfInterval, isSunday, isAfter, startOfToday, getDay, isSameDay } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId } from "@/lib/supabase/students";
 import { getAttendanceForStudent, AttendanceRecord } from "@/lib/supabase/attendance";
+import { getHolidaysForMonth, Holiday } from "@/lib/supabase/holidays";
 import { Skeleton } from "../ui/skeleton";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
@@ -32,7 +33,7 @@ function AttendanceSkeleton() {
     )
 }
 
-const DayCell = ({ day, status }: { day: number, status: 'present' | 'absent' | 'half-day' | 'sunday' | 'future' | 'unmarked' }) => {
+const DayCell = ({ day, status }: { day: number, status: 'present' | 'absent' | 'half-day' | 'sunday' | 'future' | 'unmarked' | 'holiday' }) => {
     const statusClasses = {
         present: "bg-green-500 text-white",
         absent: "bg-red-500 text-white",
@@ -40,6 +41,7 @@ const DayCell = ({ day, status }: { day: number, status: 'present' | 'absent' | 
         sunday: "bg-muted text-muted-foreground",
         future: "bg-secondary text-secondary-foreground",
         unmarked: "bg-red-500/20 text-red-700",
+        holiday: "bg-blue-500/20 text-blue-700",
     }
     return (
         <div className={cn("flex items-center justify-center h-10 w-10 rounded-full text-sm font-semibold", statusClasses[status])}>
@@ -51,43 +53,42 @@ const DayCell = ({ day, status }: { day: number, status: 'present' | 'absent' | 
 export default function Attendance() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     const supabase = createClient();
-    let channel: RealtimeChannel | undefined;
+    let attendanceChannel: RealtimeChannel | undefined;
+    let holidayChannel: RealtimeChannel | undefined;
 
-    const setupSubscription = async () => {
+    const setupSubscriptions = async () => {
         setIsLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
             const student = await getStudentByAuthId(user.id);
             if (student) {
-                if (channel) {
-                    supabase.removeChannel(channel);
-                    channel = undefined;
-                }
+                if (attendanceChannel) supabase.removeChannel(attendanceChannel);
+                if (holidayChannel) supabase.removeChannel(holidayChannel);
                 
-                channel = getAttendanceForStudent(student.id, currentMonth, (records) => {
+                attendanceChannel = getAttendanceForStudent(student.id, currentMonth, (records) => {
                     setAttendanceRecords(records || []);
-                    setIsLoading(false);
+                });
+                
+                holidayChannel = getHolidaysForMonth(currentMonth, (holidayRecords) => {
+                    setHolidays(holidayRecords || []);
                 });
 
-            } else {
-                setIsLoading(false);
             }
-        } else {
-            setIsLoading(false);
         }
+        setIsLoading(false);
     };
 
-    setupSubscription();
+    setupSubscriptions();
 
     return () => {
-        if (channel) {
-            supabase.removeChannel(channel);
-        }
+        if (attendanceChannel) supabase.removeChannel(attendanceChannel);
+        if (holidayChannel) supabase.removeChannel(holidayChannel);
     };
   }, [currentMonth]);
 
@@ -101,10 +102,11 @@ export default function Attendance() {
   
   const today = startOfToday();
 
-  // Exclude Sundays and future days for percentage calculation
+  // Exclude Sundays, future days, and holidays for percentage calculation
   const pastSchoolDays = allDaysInMonth.filter(day => 
       !isSunday(day) &&
-      !isAfter(day, today)
+      !isAfter(day, today) &&
+      !holidays.some(h => isSameDay(new Date(h.date), day))
   );
   
   const totalPastSchoolDays = pastSchoolDays.length;
@@ -125,14 +127,16 @@ export default function Attendance() {
   
   allDaysInMonth.forEach(day => {
     const date = day.getDate();
-    let status: 'present' | 'absent' | 'half-day' | 'sunday' | 'future' | 'unmarked' = 'future';
-
-    if (isSunday(day)) {
+    let status: 'present' | 'absent' | 'half-day' | 'sunday' | 'future' | 'unmarked' | 'holiday' = 'future';
+    
+    if (holidays.some(h => isSameDay(new Date(h.date), day))) {
+        status = 'holiday';
+    } else if (isSunday(day)) {
       status = 'sunday';
     } else if (isAfter(day, today)) {
       status = 'future';
     } else {
-      const record = attendanceRecords.find(r => format(new Date(r.date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'));
+      const record = attendanceRecords.find(r => isSameDay(new Date(r.date), day));
       if (record) {
         status = record.status;
       } else {
@@ -181,6 +185,7 @@ export default function Attendance() {
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-red-500"/> Absent</div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-red-500/20"/> Unmarked</div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-yellow-500"/> Half-day</div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-blue-500/20"/> Holiday</div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-muted"/> Sunday</div>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">Unmarked past school days are counted as absent.</p>

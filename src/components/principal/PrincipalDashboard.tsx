@@ -11,7 +11,7 @@ import { getAllLeaveRequests } from "@/lib/supabase/leaves";
 import type { LeaveRequest } from "@/lib/supabase/leaves";
 import { prepopulateExams } from "@/lib/supabase/exams";
 import { Skeleton } from "../ui/skeleton";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info, CalendarOff } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
@@ -22,6 +22,7 @@ import { addAnnouncement, getAllAnnouncements, Announcement, getAnnouncementsFor
 import AnnouncementChat from "../teacher/AnnouncementChat";
 import { useToast } from "@/hooks/use-toast";
 import ClassChatGroup from "../teacher/ClassChatGroup";
+import ManageHolidays from "./ManageHolidays";
 
 const AddTeacherForm = dynamic(() => import('./AddTeacherForm'), {
     loading: () => <Skeleton className="h-96 w-full" />
@@ -47,7 +48,7 @@ const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
 
 type CombinedTeacher = (Teacher & { status: 'Registered' }) | (PendingTeacher & { status: 'Pending' });
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings" | "manageHolidays";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -469,6 +470,27 @@ export default function PrincipalDashboard() {
                       </CardContent>
                   </Card>
               );
+            case 'manageHolidays':
+              return (
+                  <Card>
+                      <CardHeader>
+                           <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                              <ArrowLeft className="mr-2 h-4 w-4" />
+                              Back to Dashboard
+                          </Button>
+                          <CardTitle className="flex items-center gap-2">
+                              <CalendarOff />
+                              Manage Holidays
+                          </CardTitle>
+                          <CardDescription>
+                              Declare holidays for the school. These days will not be counted for attendance.
+                          </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <ManageHolidays />
+                      </CardContent>
+                  </Card>
+              );
           default:
               return (
                 <div className="space-y-6">
@@ -485,6 +507,7 @@ export default function PrincipalDashboard() {
                         <NavCard title="Manage Payroll" description="Generate salary slips for teachers" icon={DollarSign} onClick={() => setActiveView("managePayroll")} />
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
+                        <NavCard title="Manage Holidays" description="Declare school holidays" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
                         {isOwner && (
                             <NavCard title="School Settings" description="Customize branding and theme" icon={Settings} onClick={() => setActiveView("schoolSettings")} />
                         )}
