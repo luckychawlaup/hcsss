@@ -42,8 +42,13 @@ const getMonthStatus = (month: string, status: "paid" | "pending", session: stri
     if (status === 'paid') return 'paid';
 
     const today = startOfToday();
-    const year = monthMap[month] >= 3 ? parseInt(session.split('-')[0]) : parseInt(session.split('-')[1]);
-    const monthEndDate = endOfMonth(new Date(year, monthMap[month]));
+    const sessionStartYear = parseInt(session.split('-')[0]);
+    const monthIndex = monthMap[month];
+
+    // For months from Jan to Mar, the year is the next calendar year
+    const year = monthIndex >= 3 ? sessionStartYear : sessionStartYear + 1;
+    
+    const monthEndDate = endOfMonth(new Date(year, monthIndex));
 
     if (isAfter(today, monthEndDate)) return 'overdue';
 

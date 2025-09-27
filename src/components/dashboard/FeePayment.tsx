@@ -28,9 +28,19 @@ const feeData = {
     "June": { status: "paid", amount: 5000 },
     "July": { status: "pending", amount: 5000 },
     "August": { status: "pending", amount: 5000 },
+    "September": { status: "pending", amount: 5000 },
+    "October": { status: "pending", amount: 5000 },
+    "November": { status: "pending", amount: 5000 },
+    "December": { status: "pending", amount: 5000 },
+    "January": { status: "pending", amount: 5000 },
+    "February": { status: "pending", amount: 5000 },
+    "March": { status: "pending", amount: 5000 },
 };
 
-const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const monthOrder = ["April", "May", "June", "July", "August", "September", "October", "November", "December", "January", "February", "March"];
+const monthMap: { [key: string]: number } = { "April": 3, "May": 4, "June": 5, "July": 6, "August": 7, "September": 8, "October": 9, "November": 10, "December": 11, "January": 0, "February": 1, "March": 2 };
+
+const currentSession = "2024-2025";
 
 
 export default function FeePayment() {
@@ -41,12 +51,15 @@ export default function FeePayment() {
     let totalDueAmount = 0;
     const dueMonths: string[] = [];
     let lastDueDate: string | null = null;
+    
+    const sessionStartYear = parseInt(currentSession.split('-')[0]);
 
     for (const month of monthOrder) {
       const feeInfo = feeData[month as keyof typeof feeData];
       if (feeInfo && feeInfo.status === 'pending') {
-        const year = new Date().getFullYear(); // This needs to be smarter for Jan/Feb/Mar for sessions spanning years
-        const monthIndex = monthOrder.indexOf(month);
+        const monthIndex = monthMap[month];
+        // For months from Jan to Mar, the year is the next calendar year
+        const year = monthIndex >= 3 ? sessionStartYear : sessionStartYear + 1;
         const dueDate = endOfMonth(new Date(year, monthIndex));
         
         const reminderStartDate = new Date(dueDate);
@@ -55,7 +68,7 @@ export default function FeePayment() {
         if (isAfter(today, reminderStartDate)) {
           totalDueAmount += feeInfo.amount;
           dueMonths.push(month);
-          lastDueDate = format(endOfMonth(new Date(year, monthIndex)), "do MMM, yyyy");
+          lastDueDate = format(dueDate, "do MMM, yyyy");
         }
       }
     }
