@@ -31,9 +31,6 @@ interface LoginFormProps {
   role: "student" | "teacher" | "principal" | "owner";
 }
 
-const principalEmail = "principal@hcsss.in";
-const ownerEmail = "owner@hcsss.in";
-
 export default function LoginForm({ role }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,8 +138,8 @@ export default function LoginForm({ role }: LoginFormProps) {
                   <Input
                     type="email"
                     placeholder={
-                      role === "principal" ? principalEmail
-                      : role === "owner" ? ownerEmail
+                      role === "principal" || role === "owner"
+                      ? ""
                       : `${role}@example.com`
                     }
                     {...field}
