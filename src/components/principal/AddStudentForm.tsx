@@ -111,12 +111,16 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     const tempPassword = Math.random().toString(36).slice(-8); 
 
     try {
-        // Step 1: Create the Supabase Auth user
+        // Step 1: Create the Supabase Auth user without sending a confirmation email
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: values.email,
             password: tempPassword,
             options: {
-              emailRedirectTo: `${window.location.origin}`,
+              data: {
+                full_name: values.name,
+                role: 'student'
+              },
+              email_confirm: true, // This is the key change
             }
         });
 
@@ -139,12 +143,12 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         setSuccessInfo({ name: values.name, email: values.email });
         toast({
             title: "Student Admitted Successfully!",
-            description: `${values.name}'s account has been created. An email has been sent to them to verify their account and set a password.`,
+            description: `${values.name}'s account has been created. The student will need to use the 'Forgot Password' feature to set their password.`,
         });
         form.reset();
 
     } catch (e: any) {
-        // CRITICAL: If any step after auth creation fails, a server-side function would be needed to delete the temporary auth user for a robust implementation.
+        // CRITICAL: A server-side function would be needed to delete the temporary auth user for a truly robust implementation.
         if (tempAuthUser) {
             console.warn("An error occurred after user creation. Manual auth user cleanup may be required for:", tempAuthUser.id);
         }
@@ -477,4 +481,3 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
   );
 }
 
-    
