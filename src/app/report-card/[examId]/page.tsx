@@ -94,7 +94,7 @@ function ReportCardContent() {
     const getSubjectStatus = (marks: number, maxMarks: number) => {
         if (maxMarks === 0) return { text: "N/A", variant: "secondary" as const };
         const percentage = (marks / maxMarks) * 100;
-        return percentage >= 33 ? { text: "Pass", variant: "default" as const } : { text: "Fail", variant: "destructive" as const };
+        return percentage >= 33 ? { text: "Pass", variant: "success" as const } : { text: "Fail", variant: "destructive" as const };
     }
 
     if (isLoading) return <ReportCardSkeleton />;
