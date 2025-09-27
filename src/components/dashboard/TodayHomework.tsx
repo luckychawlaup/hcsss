@@ -151,7 +151,6 @@ export default function TodayHomework() {
                         <TableRow>
                         <TableHead>Subject</TableHead>
                         <TableHead>Assignment</TableHead>
-                        <TableHead>Due</TableHead>
                         <TableHead className="text-right">File</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -160,7 +159,6 @@ export default function TodayHomework() {
                             <TableRow key={hw.id}>
                                 <TableCell className="font-medium">{hw.subject}</TableCell>
                                 <TableCell>{hw.description}</TableCell>
-                                <TableCell>{formatDueDate(hw.due_date)}</TableCell>
                                 <TableCell className="text-right">
                                     {hw.attachment_url ? (
                                     <Button variant="ghost" size="icon" asChild>
