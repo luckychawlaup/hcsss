@@ -29,6 +29,14 @@ function HomeworkSkeleton() {
   );
 }
 
+function formatDueDate(dateString: string) {
+    try {
+        return format(new Date(dateString), "dd/MM");
+    } catch (e) {
+        return "-";
+    }
+}
+
 export default function Homework() {
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,7 +97,7 @@ export default function Homework() {
                     <TableRow key={index}>
                       <TableCell className="font-medium pl-0 sm:pl-6">{hw.subject}</TableCell>
                       <TableCell>{hw.description}</TableCell>
-                      <TableCell>{format(new Date(hw.due_date), "dd/MM")}</TableCell>
+                      <TableCell>{formatDueDate(hw.due_date)}</TableCell>
                       <TableCell className="text-right pr-0 sm:pr-6">
                         {hw.attachment_url ? (
                           <Button variant="ghost" size="icon" asChild>
