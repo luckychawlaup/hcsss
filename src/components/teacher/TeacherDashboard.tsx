@@ -274,7 +274,6 @@ export default function TeacherDashboard() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            <NavCard title="Announcements" description="Send announcements to classes" icon={Megaphone} onClick={() => router.push('/teacher/announcements')} />
-                           <NavCard title="School Gallery" description="View and manage school photos" icon={Camera} onClick={() => router.push('/gallery')} />
                            <NavCard title="Gradebook & Assessments" description="Manage student grades and performance" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
                         </div>
                     </div>
@@ -296,5 +295,3 @@ export default function TeacherDashboard() {
     </div>
   );
 }
-
-    

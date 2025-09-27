@@ -22,7 +22,6 @@ const mainNavItems: NavItem[] = [
   { view: "gradebook", label: "Gradebook", icon: BookMarked },
   { view: "teacherLeave", label: "Leave", icon: CalendarPlus },
   { view: "makeAnnouncement", label: "Announce", icon: Megaphone, href: "/teacher/announcements" },
-  { view: "gallery", label: "Gallery", icon: Camera, href: "/gallery" },
   { view: "profile", label: "Profile", icon: User, href: "/profile" },
 ];
 

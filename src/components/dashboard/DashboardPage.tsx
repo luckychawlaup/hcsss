@@ -20,19 +20,6 @@ const TodayHomework = dynamic(() => import('@/components/dashboard/TodayHomework
     loading: () => <Skeleton className="h-48 w-full" />
 });
 
-const GalleryCard = () => (
-    <Link href="/gallery">
-        <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                    <Camera className="h-6 w-6" />
-                    School Gallery
-                </CardTitle>
-            </CardHeader>
-        </Card>
-    </Link>
-)
-
 
 export default function DashboardPage({ children }: { children?: React.ReactNode }) {
   return (
@@ -48,9 +35,6 @@ export default function DashboardPage({ children }: { children?: React.ReactNode
           </div>
           <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-2">
               <ReportCard />
-          </div>
-          <div className="mx-auto w-full max-w-4xl">
-              <GalleryCard />
           </div>
         </main>
       </div>
