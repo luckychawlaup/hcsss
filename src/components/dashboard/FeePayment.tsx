@@ -18,7 +18,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { DollarSign, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
-import { endOfMonth, format, isAfter, startOfToday } from "date-fns";
+import { endOfMonth, format, isAfter, startOfToday, isBefore } from "date-fns";
 import { useRouter } from "next/navigation";
 
 // This should come from a user-specific context or prop
@@ -58,14 +58,15 @@ export default function FeePayment() {
       const feeInfo = feeData[month as keyof typeof feeData];
       if (feeInfo && feeInfo.status === 'pending') {
         const monthIndex = monthMap[month];
-        // For months from Jan to Mar, the year is the next calendar year
         const year = monthIndex >= 3 ? sessionStartYear : sessionStartYear + 1;
-        const dueDate = endOfMonth(new Date(year, monthIndex));
+        const monthDate = new Date(year, monthIndex);
+        const dueDate = endOfMonth(monthDate);
         
         const reminderStartDate = new Date(dueDate);
         reminderStartDate.setDate(reminderStartDate.getDate() - 5);
-        
-        if (isAfter(today, reminderStartDate)) {
+
+        // Only consider months up to the current month for overdue/due status
+        if (isAfter(today, reminderStartDate) && !isAfter(monthDate, today)) {
           totalDueAmount += feeInfo.amount;
           dueMonths.push(month);
           lastDueDate = format(dueDate, "do MMM, yyyy");
