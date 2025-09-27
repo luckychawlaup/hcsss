@@ -115,6 +115,9 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: values.email,
             password: tempPassword,
+            options: {
+              emailRedirectTo: `${window.location.origin}`,
+            }
         });
 
         if (authError) throw authError;
@@ -170,7 +173,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
             <AlertTitle className="text-primary">Student Admitted!</AlertTitle>
             <AlertDescription className="space-y-4">
                 <p><strong>{successInfo.name}</strong> has been admitted with the email <strong>{successInfo.email}</strong>.</p>
-                <p>An email verification has been sent. They must use the link in their email to verify their account and can then log in.</p>
+                <p>The student's account has been created. A password reset must be initiated for them to log in.</p>
                  <div className="flex gap-2 pt-2">
                     <Button onClick={handleAddAnother}>
                         <UserPlus className="mr-2" />
@@ -473,3 +476,5 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
+
+    
