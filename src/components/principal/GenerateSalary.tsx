@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
 const salarySchema = z.object({
-  teacherId: z.string({ required_error: "Please select a teacher." }),
+  teacher_id: z.string({ required_error: "Please select a teacher." }),
   month: z.string().min(1, "Month is required."),
   year: z.string().min(4, "Year is required."),
   basicSalary: z.coerce.number().min(0, "Basic salary must be a positive number."),
@@ -91,7 +91,7 @@ export default function GenerateSalary({ teachers, isLoading }: GenerateSalaryPr
     setIsSubmitting(true);
     try {
       const slipData = {
-        teacherId: values.teacherId,
+        teacher_id: values.teacher_id,
         month: `${values.month} ${values.year}`,
         basicSalary: values.basicSalary,
         earnings: values.earnings || [],
@@ -104,7 +104,7 @@ export default function GenerateSalary({ teachers, isLoading }: GenerateSalaryPr
         description: `The salary slip for ${values.month} ${values.year} has been created.`,
       });
       
-      const teacher = teachers.find(t => t.id === values.teacherId);
+      const teacher = teachers.find(t => t.id === values.teacher_id);
       if(teacher && newSlipId) {
         router.push(`/teacher/salary-slip/${slipData.month.replace(' ','-')}?slipId=${newSlipId}`);
       }
@@ -142,7 +142,7 @@ export default function GenerateSalary({ teachers, isLoading }: GenerateSalaryPr
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormField
             control={form.control}
-            name="teacherId"
+            name="teacher_id"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Select Teacher</FormLabel>

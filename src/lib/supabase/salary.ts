@@ -5,7 +5,7 @@ const SALARY_COLLECTION = 'salary_slips';
 
 export interface SalarySlip {
     id: string;
-    teacherId: string;
+    teacher_id: string;
     month: string; // e.g., "August 2024"
     basicSalary: number;
     earnings: { name: string; amount: number }[];
@@ -42,14 +42,14 @@ export const getSalarySlipById = async (slipId: string): Promise<SalarySlip | nu
 
 export const getSalarySlipsForTeacher = (teacherId: string, callback: (slips: SalarySlip[]) => void) => {
     const channel = supabase.channel(`salary-slips-teacher-${teacherId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: SALARY_COLLECTION, filter: `teacherId=eq.${teacherId}` }, 
+        .on('postgres_changes', { event: '*', schema: 'public', table: SALARY_COLLECTION, filter: `teacher_id=eq.${teacherId}` }, 
         async () => {
-            const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacherId', teacherId).order('createdAt', { ascending: false });
+            const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacher_id', teacherId).order('createdAt', { ascending: false });
             if(data) callback(data);
         }).subscribe();
     
     (async () => {
-        const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacherId', teacherId).order('createdAt', { ascending: false });
+        const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacher_id', teacherId).order('createdAt', { ascending: false });
         if(data) callback(data);
     })();
 

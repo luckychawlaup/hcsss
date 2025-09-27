@@ -237,5 +237,3 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
     </div>
   );
 }
-
-    

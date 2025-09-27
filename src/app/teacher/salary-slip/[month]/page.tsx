@@ -54,7 +54,7 @@ function SalarySlipContent() {
       if (user && slipId) {
           const teacherData = await getTeacherByAuthId(user.id);
           const slipData = await getSalarySlipById(slipId);
-          if (teacherData && slipData && slipData.teacherId === teacherData.id) {
+          if (teacherData && slipData && slipData.teacher_id === teacherData.id) {
             setTeacher(teacherData);
             setSalarySlip(slipData);
           }
