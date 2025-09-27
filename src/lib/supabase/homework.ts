@@ -68,18 +68,21 @@ export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment
     }
 };
 
-export const getHomeworks = (classSection: string, callback: (homeworks: Homework[]) => void) => {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
+export const getHomeworks = (classSection: string, callback: (homeworks: Homework[]) => void, limit?: number) => {
     const fetchAndCallback = async () => {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from(HOMEWORK_COLLECTION)
                 .select('*')
                 .eq('class_section', classSection)
-                .gte('assigned_at', sevenDaysAgo)
                 .order('assigned_at', { ascending: false });
+
+            if (limit) {
+                query = query.limit(limit);
+            }
                 
+            const { data, error } = await query;
+
             if (error) {
                 console.error('Error fetching homeworks:', error);
                 callback([]);
@@ -93,7 +96,7 @@ export const getHomeworks = (classSection: string, callback: (homeworks: Homewor
         }
     }
 
-    const channel = supabase.channel(`homework-${classSection}`)
+    const channel = supabase.channel(`homework-${classSection}-${limit || 'all'}`)
         .on('postgres_changes', { 
             event: '*', 
             schema: 'public', 

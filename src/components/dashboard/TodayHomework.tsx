@@ -53,7 +53,7 @@ export default function TodayHomework() {
                 const channel = getHomeworks(classSection, (newHomeworks) => {
                     setHomeworks(newHomeworks);
                     setIsLoading(false);
-                });
+                }, 3); // Limit to 3 for the dashboard
                 unsubscribe = () => {
                     if(channel) supabase.removeChannel(channel);
                 }
