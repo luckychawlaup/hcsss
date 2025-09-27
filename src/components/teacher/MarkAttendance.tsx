@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -31,7 +30,7 @@ type AttendanceStatus = "present" | "absent" | "half-day";
 
 export default function MarkAttendance({ teacher, students, isLoading }: MarkAttendanceProps) {
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [attendanceDate, setAttendanceDate] = useState<string>(format(new Date(), "dd/MM/yyyy"));
+  const [attendanceDate, setAttendanceDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -104,8 +103,8 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
           </SelectContent>
         </Select>
         <Input 
+            type="date"
             className="w-full md:w-auto"
-            placeholder="DD/MM/YYYY"
             value={attendanceDate}
             onChange={(e) => setAttendanceDate(e.target.value)}
         />

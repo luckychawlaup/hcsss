@@ -9,7 +9,7 @@ import type { TeacherView } from "./TeacherDashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NavItem {
-  view: TeacherView | "profile" | "gallery" | "makeAnnouncement" | "teacherLeave" | "gradebook";
+  view: TeacherView | "profile" | "gallery" | "teacherLeave" | "gradebook";
   label: string;
   icon: React.ElementType;
   href?: string;

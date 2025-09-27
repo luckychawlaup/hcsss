@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format, getDaysInMonth } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, eachDayOfInterval } from "date-fns";
 
 // Mock data for demonstration
 const mockAttendanceData = {
@@ -32,15 +32,18 @@ export default function Attendance() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const monthName = format(currentMonth, "MMMM yyyy");
-  const totalDaysInMonth = getDaysInMonth(currentMonth);
-  const sundays = Array.from({ length: totalDaysInMonth })
-    .map((_, i) => new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1))
-    .filter(d => d.getDay() === 0).length;
   
-  const totalSchoolDays = totalDaysInMonth - sundays - holidays.length;
+  const allDaysInMonth = eachDayOfInterval({
+      start: startOfMonth(currentMonth),
+      end: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), getDaysInMonth(currentMonth))
+  });
+
+  const sundays = allDaysInMonth.filter(d => d.getDay() === 0).length;
+  
+  const totalSchoolDays = getDaysInMonth(currentMonth) - sundays - holidays.length;
   const absentDaysCount = Object.keys(mockAttendanceData).length;
   const presentDays = totalSchoolDays - absentDaysCount;
-  const attendancePercentage = Math.round((presentDays / totalSchoolDays) * 100);
+  const attendancePercentage = totalSchoolDays > 0 ? Math.round((presentDays / totalSchoolDays) * 100) : 0;
 
   const absentDates = Object.keys(mockAttendanceData).map(dateStr => format(new Date(dateStr), "do MMM"));
 
