@@ -13,13 +13,14 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   href?: string;
+  classTeacherOnly?: boolean;
 }
 
 const mainNavItems: NavItem[] = [
   { view: "dashboard", label: "Home", icon: Home, href: "/teacher" },
-  { view: "markAttendance", label: "Attendance", icon: ClipboardCheck },
+  { view: "markAttendance", label: "Attendance", icon: ClipboardCheck, classTeacherOnly: true },
   { view: "addHomework", label: "Homework", icon: BookUp },
-  { view: "gradebook", label: "Gradebook", icon: BookMarked },
+  { view: "gradebook", label: "Gradebook", icon: BookMarked, classTeacherOnly: true },
   { view: "teacherLeave", label: "Leave", icon: CalendarPlus },
   { view: "makeAnnouncement", label: "Announce", icon: Megaphone, href: "/teacher/announcements" },
   { view: "profile", label: "Profile", icon: User, href: "/profile" },

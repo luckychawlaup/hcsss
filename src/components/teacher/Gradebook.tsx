@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -25,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "../ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Users, BookOpen, UserCheck, Search, FileSignature, PlusCircle, Trash2, X } from "lucide-react";
+import { Loader2, Save, Users, BookOpen, UserCheck, Search, FileSignature, PlusCircle, Trash2, X, UserX } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
@@ -238,7 +239,9 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
     if (teacher?.role !== 'classTeacher') {
         return (
              <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
-                <p className="text-muted-foreground">This gradebook is only available for Class Teachers.</p>
+                <UserX className="h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-semibold">Permission Denied</h3>
+                <p className="text-muted-foreground mt-2">Only Class Teachers can manage the gradebook.</p>
             </div>
         )
     }
