@@ -6,8 +6,6 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
-import AuthProvider from "@/components/auth/AuthProvider";
-import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 
 const poppins = Poppins({
@@ -15,38 +13,6 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-poppins",
 });
-
-// List of public paths that do not require authentication
-const publicPaths = [
-    "/login",
-    "/auth/student/login",
-    "/auth/teacher/login",
-    "/auth/principal/login",
-    "/auth/owner/login",
-    "/auth/student/forgot-password",
-    "/auth/teacher/forgot-password",
-    "/auth/update-password",
-    "/auth/callback",
-    "/apply/student",
-    "/apply/teacher",
-];
-
-function LayoutContent({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isPublicPage = publicPaths.some(path => pathname.startsWith(path));
-
-  return (
-    <>
-      {isPublicPage ? (
-        children
-      ) : (
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      )}
-    </>
-  );
-}
 
 
 export default function RootLayout({
@@ -88,7 +54,7 @@ export default function RootLayout({
       <body className="antialiased bg-background">
         <ThemeProvider settings={initialSettings}>
             <Suspense>
-              <LayoutContent>{children}</LayoutContent>
+              {children}
             </Suspense>
             <Toaster />
         </ThemeProvider>

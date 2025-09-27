@@ -6,8 +6,27 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getRole } from "@/lib/getRole";
 import PrincipalDashboard from "@/components/principal/PrincipalDashboard";
-import AuthProvider from "@/components/auth/AuthProvider";
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
+
+function Preloader() {
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+            <div className="relative flex h-32 w-32 items-center justify-center">
+                <div className="absolute h-full w-full animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <Image 
+                    src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"
+                    alt="School Logo" 
+                    width={100} 
+                    height={100} 
+                    className="rounded-full"
+                    priority
+                />
+            </div>
+        </div>
+    );
+}
 
 export default function PrincipalPage() {
     const [role, setRole] = useState<string | null>(null);
@@ -36,12 +55,10 @@ export default function PrincipalPage() {
     }, [supabase, router]);
 
     if (loading || (role !== 'principal' && role !== 'owner')) {
-        return null; // Or a preloader
+        return <Preloader />;
     }
 
     return (
-        <AuthProvider>
-            <PrincipalDashboard />
-        </AuthProvider>
+        <PrincipalDashboard />
     );
 }
