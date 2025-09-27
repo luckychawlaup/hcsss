@@ -21,14 +21,14 @@ export interface LeaveRequest {
 }
 
 const uploadFileToSupabase = async (file: File): Promise<string> => {
-    const filePath = `leave-documents/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from('documents').upload(filePath, file);
+    const filePath = `public/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from('leave_documents').upload(filePath, file);
     if (error) {
         console.error('Error uploading to Supabase Storage:', error);
         throw error;
     }
 
-    const { data } = supabase.storage.from('documents').getPublicUrl(filePath);
+    const { data } = supabase.storage.from('leave_documents').getPublicUrl(filePath);
     if (!data.publicUrl) {
         throw new Error('Could not get public URL for uploaded file.');
     }
@@ -136,7 +136,8 @@ export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveR
 };
 
 export const getLeaveRequestsForUser = (userId: string, callback: (leaves: LeaveRequest[]) => void) => {
-    // Initial fetch
+    const channel = supabase.channel(`leaves-user-${userId}`);
+
     const fetchLeaves = async () => {
         try {
             const { data, error } = await supabase.from('leaves').select('*').eq('user_id', userId).order('appliedAt', { ascending: false });
@@ -144,27 +145,31 @@ export const getLeaveRequestsForUser = (userId: string, callback: (leaves: Leave
             callback(data || []);
         } catch (error) {
             console.error("Error fetching initial leaves:", error);
+            callback([]);
         }
     };
-    fetchLeaves();
-
-    // Realtime subscription
-    const channel = supabase.channel(`leaves-user-${userId}`)
+    
+    channel
         .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: `user_id=eq.${userId}` }, 
         (payload) => {
-            fetchLeaves(); // Re-fetch on change to ensure order and handle deletes
+            fetchLeaves(); // Re-fetch on change
         })
-        .subscribe();
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await fetchLeaves();
+            }
+        });
 
     return channel;
 };
-
 
 export const getLeaveRequestsForStudents = (studentIds: string[], callback: (leaves: LeaveRequest[]) => void) => {
     if (!studentIds || studentIds.length === 0) {
         callback([]);
         return;
     }
+
+    const channel = supabase.channel('student-leaves');
 
     const fetchStudentLeaves = async () => {
         try {
@@ -175,14 +180,17 @@ export const getLeaveRequestsForStudents = (studentIds: string[], callback: (lea
             console.error("Error fetching student leaves:", error);
         }
     };
-    fetchStudentLeaves();
 
-    const channel = supabase.channel('student-leaves')
+    channel
         .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: 'userRole=eq.Student' }, 
         (payload) => {
              fetchStudentLeaves();
         })
-        .subscribe();
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await fetchStudentLeaves();
+            }
+        });
     return channel;
 };
 
@@ -191,6 +199,8 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
         callback([]);
         return;
     }
+
+     const channel = supabase.channel('teacher-leaves');
 
     const fetchTeacherLeaves = async () => {
         try {
@@ -201,14 +211,17 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
             console.error("Error fetching teacher leaves:", error);
         }
     };
-    fetchTeacherLeaves();
 
-    const channel = supabase.channel('teacher-leaves')
+    channel
         .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: 'userRole=eq.Teacher' }, 
         (payload) => {
             fetchTeacherLeaves();
         })
-        .subscribe();
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await fetchTeacherLeaves();
+            }
+        });
     return channel;
 };
 
@@ -259,6 +272,9 @@ export const getLeaveRequestsForClassTeacher = (classTeacherId: string, callback
 
 // Utility function to get all leave requests (for admin use)
 export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) => {
+    
+    const channel = supabase.channel('all-leaves');
+
     const fetchAllLeaves = async () => {
         try {
             const { data, error } = await supabase.from('leaves').select('*').order('appliedAt', { ascending: false });
@@ -270,17 +286,18 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
         }
     };
 
-    fetchAllLeaves();
-
-    const channel = supabase
-        .channel('all-leaves')
+    channel
         .on('postgres_changes',
             { event: '*', schema: 'public', table: LEAVES_COLLECTION },
             (payload) => {
                 fetchAllLeaves();
             }
         )
-        .subscribe();
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await fetchAllLeaves();
+            }
+        });
 
     return channel;
 };
