@@ -84,15 +84,7 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-  }
-}
-
-@media print {
-  @page {
-    size: auto;
-    margin: 1cm;
-  }
-  body {
-    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
