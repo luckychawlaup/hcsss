@@ -88,7 +88,20 @@ function ReportCardContent() {
     const resultStatus = getResultStatus();
 
     if (isLoading) return <ReportCardSkeleton />;
-    if (!student || !exam || marks.length === 0) return notFound();
+    if (!student || !exam) return notFound();
+    if (marks.length === 0) {
+        return (
+             <div className="flex h-screen items-center justify-center text-center p-4">
+                <div>
+                    <h1 className="text-2xl font-bold">No Marks Entered Yet</h1>
+                    <p className="text-muted-foreground mt-2">The marks for {exam.name} have not been entered for {student.name}.</p>
+                    <Button asChild className="mt-4">
+                        <Link href="/">Go to Dashboard</Link>
+                    </Button>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="bg-gray-100 p-4 sm:p-8 print:bg-white print:p-0">

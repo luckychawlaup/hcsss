@@ -12,6 +12,46 @@ export interface Mark {
     grade: string;
 }
 
+export const MARKS_TABLE_SETUP_SQL = `
+-- Create the marks table to store student grades for each exam subject
+CREATE TABLE IF NOT EXISTS public.marks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_auth_uid UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL,
+    marks INTEGER NOT NULL,
+    max_marks INTEGER NOT NULL,
+    grade TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT marks_unique_student_exam_subject UNIQUE (student_auth_uid, exam_id, subject)
+);
+
+-- Enable Row Level Security (RLS) for the marks table
+ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to prevent conflicts
+DROP POLICY IF EXISTS "Allow teachers to manage marks" ON public.marks;
+DROP POLICY IF EXISTS "Allow students to view their own marks" ON public.marks;
+
+-- Policy: Allow authenticated teachers and admins to perform all operations on marks
+CREATE POLICY "Allow teachers to manage marks"
+ON public.marks FOR ALL
+USING (
+  (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
+  OR
+  auth.uid() IN (
+    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
+    '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
+  )
+);
+
+-- Policy: Allow students to view their own marks
+CREATE POLICY "Allow students to view their own marks"
+ON public.marks FOR SELECT
+USING (auth.uid() = student_auth_uid);
+`;
+
 const getGrade = (marks: number, maxMarks: number): string => {
     const percentage = (marks / maxMarks) * 100;
     if (percentage >= 90) return 'A+';
@@ -44,7 +84,7 @@ export const setMarksForStudent = async (studentAuthUid: string, examId: string,
 export const getStudentMarksForExam = async (studentAuthUid: string, examId: string): Promise<Mark[]> => {
     const { data, error } = await supabase
         .from('marks')
-        .select('*, exams(max_marks)')
+        .select('*')
         .eq('student_auth_uid', studentAuthUid)
         .eq('exam_id', examId);
     
@@ -53,11 +93,7 @@ export const getStudentMarksForExam = async (studentAuthUid: string, examId: str
         return [];
     }
 
-    // Transform the data to include maxMarks in the top-level object
-    return (data || []).map((mark: any) => ({
-        ...mark,
-        maxMarks: mark.exams.max_marks
-    }));
+    return data || [];
 };
 
 export const getMarksForStudent = (studentAuthUid: string, callback: (marksByExam: Record<string, Mark[]>) => void) => {

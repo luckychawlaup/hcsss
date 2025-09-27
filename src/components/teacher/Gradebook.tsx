@@ -36,7 +36,6 @@ import * as z from "zod";
 
 const createExamSchema = z.object({
   name: z.string().min(3, "Exam name must be at least 3 characters."),
-  max_marks: z.coerce.number().min(1, "Max marks must be greater than 0."),
 });
 
 interface GradebookProps {
@@ -166,7 +165,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
 
     const createExamForm = useForm<z.infer<typeof createExamSchema>>({
         resolver: zodResolver(createExamSchema),
-        defaultValues: { name: "", max_marks: 100 }
+        defaultValues: { name: "" }
     });
 
     const handleCreateExam = async (values: z.infer<typeof createExamSchema>) => {
@@ -174,7 +173,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
             const newExam = await addExam({
                 name: values.name,
                 date: new Date().toISOString(),
-                max_marks: values.max_marks
+                max_marks: 100, // Default max marks
             });
             if (newExam) {
                 toast({ title: "Exam Created", description: `${newExam.name} has been added.`});
@@ -285,7 +284,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Create New Exam</DialogTitle>
-                        <DialogDescription>Define a new exam for which you can record marks.</DialogDescription>
+                        <DialogDescription>Define a new exam for which you can record marks. Max marks will be set to 100.</DialogDescription>
                     </DialogHeader>
                     <FormProvider {...createExamForm}>
                         <form onSubmit={createExamForm.handleSubmit(handleCreateExam)} className="space-y-4">
@@ -293,11 +292,6 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                                 <Label htmlFor="name">Exam Name</Label>
                                 <Input id="name" {...createExamForm.register("name")} />
                                 {createExamForm.formState.errors.name && <p className="text-sm text-destructive">{createExamForm.formState.errors.name.message}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="max_marks">Maximum Marks</Label>
-                                <Input id="max_marks" type="number" {...createExamForm.register("max_marks")} />
-                                {createExamForm.formState.errors.max_marks && <p className="text-sm text-destructive">{createExamForm.formState.errors.max_marks.message}</p>}
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsCreateExamOpen(false)}>Cancel</Button>

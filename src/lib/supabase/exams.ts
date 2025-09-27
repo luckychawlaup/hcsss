@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     date TIMESTAMPTZ NOT NULL,
-    max_marks INTEGER NOT NULL,
+    max_marks INTEGER NOT NULL DEFAULT 100,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
