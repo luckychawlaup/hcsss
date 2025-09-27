@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -141,8 +142,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
           ? new Date(values.endDate).toISOString() 
           : startDate;
 
-        const newLeave: Omit<LeaveRequest, "id"> = {
-          user_id: teacher.auth_uid,
+        const newLeave: Omit<LeaveRequest, "id" | "user_id"> = {
           userName: teacher.name,
           userRole: "Teacher",
           startDate,
@@ -153,7 +153,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
           teacherId: teacher.id,
         };
         
-        await addLeaveRequest(newLeave);
+        await addLeaveRequest(teacher.auth_uid, newLeave);
         
         toast({
             title: "Leave Application Submitted",

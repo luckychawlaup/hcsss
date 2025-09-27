@@ -92,11 +92,16 @@ USING (
 );
 `;
 
-export const addLeaveRequest = async (leaveRequest: Omit<LeaveRequest, 'id'>) => {
+export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveRequest, 'id' | 'user_id'>) => {
     try {
+        const finalRequestData = {
+            ...leaveRequest,
+            user_id: authUid,
+        };
+
         const { data, error } = await supabase
             .from(LEAVES_COLLECTION)
-            .insert([leaveRequest])
+            .insert([finalRequestData])
             .select()
             .single();
         

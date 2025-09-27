@@ -84,7 +84,7 @@ export default function LeavePageContent() {
             const studentProfile = await getStudentByAuthId(user.id);
             setCurrentStudent(studentProfile);
             if (studentProfile) {
-               const unsubscribeLeaves = getLeaveRequestsForUser(studentProfile.id, (leaves) => {
+               const unsubscribeLeaves = getLeaveRequestsForUser(studentProfile.auth_uid, (leaves) => {
                    setPastLeaves(leaves);
                });
                // This will be cleaned up on component unmount if needed, or when user changes
@@ -120,8 +120,7 @@ export default function LeavePageContent() {
     
     setIsSubmitting(true);
     try {
-        const newLeave: Omit<LeaveRequest, 'id'> = {
-            user_id: currentStudent.id,
+        const newLeave: Omit<LeaveRequest, 'id' | 'user_id'> = {
             userName: currentStudent.name,
             class: `${currentStudent.class}-${currentStudent.section}`,
             userRole: "Student",
@@ -132,7 +131,8 @@ export default function LeavePageContent() {
             appliedAt: new Date().toISOString(),
         }
         
-        await addLeaveRequest(newLeave);
+        await addLeaveRequest(currentUser.id, newLeave);
+
         toast({
             title: "Leave Application Submitted",
             description: "Your leave request has been sent for approval.",
