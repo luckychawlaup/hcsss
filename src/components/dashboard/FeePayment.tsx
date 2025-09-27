@@ -18,7 +18,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { DollarSign, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
-import { endOfMonth, format, isAfter, startOfToday, isBefore } from "date-fns";
+import { endOfMonth, format, isAfter, startOfToday, isBefore, isSameMonth } from "date-fns";
 import { useRouter } from "next/navigation";
 
 // This should come from a user-specific context or prop
@@ -59,17 +59,13 @@ export default function FeePayment() {
       if (feeInfo && feeInfo.status === 'pending') {
         const monthIndex = monthMap[month];
         const year = monthIndex >= 3 ? sessionStartYear : sessionStartYear + 1;
-        const monthDate = new Date(year, monthIndex);
-        const dueDate = endOfMonth(monthDate);
+        const monthDate = new Date(year, monthIndex, 1);
         
-        const reminderStartDate = new Date(dueDate);
-        reminderStartDate.setDate(reminderStartDate.getDate() - 5);
-
-        // Only consider months up to the current month for overdue/due status
-        if (isAfter(today, reminderStartDate) && !isAfter(monthDate, today)) {
+        // Include if the month is in the past, or if it is the current month.
+        if (isBefore(monthDate, today) || isSameMonth(monthDate, today)) {
           totalDueAmount += feeInfo.amount;
           dueMonths.push(month);
-          lastDueDate = format(dueDate, "do MMM, yyyy");
+          lastDueDate = format(endOfMonth(monthDate), "do MMM, yyyy");
         }
       }
     }
@@ -102,7 +98,7 @@ export default function FeePayment() {
           <div>
             <div className="text-2xl font-bold">₹{dueFeeDetails.amount.toLocaleString('en-IN')}</div>
             <p className="text-sm text-destructive/80">Total due for {dueFeeDetails.months}.</p>
-            <p className="text-xs text-destructive/80">Next due date is {dueFeeDetails.dueDate}.</p>
+            {dueFeeDetails.dueDate && <p className="text-xs text-destructive/80">Next due date is {dueFeeDetails.dueDate}.</p>}
           </div>
            <Button
             size="sm"
