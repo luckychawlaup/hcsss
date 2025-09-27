@@ -179,26 +179,36 @@ export const getStudentsForTeacher = (teacher: any, callback: (students: Combine
     const assignedClasses = new Set<string>();
     if(teacher.class_teacher_of) assignedClasses.add(teacher.class_teacher_of);
     if(teacher.classes_taught) teacher.classes_taught.forEach((c: string) => assignedClasses.add(c));
-    const classList = Array.from(assignedClasses).filter(Boolean); // Ensure no empty strings
+    
+    const classList = Array.from(assignedClasses);
 
     if (classList.length === 0) {
         callback([]);
         return () => {};
     }
 
-    const classSectionList = classList.map(c => `${c}`);
+    const fetchAndFilterStudents = async () => {
+        const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*');
+        if (error) {
+            console.error("Error fetching students for teacher:", error);
+            callback([]);
+            return;
+        }
+        if (data) {
+            const filteredStudents = data.filter(student => 
+                classList.includes(`${student.class}-${student.section}`)
+            );
+            callback(filteredStudents.map(s => ({...s, status: 'Registered'})));
+        }
+    }
 
     const channel = supabase.channel(`students-for-teacher-${teacher.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: STUDENTS_COLLECTION }, async () => {
-             const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class_section', classSectionList);
-             if(data) callback(data.map(s => ({...s, status: 'Registered'})));
+        .on('postgres_changes', { event: '*', schema: 'public', table: STUDENTS_COLLECTION }, (payload) => {
+             fetchAndFilterStudents();
         })
         .subscribe();
     
-    (async () => {
-        const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class_section', classSectionList);
-        if(data) callback(data.map(s => ({...s, status: 'Registered'})));
-    })();
+    fetchAndFilterStudents();
 
     return () => supabase.removeChannel(channel);
 }
