@@ -44,14 +44,21 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   useEffect(() => {
     if (classTeacherOf && attendanceDate) {
         setIsFetching(true);
+        // Initialize all students as present
+        const initialAttendance: Record<string, AttendanceStatus> = {};
+        studentsInClass.forEach(student => {
+            initialAttendance[student.id] = 'present';
+        });
+
         getAttendanceForDate(classTeacherOf, attendanceDate)
             .then(records => {
-                const newAttendance: Record<string, AttendanceStatus> = {};
-                studentsInClass.forEach(student => {
-                    const record = records.find(r => r.student_id === student.id);
-                    newAttendance[student.id] = record?.status || 'present';
+                // Update with fetched records
+                records.forEach(record => {
+                    if (initialAttendance.hasOwnProperty(record.student_id)) {
+                        initialAttendance[record.student_id] = record.status;
+                    }
                 });
-                setAttendance(newAttendance);
+                setAttendance(initialAttendance);
             })
             .finally(() => setIsFetching(false));
     }

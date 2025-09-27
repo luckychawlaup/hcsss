@@ -69,6 +69,9 @@ USING (
 
 // Upsert attendance records for a class on a specific date
 export const setAttendance = async (records: Omit<AttendanceRecord, 'id' | 'created_at'>[]): Promise<void> => {
+    if (!records || records.length === 0) {
+        return;
+    }
     const { error } = await supabase.from(ATTENDANCE_COLLECTION).upsert(records, {
         onConflict: 'student_id,date',
     });
