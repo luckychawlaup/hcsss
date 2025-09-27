@@ -26,8 +26,11 @@ export interface LeaveRequest {
  * and apply the necessary Row Level Security (RLS) policies.
  */
 export const LEAVES_TABLE_SETUP_SQL = `
--- 1. Create the 'leaves' table
-CREATE TABLE IF NOT EXISTS public.leaves (
+-- 1. Drop the old table if it exists to ensure a clean start
+DROP TABLE IF EXISTS public.leaves;
+
+-- 2. Create the 'leaves' table with correctly quoted column names
+CREATE TABLE public.leaves (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     "userName" TEXT NOT NULL,
@@ -43,17 +46,17 @@ CREATE TABLE IF NOT EXISTS public.leaves (
     "approverComment" TEXT
 );
 
--- 2. Enable RLS on the 'leaves' table
+-- 3. Enable RLS on the 'leaves' table
 ALTER TABLE public.leaves ENABLE ROW LEVEL SECURITY;
 
--- 3. Drop existing policies to avoid conflicts
+-- 4. Drop existing policies to avoid conflicts from previous attempts
 DROP POLICY IF EXISTS "Allow authenticated users to insert their own leave" ON public.leaves;
 DROP POLICY IF EXISTS "Allow users to view their own leave requests" ON public.leaves;
 DROP POLICY IF EXISTS "Allow teachers/admins to view all leave requests" ON public.leaves;
 DROP POLICY IF EXISTS "Allow users to update their own pending requests" ON public.leaves;
 DROP POLICY IF EXISTS "Allow teachers/admins to update any leave request" ON public.leaves;
 
--- 4. Create new RLS policies
+-- 5. Create new, correct RLS policies
 -- Users can create their own leave requests
 CREATE POLICY "Allow authenticated users to insert their own leave"
 ON public.leaves FOR INSERT
@@ -64,9 +67,7 @@ CREATE POLICY "Allow users to view their own leave requests"
 ON public.leaves FOR SELECT
 USING (auth.uid() = user_id);
 
--- Admins/Teachers can see all leave requests (for approval)
--- Note: This is a broad policy. For production, you might restrict this further,
--- e.g., class teachers can only see leaves for their own class.
+-- Admins/Teachers can see all leave requests
 CREATE POLICY "Allow teachers/admins to view all leave requests"
 ON public.leaves FOR SELECT
 USING (
@@ -77,12 +78,6 @@ USING (
     '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
   )
 );
-
--- Users can update their own PENDING leave requests (e.g., to cancel, though not implemented in UI)
-CREATE POLICY "Allow users to update their own pending requests"
-ON public.leaves FOR UPDATE
-USING (auth.uid() = user_id AND status = 'Pending')
-WITH CHECK (auth.uid() = user_id);
 
 -- Admins/Teachers can update any leave request (to approve/reject)
 CREATE POLICY "Allow teachers/admins to update any leave request"
@@ -374,5 +369,3 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
 
     return () => supabase.removeChannel(channel);
 };
-
-    
