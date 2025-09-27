@@ -31,22 +31,16 @@ export default function ManageHolidays() {
     };
   }, []);
 
-  const handleDayClick = (day: Date) => {
-    const isAlreadySelected = selectedDays.some(d => isSameDay(d, day));
-    if (isAlreadySelected) {
-      setSelectedDays(selectedDays.filter(d => !isSameDay(d, day)));
-    } else {
-      setSelectedDays([...selectedDays, day]);
-    }
-  };
-  
   const handleSaveHolidays = async () => {
-    const existingHolidays = holidays.map(h => format(h, 'yyyy-MM-dd'));
-    const selectedHolidayStrings = selectedDays.map(d => format(d, 'yyyy-MM-dd'));
-
-    const toAdd = selectedDays.filter(d => !existingHolidays.includes(format(d, 'yyyy-MM-dd')));
-    const toRemove = holidays.filter(h => !selectedHolidayStrings.includes(format(h, 'yyyy-MM-dd')));
-
+    const existingHolidayStrings = holidays.map(h => format(h, 'yyyy-MM-dd'));
+    
+    // Find dates to add
+    const toAdd = selectedDays.filter(d => !existingHolidayStrings.includes(format(d, 'yyyy-MM-dd')));
+    
+    // Find dates to remove
+    const toRemove = holidays.filter(h => !selectedDays.some(d => isSameDay(d, h)));
+    
+    setIsLoading(true);
     try {
       if (toAdd.length > 0) {
         await Promise.all(toAdd.map(date => addHoliday({ date: format(date, 'yyyy-MM-dd'), description: "Holiday" })));
@@ -58,13 +52,15 @@ export default function ManageHolidays() {
         title: "Holidays Updated",
         description: "The holiday schedule has been successfully updated."
       });
-      setSelectedDays([]); // Clear selection after save
+      // The real-time subscription will update the 'holidays' state automatically
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Update Failed",
         description: "Could not save the holiday changes."
       });
+    } finally {
+       setIsLoading(false);
     }
   };
 
@@ -80,9 +76,8 @@ export default function ManageHolidays() {
       borderRadius: '50%',
     },
     selected: {
-      backgroundColor: 'var(--primary)',
-      color: 'white',
-      borderRadius: '50%',
+        border: '2px solid var(--primary)',
+        borderRadius: '50%',
     }
   };
 
@@ -93,7 +88,7 @@ export default function ManageHolidays() {
   return (
     <Card>
       <CardContent className="p-4 flex flex-col items-center gap-4">
-        <p className="text-muted-foreground">Select dates on the calendar to mark them as holidays. Previously marked holidays are shown in red. New selections are in your primary color.</p>
+        <p className="text-muted-foreground">Select dates on the calendar to mark them as holidays. Existing holidays are in red.</p>
         <DayPicker
           mode="multiple"
           min={0}
@@ -101,8 +96,16 @@ export default function ManageHolidays() {
           onSelect={(days) => setSelectedDays(days || [])}
           modifiers={modifiers}
           modifiersStyles={modifiersStyles}
+          onDayClick={(day, modifiers) => {
+              if (modifiers.holiday) {
+                  setSelectedDays(prev => prev.filter(d => !isSameDay(d, day)))
+              } else {
+                  setSelectedDays(prev => [...prev, day]);
+              }
+          }}
         />
-        <Button onClick={handleSaveHolidays} disabled={selectedDays.length === 0 && holidays.length === 0}>
+        <Button onClick={handleSaveHolidays} disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2" />}
           Save Changes
         </Button>
       </CardContent>

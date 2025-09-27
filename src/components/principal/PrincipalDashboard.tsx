@@ -255,7 +255,7 @@ export default function PrincipalDashboard() {
   const pendingStudentLeavesCount = studentLeaves.filter(l => l.status === 'Pending').length;
   const pendingTeacherLeavesCount = teacherLeaves.filter(l => l.status === 'Pending').length;
   const totalPendingLeaves = pendingStudentLeavesCount + pendingTeacherLeavesCount;
-  const newAdmissionsCount = allStudents.filter(s => s.status === 'Pending').length;
+  const newAdmissionsCount = allStudents.filter(s => s.status === 'Registered').length; // Corrected to only show registered
 
   const renderContent = () => {
       switch(activeView) {
@@ -288,7 +288,7 @@ export default function PrincipalDashboard() {
                                             Register New Teacher
                                         </CardTitle>
                                         <CardDescription>
-                                        Fill out the form below to register a new teacher. A unique registration key will be generated for them to create their account.
+                                        Fill out the form below to register a new teacher. An email with instructions to set their password will be sent to them.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="px-1">
@@ -347,7 +347,7 @@ export default function PrincipalDashboard() {
                                         Add New Student
                                     </CardTitle>
                                     <CardDescription>
-                                        Fill out the form to admit a new student. A unique Student Registration Number (SRN) will be generated.
+                                        Fill out the form to admit a new student. A student account will be created, and they must use the 'Forgot Password' link on the login page to set their password.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="px-1">

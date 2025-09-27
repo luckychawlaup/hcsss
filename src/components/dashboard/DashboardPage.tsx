@@ -1,12 +1,8 @@
 
 import Header from "@/components/dashboard/Header";
-import { Skeleton } from "../ui/skeleton";
 import ReportCard from '@/components/dashboard/ReportCard';
 import Attendance from '@/components/dashboard/Attendance';
 import TodayHomework from '@/components/dashboard/TodayHomework';
-import { Card, CardHeader, CardTitle } from "../ui/card";
-import { Camera } from "lucide-react";
-import Link from "next/link";
 import StudentNav from "./StudentNav";
 import SchoolStatus from "./SchoolStatus";
 
