@@ -17,9 +17,6 @@ import { getAttendanceForStudent, AttendanceRecord } from "@/lib/supabase/attend
 import { Skeleton } from "../ui/skeleton";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-// Example holidays - this should eventually come from a dynamic source
-const holidays: string[] = ["2024-08-15"];
-
 function AttendanceSkeleton() {
     return (
         <Card>
@@ -40,8 +37,8 @@ export default function Attendance() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    let channel: RealtimeChannel | undefined;
     const supabase = createClient();
+    let channel: RealtimeChannel | undefined;
 
     const setupSubscription = async () => {
         setIsLoading(true);
@@ -50,7 +47,6 @@ export default function Attendance() {
         if (user) {
             const student = await getStudentByAuthId(user.id);
             if (student) {
-                // If a channel already exists, unsubscribe from it first.
                 if (channel) {
                     supabase.removeChannel(channel);
                     channel = undefined;
@@ -88,10 +84,8 @@ export default function Attendance() {
   
   const today = startOfToday();
 
-  // Calculate school days that have already passed this month
   const pastSchoolDays = allDaysInMonth.filter(day => 
-      !isSunday(day) && 
-      !holidays.includes(format(day, "yyyy-MM-dd")) &&
+      !isSunday(day) &&
       !isAfter(day, today)
   );
   
