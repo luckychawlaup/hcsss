@@ -114,8 +114,8 @@ function ReportCardContent() {
     }
 
     return (
-        <div className="bg-gray-100 p-4 sm:p-8 print:bg-white print:p-0">
-            <div className="mx-auto max-w-4xl bg-white p-6 sm:p-10 shadow-lg print:shadow-none relative z-10 border rounded-lg">
+        <div className="bg-muted/40 p-4 sm:p-8 print:bg-white print:p-0">
+            <div className="mx-auto max-w-4xl bg-card p-6 sm:p-10 shadow-lg print:shadow-none relative z-10 border rounded-lg">
                 <header className="flex items-start justify-between pb-4 border-b-2 border-primary">
                     <div className="flex-shrink-0">
                         <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} />
@@ -197,22 +197,8 @@ function ReportCardContent() {
                     </div>
                 </section>
 
-                <footer className="mt-16 border-t pt-4">
-                    <div className="flex justify-between text-sm">
-                        <div className="text-center">
-                            <Separator className="w-32 my-10"/>
-                            <p>Class Teacher's Signature</p>
-                        </div>
-                        <div className="text-center">
-                            <Separator className="w-32 my-10"/>
-                            <p>Principal's Signature</p>
-                        </div>
-                        <div className="text-center">
-                             <Separator className="w-32 my-10"/>
-                            <p>Parent's Signature</p>
-                        </div>
-                    </div>
-                    <p className="text-center text-xs text-muted-foreground mt-8">This is a computer-generated document.</p>
+                <footer className="mt-16 border-t pt-4 text-center text-xs text-muted-foreground">
+                    <p>This is a computer-generated document and does not require a signature.</p>
                 </footer>
             </div>
         </div>

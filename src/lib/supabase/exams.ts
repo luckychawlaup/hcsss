@@ -1,5 +1,3 @@
-
-
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -34,6 +32,14 @@ CREATE POLICY "Allow authenticated users to manage exams"
 ON public.exams FOR ALL
 USING (auth.role() = 'authenticated')
 WITH CHECK (auth.role() = 'authenticated');
+
+-- If max_marks column exists, drop it since we don't need it at exam level
+DO $ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'exams' AND column_name = 'max_marks') THEN
+        ALTER TABLE public.exams DROP COLUMN max_marks;
+    END IF;
+END $;
 `;
 
 // Helper function to check if tables exist
@@ -169,24 +175,86 @@ export const prepopulateExams = async (): Promise<boolean> => {
 // CRUD operations
 export const addExam = async (exam: Omit<Exam, 'id' | 'created_at'>): Promise<Exam | null> => {
     try {
+        console.log("🚀 Attempting to add exam:", exam);
+        
+        // Check if user is authenticated
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) {
+            console.error("❌ Authentication error:", authError);
+            throw new Error(`Authentication failed: ${authError.message}`);
+        }
+        
+        if (!user) {
+            console.error("❌ User not authenticated");
+            throw new Error("User must be logged in to add exams");
+        }
+        
+        console.log("✅ User authenticated:", user.id);
+        
+        // Validate exam data
+        if (!exam.name || exam.name.trim().length < 3) {
+            throw new Error("Exam name must be at least 3 characters long");
+        }
+        
+        if (!exam.date) {
+            throw new Error("Exam date is required");
+        }
+        
+        // Try to insert the exam
         const { data, error } = await supabase
             .from(EXAMS_COLLECTION)
-            .insert([exam])
+            .insert([{
+                name: exam.name.trim(),
+                date: exam.date
+            }])
             .select()
             .single();
         
         if (error) {
-            console.error("Error adding exam:", error);
-            throw error;
+            console.error("❌ Supabase error details:", {
+                code: error.code,
+                message: error.message,
+                details: error.details,
+                hint: error.hint
+            });
+            
+            // Handle specific error codes
+            if (error.code === '42501') {
+                throw new Error("Permission denied. Please check your database policies.");
+            } else if (error.code === '42P01') {
+                throw new Error("Exams table doesn't exist. Please run the setup SQL first.");
+            } else if (error.code === '23505') {
+                throw new Error("An exam with this name already exists.");
+            } else {
+                throw new Error(`Database error: ${error.message || 'Unknown error'}`);
+            }
         }
         
+        if (!data) {
+            throw new Error("No data returned from database after insert");
+        }
+        
+        console.log("✅ Exam added successfully:", data);
         return data;
+        
     } catch (e: any) {
-        console.error("Unexpected error adding exam:", e);
-        throw e;
+        console.error("❌ Error in addExam:", e);
+        
+        // Re-throw with more context if it's our custom error
+        if (e.message && e.message.includes('Authentication failed')) {
+            throw e;
+        }
+        if (e.message && e.message.includes('Permission denied')) {
+            throw e;
+        }
+        if (e.message && e.message.includes('Database error')) {
+            throw e;
+        }
+        
+        // For unexpected errors, provide a generic message
+        throw new Error(`Failed to add exam: ${e.message || 'Unknown error occurred'}`);
     }
 };
-
 
 export const updateExam = async (id: string, updates: Partial<Omit<Exam, 'id' | 'created_at'>>): Promise<Exam | null> => {
     try {
@@ -249,4 +317,3 @@ export const initializeDatabase = async (): Promise<boolean> => {
     console.log("✅ All tables exist, proceeding with prepopulation...");
     return await prepopulateExams();
 };
-

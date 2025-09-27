@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -33,7 +32,6 @@ import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-
 const createExamSchema = z.object({
   name: z.string().min(3, "Exam name must be at least 3 characters."),
 });
@@ -51,6 +49,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFetchingMarks, setIsFetchingMarks] = useState(false);
     const [isCreateExamOpen, setIsCreateExamOpen] = useState(false);
+    const [isCreatingExam, setIsCreatingExam] = useState(false);
     
     const { toast } = useToast();
 
@@ -176,24 +175,63 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
 
     const createExamForm = useForm<z.infer<typeof createExamSchema>>({
         resolver: zodResolver(createExamSchema),
-        defaultValues: { name: "" }
+        defaultValues: { 
+            name: ""
+        }
     });
 
     const handleCreateExam = async (values: z.infer<typeof createExamSchema>) => {
+        console.log("🚀 Creating exam with values:", values);
+        
+        setIsCreatingExam(true);
         try {
-            const newExam = await addExam({
-                name: values.name,
+            const examData = {
+                name: values.name.trim(),
                 date: new Date().toISOString(),
-            });
+            };
+            
+            console.log("📝 Exam data to be sent:", examData);
+            
+            const newExam = await addExam(examData);
+            
             if (newExam) {
-                toast({ title: "Exam Created", description: `${newExam.name} has been added.`});
+                console.log("✅ Exam created successfully:", newExam);
+                toast({ 
+                    title: "Exam Created Successfully", 
+                    description: `${newExam.name} has been added to your exam list.`
+                });
                 setIsCreateExamOpen(false);
                 createExamForm.reset();
+                // The exam list will automatically update due to the real-time subscription
             } else {
-                 throw new Error("Failed to create exam.");
+                throw new Error("Failed to create exam - no data returned");
             }
-        } catch (error) {
-            toast({ variant: "destructive", title: "Error", description: "Could not create the exam." });
+        } catch (error: any) {
+            console.error("❌ Error creating exam:", error);
+            
+            let errorMessage = "Could not create the exam. Please try again.";
+            
+            if (error?.message) {
+                if (error.message.includes('Authentication failed')) {
+                    errorMessage = "You need to be logged in to create exams.";
+                } else if (error.message.includes('Permission denied')) {
+                    errorMessage = "You don't have permission to create exams. Please contact your administrator.";
+                } else if (error.message.includes('table doesn\'t exist')) {
+                    errorMessage = "Database setup required. Please contact your administrator.";
+                } else if (error.message.includes('already exists')) {
+                    errorMessage = "An exam with this name already exists.";
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+            
+            toast({ 
+                variant: "destructive", 
+                title: "Failed to Create Exam", 
+                description: errorMessage
+            });
+        } finally {
+            setIsCreatingExam(false);
         }
     };
     
@@ -311,14 +349,39 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                         <form onSubmit={createExamForm.handleSubmit(handleCreateExam)} className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Exam Name</Label>
-                                <Input id="name" {...createExamForm.register("name")} />
-                                {createExamForm.formState.errors.name && <p className="text-sm text-destructive">{createExamForm.formState.errors.name.message}</p>}
+                                <Input 
+                                    id="name" 
+                                    {...createExamForm.register("name")} 
+                                    placeholder="Enter exam name (e.g., Mid-term Exam 2024)"
+                                    disabled={isCreatingExam}
+                                />
+                                {createExamForm.formState.errors.name && (
+                                    <p className="text-sm text-destructive">
+                                        {createExamForm.formState.errors.name.message}
+                                    </p>
+                                )}
                             </div>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsCreateExamOpen(false)}>Cancel</Button>
-                                <Button type="submit" disabled={createExamForm.formState.isSubmitting}>
-                                    {createExamForm.formState.isSubmitting && <Loader2 className="mr-2 animate-spin"/>}
-                                    Create Exam
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    onClick={() => setIsCreateExamOpen(false)}
+                                    disabled={isCreatingExam}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={isCreatingExam}>
+                                    {isCreatingExam ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                            Creating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PlusCircle className="mr-2 h-4 w-4"/>
+                                            Create Exam
+                                        </>
+                                    )}
                                 </Button>
                             </DialogFooter>
                         </form>
