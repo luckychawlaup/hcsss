@@ -32,7 +32,8 @@ DROP POLICY IF EXISTS "Allow authenticated users to manage exams" ON public.exam
 -- Create new policy that allows any authenticated user to manage exams
 CREATE POLICY "Allow authenticated users to manage exams"
 ON public.exams FOR ALL
-USING (auth.role() = 'authenticated');
+USING (auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'authenticated');
 `;
 
 // Helper function to check if tables exist
@@ -151,7 +152,6 @@ export const prepopulateExams = async (): Promise<boolean> => {
             return false;
         }
 
-        // We are ensuring no default exams are added.
         if (existingExams && existingExams.length > 0) {
             console.log("✅ Exams table contains data, skipping prepopulation.");
             return true;
@@ -173,17 +173,17 @@ export const addExam = async (exam: Omit<Exam, 'id' | 'created_at'>): Promise<Ex
             .from(EXAMS_COLLECTION)
             .insert([exam])
             .select()
-            .single(); 
+            .single();
         
         if (error) {
             console.error("Error adding exam:", error);
-            throw new Error(error.message || `Database error: ${error.details}`);
+            throw error;
         }
         
         return data;
     } catch (e: any) {
         console.error("Unexpected error adding exam:", e);
-        throw e; // Re-throw the error to be caught by the calling function
+        throw e;
     }
 };
 
@@ -249,3 +249,4 @@ export const initializeDatabase = async (): Promise<boolean> => {
     console.log("✅ All tables exist, proceeding with prepopulation...");
     return await prepopulateExams();
 };
+
