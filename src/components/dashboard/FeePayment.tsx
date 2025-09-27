@@ -47,10 +47,9 @@ export default function FeePayment() {
   const router = useRouter();
 
   const dueFeeDetails = useMemo(() => {
-    const today = startOfToday();
+    const today = new Date();
     let totalDueAmount = 0;
     const dueMonths: string[] = [];
-    let lastDueDate: string | null = null;
     
     const sessionStartYear = parseInt(currentSession.split('-')[0]);
 
@@ -58,14 +57,14 @@ export default function FeePayment() {
       const feeInfo = feeData[month as keyof typeof feeData];
       if (feeInfo && feeInfo.status === 'pending') {
         const monthIndex = monthMap[month];
+        // Determine the correct year for the month based on the session
         const year = monthIndex >= 3 ? sessionStartYear : sessionStartYear + 1;
         const monthDate = new Date(year, monthIndex, 1);
         
-        // Include if the month is in the past, or if it is the current month.
+        // If the month is in the past or is the current month, add its fee to the total due
         if (isBefore(monthDate, today) || isSameMonth(monthDate, today)) {
           totalDueAmount += feeInfo.amount;
           dueMonths.push(month);
-          lastDueDate = format(endOfMonth(monthDate), "do MMM, yyyy");
         }
       }
     }
@@ -74,7 +73,6 @@ export default function FeePayment() {
       return {
         amount: totalDueAmount,
         months: dueMonths.join(', '),
-        dueDate: lastDueDate
       };
     }
     
@@ -98,7 +96,6 @@ export default function FeePayment() {
           <div>
             <div className="text-2xl font-bold">₹{dueFeeDetails.amount.toLocaleString('en-IN')}</div>
             <p className="text-sm text-destructive/80">Total due for {dueFeeDetails.months}.</p>
-            {dueFeeDetails.dueDate && <p className="text-xs text-destructive/80">Next due date is {dueFeeDetails.dueDate}.</p>}
           </div>
            <Button
             size="sm"
