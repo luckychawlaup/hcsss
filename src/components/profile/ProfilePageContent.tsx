@@ -54,13 +54,14 @@ export default function ProfilePageContent() {
         setProfile(null);
         setRole(null);
         setIsLoading(false);
+        router.push("/login");
       }
     });
 
     return () => {
         authListener.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
