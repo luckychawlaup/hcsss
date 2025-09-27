@@ -14,7 +14,6 @@ import { FileText, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getExams, Exam } from "@/lib/supabase/exams";
 import { getMarksForStudent, Mark } from "@/lib/supabase/marks";
-import { getStudentByAuthId } from "@/lib/supabase/students";
 import { Skeleton } from "../ui/skeleton";
 
 export default function ReportCardComponent() {
@@ -24,33 +23,38 @@ export default function ReportCardComponent() {
   const supabase = createClient();
 
   useEffect(() => {
+    let examsUnsub: any = null;
+    let marksUnsub: any = null;
+
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
         const user = session?.user;
         if (user) {
-             const studentProfile = await getStudentByAuthId(user.id);
-            if (studentProfile) {
-                const examsUnsub = getExams((allExams) => {
-                    setExams(allExams);
-                });
-                const marksUnsub = getMarksForStudent(studentProfile.auth_uid, (studentMarks) => {
-                    setMarks(studentMarks);
-                    setIsLoading(false);
-                });
-                
-                return () => {
-                    if (examsUnsub) examsUnsub.unsubscribe();
-                    if (marksUnsub) marksUnsub.unsubscribe();
-                }
-            } else {
-                 setIsLoading(false);
-            }
+            setIsLoading(true);
+
+            examsUnsub = getExams((allExams) => {
+                setExams(allExams);
+            });
+
+            marksUnsub = getMarksForStudent(user.id, (studentMarks) => {
+                setMarks(studentMarks);
+                setIsLoading(false);
+            });
+
         } else {
             setIsLoading(false);
+            setExams([]);
+            setMarks({});
         }
     });
 
     return () => {
         authListener.subscription.unsubscribe();
+        if (examsUnsub && typeof examsUnsub.unsubscribe === 'function') {
+            examsUnsub.unsubscribe();
+        }
+        if (marksUnsub && typeof marksUnsub.unsubscribe === 'function') {
+            marksUnsub.unsubscribe();
+        }
     };
   }, [supabase]);
 
