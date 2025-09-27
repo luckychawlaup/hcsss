@@ -5,12 +5,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { format } from "date-fns";
 
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { ArrowLeft, Loader2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 
 const studentApplicationSchema = z.object({
@@ -26,7 +30,9 @@ const studentApplicationSchema = z.object({
   motherName: z.string().min(2, "Mother's name is required."),
   email: z.string().email("Please enter a valid email address."),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number."),
-  dob: z.string().min(1, "Date of birth is required."),
+  dob: z.date({
+    required_error: "Date of birth is required.",
+  }),
   address: z.string().min(10, "Address is too short."),
   previousSchool: z.string().optional(),
   classAppliedFor: z.string({ required_error: "Please select a class."}),
@@ -48,7 +54,6 @@ export default function StudentApplicationPage() {
       motherName: "",
       email: "",
       phone: "",
-      dob: "",
       address: "",
       previousSchool: "",
     },
@@ -58,7 +63,7 @@ export default function StudentApplicationPage() {
     setIsSubmitting(true);
     // In a real app, you would send this data to your backend
     await new Promise(resolve => setTimeout(resolve, 2000));
-    console.log(values);
+    console.log({ ...values, dob: format(values.dob, "yyyy-MM-dd") });
     setIsSubmitting(false);
     setIsSuccess(true);
     toast({
@@ -74,9 +79,47 @@ export default function StudentApplicationPage() {
           <FormField control={form.control} name="name" render={({ field }) => (
               <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Student's full name" {...field} /></FormControl><FormMessage /></FormItem>
           )}/>
-          <FormField control={form.control} name="dob" render={({ field }) => (
-              <FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input placeholder="DD/MM/YYYY" {...field} /></FormControl><FormMessage /></FormItem>
-          )}/>
+          <FormField
+            control={form.control}
+            name="dob"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Date of Birth</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("2000-01-01")
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField control={form.control} name="fatherName" render={({ field }) => (

@@ -27,6 +27,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Separator } from "../ui/separator";
 import { addStudent } from "@/lib/supabase/students";
 import { createClient } from "@/lib/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -42,8 +44,8 @@ const addStudentSchema = z.object({
   address: z.string().min(10, "Address is too short."),
   class: z.string({ required_error: "Please select a class."}),
   section: z.string({ required_error: "Please select a section."}),
-  admission_date: z.string().min(1, "Admission date is required."),
-  date_of_birth: z.string().min(1, "Date of birth is required."),
+  admission_date: z.date({ required_error: "Admission date is required." }),
+  date_of_birth: z.date({ required_error: "Date of birth is required." }),
   aadharCard: z.instanceof(FileList).optional(),
   aadhar_number: z.string().optional(),
   opted_subjects: z.array(z.string()).optional(),
@@ -79,8 +81,8 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
       address: "",
       class: "",
       section: "",
-      admission_date: formatDate(new Date(), "dd/MM/yyyy"),
-      date_of_birth: "",
+      admission_date: new Date(),
+      date_of_birth: undefined,
       opted_subjects: [],
       aadhar_number: "",
       father_phone: "",
@@ -108,19 +110,14 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     setSuccessInfo(null);
     
     let tempAuthUser = null;
-    const tempPassword = Math.random().toString(36).slice(-8); 
 
     try {
-        // Step 1: Create the Supabase Auth user without sending a confirmation email
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: values.email,
-            password: tempPassword,
+            password: Math.random().toString(36).slice(-8), // Weak temp password
             options: {
-              data: {
-                full_name: values.name,
-                role: 'student'
-              },
-              email_confirm: true, // This is the key change
+                data: { full_name: values.name, role: 'student' },
+                email_confirm: true,
             }
         });
 
@@ -129,17 +126,16 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         
         tempAuthUser = authData.user;
 
-        // Step 2: Prepare the student data payload including files
         const studentDataPayload = {
             ...values,
+            date_of_birth: formatDate(values.date_of_birth, "yyyy-MM-dd"),
+            admission_date: values.admission_date.getTime(),
             photo: values.photo?.[0],
             aadharCard: values.aadharCard?.[0],
         };
 
-        // Step 3: Save the student data to the database (which also handles uploads)
         await addStudent(tempAuthUser.id, studentDataPayload as any);
 
-        // If all successful:
         setSuccessInfo({ name: values.name, email: values.email });
         toast({
             title: "Student Admitted Successfully!",
@@ -148,7 +144,6 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         form.reset();
 
     } catch (e: any) {
-        // CRITICAL: A server-side function would be needed to delete the temporary auth user for a truly robust implementation.
         if (tempAuthUser) {
             console.warn("An error occurred after user creation. Manual auth user cleanup may be required for:", tempAuthUser.id);
         }
@@ -244,26 +239,46 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                     control={form.control}
                     name="date_of_birth"
                     render={({ field }) => (
-                    <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Date of Birth</FormLabel>
-                        <FormControl>
-                            <Input placeholder="DD/MM/YYYY" {...field} />
-                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("2000-01-01")} initialFocus />
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
-                    </FormItem>
+                      </FormItem>
                     )}
                 />
                  <FormField
                     control={form.control}
                     name="admission_date"
                     render={({ field }) => (
-                    <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Admission Date</FormLabel>
-                        <FormControl>
-                            <Input placeholder="DD/MM/YYYY" {...field} />
-                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
-                    </FormItem>
+                      </FormItem>
                     )}
                 />
                  <FormField
@@ -480,4 +495,3 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
-

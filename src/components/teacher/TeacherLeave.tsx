@@ -29,6 +29,7 @@ import {
   Send,
   History,
   AlertCircle,
+  CalendarIcon,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -40,13 +41,16 @@ import {
 } from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { createClient } from "@/lib/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 const leaveSchema = z.object({
-    startDate: z.string().min(1, "Start date is required."),
-    endDate: z.string().optional(),
+    startDate: z.date({ required_error: "Start date is required."}),
+    endDate: z.date().optional(),
     reason: z.string().min(10, "Reason must be at least 10 characters long."),
     document: z.any()
     .optional()
@@ -111,8 +115,6 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const form = useForm<z.infer<typeof leaveSchema>>({
     resolver: zodResolver(leaveSchema),
     defaultValues: {
-      startDate: "",
-      endDate: "",
       reason: "",
     },
   });
@@ -136,8 +138,8 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
           user_id: teacher.auth_uid,
           userName: teacher.name,
           userRole: "Teacher",
-          startDate: values.startDate,
-          endDate: values.endDate || values.startDate,
+          startDate: values.startDate.toISOString(),
+          endDate: (values.endDate || values.startDate).toISOString(),
           reason: values.reason.trim(),
           status: "Pending",
           appliedAt: new Date().toISOString(),
@@ -153,8 +155,8 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
         });
         
         reset({
-            startDate: "",
-            endDate: "",
+            startDate: undefined,
+            endDate: undefined,
             reason: "",
             document: undefined,
         });
@@ -197,14 +199,21 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                     control={form.control}
                     name="startDate"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Start Date</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="date" 
-                            {...field} 
-                          />
-                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -213,14 +222,21 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                     control={form.control}
                     name="endDate"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>End Date (Optional)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="date" 
-                            {...field} 
-                          />
-                        </FormControl>
+                         <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
