@@ -17,6 +17,7 @@ import { BookOpen, Download } from "lucide-react";
 import { getHomeworks, Homework } from "@/lib/supabase/homework";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import { createClient } from "@/lib/supabase/client";
+import { format } from "date-fns";
 
 function HomeworkSkeleton() {
   return (
@@ -88,7 +89,7 @@ export default function Homework() {
                     <TableRow key={index}>
                       <TableCell className="font-medium pl-0 sm:pl-6">{hw.subject}</TableCell>
                       <TableCell>{hw.description}</TableCell>
-                      <TableCell>{hw.due_date.split("-")[2]}/{hw.due_date.split("-")[1]}</TableCell>
+                      <TableCell>{format(new Date(hw.due_date), "dd/MM")}</TableCell>
                       <TableCell className="text-right pr-0 sm:pr-6">
                         {hw.attachment_url ? (
                           <Button variant="ghost" size="icon" asChild>
@@ -117,5 +118,3 @@ export default function Homework() {
     </Card>
   );
 }
-
-    
