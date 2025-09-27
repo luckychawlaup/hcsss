@@ -113,7 +113,7 @@ export const getHomeworks = (classSection: string, callback: (homeworks: Homewor
 };
 
 export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: Homework[]) => void) => {
-    const fetchHomeworks = async () => {
+    const fetchAndCallback = async () => {
         try {
             const { data, error } = await supabase
                 .from(HOMEWORK_COLLECTION)
@@ -123,14 +123,14 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
                 
             if (error) {
                 console.error('Error fetching teacher homeworks:', error);
+                callback([]);
                 return;
             }
             
-            if (data) {
-                callback(data);
-            }
+            callback(data || []);
         } catch (error) {
-            console.error('fetchHomeworks error:', error);
+            console.error('fetchAndCallback for teacher error:', error);
+            callback([]);
         }
     };
 
@@ -142,14 +142,17 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
             filter: `assigned_by=eq.${teacherId}` 
         }, (payload) => {
             console.log('Teacher homework real-time update:', payload);
-            fetchHomeworks();
+            fetchAndCallback();
         })
-        .subscribe();
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                fetchAndCallback();
+            }
+        });
         
-    fetchHomeworks();
-
     return channel;
 };
+
 
 export const updateHomework = async (homeworkId: string, updatedData: Partial<Homework>, newAttachment?: File): Promise<void> => {
     try {
