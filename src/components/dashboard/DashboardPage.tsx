@@ -16,6 +16,10 @@ const Attendance = dynamic(() => import('@/components/dashboard/Attendance'), {
 const TodayHomework = dynamic(() => import('@/components/dashboard/TodayHomework'), {
     loading: () => <Skeleton className="h-48 w-full" />
 });
+const FeePayment = dynamic(() => import('@/components/dashboard/FeePayment'), {
+    ssr: false,
+    loading: () => <Skeleton className="h-28 w-full" />
+});
 
 
 export default function DashboardPage({ children }: { children?: React.ReactNode }) {
@@ -26,6 +30,7 @@ export default function DashboardPage({ children }: { children?: React.ReactNode
         <Header />
         <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
            <div className="mx-auto w-full max-w-4xl space-y-6">
+              <FeePayment />
               <TodayHomework />
               <Attendance />
           </div>

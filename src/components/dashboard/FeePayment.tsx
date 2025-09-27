@@ -1,5 +1,6 @@
+
 "use client";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -17,13 +18,53 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { DollarSign, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
+import { endOfMonth, format, isAfter, startOfToday } from "date-fns";
+import { useRouter } from "next/navigation";
+
+// This should come from a user-specific context or prop
+const feeData = {
+    "April": { status: "paid", amount: 5000 },
+    "May": { status: "paid", amount: 5000 },
+    "June": { status: "paid", amount: 5000 },
+    "July": { status: "pending", amount: 5000 },
+    "August": { status: "pending", amount: 5000 },
+};
+
+const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 
 export default function FeePayment() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
+  const router = useRouter();
+
+  const nextUnpaidMonth = useMemo(() => {
+      const today = startOfToday();
+      for (const month of monthOrder) {
+          const feeInfo = feeData[month as keyof typeof feeData];
+          if (feeInfo && feeInfo.status !== 'paid') {
+              const year = new Date().getFullYear(); // This needs to be smarter for Jan/Feb/Mar
+              const monthIndex = monthOrder.indexOf(month);
+              const dueDate = endOfMonth(new Date(year, monthIndex));
+
+              const fiveDaysBeforeEnd = new Date(dueDate);
+              fiveDaysBeforeEnd.setDate(fiveDaysBeforeEnd.getDate() - 5);
+
+              if (isAfter(today, fiveDaysBeforeEnd)) {
+                  return {
+                      month: month,
+                      amount: feeInfo.amount,
+                      dueDate: format(dueDate, "yyyy-MM-dd")
+                  };
+              }
+          }
+      }
+      return null;
+  }, []);
 
   const handlePayment = async () => {
+    if (!nextUnpaidMonth) return;
     setIsPaying(true);
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setIsPaying(false);
@@ -37,6 +78,10 @@ export default function FeePayment() {
     }, 2000);
   };
 
+  if (!nextUnpaidMonth) {
+    return null; // Don't show the card if there's no upcoming due fee
+  }
+
   return (
     <>
       <Card className="bg-destructive/10 border-destructive/50">
@@ -48,69 +93,18 @@ export default function FeePayment() {
         </CardHeader>
         <CardContent className="flex items-center justify-between">
           <div>
-            <div className="text-2xl font-bold">₹15,000</div>
-            <p className="text-sm text-destructive/80">Due by 2024-08-30</p>
+            <div className="text-2xl font-bold">₹{nextUnpaidMonth.amount.toLocaleString('en-IN')}</div>
+            <p className="text-sm text-destructive/80">For {nextUnpaidMonth.month}, Due by {nextUnpaidMonth.dueDate}</p>
           </div>
            <Button
             size="sm"
             className="bg-accent text-accent-foreground hover:bg-accent/90"
-            onClick={() => setIsOpen(true)}
+            onClick={() => router.push('/fees')}
           >
             Pay Now
           </Button>
         </CardContent>
       </Card>
-
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Payment</DialogTitle>
-            <DialogDescription>
-              You are about to pay ₹15,000 for school fees.
-            </DialogDescription>
-          </DialogHeader>
-          {isPaid ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-8">
-              <CheckCircle className="h-16 w-16 text-primary" />
-              <p className="text-lg font-medium">Payment Successful!</p>
-            </div>
-          ) : (
-            <>
-              <div className="py-4">
-                <p>
-                  <strong>Amount:</strong> ₹15,000
-                </p>
-                <p>
-                  <strong>Due Date:</strong> 2024-08-30
-                </p>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsOpen(false)}
-                  disabled={isPaying}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handlePayment}
-                  disabled={isPaying}
-                  className="bg-accent text-accent-foreground hover:bg-accent/90"
-                >
-                  {isPaying ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Confirm Payment"
-                  )}
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

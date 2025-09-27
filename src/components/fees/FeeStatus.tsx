@@ -11,29 +11,50 @@ import {
   CardFooter
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Circle, Banknote, Info } from "lucide-react";
+import { CheckCircle2, XCircle, Circle, Banknote, Info, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { Checkbox } from "../ui/checkbox";
 import { Alert, AlertDescription } from "../ui/alert";
+import { endOfMonth, isAfter, isBefore, startOfToday } from "date-fns";
 
 // Mock data, this will eventually come from your backend
 const feeData = {
   "2024-2025": {
-    "April": { status: "paid", amount: 5000, dueDate: "2024-04-10" },
-    "May": { status: "paid", amount: 5000, dueDate: "2024-05-10" },
-    "June": { status: "paid", amount: 5000, dueDate: "2024-06-10" },
-    "July": { status: "due", amount: 5000, dueDate: "2024-07-10" },
-    "August": { status: "pending", amount: 5000, dueDate: "2024-08-10" },
-    "September": { status: "pending", amount: 5000, dueDate: "2024-09-10" },
-    "October": { status: "pending", amount: 5000, dueDate: "2024-10-10" },
-    "November": { status: "pending", amount: 5000, dueDate: "2024-11-10" },
-    "December": { status: "pending", amount: 5000, dueDate: "2024-12-10" },
-    "January": { status: "pending", amount: 5000, dueDate: "2025-01-10" },
-    "February": { status: "pending", amount: 5000, dueDate: "2025-02-10" },
-    "March": { status: "pending", amount: 5000, dueDate: "2025-03-10" },
+    "April": { status: "paid", amount: 5000 },
+    "May": { status: "paid", amount: 5000 },
+    "June": { status: "paid", amount: 5000 },
+    "July": { status: "pending", amount: 5000 },
+    "August": { status: "pending", amount: 5000 },
+    "September": { status: "pending", amount: 5000 },
+    "October": { status: "pending", amount: 5000 },
+    "November": { status: "pending", amount: 5000 },
+    "December": { status: "pending", amount: 5000 },
+    "January": { status: "pending", amount: 5000 },
+    "February": { status: "pending", amount: 5000 },
+    "March": { status: "pending", amount: 5000 },
   }
 };
+
+const monthMap: { [key: string]: number } = { "April": 3, "May": 4, "June": 5, "July": 6, "August": 7, "September": 8, "October": 9, "November": 10, "December": 11, "January": 0, "February": 1, "March": 2 };
+
+const getMonthStatus = (month: string, status: "paid" | "pending", session: string): MonthStatus => {
+    if (status === 'paid') return 'paid';
+
+    const today = startOfToday();
+    const year = monthMap[month] >= 3 ? parseInt(session.split('-')[0]) : parseInt(session.split('-')[1]);
+    const monthEndDate = endOfMonth(new Date(year, monthMap[month]));
+
+    if (isAfter(today, monthEndDate)) return 'overdue';
+
+    const fiveDaysBeforeEnd = new Date(monthEndDate);
+    fiveDaysBeforeEnd.setDate(fiveDaysBeforeEnd.getDate() - 5);
+
+    if (isAfter(today, fiveDaysBeforeEnd)) return 'due';
+
+    return 'pending';
+}
+
 
 type MonthStatus = "paid" | "due" | "overdue" | "pending";
 
@@ -42,7 +63,7 @@ const StatusIcon = ({ status }: { status: MonthStatus }) => {
     case "paid":
       return <CheckCircle2 className="h-5 w-5 text-green-500" />;
     case "due":
-      return <Circle className="h-5 w-5 text-yellow-500" />;
+      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
     case "overdue":
       return <XCircle className="h-5 w-5 text-red-500" />;
     case "pending":
@@ -113,6 +134,7 @@ export default function FeeStatus() {
             const monthData = sessionData[month as keyof typeof sessionData];
             const monthIndex = allMonths.indexOf(month);
             const isSelectable = monthData.status !== 'paid' && monthIndex >= firstUnpaidMonthIndex;
+            const currentMonthStatus = getMonthStatus(month, monthData.status, currentSession);
             
             return (
                 <div key={month} className="flex items-center justify-between">
@@ -124,14 +146,14 @@ export default function FeeStatus() {
                             onCheckedChange={() => handleMonthSelection(month)}
                         />
                     ) : (
-                        <StatusIcon status={monthData.status} />
+                        <StatusIcon status={currentMonthStatus} />
                     )}
                     <label htmlFor={month} className={cn("font-medium", !isSelectable && "cursor-not-allowed text-muted-foreground")}>{month}</label>
                     </div>
                     <div className="flex items-center gap-4">
                     <p className="text-sm text-muted-foreground w-20 text-right">₹{monthData.amount.toLocaleString('en-IN')}</p>
                     <div className="w-20 text-center">
-                        <StatusBadge status={monthData.status} />
+                        <StatusBadge status={currentMonthStatus} />
                     </div>
                     </div>
                 </div>
