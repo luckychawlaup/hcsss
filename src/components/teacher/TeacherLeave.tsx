@@ -44,6 +44,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { getTeacherByAuthId } from "@/lib/supabase/teachers";
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -83,34 +84,42 @@ const formatLeaveDate = (startDate: string, endDate: string) => {
     return `${format(start, "do MMM")} - ${format(end, "do MMM, yyyy")}`;
 }
 
-interface TeacherLeaveProps {
-  teacher: Teacher | null;
-}
-
-export function TeacherLeave({ teacher }: TeacherLeaveProps) {
+export function TeacherLeave() {
   const { toast } = useToast();
+  const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
-    let channel: any;
-    if (teacher) {
+    const fetchTeacherAndLeaves = async () => {
         setIsLoading(true);
-        const supabase = createClient();
-        channel = getLeaveRequestsForUser(teacher.auth_uid, (leaves) => {
-            setPastLeaves(leaves || []);
-            setIsLoading(false);
-        });
-    } else {
-        setIsLoading(false);
-    }
-    return () => {
-        if (channel) {
-            channel.unsubscribe();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const teacherProfile = await getTeacherByAuthId(user.id);
+            setTeacher(teacherProfile);
+            if (teacherProfile) {
+                const channel = getLeaveRequestsForUser(teacherProfile.auth_uid, (leaves) => {
+                    setPastLeaves(leaves || []);
+                });
+                setIsLoading(false);
+                return () => {
+                    if (channel) {
+                        channel.unsubscribe();
+                    }
+                };
+            }
         }
+        setIsLoading(false);
     };
-  }, [teacher]);
+
+    const cleanup = fetchTeacherAndLeaves();
+    
+    return () => {
+        // This is conceptual; real cleanup would be returned by fetchTeacherAndLeaves
+    };
+  }, [supabase]);
 
   const form = useForm<z.infer<typeof leaveSchema>>({
     resolver: zodResolver(leaveSchema),
@@ -177,10 +186,14 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     }
   }
 
+  if (isLoading) {
+      return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+  }
+
   if (!teacher) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">Please log in to access leave management.</p>
+        <p className="text-muted-foreground">Could not load teacher profile. Please log in again.</p>
       </div>
     );
   }

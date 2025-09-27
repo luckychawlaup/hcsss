@@ -231,7 +231,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <TeacherLeave teacher={teacher} />
+                            <TeacherLeave />
                         </CardContent>
                     </Card>
                 );
