@@ -2,7 +2,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Home, CalendarPlus, User, BookOpen } from "lucide-react";
+import { Home, CalendarPlus, User, BookOpen, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -17,6 +17,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/homework", label: "Homework", icon: BookOpen },
+  { href: "/fees", label: "Fees", icon: Wallet },
   { href: "/leave", label: "Leave", icon: CalendarPlus },
   { href: "/profile", label: "Profile", icon: User },
 ];

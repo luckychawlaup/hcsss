@@ -7,9 +7,6 @@ import { Camera } from "lucide-react";
 import Link from "next/link";
 import StudentNav from "./StudentNav";
 
-const FeePayment = dynamic(() => import('@/components/dashboard/FeePayment'), {
-  loading: () => <Skeleton className="h-28 w-full" />,
-});
 const ReportCard = dynamic(() => import('@/components/dashboard/ReportCard'), {
   loading: () => <Skeleton className="h-48 w-full" />,
 });
@@ -30,7 +27,6 @@ export default function DashboardPage({ children }: { children?: React.ReactNode
         <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
            <div className="mx-auto w-full max-w-4xl space-y-6">
               <TodayHomework />
-              <FeePayment />
               <Attendance />
           </div>
           <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-2">
