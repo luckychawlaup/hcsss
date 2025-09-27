@@ -64,7 +64,7 @@ const leaveSchema = z.object({
 const getStatusVariant = (status: LeaveRequest["status"]) => {
   switch (status) {
     case "Confirmed":
-      return "default";
+      return "success";
     case "Pending":
       return "secondary";
     case "Rejected":
