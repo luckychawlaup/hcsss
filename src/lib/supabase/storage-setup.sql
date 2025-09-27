@@ -1,32 +1,24 @@
+-- 1. Create the 'leave_documents' bucket if it doesn't exist
+-- This part must be done from the Supabase Dashboard if you cannot run it here.
+-- Go to Storage -> Create a new bucket -> name it "leave_documents" and make it public.
+-- The SQL below assumes the bucket has been created.
 
--- 1. Create a new bucket named 'leave_documents' if it doesn't exist.
--- Make it public so that URLs can be easily generated. Access will be controlled by policies.
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('leave_documents', 'leave_documents', true)
-ON CONFLICT (id) DO NOTHING;
+-- 2. Drop existing policies on the bucket to ensure a clean slate
+DROP POLICY IF EXISTS "Allow authenticated users to upload" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated users to view their own files" ON storage.objects;
 
--- 2. Drop existing policies on the 'leave_documents' bucket to ensure a clean slate.
--- Replace 'Allow authenticated user uploads' with your actual policy name if it's different.
-DROP POLICY IF EXISTS "Allow authenticated user uploads" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to read their own documents" ON storage.objects;
-DROP POLICY IF EXISTS "Give users access to their own folder" ON storage.objects;
-
-
--- 3. Create a new policy to allow authenticated users to UPLOAD files into a 'public' folder.
--- We are scoping uploads to a '/public' folder within the bucket for this policy.
-CREATE POLICY "Allow authenticated user uploads"
-ON storage.objects FOR INSERT
+-- 3. Create policy for authenticated users to UPLOAD to the 'public' folder
+CREATE POLICY "Allow authenticated users to upload"
+ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (
     bucket_id = 'leave_documents' AND
-    auth.role() = 'authenticated' AND
-    storage.foldername(name)[1] = 'public'
+    (storage.foldername(name))[1] = 'public'
 );
 
--- 4. Create a policy to allow authenticated users to SELECT/READ their own files.
--- This policy checks if the user's ID is part of the file path.
-CREATE POLICY "Give users access to their own folder"
-ON storage.objects FOR SELECT
+-- 4. Create policy for authenticated users to SELECT/VIEW files from the 'public' folder
+CREATE POLICY "Allow authenticated users to view their own files"
+ON storage.objects FOR SELECT TO authenticated
 USING (
     bucket_id = 'leave_documents' AND
-    auth.uid()::text = (storage.foldername(name))[2]
+    (storage.foldername(name))[1] = 'public'
 );
