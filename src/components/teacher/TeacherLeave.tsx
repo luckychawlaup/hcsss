@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -54,6 +53,8 @@ const getStatusVariant = (status: LeaveRequest["status"]) => {
       return "secondary";
     case "Rejected":
       return "destructive";
+    default:
+      return "secondary";
   }
 };
 
@@ -74,18 +75,43 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    
     if (teacher) {
-      const unsubscribeLeaves = getLeaveRequestsForUser(teacher.id, (leaves) => {
-        setPastLeaves(leaves);
-      });
-      return () => {
-          if (unsubscribeLeaves && typeof unsubscribeLeaves.unsubscribe === 'function') {
-              unsubscribeLeaves.unsubscribe();
-          }
-      };
+      setIsLoading(true);
+      try {
+        const subscription = getLeaveRequestsForUser(teacher.id, (leaves) => {
+          console.log("Received leaves:", leaves);
+          setPastLeaves(leaves || []);
+          setIsLoading(false);
+        });
+        
+        // Handle different return types from the subscription
+        if (typeof subscription === 'function') {
+          unsubscribe = subscription;
+        } else if (subscription && typeof subscription.unsubscribe === 'function') {
+          unsubscribe = () => subscription.unsubscribe();
+        }
+      } catch (error) {
+        console.error("Error setting up leave subscription:", error);
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
     }
+
+    return () => {
+      if (unsubscribe) {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.error("Error unsubscribing:", error);
+        }
+      }
+    };
   }, [teacher]);
 
   const form = useForm<z.infer<typeof leaveSchema>>({
@@ -108,46 +134,69 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
       });
       return;
     }
+
+    console.log("Submitting leave request:", values);
     setIsSubmitting(true);
+    
     try {
+        // Convert dates to ISO format
+        const startDate = new Date(values.startDate).toISOString();
+        const endDate = values.endDate 
+          ? new Date(values.endDate).toISOString() 
+          : startDate;
+
         const newLeave: Omit<LeaveRequest, "id"> = {
           user_id: teacher.id,
           userName: teacher.name,
           userRole: "Teacher",
-          startDate: values.startDate,
-          endDate: values.endDate || values.startDate,
-          reason: values.reason,
+          startDate,
+          endDate,
+          reason: values.reason.trim(),
           status: "Pending",
           appliedAt: new Date().toISOString(),
           teacherId: teacher.id,
         };
         
+        console.log("Submitting leave data:", newLeave);
         await addLeaveRequest(newLeave);
+        
         toast({
             title: "Leave Application Submitted",
             description: "Your leave request has been sent for approval.",
         });
+        
+        // Reset form
         reset({
             startDate: "",
             endDate: "",
             reason: "",
             document: undefined,
         });
+        
+        // Clear file input
         const fileInput = document.getElementById("leave-document-teacher") as HTMLInputElement;
         if (fileInput) {
             fileInput.value = "";
         }
     } catch (error) {
+        console.error("Error submitting leave request:", error);
         toast({
             variant: "destructive",
             title: "Submission Failed",
-            description: "Could not submit your leave request. Please try again.",
+            description: error instanceof Error ? error.message : "Could not submit your leave request. Please try again.",
         });
     } finally {
         setIsSubmitting(false);
     }
   }
 
+  if (!teacher) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Please log in to access leave management.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -166,7 +215,10 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                       <FormItem>
                         <FormLabel>Start Date</FormLabel>
                         <FormControl>
-                          <Input placeholder="DD/MM/YYYY" {...field} />
+                          <Input 
+                            type="date" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -179,7 +231,10 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                       <FormItem>
                         <FormLabel>End Date (Optional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="DD/MM/YYYY" {...field} />
+                          <Input 
+                            type="date" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -214,6 +269,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
                       <Input
                         id="leave-document-teacher"
                         type="file"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                         {...form.register("document")}
                       />
                     </FormControl>
@@ -247,7 +303,12 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 p-0 mt-6">
-          {pastLeaves.length > 0 ? (
+          {isLoading ? (
+            <div className="text-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+              <p className="text-muted-foreground mt-2">Loading leave history...</p>
+            </div>
+          ) : pastLeaves.length > 0 ? (
             pastLeaves.map((leave) => (
               <div
                 key={leave.id}
@@ -255,9 +316,14 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 space-y-1">
-                    <p className="font-semibold text-sm">{formatLeaveDate(leave.startDate, leave.endDate)}</p>
+                    <p className="font-semibold text-sm">
+                      {formatLeaveDate(leave.startDate, leave.endDate)}
+                    </p>
                     <p className="text-muted-foreground text-sm">
                       {leave.reason}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Applied: {format(new Date(leave.appliedAt), "PPp")}
                     </p>
                   </div>
                   <Badge variant={getStatusVariant(leave.status)}>
@@ -281,9 +347,12 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
               </div>
             ))
           ) : (
-            <p className="text-muted-foreground text-center py-4">
-              You haven't applied for any leaves yet.
-            </p>
+            <div className="text-center py-8">
+              <History className="h-12 w-12 mx-auto text-muted-foreground/50" />
+              <p className="text-muted-foreground mt-4">
+                You haven't applied for any leaves yet.
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
