@@ -32,13 +32,16 @@ const uploadFileToSupabase = async (file: File, bucket: string, folder: string):
     return data.publicUrl;
 };
 
-export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment?: File) => {
-    let attachment_url;
+export const addHomework = async (homeworkData: Omit<Homework, 'id' | 'attachment_url'>, attachment?: File) => {
+    let attachment_url: string | undefined;
     if (attachment) {
         attachment_url = await uploadFileToSupabase(attachment, 'homework', 'files');
     }
 
-    const finalHomeworkData = { ...homeworkData, attachment_url: attachment_url };
+    const finalHomeworkData: Omit<Homework, 'id'> = { 
+      ...homeworkData, 
+      attachment_url: attachment_url 
+    };
 
     const { error } = await supabase.from(HOMEWORK_COLLECTION).insert([finalHomeworkData]);
     if (error) throw error;

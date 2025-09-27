@@ -170,7 +170,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
       
       if(editingHomework) {
         // Update existing homework
-        const updatedData: Partial<Homework> = {
+        const updatedData: Partial<Omit<Homework, 'id' | 'assigned_by' | 'teacher_name' | 'assigned_at'>> = {
             class_section: values.classSection,
             subject: values.subject,
             description: values.description,
@@ -184,7 +184,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         setEditingHomework(null);
       } else {
         // Add new homework
-        const homeworkData: Omit<Homework, 'id'> = {
+        const homeworkData: Omit<Homework, 'id' | 'attachment_url'> = {
             assigned_by: teacher.id,
             teacher_name: teacher.name,
             class_section: values.classSection,
@@ -521,5 +521,3 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     </div>
   );
 }
-
-    
