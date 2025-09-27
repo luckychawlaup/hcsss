@@ -38,10 +38,10 @@ export default function Attendance() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
   
   useEffect(() => {
     let channel: RealtimeChannel | undefined;
+    const supabase = createClient();
 
     const setupSubscription = async () => {
         setIsLoading(true);
@@ -76,7 +76,7 @@ export default function Attendance() {
             supabase.removeChannel(channel);
         }
     };
-  }, [supabase, currentMonth]);
+  }, [currentMonth]);
 
 
   const monthName = format(currentMonth, "MMMM yyyy");
