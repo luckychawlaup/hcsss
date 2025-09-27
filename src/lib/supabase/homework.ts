@@ -38,7 +38,9 @@ export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment
         attachment_url = await uploadFileToSupabase(attachment, 'homework', 'files');
     }
 
-    const { error } = await supabase.from(HOMEWORK_COLLECTION).insert([{ ...homeworkData, attachment_url }]);
+    const finalHomeworkData = { ...homeworkData, attachment_url: attachment_url };
+
+    const { error } = await supabase.from(HOMEWORK_COLLECTION).insert([finalHomeworkData]);
     if (error) throw error;
 };
 
@@ -103,7 +105,6 @@ export const updateHomework = async (homeworkId: string, updatedData: Partial<Ho
         const { data: oldHomework, error: fetchError } = await supabase.from(HOMEWORK_COLLECTION).select('attachment_url').eq('id', homeworkId).single();
         if (fetchError) {
             console.error("Could not fetch old homework to delete attachment:", fetchError);
-            // Decide if you want to proceed or throw an error. For now, we'll proceed.
         }
 
         const attachment_url = await uploadFileToSupabase(newAttachment, 'homework', 'files');
