@@ -118,7 +118,7 @@ export const getHomeworks = (
     // Initial fetch
     fetchAndCallback();
 
-    // Set up real-time subscription
+    // Set up real-time subscription with a stable channel name
     const channelName = `homework-${classSection.replace('-', '_')}`;
 
     console.log('Setting up real-time channel:', channelName);
@@ -138,6 +138,8 @@ export const getHomeworks = (
                 console.log('Successfully subscribed to real-time updates');
             } else if (status === 'CHANNEL_ERROR') {
                 console.error('Real-time channel error:', err);
+            } else {
+                console.log('Subscription status:', status);
             }
         });
         

@@ -43,12 +43,13 @@ export default function Homework() {
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     let channel: any;
-    const supabase = createClient();
     
     const fetchHomework = async () => {
+      setIsLoading(true);
       try {
         console.log('Homework: Starting to fetch user data...');
         
@@ -63,7 +64,8 @@ export default function Homework() {
         
         if (!user) {
           console.log('Homework: No user found');
-          setError('User not authenticated');
+          // This might not be an error if the user is simply not logged in.
+          // The page should redirect, but we'll stop loading here.
           setIsLoading(false);
           return;
         }
@@ -88,7 +90,7 @@ export default function Homework() {
         channel = getHomeworks(classSection, (newHomeworks) => {
           console.log('Homework: Received homework data:', newHomeworks);
           setHomeworks(newHomeworks);
-          setIsLoading(false);
+          setIsLoading(false); // Set loading to false once data is received.
           setError(null);
         }, { dateFilter: 7 });
         
@@ -104,10 +106,10 @@ export default function Homework() {
     return () => {
       if (channel) {
         console.log('Homework: Cleaning up channel...');
-        const supabase = createClient();
         supabase.removeChannel(channel);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const groupedHomework = useMemo(() => {

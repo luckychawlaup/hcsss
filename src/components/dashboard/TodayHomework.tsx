@@ -29,27 +29,19 @@ function HomeworkSkeleton() {
   );
 }
 
-function formatDueDate(dateString: string) {
-    try {
-        return format(new Date(dateString), "dd/MM/yyyy");
-    } catch (e) {
-        return "-";
-    }
-}
-
 export default function TodayHomework() {
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
   
   useEffect(() => {
     let channel: any;
-    const supabase = createClient();
-    
+
     const fetchHomework = async () => {
+      setIsLoading(true);
       try {
         console.log('TodayHomework: Starting to fetch user data...');
-        
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError) {
@@ -61,13 +53,11 @@ export default function TodayHomework() {
         
         if (!user) {
           console.log('TodayHomework: No user found');
-          setError('User not authenticated');
           setIsLoading(false);
           return;
         }
         
         console.log('TodayHomework: User found, getting student profile...');
-        
         const studentProfile = await getStudentByAuthId(user.id);
         
         if (!studentProfile) {
@@ -78,7 +68,6 @@ export default function TodayHomework() {
         }
         
         console.log('TodayHomework: Student profile found:', studentProfile);
-        
         const classSection = `${studentProfile.class}-${studentProfile.section}`;
         console.log('TodayHomework: Using class section:', classSection);
         
@@ -102,10 +91,10 @@ export default function TodayHomework() {
     return () => {
       if (channel) {
         console.log('TodayHomework: Cleaning up channel...');
-        const supabase = createClient();
         supabase.removeChannel(channel);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (error) {

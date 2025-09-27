@@ -31,10 +31,10 @@ export default function ProfilePageContent() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
-        try {
-          const userRole = await getRole(user);
-          setRole(userRole as "student" | "teacher" | null);
+        const userRole = await getRole(user);
+        setRole(userRole as "student" | "teacher" | null);
 
+        try {
           if (userRole === 'teacher') {
             const teacherProfile = await getTeacherByAuthId(user.id);
             setProfile(teacherProfile);
@@ -48,15 +48,13 @@ export default function ProfilePageContent() {
           console.error("Failed to fetch profile:", error);
           setProfile(null);
           setRole(null);
-        } finally {
-          setIsLoading(false);
         }
       } else {
         setProfile(null);
         setRole(null);
-        setIsLoading(false);
         router.push("/login");
       }
+      setIsLoading(false);
     };
     
     fetchProfile();
