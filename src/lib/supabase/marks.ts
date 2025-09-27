@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
@@ -106,34 +107,26 @@ export const getStudentMarksForExam = async (studentAuthUid: string, examId: str
     }));
 };
 
-export const getMarksForStudent = (studentAuthUid: string, callback: (marksByExam: Record<string, Mark[]>) => void) => {
-    const channel = supabase.channel(`marks-student-${studentAuthUid}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'marks', filter: `student_auth_uid=eq.${studentAuthUid}`}, 
-        async () => {
-            const { data, error } = await supabase.from('marks').select('*, max_marks').eq('student_auth_uid', studentAuthUid);
-            if (data) {
-                const marksByExam = data.reduce((acc, mark) => {
-                    const examId = mark.exam_id;
-                    if (!acc[examId]) acc[examId] = [];
-                    acc[examId].push({...mark, maxMarks: mark.max_marks});
-                    return acc;
-                }, {} as Record<string, Mark[]>);
-                callback(marksByExam);
-            }
-        }).subscribe();
+export const getMarksForStudent = async (studentAuthUid: string): Promise<Record<string, Mark[]>> => {
+    const { data, error } = await supabase
+        .from('marks')
+        .select('*, max_marks')
+        .eq('student_auth_uid', studentAuthUid);
 
-    (async () => {
-        const { data, error } = await supabase.from('marks').select('*, max_marks').eq('student_auth_uid', studentAuthUid);
-        if (data) {
-            const marksByExam = data.reduce((acc, mark) => {
-                const examId = mark.exam_id;
-                if (!acc[examId]) acc[examId] = [];
-                acc[examId].push({...mark, maxMarks: mark.max_marks});
-                return acc;
-            }, {} as Record<string, Mark[]>);
-            callback(marksByExam);
-        }
-    })();
+    if (error) {
+        console.error("Error getting marks for student:", error);
+        return {};
+    }
+    
+    if (data) {
+        const marksByExam = data.reduce((acc, mark) => {
+            const examId = mark.exam_id;
+            if (!acc[examId]) acc[examId] = [];
+            acc[examId].push({ ...mark, maxMarks: mark.max_marks });
+            return acc;
+        }, {} as Record<string, Mark[]>);
+        return marksByExam;
+    }
 
-    return channel;
+    return {};
 };

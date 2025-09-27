@@ -16,6 +16,7 @@ import { LogOut, MessageSquareQuote } from "lucide-react";
 import BottomNav from "../dashboard/BottomNav";
 import TeacherNav from "../teacher/TeacherNav";
 import Link from "next/link";
+import { getRole } from "@/lib/getRole";
 
 export default function ProfilePageContent() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
@@ -25,24 +26,23 @@ export default function ProfilePageContent() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const fetchProfile = async () => {
       setIsLoading(true);
-      const user = session?.user;
+      const { data: { user } } = await supabase.auth.getUser();
+
       if (user) {
         try {
-          const teacherProfile = await getTeacherByAuthId(user.id);
-          if (teacherProfile) {
+          const userRole = await getRole(user);
+          setRole(userRole as "student" | "teacher" | null);
+
+          if (userRole === 'teacher') {
+            const teacherProfile = await getTeacherByAuthId(user.id);
             setProfile(teacherProfile);
-            setRole("teacher");
-          } else {
+          } else if (userRole === 'student') {
             const studentProfile = await getStudentByAuthId(user.id);
-            if (studentProfile) {
-              setProfile(studentProfile);
-              setRole("student");
-            } else {
-              setProfile(null);
-              setRole(null);
-            }
+            setProfile(studentProfile);
+          } else {
+            setProfile(null);
           }
         } catch (error) {
           console.error("Failed to fetch profile:", error);
@@ -57,11 +57,9 @@ export default function ProfilePageContent() {
         setIsLoading(false);
         router.push("/login");
       }
-    });
-
-    return () => {
-        authListener.subscription.unsubscribe();
     };
+    
+    fetchProfile();
   }, [supabase, router]);
 
   const handleLogout = async () => {

@@ -119,7 +119,9 @@ export const getHomeworks = (
     fetchAndCallback();
 
     // Set up real-time subscription
-    const channelName = `homework-${classSection}-${options?.dateFilter || 'all'}`;
+    const dateFilterSuffix = options?.dateFilter === 'today' ? 'today' : (typeof options?.dateFilter === 'number' ? `last${options.dateFilter}days` : 'all');
+    const channelName = `homework-${classSection.replace('-', '_')}-${dateFilterSuffix}`;
+
     console.log('Setting up real-time channel:', channelName);
     
     const channel = supabase.channel(channelName)
@@ -133,9 +135,10 @@ export const getHomeworks = (
             fetchAndCallback();
         })
         .subscribe((status, err) => {
-            console.log('Subscription status:', status, err);
             if (status === 'SUBSCRIBED') {
                 console.log('Successfully subscribed to real-time updates');
+            } else if (status === 'CHANNEL_ERROR') {
+                console.error('Real-time channel error:', err);
             }
         });
         

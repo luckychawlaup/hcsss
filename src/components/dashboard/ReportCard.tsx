@@ -20,61 +20,73 @@ export default function ReportCardComponent() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [marks, setMarks] = useState<Record<string, Mark[]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
   const supabase = createClient();
 
   useEffect(() => {
-    let examsUnsub: any = null;
-    let marksUnsub: any = null;
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-        const user = session?.user;
-        if (user) {
-            setIsLoading(true);
+        if (!user) {
+          setUserId(null);
+          setExams([]);
+          setMarks({});
+          return;
+        }
 
-            examsUnsub = getExams((allExams) => {
-                setExams(allExams);
+        setUserId(user.id);
+
+        const [allExams, studentMarks] = await Promise.all([
+          new Promise<Exam[]>((resolve) => {
+            const unsub = getExams(exams => {
+                resolve(exams);
+                if (unsub && typeof unsub.unsubscribe === 'function') {
+                    unsub.unsubscribe();
+                }
             });
+          }),
+          getMarksForStudent(user.id)
+        ]);
+        
+        setExams(allExams || []);
+        setMarks(studentMarks || {});
 
-            marksUnsub = getMarksForStudent(user.id, (studentMarks) => {
-                setMarks(studentMarks);
-                setIsLoading(false);
-            });
-
-        } else {
-            setIsLoading(false);
-            setExams([]);
-            setMarks({});
-        }
-    });
-
-    return () => {
-        authListener.subscription.unsubscribe();
-        if (examsUnsub && typeof examsUnsub.unsubscribe === 'function') {
-            examsUnsub.unsubscribe();
-        }
-        if (marksUnsub && typeof marksUnsub.unsubscribe === 'function') {
-            marksUnsub.unsubscribe();
-        }
+      } catch (error) {
+        console.error("Error fetching report cards:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
+
+    fetchData();
   }, [supabase]);
 
-  const availableReportCards = exams.filter(exam => marks[exam.id] && marks[exam.id].length > 0)
-                                    .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const availableReportCards = exams
+    .filter((exam) => marks[exam.id] && marks[exam.id].length > 0)
+    .sort(
+      (a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
   if (isLoading) {
-      return (
-          <Card>
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-primary">
-                    <FileText className="h-6 w-6" />
-                    Report Cards
-                  </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                  {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
-              </CardContent>
-          </Card>
-      )
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <FileText className="h-6 w-6" />
+            Report Cards
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[...Array(2)].map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -94,7 +106,9 @@ export default function ReportCardComponent() {
             >
               <div>
                 <p className="font-semibold">{exam.name}</p>
-                <p className="text-sm text-muted-foreground">{new Date(exam.date).toLocaleDateString()}</p>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(exam.date).toLocaleDateString()}
+                </p>
               </div>
               <Button variant="outline" size="icon" asChild>
                 <Link href={`/report-card/${exam.id}`}>
