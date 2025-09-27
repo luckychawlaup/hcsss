@@ -47,7 +47,22 @@ export default function ReportCardComponent() {
 
         console.log("Fetching data for user:", user.id);
 
-        // Fetch exams and marks concurrently
+        // First, get the student profile to get the correct student ID
+        const { data: studentProfile, error: profileError } = await supabase
+          .from('students')
+          .select('*')
+          .eq('auth_uid', user.id)
+          .single();
+
+        if (profileError || !studentProfile) {
+          console.error("Error fetching student profile:", profileError);
+          setError("Student profile not found");
+          return;
+        }
+
+        console.log("Student profile found:", studentProfile);
+
+        // Fetch exams and marks concurrently using the student's database ID
         const [allExams, studentMarks] = await Promise.all([
           // Fixed: Properly handle the getExams function
           new Promise<Exam[]>((resolve, reject) => {
@@ -66,12 +81,43 @@ export default function ReportCardComponent() {
               reject(err);
             }
           }),
-          // Fixed: Properly handle the getMarksForStudent function
+          // Fixed: Use the student's database ID instead of auth UID
           (async () => {
             try {
-              const studentMarks = await getMarksForStudent(user.id);
-              console.log("Received marks:", studentMarks);
-              return studentMarks;
+              // Try both the auth UID and the student database ID
+              console.log("Trying to fetch marks with auth UID:", user.id);
+              let studentMarks = await getMarksForStudent(user.id);
+              console.log("Marks with auth UID result:", studentMarks);
+              
+              // If no marks found with auth UID, try with student database ID
+              if (!studentMarks || Object.keys(studentMarks).length === 0) {
+                console.log("No marks found with auth UID, trying student ID:", studentProfile.id);
+                studentMarks = await getMarksForStudent(studentProfile.id);
+                console.log("Marks with student ID result:", studentMarks);
+              }
+              
+              // Let's also try a direct Supabase query to see what's in the marks table
+              console.log("Trying direct query to marks table...");
+              const { data: directMarks, error: marksError } = await supabase
+                .from('marks')
+                .select('*')
+                .or(`student_id.eq.${studentProfile.id},auth_uid.eq.${user.id}`)
+                .limit(10);
+              
+              console.log("Direct marks query result:", directMarks);
+              console.log("Direct marks query error:", marksError);
+              
+              // Also check if there are ANY marks in the database
+              const { data: allMarks, error: allMarksError } = await supabase
+                .from('marks')
+                .select('*')
+                .limit(5);
+              
+              console.log("Sample marks from database:", allMarks);
+              console.log("All marks query error:", allMarksError);
+              
+              console.log("Final received marks:", studentMarks);
+              return studentMarks || {};
             } catch (err) {
               console.error("Error fetching marks:", err);
               return {};
@@ -193,9 +239,13 @@ export default function ReportCardComponent() {
           <div className="text-center text-muted-foreground p-4">
             <p>No report cards available yet.</p>
             {exams.length > 0 && (
-              <p className="text-xs mt-2">
-                Found {exams.length} exam{exams.length !== 1 ? 's' : ''} but no marks recorded.
-              </p>
+              <div className="text-xs mt-2 space-y-1">
+                <p>Found {exams.length} exam{exams.length !== 1 ? 's' : ''} but no marks recorded:</p>
+                {exams.map(exam => (
+                  <p key={exam.id}>• {exam.name} ({exam.id})</p>
+                ))}
+                <p className="mt-2">Debug: Marks object keys: {Object.keys(marks).join(', ') || 'None'}</p>
+              </div>
             )}
           </div>
         )}
