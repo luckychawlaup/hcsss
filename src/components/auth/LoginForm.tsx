@@ -32,7 +32,7 @@ interface LoginFormProps {
 }
 
 const principalEmail = "principal@hcsss.in";
-const ownerEmail = "manager@hcsss.in";
+const ownerEmail = "owner@hcsss.in";
 
 export default function LoginForm({ role }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
