@@ -79,38 +79,21 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
-    
     if (teacher) {
-      setIsLoading(true);
-      try {
-        const subscription = getLeaveRequestsForUser(teacher.auth_uid, (leaves) => {
-          setPastLeaves(leaves || []);
-          setIsLoading(false);
+        setIsLoading(true);
+        const unsubscribe = getLeaveRequestsForUser(teacher.auth_uid, (leaves) => {
+            setPastLeaves(leaves || []);
+            setIsLoading(false);
         });
         
-        if (typeof subscription === 'function') {
-          unsubscribe = subscription;
-        } else if (subscription && typeof subscription.unsubscribe === 'function') {
-          unsubscribe = () => subscription.unsubscribe();
-        }
-      } catch (error) {
-        console.error("Error setting up leave subscription:", error);
-        setIsLoading(false);
-      }
+        return () => {
+            if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+                unsubscribe.unsubscribe();
+            }
+        };
     } else {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-
-    return () => {
-      if (unsubscribe) {
-        try {
-          unsubscribe();
-        } catch (error) {
-          console.error("Error unsubscribing:", error);
-        }
-      }
-    };
   }, [teacher]);
 
   const form = useForm<z.infer<typeof leaveSchema>>({
