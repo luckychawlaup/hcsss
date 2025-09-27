@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
@@ -14,67 +15,13 @@ export interface AttendanceRecord {
     created_at: string;
 }
 
-export const ATTENDANCE_TABLE_SETUP_SQL = `
--- Creates the table for storing daily attendance records and sets security rules.
--- This allows Class Teachers to mark attendance and students to view their own.
-CREATE TABLE IF NOT EXISTS public.attendance (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
-    class_section TEXT NOT NULL,
-    date DATE NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('present', 'absent', 'half-day')),
-    marked_by UUID NOT NULL REFERENCES public.teachers(id) ON DELETE RESTRICT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT attendance_unique_student_date UNIQUE (student_id, date)
-);
-
--- Enable RLS for the attendance table
-ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
-
--- Drop policies if they exist to prevent conflicts
-DROP POLICY IF EXISTS "Allow teachers to manage attendance" ON public.attendance;
-DROP POLICY IF EXISTS "Allow students to view their own attendance" ON public.attendance;
-DROP POLICY IF EXISTS "Allow principal/owner to view all attendance" ON public.attendance;
-
--- Policy: Allow authenticated Class Teachers to manage attendance for their class
-CREATE POLICY "Allow teachers to manage attendance"
-ON public.attendance FOR ALL
-USING (
-    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher' AND
-    (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = class_section
-)
-WITH CHECK (
-    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher' AND
-    (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = class_section
-);
-
--- Policy: Allow students to view their own attendance records
-CREATE POLICY "Allow students to view their own attendance"
-ON public.attendance FOR SELECT
-USING (
-    auth.uid() = (SELECT auth_uid FROM public.students WHERE id = student_id)
-);
-
--- Policy: Allow admin roles to view all attendance data
-CREATE POLICY "Allow principal/owner to view all attendance"
-ON public.attendance FOR SELECT
-USING (
-    auth.uid() IN (
-        '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
-        '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
-    )
-);
-`;
-
 // Upsert attendance records for a class on a specific date
 export const setAttendance = async (records: Omit<AttendanceRecord, 'id' | 'created_at'>[]): Promise<void> => {
     if (!records || records.length === 0) {
         throw new Error("No attendance records provided");
     }
 
-    console.log("Attempting to upsert attendance records:", records);
-    
-    const { data, error } = await supabase.from(ATTENDANCE_COLLECTION).upsert(records, {
+    const { error } = await supabase.from(ATTENDANCE_COLLECTION).upsert(records, {
         onConflict: 'student_id,date',
         ignoreDuplicates: false
     });
@@ -83,14 +30,10 @@ export const setAttendance = async (records: Omit<AttendanceRecord, 'id' | 'crea
         console.error("Error setting attendance:", error);
         throw new Error(`Failed to save attendance: ${error.message}`);
     }
-
-    console.log("Successfully upserted attendance records:", data);
 };
 
 // Get attendance for a specific class on a specific date
 export const getAttendanceForDate = async (classSection: string, date: string): Promise<AttendanceRecord[]> => {
-    console.log(`Fetching attendance for class ${classSection} on date ${date}`);
-    
     const { data, error } = await supabase
         .from(ATTENDANCE_COLLECTION)
         .select('*')
@@ -102,7 +45,6 @@ export const getAttendanceForDate = async (classSection: string, date: string): 
         return [];
     }
     
-    console.log("Fetched attendance records:", data);
     return data || [];
 };
 

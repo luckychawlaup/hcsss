@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
 import type { Teacher } from "@/lib/supabase/teachers";
 import type { Student } from "@/lib/supabase/students";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -44,29 +45,24 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
     if (classTeacherOf && attendanceDate && studentsInClass.length > 0) {
         setIsFetching(true);
         
-        // Initialize all students as present
         const initialAttendance: Record<string, AttendanceStatus> = {};
         studentsInClass.forEach(student => {
             initialAttendance[student.id] = 'present';
         });
 
-        console.log(`Loading attendance for ${classTeacherOf} on ${attendanceDate}`);
-
         getAttendanceForDate(classTeacherOf, attendanceDate)
             .then(records => {
-                console.log("Fetched attendance records:", records);
-                // Update with fetched records
+                const fetchedAttendance = { ...initialAttendance };
                 records.forEach(record => {
-                    if (initialAttendance.hasOwnProperty(record.student_id)) {
-                        initialAttendance[record.student_id] = record.status;
+                    if (fetchedAttendance.hasOwnProperty(record.student_id)) {
+                        fetchedAttendance[record.student_id] = record.status;
                     }
                 });
-                setAttendance(initialAttendance);
+                setAttendance(fetchedAttendance);
             })
             .catch(error => {
                 console.error("Error loading attendance:", error);
-                // Still set initial attendance even if fetch fails
-                setAttendance(initialAttendance);
+                setAttendance(initialAttendance); // Fallback to default
             })
             .finally(() => setIsFetching(false));
     }
@@ -100,13 +96,11 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
         const attendanceData: Omit<AttendanceRecord, 'id' | 'created_at'>[] = Object.entries(attendance).map(([student_id, status]) => ({
             student_id,
             class_section: classTeacherOf,
-            date: attendanceDate, // Send as YYYY-MM-DD format
+            date: format(startOfDay(new Date(attendanceDate)), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
             status,
             marked_by: teacher.id
         }));
 
-        console.log("Submitting attendance data:", attendanceData);
-        
         await setAttendance(attendanceData);
         
         toast({
