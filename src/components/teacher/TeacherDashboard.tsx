@@ -33,15 +33,12 @@ const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
 const AddHomeworkForm = dynamic(() => import('./AddHomeworkForm'), {
   loading: () => <Skeleton className="h-96 w-full" />,
 });
-const MarkAttendance = dynamic(() => import('./MarkAttendance'), {
-  loading: () => <Skeleton className="h-96 w-full" />,
-});
 const Gradebook = dynamic(() => import('./Gradebook'), {
     loading: () => <Skeleton className="h-96 w-full" />
 });
 
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "markAttendance" | "makeAnnouncement" | "teacherLeave" | "gradebook";
+export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -193,27 +190,6 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 );
-            case 'markAttendance':
-                 return (
-                    <Card>
-                        <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Dashboard
-                            </Button>
-                             <CardTitle className="flex items-center gap-2">
-                                <ClipboardCheck />
-                                Mark Student Attendance
-                            </CardTitle>
-                             <CardDescription>
-                                Mark daily attendance for your assigned classes.
-                            </CardDescription>
-                        </CardHeader>
-                         <CardContent>
-                            <MarkAttendance teacher={teacher} students={assignedStudents.filter(s => s.status === 'Registered') as Student[]} isLoading={isLoading} />
-                        </CardContent>
-                    </Card>
-                );
             case 'teacherLeave':
                 return (
                     <Card>
@@ -275,7 +251,6 @@ export default function TeacherDashboard() {
                            <NavCard title="Announcements" description="Send announcements to classes" icon={Megaphone} onClick={() => router.push('/teacher/announcements')} />
                            {teacher?.role === 'classTeacher' && (
                                 <>
-                                    <NavCard title="Mark Attendance" description="Record daily student attendance" icon={ClipboardCheck} onClick={() => setActiveView("markAttendance")} />
                                     <NavCard title="Gradebook & Assessments" description="Manage student grades and performance" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
                                 </>
                            )}

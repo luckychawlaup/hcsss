@@ -18,7 +18,6 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { view: "dashboard", label: "Home", icon: Home, href: "/teacher" },
-  { view: "markAttendance", label: "Attendance", icon: ClipboardCheck, classTeacherOnly: true },
   { view: "addHomework", label: "Homework", icon: BookUp },
   { view: "gradebook", label: "Gradebook", icon: BookMarked, classTeacherOnly: true },
   { view: "teacherLeave", label: "Leave", icon: CalendarPlus },
