@@ -70,7 +70,7 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   }
 
   const handleSubmit = async () => {
-    if (!classTeacherOf) return;
+    if (!classTeacherOf || !teacher) return;
     setIsSubmitting(true);
     
     const attendanceData: Omit<AttendanceRecord, 'id' | 'created_at'>[] = Object.entries(attendance).map(([student_id, status]) => ({
