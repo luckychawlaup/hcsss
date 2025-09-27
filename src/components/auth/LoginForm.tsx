@@ -63,17 +63,18 @@ export default function LoginForm({ role }: LoginFormProps) {
 
       const actualRole = await getRole(user);
       
-      const isPrincipalOrOwner = role === 'principal' || role === 'owner';
-      const actualIsPrincipalOrOwner = actualRole === 'principal' || actualRole === 'owner';
+      const allowedPrincipalRoles = ['principal', 'owner'];
+      const isPrincipalLoginAttempt = allowedPrincipalRoles.includes(role);
+      const isActualPrincipal = allowedPrincipalRoles.includes(actualRole || '');
 
-      if (isPrincipalOrOwner && !actualIsPrincipalOrOwner) {
-          setError("Invalid credentials for this role.");
+      if (isPrincipalLoginAttempt && !isActualPrincipal) {
+          setError("Invalid credentials for this administrative role.");
           await supabase.auth.signOut();
           setIsLoading(false);
           return;
       }
 
-      if (!isPrincipalOrOwner && role !== actualRole) {
+      if (!isPrincipalLoginAttempt && role !== actualRole) {
            setError("Invalid credentials for this role.");
            await supabase.auth.signOut();
            setIsLoading(false);
@@ -81,13 +82,17 @@ export default function LoginForm({ role }: LoginFormProps) {
       }
       
       if (actualRole === 'student' || actualRole === 'teacher') {
-        if (!user.email_confirmed_at) {
+        // Teacher accounts created by principal are auto-confirmed. 
+        // This check is mainly for students if self-registration is enabled.
+        const { data: { user: updatedUser } } = await supabase.auth.getUser();
+        if (!updatedUser?.email_confirmed_at) {
           setError(
             "Your email is not verified. Please check your inbox for the verification link."
           );
           toast({
             title: "Email Verification Required",
             description: "Please check your inbox to verify your email address before logging in.",
+            variant: "destructive",
           });
           await supabase.auth.signOut();
           setIsLoading(false);
@@ -100,7 +105,13 @@ export default function LoginForm({ role }: LoginFormProps) {
         description: `Welcome! Redirecting...`,
       });
       
-      const targetPath = actualRole === 'principal' || actualRole === 'owner' ? '/principal' : actualRole === 'teacher' ? '/teacher' : '/';
+      let targetPath = '/';
+      if (isActualPrincipal) {
+          targetPath = '/principal';
+      } else if (actualRole === 'teacher') {
+          targetPath = '/teacher';
+      }
+      
       router.push(targetPath);
       router.refresh();
 
