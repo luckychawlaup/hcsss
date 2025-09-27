@@ -34,51 +34,44 @@ const monthOrder = ["January", "February", "March", "April", "May", "June", "Jul
 
 
 export default function FeePayment() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
-  const [isPaid, setIsPaid] = useState(false);
   const router = useRouter();
 
-  const nextUnpaidMonth = useMemo(() => {
-      const today = startOfToday();
-      for (const month of monthOrder) {
-          const feeInfo = feeData[month as keyof typeof feeData];
-          if (feeInfo && feeInfo.status !== 'paid') {
-              const year = new Date().getFullYear(); // This needs to be smarter for Jan/Feb/Mar
-              const monthIndex = monthOrder.indexOf(month);
-              const dueDate = endOfMonth(new Date(year, monthIndex));
+  const dueFeeDetails = useMemo(() => {
+    const today = startOfToday();
+    let totalDueAmount = 0;
+    const dueMonths: string[] = [];
+    let lastDueDate: string | null = null;
 
-              const fiveDaysBeforeEnd = new Date(dueDate);
-              fiveDaysBeforeEnd.setDate(fiveDaysBeforeEnd.getDate() - 5);
-
-              if (isAfter(today, fiveDaysBeforeEnd)) {
-                  return {
-                      month: month,
-                      amount: feeInfo.amount,
-                      dueDate: format(dueDate, "yyyy-MM-dd")
-                  };
-              }
-          }
+    for (const month of monthOrder) {
+      const feeInfo = feeData[month as keyof typeof feeData];
+      if (feeInfo && feeInfo.status === 'pending') {
+        const year = new Date().getFullYear(); // This needs to be smarter for Jan/Feb/Mar for sessions spanning years
+        const monthIndex = monthOrder.indexOf(month);
+        const dueDate = endOfMonth(new Date(year, monthIndex));
+        
+        const reminderStartDate = new Date(dueDate);
+        reminderStartDate.setDate(reminderStartDate.getDate() - 5);
+        
+        if (isAfter(today, reminderStartDate)) {
+          totalDueAmount += feeInfo.amount;
+          dueMonths.push(month);
+          lastDueDate = format(endOfMonth(new Date(year, monthIndex)), "do MMM, yyyy");
+        }
       }
-      return null;
+    }
+
+    if (totalDueAmount > 0) {
+      return {
+        amount: totalDueAmount,
+        months: dueMonths.join(', '),
+        dueDate: lastDueDate
+      };
+    }
+    
+    return null;
   }, []);
 
-  const handlePayment = async () => {
-    if (!nextUnpaidMonth) return;
-    setIsPaying(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsPaying(false);
-    setIsPaid(true);
-    setTimeout(() => {
-      setIsOpen(false);
-      // reset state after closing
-      setTimeout(() => {
-        setIsPaid(false);
-      }, 500);
-    }, 2000);
-  };
-
-  if (!nextUnpaidMonth) {
+  if (!dueFeeDetails) {
     return null; // Don't show the card if there's no upcoming due fee
   }
 
@@ -93,8 +86,9 @@ export default function FeePayment() {
         </CardHeader>
         <CardContent className="flex items-center justify-between">
           <div>
-            <div className="text-2xl font-bold">₹{nextUnpaidMonth.amount.toLocaleString('en-IN')}</div>
-            <p className="text-sm text-destructive/80">For {nextUnpaidMonth.month}, Due by {nextUnpaidMonth.dueDate}</p>
+            <div className="text-2xl font-bold">₹{dueFeeDetails.amount.toLocaleString('en-IN')}</div>
+            <p className="text-sm text-destructive/80">Total due for {dueFeeDetails.months}.</p>
+            <p className="text-xs text-destructive/80">Next due date is {dueFeeDetails.dueDate}.</p>
           </div>
            <Button
             size="sm"
