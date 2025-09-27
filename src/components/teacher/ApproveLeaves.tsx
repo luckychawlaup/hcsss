@@ -211,7 +211,7 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                         </Alert>
                     )}
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2">
+                <CardFooter className="flex flex-wrap justify-end gap-2">
                     {leave.status === 'Pending' && (
                         <>
                         <Button variant="outline" size="sm" onClick={() => handleOpenDialog('reject', leave)}>
