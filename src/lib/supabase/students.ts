@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
@@ -178,26 +179,26 @@ export const getStudentsForTeacher = (teacher: any, callback: (students: Combine
     const assignedClasses = new Set<string>();
     if(teacher.class_teacher_of) assignedClasses.add(teacher.class_teacher_of);
     if(teacher.classes_taught) teacher.classes_taught.forEach((c: string) => assignedClasses.add(c));
-    const classList = Array.from(assignedClasses);
+    const classList = Array.from(assignedClasses).filter(Boolean); // Ensure no empty strings
 
     if (classList.length === 0) {
         callback([]);
         return () => {};
     }
 
+    const classSectionList = classList.map(c => `${c}`);
+
     const channel = supabase.channel(`students-for-teacher-${teacher.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: STUDENTS_COLLECTION }, async () => {
-             const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class_section', classList);
+             const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class_section', classSectionList);
              if(data) callback(data.map(s => ({...s, status: 'Registered'})));
         })
         .subscribe();
     
     (async () => {
-        const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class_section', classList);
+        const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').in('class_section', classSectionList);
         if(data) callback(data.map(s => ({...s, status: 'Registered'})));
     })();
 
     return () => supabase.removeChannel(channel);
 }
-
-    
