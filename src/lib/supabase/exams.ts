@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -266,7 +267,7 @@ export const addExam = async (exam: Omit<Exam, 'id' | 'created_at'>): Promise<Ex
     try {
         const { data, error } = await supabase
             .from(EXAMS_COLLECTION)
-            .insert(exam)
+            .insert([exam])
             .select();
         
         if (error) {
@@ -277,7 +278,7 @@ export const addExam = async (exam: Omit<Exam, 'id' | 'created_at'>): Promise<Ex
         return data?.[0] || null;
     } catch (e) {
         console.error("Unexpected error adding exam:", e);
-        return null;
+        throw e;
     }
 };
 
