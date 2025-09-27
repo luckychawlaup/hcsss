@@ -6,13 +6,13 @@ import type { Teacher } from "@/lib/supabase/teachers";
 import type { Student } from "@/lib/supabase/students";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Loader2, UserX } from "lucide-react";
+import { Loader2, UserX, Check, X, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 import { Input } from "../ui/input";
-import { getAttendanceForDate, setAttendance, AttendanceRecord } from "@/lib/supabase/attendance";
+import { getAttendanceForDate, setAttendance } from "@/lib/supabase/attendance";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface MarkAttendanceProps {
   teacher: Teacher | null;
@@ -21,6 +21,38 @@ interface MarkAttendanceProps {
 }
 
 type AttendanceStatus = "present" | "absent" | "half-day";
+
+const statusCycle: Record<AttendanceStatus, AttendanceStatus> = {
+  present: "absent",
+  absent: "half-day",
+  "half-day": "present",
+};
+
+const statusInfo: Record<AttendanceStatus, { icon: React.ElementType, color: string, label: string }> = {
+    present: { icon: Check, color: 'bg-green-500/20 text-green-700 border-green-500/30', label: 'Present' },
+    absent: { icon: X, color: 'bg-red-500/20 text-red-700 border-red-500/30', label: 'Absent' },
+    'half-day': { icon: Clock, color: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30', label: 'Half-day' }
+}
+
+const StudentAttendanceCard = ({ student, status, onToggle }: { student: Student, status: AttendanceStatus, onToggle: () => void }) => {
+    const { icon: Icon, color, label } = statusInfo[status];
+    return (
+        <Card
+            className={cn("cursor-pointer transition-all duration-200", color)}
+            onClick={onToggle}
+        >
+            <CardContent className="p-3 flex items-center gap-3">
+                <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-background rounded-full">
+                    <Icon className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                    <p className="font-semibold text-sm truncate">{student.name}</p>
+                    <p className="text-xs">{label}</p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
 export default function MarkAttendance({ teacher, students, isLoading }: MarkAttendanceProps) {
   const [attendanceDate, setAttendanceDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
@@ -65,8 +97,11 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
     }
   }, [attendanceDate, classTeacherOf, studentsInClass]);
 
-  const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
-    setAttendance(prev => ({ ...prev, [studentId]: status }));
+  const handleStatusToggle = (studentId: string) => {
+    setAttendance(prev => ({ 
+        ...prev, 
+        [studentId]: statusCycle[prev[studentId] || 'present'] 
+    }));
   };
 
   const handleMarkAll = (status: AttendanceStatus) => {
@@ -90,7 +125,7 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
     setIsSubmitting(true);
     
     try {
-        const attendanceData: Omit<AttendanceRecord, 'id' | 'created_at'>[] = Object.entries(attendance).map(([student_id, status]) => ({
+        const attendanceData = Object.entries(attendance).map(([student_id, status]) => ({
             student_id,
             class_section: classTeacherOf,
             date: format(new Date(attendanceDate), "yyyy-MM-dd"),
@@ -117,7 +152,7 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   };
   
   if (isLoading) {
-      return <Skeleton className="h-96 w-full" />
+      return <Skeleton className="h-96 w-full" />;
   }
 
   if (teacher?.role !== 'classTeacher' || !classTeacherOf) {
@@ -132,60 +167,49 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-         <div className="flex items-center gap-4">
-            <p className="text-lg font-semibold">Class: <span className="text-primary">{classTeacherOf}</span></p>
-         </div>
-        <Input 
-            type="date"
-            className="w-full md:w-auto"
-            value={attendanceDate}
-            onChange={(e) => setAttendanceDate(e.target.value)}
-        />
-      </div>
+      <Card>
+          <CardHeader>
+              <CardTitle>Select Date</CardTitle>
+              <CardDescription>Choose a date to mark attendance for your class: <span className="font-bold text-primary">{classTeacherOf}</span></CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Input 
+                type="date"
+                className="w-full md:w-auto"
+                value={attendanceDate}
+                onChange={(e) => setAttendanceDate(e.target.value)}
+                max={format(new Date(), "yyyy-MM-dd")}
+            />
+          </CardContent>
+      </Card>
 
        {studentsInClass.length > 0 ? (
          <>
-            <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleMarkAll('present')}>Mark All Present</Button>
-                <Button variant="outline" size="sm" onClick={() => handleMarkAll('absent')}>Mark All Absent</Button>
-            </div>
             {isFetching ? (
                 <div className="flex items-center justify-center h-48">
                     <Loader2 className="h-8 w-8 animate-spin text-primary"/>
                 </div>
             ) : (
-                <div className="space-y-4 rounded-md border p-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {studentsInClass.map(student => (
-                    <div key={student.id} className="flex flex-col md:flex-row items-start md:items-center justify-between">
-                        <p className="font-medium">{student.name} <span className="font-mono text-xs text-muted-foreground">({student.srn})</span></p>
-                        <RadioGroup
-                        value={attendance[student.id] || "present"}
-                        onValueChange={(value: AttendanceStatus) => handleStatusChange(student.id, value)}
-                        className="flex items-center gap-4 mt-2 md:mt-0"
-                        >
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="present" id={`present-${student.id}`} />
-                            <Label htmlFor={`present-${student.id}`} className="font-normal text-green-600">Present</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="absent" id={`absent-${student.id}`} />
-                            <Label htmlFor={`absent-${student.id}`} className="font-normal text-red-600">Absent</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="half-day" id={`half-day-${student.id}`} />
-                            <Label htmlFor={`half-day-${student.id}`} className="font-normal text-yellow-600">Half Day</Label>
-                        </div>
-                        </RadioGroup>
-                    </div>
+                        <StudentAttendanceCard 
+                            key={student.id} 
+                            student={student}
+                            status={attendance[student.id] || 'present'}
+                            onToggle={() => handleStatusToggle(student.id)}
+                        />
                     ))}
                 </div>
             )}
 
-            <Button onClick={handleSubmit} disabled={isSubmitting || studentsInClass.length === 0 || isFetching} className="w-full">
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Submit Attendance for {classTeacherOf}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={() => handleMarkAll('present')}>Mark All Present</Button>
+                <Button variant="outline" onClick={() => handleMarkAll('absent')}>Mark All Absent</Button>
+                <Button onClick={handleSubmit} disabled={isSubmitting || studentsInClass.length === 0 || isFetching} className="flex-1">
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Submit Attendance
+                </Button>
+            </div>
          </>
       ) : (
         <div className="text-center py-10 border rounded-md">

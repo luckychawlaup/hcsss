@@ -7,9 +7,13 @@ const supabase = createClient();
 const ATTENDANCE_COLLECTION = 'attendance';
 
 export const ATTENDANCE_TABLE_SETUP_SQL = `
--- Recreate the attendance table with proper constraints for stability.
+-- This script will completely reset your attendance table and policies.
+DROP POLICY IF EXISTS "Allow principal/owner to view all attendance" ON public.attendance;
+DROP POLICY IF EXISTS "Allow students to view their own attendance" ON public.attendance;
+DROP POLICY IF EXISTS "Allow teachers to manage attendance" ON public.attendance;
 DROP TABLE IF EXISTS public.attendance;
 
+-- Create a fresh attendance table with the correct schema and constraints.
 CREATE TABLE public.attendance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
@@ -21,21 +25,28 @@ CREATE TABLE public.attendance (
     CONSTRAINT attendance_unique_student_date UNIQUE (student_id, date)
 );
 
--- Re-apply security policies
+-- Enable Row Level Security
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow teachers to manage attendance" ON public.attendance;
-DROP POLICY IF EXISTS "Allow students to view their own attendance" ON public.attendance;
-DROP POLICY IF EXISTS "Allow principal/owner to view all attendance" ON public.attendance;
 
+-- Re-create the security policies from scratch
+-- Policy: Allow Class Teachers to manage attendance for their assigned class
 CREATE POLICY "Allow teachers to manage attendance"
 ON public.attendance FOR ALL
-USING (((SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'::text) AND ((SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = class_section))
-WITH CHECK (((SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'::text) AND ((SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = class_section));
+USING (
+    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher' AND
+    (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = class_section
+)
+WITH CHECK (
+    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher' AND
+    (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = class_section
+);
 
+-- Policy: Allow students to view their own attendance records
 CREATE POLICY "Allow students to view their own attendance"
 ON public.attendance FOR SELECT
-USING ((auth.uid() = (SELECT auth_uid FROM public.students WHERE id = student_id)));
+USING (auth.uid() = (SELECT auth_uid FROM public.students WHERE id = student_id));
 
+-- Policy: Allow Principal/Owner to view all attendance records
 CREATE POLICY "Allow principal/owner to view all attendance"
 ON public.attendance FOR SELECT
 USING (auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', '946ba406-1ba6-49cf-ab78-f611d1350f33'));
@@ -46,9 +57,9 @@ export interface AttendanceRecord {
     id: string;
     student_id: string;
     class_section: string;
-    date: string; // ISO String
+    date: string; // YYYY-MM-DD
     status: 'present' | 'absent' | 'half-day';
-    marked_by: string; // Teacher's ID from 'teachers' table
+    marked_by: string; // Teacher's auth_uid
     created_at: string;
 }
 
@@ -87,7 +98,6 @@ export const setAttendance = async (records: Omit<AttendanceRecord, 'id' | 'crea
 // Get attendance for a specific class on a specific date
 export const getAttendanceForDate = async (classSection: string, date: string): Promise<AttendanceRecord[]> => {
     const formattedDate = format(new Date(date), "yyyy-MM-dd");
-    console.log(`Fetching attendance for class ${classSection} on date ${formattedDate}`);
     
     const { data, error } = await supabase
         .from(ATTENDANCE_COLLECTION)
@@ -100,7 +110,6 @@ export const getAttendanceForDate = async (classSection: string, date: string): 
         return [];
     }
     
-    console.log("Fetched attendance records:", data);
     return data || [];
 };
 
