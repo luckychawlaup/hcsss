@@ -45,14 +45,18 @@ function ReportCardContent() {
                     setStudent(studentData);
 
                     const allExams = await new Promise<Exam[]>((resolve) => {
-                        const unsub = getExams(resolve);
-                        return () => unsub.unsubscribe();
+                        const unsub = getExams(exams => {
+                           resolve(exams);
+                           if (unsub && typeof unsub.unsubscribe === 'function') {
+                               unsub.unsubscribe();
+                           }
+                        });
                     });
                     const currentExam = allExams.find(e => e.id === examId);
                     setExam(currentExam || null);
 
                     if (studentData) {
-                        const marksData = await getStudentMarksForExam(studentData.authUid, examId);
+                        const marksData = await getStudentMarksForExam(studentData.auth_uid, examId);
                         setMarks(marksData);
                     }
                 } catch (error) {
@@ -110,7 +114,7 @@ function ReportCardContent() {
                         <div className="flex justify-between"><span className="font-medium text-muted-foreground">Student's Name:</span><span className="font-semibold">{student.name}</span></div>
                         <div className="flex justify-between"><span className="font-medium text-muted-foreground">Class:</span><span className="font-semibold">{student.class}-{student.section}</span></div>
                         <div className="flex justify-between"><span className="font-medium text-muted-foreground">SRN:</span><span className="font-semibold">{student.srn}</span></div>
-                        <div className="flex justify-between"><span className="font-medium text-muted-foreground">Father's Name:</span><span className="font-semibold">{student.fatherName}</span></div>
+                        <div className="flex justify-between"><span className="font-medium text-muted-foreground">Father's Name:</span><span className="font-semibold">{student.father_name}</span></div>
                     </div>
                 </section>
 
@@ -191,5 +195,3 @@ export default function ReportCardPage() {
         </Suspense>
     );
 }
-
-    

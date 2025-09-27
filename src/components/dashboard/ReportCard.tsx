@@ -26,14 +26,18 @@ export default function ReportCardComponent() {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
         const user = session?.user;
         if (user) {
-            const unsubscribeExams = getExams(setExams);
-            const unsubscribeMarks = getMarksForStudent(user.id, (studentMarks) => {
+            const examsUnsub = getExams((allExams) => {
+                setExams(allExams);
+            });
+            const marksUnsub = getMarksForStudent(user.id, (studentMarks) => {
                 setMarks(studentMarks);
                 setIsLoading(false);
             });
             
-            // This setup implies `getExams` and `getMarksForStudent` need to handle their own subscriptions
-            // and don't return unsubscribe functions. For a more robust implementation, they would.
+            return () => {
+                if (examsUnsub) examsUnsub.unsubscribe();
+                if (marksUnsub) marksUnsub.unsubscribe();
+            }
         } else {
             setIsLoading(false);
         }
@@ -44,7 +48,8 @@ export default function ReportCardComponent() {
     };
   }, [supabase]);
 
-  const availableReportCards = exams.filter(exam => marks[exam.id] && marks[exam.id].length > 0);
+  const availableReportCards = exams.filter(exam => marks[exam.id] && marks[exam.id].length > 0)
+                                    .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (isLoading) {
       return (
@@ -98,5 +103,3 @@ export default function ReportCardComponent() {
     </Card>
   );
 }
-
-    
