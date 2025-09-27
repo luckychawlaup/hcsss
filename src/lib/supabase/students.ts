@@ -45,7 +45,7 @@ const uploadFileToSupabase = async (file: File, bucket: string, folder: string):
 
 export type CombinedStudent = (Student & { status: 'Registered' });
 
-export const addStudent = async (studentData: any) => {
+export const addStudent = async (authUid: string, studentData: Omit<Student, 'id' | 'auth_uid' | 'srn' | 'photo_url' | 'aadhar_url'> & { photo?: File, aadharCard?: File}) => {
     const { data: countData, error: countError } = await supabase.rpc('get_student_count');
     if (countError) throw countError;
     const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
@@ -61,25 +61,16 @@ export const addStudent = async (studentData: any) => {
     }
 
     const finalStudentData = { 
-        auth_uid: studentData.authUid,
+        ...studentData,
+        auth_uid: authUid,
         srn,
-        name: studentData.name,
-        email: studentData.email,
         photo_url: photoUrl,
-        father_name: studentData.fatherName,
-        mother_name: studentData.motherName,
-        address: studentData.address,
-        class: studentData.class,
-        section: studentData.section,
-        admission_date: studentData.admissionDate,
-        date_of_birth: studentData.dateOfBirth,
-        aadhar_number: studentData.aadharNumber,
         aadhar_url: aadharUrl,
-        opted_subjects: studentData.optedSubjects,
-        father_phone: studentData.fatherPhone,
-        mother_phone: studentData.motherPhone,
-        student_phone: studentData.studentPhone,
     };
+
+    // Remove form-specific fields that don't exist in the DB table
+    delete finalStudentData.photo;
+    delete finalStudentData.aadharCard;
 
     const { error } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
 

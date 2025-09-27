@@ -125,13 +125,12 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         // Step 2: Prepare the student data payload including files
         const studentDataPayload = {
             ...values,
-            auth_uid: tempAuthUser.id,
             photo: values.photo?.[0],
             aadharCard: values.aadharCard?.[0],
         };
 
         // Step 3: Save the student data to the database (which also handles uploads)
-        await addStudent(studentDataPayload as any);
+        await addStudent(tempAuthUser.id, studentDataPayload as any);
 
         // If all successful:
         setSuccessInfo({ name: values.name, email: values.email });
