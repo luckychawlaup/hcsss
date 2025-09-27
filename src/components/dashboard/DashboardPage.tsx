@@ -1,21 +1,13 @@
 
 import Header from "@/components/dashboard/Header";
 import { Skeleton } from "../ui/skeleton";
-import dynamic from "next/dynamic";
+import ReportCard from '@/components/dashboard/ReportCard';
+import Attendance from '@/components/dashboard/Attendance';
+import TodayHomework from '@/components/dashboard/TodayHomework';
 import { Card, CardHeader, CardTitle } from "../ui/card";
 import { Camera } from "lucide-react";
 import Link from "next/link";
 import StudentNav from "./StudentNav";
-
-const ReportCard = dynamic(() => import('@/components/dashboard/ReportCard'), {
-  loading: () => <Skeleton className="h-48 w-full" />,
-});
-const Attendance = dynamic(() => import('@/components/dashboard/Attendance'), {
-  loading: () => <Skeleton className="h-36 w-full" />,
-});
-const TodayHomework = dynamic(() => import('@/components/dashboard/TodayHomework'), {
-    loading: () => <Skeleton className="h-48 w-full" />
-});
 
 
 export default function DashboardPage({ children }: { children?: React.ReactNode }) {
