@@ -22,15 +22,15 @@ export default function RootLayout({
 }>) {
 
   const initialSettings = {
-    schoolName: "Hilton Convent School",
+    schoolName: "HCSSS",
     logoUrl: "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png",
     primaryColor: "hsl(358 80% 47%)",
     accentColor: "hsl(358 80% 47%)",
   };
   
   const metadata: Metadata = {
-    title: "Hilton Convent School",
-    description: `Student Dashboard for Hilton Convent School`,
+    title: "HCSSS",
+    description: `Student Dashboard for HCSSS`,
     icons: {
       icon: initialSettings.logoUrl,
     },

@@ -47,7 +47,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
       <Link href="/" className="flex items-center gap-3">
         <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={56} height={56} />
         <h1 className="text-xl font-bold text-foreground sm:text-2xl font-headline truncate">
-          {title || settings.schoolName || "Hilton Convent"}
+          {title || "HCSSS"}
         </h1>
       </Link>
       <div className="flex items-center gap-2">
