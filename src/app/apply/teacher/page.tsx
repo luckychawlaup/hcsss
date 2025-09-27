@@ -148,27 +148,27 @@ export default function TeacherApplicationPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-2xl">
-        <Card className="shadow-lg">
-           <CardHeader className="items-center text-center">
-              <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
-              <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
-              <CardDescription>
+       <div className="w-full max-w-2xl space-y-6">
+         <div className="text-center">
+            <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" />
+            <h1 className="text-2xl font-bold text-primary">HCSSS</h1>
+            <p className="text-muted-foreground">
                 Fill out the form below to apply for a teaching post.
-              </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
+            </p>
+        </div>
+
+        <div>
             {isSuccess ? renderSuccess() : renderForm()}
-          </CardContent>
-          <CardFooter className="flex flex-col items-center gap-4 p-6 pt-0">
-             <Button variant="link" asChild className="text-muted-foreground">
-                <Link href="/login">
-                    <ArrowLeft className="mr-2"/>
-                    Go back to login
-                </Link>
-            </Button>
-          </CardFooter>
-        </Card>
+        </div>
+        
+        <div className="text-center">
+            <Button variant="link" asChild className="text-muted-foreground">
+              <Link href="/login">
+                  <ArrowLeft className="mr-2"/>
+                  Go back to login
+              </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

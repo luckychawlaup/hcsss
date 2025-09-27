@@ -178,18 +178,17 @@ function VerifyOtpContent() {
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md">
-         <Card className="shadow-lg">
-           <CardHeader className="items-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+      <div className="w-full max-w-md space-y-6">
+         <div className="text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-4 mx-auto">
                 {isSuccess ? <ShieldCheck className="h-8 w-8"/> : currentStepInfo.icon}
               </div>
-              <CardTitle className="text-2xl font-bold text-primary">{isSuccess ? "Success!" : currentStepInfo.title}</CardTitle>
-              <CardDescription>
+              <h1 className="text-2xl font-bold text-primary">{isSuccess ? "Success!" : currentStepInfo.title}</h1>
+              <p className="text-muted-foreground">
                 {isSuccess ? "You can now log in." : currentStepInfo.description}
-              </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
+              </p>
+          </div>
+          <div>
             {error && (
                 <Alert variant="destructive" className="mb-4">
                   <AlertCircle className="h-4 w-4" />
@@ -201,8 +200,7 @@ function VerifyOtpContent() {
             {isSuccess ? renderSuccess() : (
                 step === "verify" ? renderOtpForm() : renderPasswordForm()
             )}
-          </CardContent>
-        </Card>
+          </div>
       </div>
     </div>
   );

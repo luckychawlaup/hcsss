@@ -13,32 +13,32 @@ export default function StudentLoginPage() {
   const { settings } = useTheme();
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md">
-        <Card className="shadow-lg">
-           <CardHeader className="items-center text-center">
-              <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
-              <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
-              <CardDescription>
-                Sign in with the credentials provided by the school.
-              </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <LoginForm role="student" />
-          </CardContent>
-          <CardFooter className="flex flex-col items-center gap-4 p-6 pt-0">
-             <p className="text-sm text-muted-foreground">
-                <Link href="/auth/student/forgot-password"className="font-medium text-primary hover:underline">
-                    Forgot Password?
-                </Link>
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+            <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" />
+            <h1 className="text-2xl font-bold text-primary">HCSSS</h1>
+            <p className="text-muted-foreground">
+              Sign in with the credentials provided by the school.
             </p>
-             <Button variant="link" asChild className="text-muted-foreground">
-                <Link href="/login">
-                    <ArrowLeft className="mr-2"/>
-                    Go back to role selection
-                </Link>
-            </Button>
-          </CardFooter>
-        </Card>
+        </div>
+
+        <div>
+          <LoginForm role="student" />
+        </div>
+        
+        <div className="flex flex-col items-center gap-4">
+           <p className="text-sm text-muted-foreground">
+              <Link href="/auth/student/forgot-password"className="font-medium text-primary hover:underline">
+                  Forgot Password?
+              </Link>
+          </p>
+           <Button variant="link" asChild className="text-muted-foreground">
+              <Link href="/login">
+                  <ArrowLeft className="mr-2"/>
+                  Go back to role selection
+              </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

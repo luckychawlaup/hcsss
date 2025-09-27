@@ -11,27 +11,27 @@ export default function StudentForgotPasswordPage() {
   const { settings } = useTheme();
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md">
-        <Card className="shadow-lg">
-           <CardHeader className="items-center text-center">
-              <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
-              <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
-              <CardDescription>
-                Enter your email to reset your student account password.
-              </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ForgotPasswordForm role="student" />
-          </CardContent>
-          <CardFooter className="flex justify-center p-6 pt-0">
-             <p className="text-center text-sm text-muted-foreground">
-                Remembered your password?{" "}
-                <Link href="/auth/student/login" className="font-medium text-primary hover:underline">
-                  Sign In
-                </Link>
-              </p>
-          </CardFooter>
-        </Card>
+      <div className="w-full max-w-md space-y-6">
+         <div className="text-center">
+            <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" />
+            <h1 className="text-2xl font-bold text-primary">HCSSS</h1>
+            <p className="text-muted-foreground">
+              Enter your email to reset your student account password.
+            </p>
+        </div>
+
+        <div>
+          <ForgotPasswordForm role="student" />
+        </div>
+        
+        <div className="text-center">
+            <p className="text-center text-sm text-muted-foreground">
+              Remembered your password?{" "}
+              <Link href="/auth/student/login" className="font-medium text-primary hover:underline">
+                Sign In
+              </Link>
+            </p>
+        </div>
       </div>
     </div>
   );

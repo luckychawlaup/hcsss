@@ -14,30 +14,30 @@ export default function OwnerLoginPage() {
   const { settings } = useTheme();
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md">
-        <Card className="shadow-lg">
-           <CardHeader className="items-center text-center">
-              <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full" />
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-2xl font-bold text-primary">HCSSS</CardTitle>
-                <Badge variant="outline" className="border-primary/50 text-primary">Beta</Badge>
-              </div>
-              <CardDescription>
-                Sign in to the owner's portal.
-              </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <LoginForm role="owner" />
-          </CardContent>
-          <CardFooter className="flex flex-col items-center gap-4 p-6 pt-0">
-             <Button variant="link" asChild className="text-muted-foreground">
-                <Link href="/login">
-                    <ArrowLeft className="mr-2"/>
-                    Go back to role selection
-                </Link>
-            </Button>
-          </CardFooter>
-        </Card>
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+            <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" />
+            <div className="flex items-center justify-center gap-2">
+              <h1 className="text-2xl font-bold text-primary">HCSSS</h1>
+              <Badge variant="outline" className="border-primary/50 text-primary">Beta</Badge>
+            </div>
+            <p className="text-muted-foreground">
+              Sign in to the owner's portal.
+            </p>
+        </div>
+
+        <div>
+          <LoginForm role="owner" />
+        </div>
+        
+        <div className="text-center">
+          <Button variant="link" asChild className="text-muted-foreground">
+              <Link href="/login">
+                  <ArrowLeft className="mr-2"/>
+                  Go back to role selection
+              </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );
