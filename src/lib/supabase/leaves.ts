@@ -5,11 +5,11 @@ const LEAVES_COLLECTION = 'leaves';
 
 export interface LeaveRequest {
   id: string;
-  user_id: string;
+  user_id: string; // This should be the auth.uid()
   userName: string;
   userRole: 'Student' | 'Teacher';
   class?: string; // e.g., 10-A for students
-  teacherId?: string; // For teacher leaves
+  teacherId?: string; // This is the teacher's profile ID from the 'teachers' table
   startDate: string; // ISO string
   endDate: string; // ISO string
   reason: string;
@@ -94,8 +94,6 @@ USING (
 
 export const addLeaveRequest = async (leaveRequest: Omit<LeaveRequest, 'id'>) => {
     try {
-        console.log("Adding leave request to database:", leaveRequest);
-        
         const { data, error } = await supabase
             .from(LEAVES_COLLECTION)
             .insert([leaveRequest])
@@ -107,7 +105,6 @@ export const addLeaveRequest = async (leaveRequest: Omit<LeaveRequest, 'id'>) =>
             throw new Error(`Failed to submit leave request: ${error.message}`);
         }
         
-        console.log("Leave request added successfully:", data);
         return data;
     } catch (error) {
         console.error("Error in addLeaveRequest:", error);
@@ -131,7 +128,6 @@ export const getLeaveRequestsForUser = (userId: string, callback: (leaves: Leave
                 console.error("Error fetching leaves:", error);
                 callback([]);
             } else {
-                console.log("Fetched leaves for user:", data);
                 callback(data || []);
             }
         } catch (error) {
@@ -155,7 +151,6 @@ export const getLeaveRequestsForUser = (userId: string, callback: (leaves: Leave
                 filter: `user_id=eq.${userId}`
             },
             (payload) => {
-                console.log("Real-time update received:", payload);
                 fetchLeaves(); // Re-fetch all data on any change
             }
         )
@@ -176,8 +171,6 @@ export const getLeaveRequestsForUser = (userId: string, callback: (leaves: Leave
 };
 
 export const getLeaveRequestsForStudents = (studentIds: string[], callback: (leaves: LeaveRequest[]) => void) => {
-    console.log("Setting up student leaves subscription for IDs:", studentIds);
-    
     if (!studentIds || studentIds.length === 0) {
         callback([]);
         return () => {};
@@ -196,7 +189,6 @@ export const getLeaveRequestsForStudents = (studentIds: string[], callback: (lea
                 console.error("Error fetching student leaves:", error);
                 callback([]);
             } else {
-                console.log("Fetched student leaves:", data);
                 callback(data || []);
             }
         } catch (error) {
@@ -217,7 +209,6 @@ export const getLeaveRequestsForStudents = (studentIds: string[], callback: (lea
                 table: LEAVES_COLLECTION
             },
             (payload) => {
-                console.log("Student leaves real-time update:", payload);
                 fetchStudentLeaves();
             }
         )
@@ -227,8 +218,6 @@ export const getLeaveRequestsForStudents = (studentIds: string[], callback: (lea
 };
 
 export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (leaves: LeaveRequest[]) => void) => {
-    console.log("Setting up teacher leaves subscription for IDs:", teacherIds);
-    
     if (!teacherIds || teacherIds.length === 0) {
         callback([]);
         return () => {};
@@ -247,7 +236,6 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
                 console.error("Error fetching teacher leaves:", error);
                 callback([]);
             } else {
-                console.log("Fetched teacher leaves:", data);
                 callback(data || []);
             }
         } catch (error) {
@@ -268,7 +256,6 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
                 table: LEAVES_COLLECTION
             },
             (payload) => {
-                console.log("Teacher leaves real-time update:", payload);
                 fetchTeacherLeaves();
             }
         )
@@ -279,8 +266,6 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
 
 export const updateLeaveRequest = async (leaveId: string, updates: Partial<LeaveRequest>) => {
     try {
-        console.log("Updating leave request:", leaveId, updates);
-        
         const { data, error } = await supabase
             .from(LEAVES_COLLECTION)
             .update(updates)
@@ -293,7 +278,6 @@ export const updateLeaveRequest = async (leaveId: string, updates: Partial<Leave
             throw new Error(`Failed to update leave request: ${error.message}`);
         }
         
-        console.log("Leave request updated successfully:", data);
         return data;
     } catch (error) {
         console.error("Error in updateLeaveRequest:", error);
@@ -302,7 +286,6 @@ export const updateLeaveRequest = async (leaveId: string, updates: Partial<Leave
 };
 
 export const getLeaveRequestsForClassTeacher = (classTeacherId: string, callback: (leaves: LeaveRequest[]) => void) => {
-    console.log("Setting up class teacher leaves subscription for:", classTeacherId);
     
     // This function needs to be implemented based on your class structure
     // For now, it's a placeholder that returns empty results
@@ -327,8 +310,6 @@ export const getLeaveRequestsForClassTeacher = (classTeacherId: string, callback
 
 // Utility function to get all leave requests (for admin use)
 export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) => {
-    console.log("Setting up all leaves subscription");
-    
     const fetchAllLeaves = async () => {
         try {
             const { data, error } = await supabase
@@ -340,7 +321,6 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
                 console.error("Error fetching all leaves:", error);
                 callback([]);
             } else {
-                console.log("Fetched all leaves:", data);
                 callback(data || []);
             }
         } catch (error) {
@@ -361,7 +341,6 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
                 table: LEAVES_COLLECTION
             },
             (payload) => {
-                console.log("All leaves real-time update:", payload);
                 fetchAllLeaves();
             }
         )

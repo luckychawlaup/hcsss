@@ -83,13 +83,11 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     if (teacher) {
       setIsLoading(true);
       try {
-        const subscription = getLeaveRequestsForUser(teacher.id, (leaves) => {
-          console.log("Received leaves:", leaves);
+        const subscription = getLeaveRequestsForUser(teacher.auth_uid, (leaves) => {
           setPastLeaves(leaves || []);
           setIsLoading(false);
         });
         
-        // Handle different return types from the subscription
         if (typeof subscription === 'function') {
           unsubscribe = subscription;
         } else if (subscription && typeof subscription.unsubscribe === 'function') {
@@ -135,18 +133,16 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
       return;
     }
 
-    console.log("Submitting leave request:", values);
     setIsSubmitting(true);
     
     try {
-        // Convert dates to ISO format
         const startDate = new Date(values.startDate).toISOString();
         const endDate = values.endDate 
           ? new Date(values.endDate).toISOString() 
           : startDate;
 
         const newLeave: Omit<LeaveRequest, "id"> = {
-          user_id: teacher.id,
+          user_id: teacher.auth_uid,
           userName: teacher.name,
           userRole: "Teacher",
           startDate,
@@ -157,7 +153,6 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
           teacherId: teacher.id,
         };
         
-        console.log("Submitting leave data:", newLeave);
         await addLeaveRequest(newLeave);
         
         toast({
@@ -165,7 +160,6 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
             description: "Your leave request has been sent for approval.",
         });
         
-        // Reset form
         reset({
             startDate: "",
             endDate: "",
@@ -173,7 +167,6 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
             document: undefined,
         });
         
-        // Clear file input
         const fileInput = document.getElementById("leave-document-teacher") as HTMLInputElement;
         if (fileInput) {
             fileInput.value = "";
