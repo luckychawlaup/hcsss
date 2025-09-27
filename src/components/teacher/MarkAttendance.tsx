@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, UserX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 import { Input } from "../ui/input";
@@ -29,35 +29,23 @@ interface MarkAttendanceProps {
 type AttendanceStatus = "present" | "absent" | "half-day";
 
 export default function MarkAttendance({ teacher, students, isLoading }: MarkAttendanceProps) {
-  const [selectedClass, setSelectedClass] = useState<string>("");
   const [attendanceDate, setAttendanceDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const assignedClasses = useMemo(() => {
-    if (!teacher) return [];
-    const classes = new Set<string>();
-    if (teacher.class_teacher_of) {
-      classes.add(teacher.class_teacher_of);
+  const classTeacherOf = useMemo(() => {
+    if (teacher?.role === 'classTeacher' && teacher.class_teacher_of) {
+      return teacher.class_teacher_of;
     }
-    if (teacher.classes_taught) {
-      teacher.classes_taught.forEach(c => classes.add(c));
-    }
-    return Array.from(classes).sort();
+    return null;
   }, [teacher]);
 
   const studentsInClass = useMemo(() => {
-    return students.filter(s => `${s.class}-${s.section}` === selectedClass);
-  }, [students, selectedClass]);
+    if (!classTeacherOf) return [];
+    return students.filter(s => `${s.class}-${s.section}` === classTeacherOf);
+  }, [students, classTeacherOf]);
   
-  useEffect(() => {
-      if(assignedClasses.length > 0 && !selectedClass) {
-          setSelectedClass(assignedClasses[0]);
-      }
-  }, [assignedClasses, selectedClass]);
-
-
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
   };
@@ -72,13 +60,13 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    console.log("Submitting attendance for", selectedClass, "on", attendanceDate);
+    console.log("Submitting attendance for", classTeacherOf, "on", attendanceDate);
     console.log(attendance);
     // Here you would typically save to Supabase
     await new Promise(resolve => setTimeout(resolve, 1500));
     toast({
         title: "Attendance Submitted",
-        description: `Attendance for ${selectedClass} has been recorded successfully.`
+        description: `Attendance for ${classTeacherOf} has been recorded successfully.`
     })
     setIsSubmitting(false);
   };
@@ -87,21 +75,23 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
       return <Skeleton className="h-96 w-full" />
   }
 
+  if (teacher?.role !== 'classTeacher' || !classTeacherOf) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
+            <UserX className="h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-semibold">Permission Denied</h3>
+            <p className="text-muted-foreground mt-2">Only the designated Class Teacher can mark attendance.</p>
+      </div>
+    );
+  }
+
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 items-center">
-        <Select value={selectedClass} onValueChange={setSelectedClass}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Select Class" />
-          </SelectTrigger>
-          <SelectContent>
-            {assignedClasses.map(c => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+         <div className="flex items-center gap-4">
+            <p className="text-lg font-semibold">Class: <span className="text-primary">{classTeacherOf}</span></p>
+         </div>
         <Input 
             type="date"
             className="w-full md:w-auto"
@@ -110,7 +100,7 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
         />
       </div>
 
-       {selectedClass && (
+       {studentsInClass.length > 0 ? (
          <>
             <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => handleMarkAll('present')}>Mark All Present</Button>
@@ -144,9 +134,13 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
 
             <Button onClick={handleSubmit} disabled={isSubmitting || studentsInClass.length === 0} className="w-full">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit Attendance for {selectedClass}
+                Submit Attendance for {classTeacherOf}
             </Button>
          </>
+      ) : (
+        <div className="text-center py-10 border rounded-md">
+          <p className="text-muted-foreground">No students found for your class.</p>
+        </div>
       )}
 
     </div>
