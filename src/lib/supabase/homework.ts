@@ -43,28 +43,27 @@ export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment
 };
 
 export const getHomeworks = (classSection: string, callback: (homeworks: Homework[]) => void) => {
-    const channel = supabase.channel(`homework-${classSection}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: HOMEWORK_COLLECTION, filter: `class_section=eq.${classSection}` }, 
-        (payload) => {
-            (async () => {
-                const { data, error } = await supabase
-                    .from(HOMEWORK_COLLECTION)
-                    .select('*')
-                    .eq('class_section', classSection)
-                    .order('due_date', { ascending: true });
-                if (data) callback(data);
-            })();
-        })
-        .subscribe();
-        
-    (async () => {
-        const { data, error } = await supabase
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const fetchAndCallback = async () => {
+         const { data, error } = await supabase
             .from(HOMEWORK_COLLECTION)
             .select('*')
             .eq('class_section', classSection)
-            .order('due_date', { ascending: true });
+            .gte('assigned_at', sevenDaysAgo)
+            .order('assigned_at', { ascending: false });
         if (data) callback(data);
-    })();
+    }
+
+
+    const channel = supabase.channel(`homework-${classSection}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: HOMEWORK_COLLECTION, filter: `class_section=eq.${classSection}` }, 
+        (payload) => {
+            fetchAndCallback();
+        })
+        .subscribe();
+        
+    fetchAndCallback();
 
     return channel;
 };
@@ -98,23 +97,27 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
 
 export const updateHomework = async (homeworkId: string, updatedData: Partial<Homework>, newAttachment?: File) => {
     let updatePayload: Partial<Homework> & { attachment_url?: string | null } = { ...updatedData };
+    
     if (newAttachment) {
-        // Fetch the old attachment URL to delete it after successful upload
+        // First, fetch the old homework to get its attachment URL
         const { data: oldHomework, error: fetchError } = await supabase.from(HOMEWORK_COLLECTION).select('attachment_url').eq('id', homeworkId).single();
-        if (fetchError) console.error("Could not fetch old homework to delete attachment:", fetchError);
+        if (fetchError) {
+            console.error("Could not fetch old homework to delete attachment:", fetchError);
+            // Decide if you want to proceed or throw an error. For now, we'll proceed.
+        }
 
         const attachment_url = await uploadFileToSupabase(newAttachment, 'homework', 'files');
         updatePayload.attachment_url = attachment_url;
         
         // If there was an old attachment, delete it from storage
         if (oldHomework?.attachment_url) {
-            const oldFilePath = oldHomework.attachment_url.split('/homework/')[1];
-            if (oldFilePath) {
-                await supabase.storage.from('homework').remove([oldFilePath]);
+            const oldFileName = oldHomework.attachment_url.split('/').pop();
+            if (oldFileName) {
+                await supabase.storage.from('homework').remove([`files/${oldFileName}`]);
             }
         }
-
     }
+
 
     const { error } = await supabase
         .from(HOMEWORK_COLLECTION)
@@ -137,11 +140,9 @@ export const deleteHomework = async (homeworkId: string) => {
 
     // If DB deletion is successful, delete from storage
     if (hw?.attachment_url) {
-        const filePath = hw.attachment_url.split('/homework/')[1];
-        if (filePath) {
-            await supabase.storage.from('homework').remove([filePath]);
+        const fileName = hw.attachment_url.split('/').pop();
+        if (fileName) {
+            await supabase.storage.from('homework').remove([`files/${fileName}`]);
         }
     }
 };
-
-    

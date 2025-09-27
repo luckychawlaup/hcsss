@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { getRole } from "@/lib/getRole";
 import DashboardPage from "@/components/dashboard/DashboardPage";
 import AuthProvider from "@/components/auth/AuthProvider";
+import TodayHomework from "@/components/dashboard/TodayHomework";
 
 export default function Home() {
   const [role, setRole] = useState<string | null>(null);
@@ -40,7 +41,11 @@ export default function Home() {
 
   return (
     <AuthProvider>
-      <DashboardPage />
+      <DashboardPage>
+         <div className="mx-auto w-full max-w-4xl">
+            <TodayHomework />
+        </div>
+      </DashboardPage>
     </AuthProvider>
   );
 }

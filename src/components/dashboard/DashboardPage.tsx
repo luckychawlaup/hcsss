@@ -33,7 +33,7 @@ const GalleryCard = () => (
 )
 
 
-export default function DashboardPage() {
+export default function DashboardPage({ children }: { children?: React.ReactNode }) {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header />
@@ -41,6 +41,7 @@ export default function DashboardPage() {
         <div className="mx-auto w-full max-w-4xl">
             <FeePayment />
         </div>
+        {children}
          <div className="mx-auto w-full max-w-4xl">
             <Attendance />
         </div>
