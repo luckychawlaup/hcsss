@@ -173,19 +173,20 @@ export const addExam = async (exam: Omit<Exam, 'id' | 'created_at'>): Promise<Ex
             .from(EXAMS_COLLECTION)
             .insert([exam])
             .select()
-            .single(); // Using single() as we are inserting one record and expect one back.
+            .single(); 
         
         if (error) {
-            // Throw a more informative error
+            console.error("Error adding exam:", error);
             throw new Error(error.message || `Database error: ${error.details}`);
         }
         
         return data;
     } catch (e: any) {
-        console.error("Unexpected error adding exam:", e.message);
+        console.error("Unexpected error adding exam:", e);
         throw e; // Re-throw the error to be caught by the calling function
     }
 };
+
 
 export const updateExam = async (id: string, updates: Partial<Omit<Exam, 'id' | 'created_at'>>): Promise<Exam | null> => {
     try {
