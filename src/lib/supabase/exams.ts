@@ -267,15 +267,14 @@ export const addExam = async (exam: Omit<Exam, 'id' | 'created_at'>): Promise<Ex
         const { data, error } = await supabase
             .from(EXAMS_COLLECTION)
             .insert(exam)
-            .select()
-            .single();
+            .select();
         
         if (error) {
             console.error("Error adding exam:", error);
-            return null;
+            throw error;
         }
         
-        return data;
+        return data?.[0] || null;
     } catch (e) {
         console.error("Unexpected error adding exam:", e);
         return null;
