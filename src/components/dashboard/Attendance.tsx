@@ -41,7 +41,7 @@ export default function Attendance() {
   const supabase = createClient();
   
   useEffect(() => {
-    let channel: RealtimeChannel | null = null;
+    let channel: RealtimeChannel | undefined;
 
     const setupSubscription = async () => {
         setIsLoading(true);
@@ -53,13 +53,14 @@ export default function Attendance() {
                 // If a channel already exists, unsubscribe from it first.
                 if (channel) {
                     supabase.removeChannel(channel);
-                    channel = null;
+                    channel = undefined;
                 }
                 
                 channel = getAttendanceForStudent(student.id, currentMonth, (records) => {
                     setAttendanceRecords(records || []);
                     setIsLoading(false);
                 });
+
             } else {
                 setIsLoading(false);
             }
@@ -75,8 +76,7 @@ export default function Attendance() {
             supabase.removeChannel(channel);
         }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMonth]);
+  }, [supabase, currentMonth]);
 
 
   const monthName = format(currentMonth, "MMMM yyyy");
