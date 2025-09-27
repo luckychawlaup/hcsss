@@ -156,7 +156,11 @@ export default function LoginForm({ role }: LoginFormProps) {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input 
+                    type="password"
+                    placeholder={role === 'principal' || role === 'owner' ? '' : '••••••••'}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
