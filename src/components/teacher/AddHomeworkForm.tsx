@@ -126,7 +126,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
        form.reset({
         subject: teacher?.subject || "",
         description: "",
-        classSection: "",
+        classSection: assignedClasses.length > 0 ? assignedClasses[0] : "",
         dueDate: new Date(),
         attachment: undefined,
       });
@@ -234,7 +234,6 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
 
   const handleCancelEdit = () => {
     setEditingHomework(null);
-    resetForm();
   }
 
   const handleDeleteClick = (homework: Homework) => {
