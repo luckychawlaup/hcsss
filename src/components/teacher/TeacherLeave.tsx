@@ -38,12 +38,22 @@ import {
   LeaveRequest,
 } from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { createClient } from "@/lib/supabase/client";
+
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 const leaveSchema = z.object({
     startDate: z.string().min(1, "Start date is required."),
     endDate: z.string().optional(),
     reason: z.string().min(10, "Reason must be at least 10 characters long."),
-    document: z.any().optional(),
+    document: z.any()
+    .optional()
+    .refine((files) => !files || files.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 1MB.`)
+    .refine(
+      (files) => !files || files.length === 0 || ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
+      "Only .jpg, .png, .pdf formats are supported."
+    ),
 });
 
 const getStatusVariant = (status: LeaveRequest["status"]) => {
@@ -77,24 +87,25 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pastLeaves, setPastLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
     if (teacher) {
         setIsLoading(true);
-        const unsubscribe = getLeaveRequestsForUser(teacher.auth_uid, (leaves) => {
+        const channel = getLeaveRequestsForUser(teacher.auth_uid, (leaves) => {
             setPastLeaves(leaves || []);
             setIsLoading(false);
         });
         
         return () => {
-            if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
-                unsubscribe.unsubscribe();
+            if (channel) {
+                supabase.removeChannel(channel);
             }
         };
     } else {
         setIsLoading(false);
     }
-  }, [teacher]);
+  }, [teacher, supabase]);
 
   const form = useForm<z.infer<typeof leaveSchema>>({
     resolver: zodResolver(leaveSchema),
@@ -120,7 +131,7 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     setIsSubmitting(true);
     
     try {
-        const newLeave: Omit<LeaveRequest, "id" | "user_id"> = {
+        const newLeave: Omit<LeaveRequest, "id" | "user_id" | "document_url"> = {
           userName: teacher.name,
           userRole: "Teacher",
           startDate: values.startDate,

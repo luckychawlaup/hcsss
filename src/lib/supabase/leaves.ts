@@ -55,7 +55,7 @@ CREATE TABLE public.leaves (
     "appliedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "rejectionReason" TEXT,
     "approverComment" TEXT,
-    "document_url" TEXT
+    document_url TEXT
 );
 
 -- 3. Enable RLS on the 'leaves' table
@@ -104,7 +104,7 @@ USING (
 );
 `;
 
-export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveRequest, 'id' | 'user_id'>, document?: File) => {
+export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveRequest, 'id' | 'user_id' | 'document_url'>, document?: File) => {
     try {
         let document_url: string | undefined;
         if (document) {
@@ -114,12 +114,9 @@ export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveR
         const finalRequestData: any = {
             ...leaveRequest,
             user_id: authUid,
+            document_url,
         };
-
-        if (document_url) {
-            finalRequestData.document_url = document_url;
-        }
-
+        
         const { data, error } = await supabase
             .from(LEAVES_COLLECTION)
             .insert([finalRequestData])
@@ -139,156 +136,82 @@ export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveR
 };
 
 export const getLeaveRequestsForUser = (userId: string, callback: (leaves: LeaveRequest[]) => void) => {
-    console.log("Setting up leave requests subscription for user:", userId);
-    
     // Initial fetch
     const fetchLeaves = async () => {
         try {
-            const { data, error } = await supabase
-                .from(LEAVES_COLLECTION)
-                .select('*')
-                .eq('user_id', userId)
-                .order('appliedAt', { ascending: false });
-            
-            if (error) {
-                console.error("Error fetching leaves:", error);
-                callback([]);
-            } else {
-                callback(data || []);
-            }
+            const { data, error } = await supabase.from('leaves').select('*').eq('user_id', userId).order('appliedAt', { ascending: false });
+            if (error) throw error;
+            callback(data || []);
         } catch (error) {
-            console.error("Error in fetchLeaves:", error);
-            callback([]);
+            console.error("Error fetching initial leaves:", error);
         }
     };
-
-    // Fetch initial data
     fetchLeaves();
 
-    // Set up real-time subscription
-    const channel = supabase
-        .channel(`leaves-user-${userId}`)
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: LEAVES_COLLECTION,
-                filter: `user_id=eq.${userId}`
-            },
-            (payload) => {
-                fetchLeaves(); // Re-fetch all data on any change
-            }
-        )
-        .subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') {
-                console.log("Successfully subscribed to leaves channel for user:", userId);
-            }
-            if (status === 'CHANNEL_ERROR') {
-                console.error('Leave subscription error:', err);
-            }
-        });
+    // Realtime subscription
+    const channel = supabase.channel(`leaves-user-${userId}`)
+        .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: `user_id=eq.${userId}` }, 
+        (payload) => {
+            fetchLeaves(); // Re-fetch on change to ensure order and handle deletes
+        })
+        .subscribe();
 
-    // Return unsubscribe function
-    return () => {
-        console.log("Unsubscribing from leaves channel");
-        supabase.removeChannel(channel);
-    };
+    return channel;
 };
+
 
 export const getLeaveRequestsForStudents = (studentIds: string[], callback: (leaves: LeaveRequest[]) => void) => {
     if (!studentIds || studentIds.length === 0) {
         callback([]);
-        return () => {};
+        return;
     }
 
     const fetchStudentLeaves = async () => {
         try {
-            const { data, error } = await supabase
-                .from(LEAVES_COLLECTION)
-                .select('*')
-                .in('user_id', studentIds)
-                .eq('userRole', 'Student')
-                .order('appliedAt', { ascending: false });
-            
-            if (error) {
-                console.error("Error fetching student leaves:", error);
-                callback([]);
-            } else {
-                callback(data || []);
-            }
+            const { data, error } = await supabase.from('leaves').select('*').in('user_id', studentIds).eq('userRole', 'Student').order('appliedAt', { ascending: false });
+            if (error) throw error;
+            callback(data || []);
         } catch (error) {
-            console.error("Error in fetchStudentLeaves:", error);
-            callback([]);
+            console.error("Error fetching student leaves:", error);
         }
     };
-
     fetchStudentLeaves();
 
-    const channel = supabase
-        .channel('student-leaves')
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: LEAVES_COLLECTION
-            },
-            (payload) => {
-                fetchStudentLeaves();
-            }
-        )
+    const channel = supabase.channel('student-leaves')
+        .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: 'userRole=eq.Student' }, 
+        (payload) => {
+             fetchStudentLeaves();
+        })
         .subscribe();
-
-    return () => supabase.removeChannel(channel);
+    return channel;
 };
 
 export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (leaves: LeaveRequest[]) => void) => {
     if (!teacherIds || teacherIds.length === 0) {
         callback([]);
-        return () => {};
+        return;
     }
 
     const fetchTeacherLeaves = async () => {
         try {
-            const { data, error } = await supabase
-                .from(LEAVES_COLLECTION)
-                .select('*')
-                .in('teacherId', teacherIds.filter(id => id)) // Filter out null/undefined IDs
-                .eq('userRole', 'Teacher')
-                .order('appliedAt', { ascending: false });
-            
-            if (error) {
-                console.error("Error fetching teacher leaves:", error);
-                callback([]);
-            } else {
-                callback(data || []);
-            }
+            const { data, error } = await supabase.from('leaves').select('*').in('teacherId', teacherIds).eq('userRole', 'Teacher').order('appliedAt', { ascending: false });
+            if (error) throw error;
+            callback(data || []);
         } catch (error) {
-            console.error("Error in fetchTeacherLeaves:", error);
-            callback([]);
+            console.error("Error fetching teacher leaves:", error);
         }
     };
-
     fetchTeacherLeaves();
 
-    const channel = supabase
-        .channel('teacher-leaves')
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: LEAVES_COLLECTION
-            },
-            (payload) => {
-                fetchTeacherLeaves();
-            }
-        )
+    const channel = supabase.channel('teacher-leaves')
+        .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: 'userRole=eq.Teacher' }, 
+        (payload) => {
+            fetchTeacherLeaves();
+        })
         .subscribe();
-
-    return () => supabase.removeChannel(channel);
+    return channel;
 };
+
 
 export const updateLeaveRequest = async (leaveId: string, updates: Partial<LeaveRequest>) => {
     try {
@@ -338,19 +261,11 @@ export const getLeaveRequestsForClassTeacher = (classTeacherId: string, callback
 export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) => {
     const fetchAllLeaves = async () => {
         try {
-            const { data, error } = await supabase
-                .from(LEAVES_COLLECTION)
-                .select('*')
-                .order('appliedAt', { ascending: false });
-            
-            if (error) {
-                console.error("Error fetching all leaves:", error);
-                callback([]);
-            } else {
-                callback(data || []);
-            }
+            const { data, error } = await supabase.from('leaves').select('*').order('appliedAt', { ascending: false });
+             if (error) throw error;
+            callback(data || []);
         } catch (error) {
-            console.error("Error in fetchAllLeaves:", error);
+            console.error("Error fetching all leaves:", error);
             callback([]);
         }
     };
@@ -359,18 +274,13 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
 
     const channel = supabase
         .channel('all-leaves')
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: LEAVES_COLLECTION
-            },
+        .on('postgres_changes',
+            { event: '*', schema: 'public', table: LEAVES_COLLECTION },
             (payload) => {
                 fetchAllLeaves();
             }
         )
         .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return channel;
 };
