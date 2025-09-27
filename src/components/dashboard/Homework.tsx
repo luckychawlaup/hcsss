@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -15,15 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, Download } from "lucide-react";
 import { getHomeworks, Homework } from "@/lib/supabase/homework";
-import { getStudentByAuthId, Student } from "@/lib/supabase/students";
+import { getStudentByAuthId } from "@/lib/supabase/students";
 import { createClient } from "@/lib/supabase/client";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 
 function HomeworkSkeleton() {
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      <Skeleton className="h-10 w-1/3" />
       <Skeleton className="h-8 w-full" />
       <Skeleton className="h-8 w-full" />
+       <Skeleton className="h-10 w-1/3 mt-6" />
       <Skeleton className="h-8 w-full" />
     </div>
   );
@@ -31,7 +33,7 @@ function HomeworkSkeleton() {
 
 function formatDueDate(dateString: string) {
     try {
-        return format(new Date(dateString), "dd/MM");
+        return format(new Date(dateString), "dd/MM/yyyy");
     } catch (e) {
         return "-";
     }
@@ -53,7 +55,7 @@ export default function Homework() {
                 const channel = getHomeworks(classSection, (newHomeworks) => {
                     setHomeworks(newHomeworks);
                     setIsLoading(false);
-                });
+                }, { dateFilter: 7 }); // Fetch last 7 days
                 unsubscribe = () => {
                     if (channel) supabase.removeChannel(channel);
                 }
@@ -74,6 +76,20 @@ export default function Homework() {
     };
   }, [supabase]);
 
+  const groupedHomework = useMemo(() => {
+    return homeworks.reduce((acc, hw) => {
+        const dateKey = format(new Date(hw.assigned_at), "yyyy-MM-dd");
+        if (!acc[dateKey]) {
+            acc[dateKey] = [];
+        }
+        acc[dateKey].push(hw);
+        return acc;
+    }, {} as Record<string, Homework[]>);
+  }, [homeworks]);
+
+  const sortedDates = Object.keys(groupedHomework).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -82,50 +98,53 @@ export default function Homework() {
           Homework Assignments
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         {isLoading ? (
           <HomeworkSkeleton />
+        ) : sortedDates.length > 0 ? (
+          sortedDates.map(date => (
+            <div key={date}>
+                <h3 className="font-semibold text-lg text-foreground mb-2">
+                    {format(new Date(date), "EEEE, do MMMM")}
+                </h3>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Subject</TableHead>
+                            <TableHead>Assignment</TableHead>
+                            <TableHead>Due</TableHead>
+                            <TableHead className="text-right">File</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {groupedHomework[date].map((hw) => (
+                                <TableRow key={hw.id}>
+                                    <TableCell className="font-medium">{hw.subject}</TableCell>
+                                    <TableCell>{hw.description}</TableCell>
+                                    <TableCell>{formatDueDate(hw.due_date)}</TableCell>
+                                    <TableCell className="text-right">
+                                        {hw.attachment_url ? (
+                                        <Button variant="ghost" size="icon" asChild>
+                                            <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer">
+                                            <Download className="h-4 w-4" />
+                                            </a>
+                                        </Button>
+                                        ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+          ))
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-0 sm:pl-6">Subject</TableHead>
-                  <TableHead>Assignment</TableHead>
-                  <TableHead>Due</TableHead>
-                  <TableHead className="text-right pr-0 sm:pr-6">File</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {homeworks.length > 0 ? (
-                  homeworks.map((hw, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium pl-0 sm:pl-6">{hw.subject}</TableCell>
-                      <TableCell>{hw.description}</TableCell>
-                      <TableCell>{formatDueDate(hw.due_date)}</TableCell>
-                      <TableCell className="text-right pr-0 sm:pr-6">
-                        {hw.attachment_url ? (
-                          <Button variant="ghost" size="icon" asChild>
-                            <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      No homework has been assigned yet.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+             <div className="text-center text-muted-foreground p-8 border border-dashed rounded-md">
+                <p>No homework assigned in the last 7 days.</p>
+            </div>
         )}
       </CardContent>
     </Card>

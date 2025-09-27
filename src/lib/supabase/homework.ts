@@ -1,5 +1,6 @@
 
 import { createClient } from "@/lib/supabase/client";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
 
 const supabase = createClient();
 const HOMEWORK_COLLECTION = 'homework';
@@ -68,7 +69,11 @@ export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment
     }
 };
 
-export const getHomeworks = (classSection: string, callback: (homeworks: Homework[]) => void, limit?: number) => {
+export const getHomeworks = (
+    classSection: string, 
+    callback: (homeworks: Homework[]) => void,
+    options?: { limit?: number; dateFilter?: 'today' | number }
+) => {
     const fetchAndCallback = async () => {
         try {
             let query = supabase
@@ -77,8 +82,19 @@ export const getHomeworks = (classSection: string, callback: (homeworks: Homewor
                 .eq('class_section', classSection)
                 .order('assigned_at', { ascending: false });
 
-            if (limit) {
-                query = query.limit(limit);
+            if (options?.limit) {
+                query = query.limit(options.limit);
+            }
+
+            if (options?.dateFilter) {
+                if (options.dateFilter === 'today') {
+                    const todayStart = startOfDay(new Date()).toISOString();
+                    const todayEnd = endOfDay(new Date()).toISOString();
+                    query = query.gte('assigned_at', todayStart).lte('assigned_at', todayEnd);
+                } else if (typeof options.dateFilter === 'number') {
+                    const fromDate = startOfDay(subDays(new Date(), options.dateFilter)).toISOString();
+                    query = query.gte('assigned_at', fromDate);
+                }
             }
                 
             const { data, error } = await query;
@@ -96,7 +112,7 @@ export const getHomeworks = (classSection: string, callback: (homeworks: Homewor
         }
     }
 
-    const channel = supabase.channel(`homework-${classSection}-${limit || 'all'}`)
+    const channel = supabase.channel(`homework-${classSection}-${options?.limit || 'all'}-${JSON.stringify(options?.dateFilter)}`)
         .on('postgres_changes', { 
             event: '*', 
             schema: 'public', 

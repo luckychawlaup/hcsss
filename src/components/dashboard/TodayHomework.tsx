@@ -13,16 +13,16 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Download, Book } from "lucide-react";
+import { Book, Download, Info } from "lucide-react";
 import { getHomeworks, Homework } from "@/lib/supabase/homework";
-import { getStudentByAuthId, Student } from "@/lib/supabase/students";
+import { getStudentByAuthId } from "@/lib/supabase/students";
 import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
+import Link from "next/link";
 
 function HomeworkSkeleton() {
   return (
     <div className="space-y-2">
-      <Skeleton className="h-8 w-full" />
       <Skeleton className="h-8 w-full" />
       <Skeleton className="h-8 w-full" />
     </div>
@@ -31,7 +31,7 @@ function HomeworkSkeleton() {
 
 function formatDueDate(dateString: string) {
     try {
-        return format(new Date(dateString), "dd/MM");
+        return format(new Date(dateString), "dd/MM/yyyy");
     } catch (e) {
         return "-";
     }
@@ -53,7 +53,7 @@ export default function TodayHomework() {
                 const channel = getHomeworks(classSection, (newHomeworks) => {
                     setHomeworks(newHomeworks);
                     setIsLoading(false);
-                }, 3); // Limit to 3 for the dashboard
+                }, { dateFilter: 'today' });
                 unsubscribe = () => {
                     if(channel) supabase.removeChannel(channel);
                 }
@@ -81,50 +81,52 @@ export default function TodayHomework() {
           <Book className="h-6 w-6" />
           Today's Homework
         </CardTitle>
+        <Button variant="link" size="sm" asChild>
+            <Link href="/homework">View All</Link>
+        </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <HomeworkSkeleton />
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-0 sm:pl-6">Subject</TableHead>
-                  <TableHead>Assignment</TableHead>
-                  <TableHead>Due</TableHead>
-                  <TableHead className="text-right pr-0 sm:pr-6">File</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {homeworks.length > 0 ? (
-                  homeworks.map((hw, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium pl-0 sm:pl-6">{hw.subject}</TableCell>
-                      <TableCell>{hw.description}</TableCell>
-                      <TableCell>{formatDueDate(hw.due_date)}</TableCell>
-                      <TableCell className="text-right pr-0 sm:pr-6">
-                        {hw.attachment_url ? (
-                          <Button variant="ghost" size="icon" asChild>
-                            <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      No recent homework. Great job!
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            {homeworks.length > 0 ? (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Assignment</TableHead>
+                        <TableHead>Due</TableHead>
+                        <TableHead className="text-right">File</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {homeworks.map((hw) => (
+                            <TableRow key={hw.id}>
+                                <TableCell className="font-medium">{hw.subject}</TableCell>
+                                <TableCell>{hw.description}</TableCell>
+                                <TableCell>{formatDueDate(hw.due_date)}</TableCell>
+                                <TableCell className="text-right">
+                                    {hw.attachment_url ? (
+                                    <Button variant="ghost" size="icon" asChild>
+                                        <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer">
+                                        <Download className="h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                    ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            ) : (
+                <div className="flex flex-col items-center justify-center text-center p-6 bg-secondary/30 rounded-md">
+                    <Info className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm font-semibold text-muted-foreground">No homework assigned for today!</p>
+                </div>
+            )}
           </div>
         )}
       </CardContent>
