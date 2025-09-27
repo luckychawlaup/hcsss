@@ -1,6 +1,6 @@
 
 import { createClient } from "@/lib/supabase/client";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { startOfMonth, endOfMonth, format } from "date-fns";
 
 const supabase = createClient();
 const ATTENDANCE_COLLECTION = 'attendance';
@@ -16,7 +16,8 @@ export interface AttendanceRecord {
 }
 
 export const ATTENDANCE_TABLE_SETUP_SQL = `
--- Create the attendance table to store daily records
+-- Creates the table for storing daily attendance records and sets security rules.
+-- This allows Class Teachers to mark attendance and students to view their own.
 CREATE TABLE IF NOT EXISTS public.attendance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
@@ -34,6 +35,7 @@ ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
 -- Drop policies if they exist to prevent conflicts
 DROP POLICY IF EXISTS "Allow teachers to manage attendance" ON public.attendance;
 DROP POLICY IF EXISTS "Allow students to view their own attendance" ON public.attendance;
+DROP POLICY IF EXISTS "Allow principal/owner to view all attendance" ON public.attendance;
 
 -- Policy: Allow authenticated Class Teachers to manage attendance for their class
 CREATE POLICY "Allow teachers to manage attendance"
@@ -52,6 +54,16 @@ CREATE POLICY "Allow students to view their own attendance"
 ON public.attendance FOR SELECT
 USING (
     auth.uid() = (SELECT auth_uid FROM public.students WHERE id = student_id)
+);
+
+-- Policy: Allow admin roles to view all attendance data
+CREATE POLICY "Allow principal/owner to view all attendance"
+ON public.attendance FOR SELECT
+USING (
+    auth.uid() IN (
+        '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
+        '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
+    )
 );
 `;
 

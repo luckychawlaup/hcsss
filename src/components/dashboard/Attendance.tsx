@@ -10,14 +10,14 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { UserCheck } from "lucide-react";
-import { format, getDaysInMonth, startOfMonth, eachDayOfInterval, isSunday } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, eachDayOfInterval, isSunday, isAfter, startOfToday } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId } from "@/lib/supabase/students";
 import { getAttendanceForStudent, AttendanceRecord } from "@/lib/supabase/attendance";
 import { Skeleton } from "../ui/skeleton";
 
 // Example holidays - this should eventually come from a dynamic source
-const holidays = ["2024-08-15"];
+const holidays: string[] = ["2024-08-15"];
 
 function AttendanceSkeleton() {
     return (
@@ -73,18 +73,32 @@ export default function Attendance() {
       start: startOfMonth(currentMonth),
       end: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), getDaysInMonth(currentMonth))
   });
-
-  const sundays = allDaysInMonth.filter(d => isSunday(d)).length;
   
-  const totalSchoolDays = getDaysInMonth(currentMonth) - sundays - holidays.length;
+  const today = startOfToday();
+
+  // Calculate school days that have already passed this month
+  const pastSchoolDays = allDaysInMonth.filter(day => 
+      !isSunday(day) && 
+      !holidays.includes(format(day, "yyyy-MM-dd")) &&
+      isAfter(today, day)
+  );
+  
+  const totalPastSchoolDays = pastSchoolDays.length;
+
+  const presentDaysCount = attendanceRecords.filter(r => r.status === 'present').length;
+  const halfDaysCount = attendanceRecords.filter(r => r.status === 'half-day').length;
+  
+  const effectivePresentDays = presentDaysCount + (halfDaysCount * 0.5);
+  
+  const attendancePercentage = totalPastSchoolDays > 0 
+      ? Math.round((effectivePresentDays / totalPastSchoolDays) * 100) 
+      : 100;
 
   const absentDays = attendanceRecords.filter(r => r.status === 'absent');
   const halfDays = attendanceRecords.filter(r => r.status === 'half-day');
   
   const absentDaysCount = absentDays.length + (halfDays.length * 0.5);
-  const presentDays = totalSchoolDays > absentDaysCount ? totalSchoolDays - absentDaysCount : 0;
-  const attendancePercentage = totalSchoolDays > 0 ? Math.round((presentDays / totalSchoolDays) * 100) : 0;
-
+  
   const absentDates = absentDays.map(r => format(new Date(r.date), "do MMM"));
   const halfDayDates = halfDays.map(r => format(new Date(r.date), "do MMM"));
 
@@ -128,7 +142,7 @@ export default function Attendance() {
             </div>
         </div>
          {attendancePercentage < 100 && attendancePercentage > 0 && (
-             <p className="text-xs text-center text-muted-foreground mt-4">Total days counted as absent: {absentDaysCount}</p>
+             <p className="text-xs text-center text-muted-foreground mt-4">Total days counted as absent: {absentDaysCount}. Unmarked past days are also counted as absent.</p>
          )}
          {attendancePercentage === 100 && (
               <p className="text-sm text-center text-green-600 font-semibold mt-4">Perfect attendance this month. Keep it up!</p>
