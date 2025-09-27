@@ -5,26 +5,37 @@ const LEAVES_COLLECTION = 'leaves';
 
 export interface LeaveRequest {
   id: string;
-  user_id: string; // This should be the auth.uid()
+  user_id: string; 
   userName: string;
   userRole: 'Student' | 'Teacher';
-  class?: string; // e.g., 10-A for students
-  teacherId?: string; // This is the teacher's profile ID from the 'teachers' table
-  startDate: string; // ISO string
-  endDate: string; // ISO string
+  class?: string; 
+  teacherId?: string; 
+  startDate: string; 
+  endDate: string; 
   reason: string;
   status: 'Pending' | 'Confirmed' | 'Rejected';
-  appliedAt: string; // ISO string
+  appliedAt: string; 
   rejectionReason?: string;
   approverComment?: string;
+  document_url?: string;
 }
 
-/**
- * SQL SETUP SCRIPT FOR LEAVES TABLE
- *
- * Run this in your Supabase SQL Editor to create the 'leaves' table
- * and apply the necessary Row Level Security (RLS) policies.
- */
+const uploadFileToSupabase = async (file: File): Promise<string> => {
+    const filePath = `leave-documents/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from('documents').upload(filePath, file);
+    if (error) {
+        console.error('Error uploading to Supabase Storage:', error);
+        throw error;
+    }
+
+    const { data } = supabase.storage.from('documents').getPublicUrl(filePath);
+    if (!data.publicUrl) {
+        throw new Error('Could not get public URL for uploaded file.');
+    }
+    return data.publicUrl;
+};
+
+
 export const LEAVES_TABLE_SETUP_SQL = `
 -- 1. Drop the old table if it exists to ensure a clean start
 DROP TABLE IF EXISTS public.leaves;
@@ -43,7 +54,8 @@ CREATE TABLE public.leaves (
     status TEXT NOT NULL DEFAULT 'Pending',
     "appliedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "rejectionReason" TEXT,
-    "approverComment" TEXT
+    "approverComment" TEXT,
+    "document_url" TEXT
 );
 
 -- 3. Enable RLS on the 'leaves' table
@@ -92,12 +104,21 @@ USING (
 );
 `;
 
-export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveRequest, 'id' | 'user_id'>) => {
+export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveRequest, 'id' | 'user_id'>, document?: File) => {
     try {
-        const finalRequestData = {
+        let document_url: string | undefined;
+        if (document) {
+            document_url = await uploadFileToSupabase(document);
+        }
+
+        const finalRequestData: any = {
             ...leaveRequest,
             user_id: authUid,
         };
+
+        if (document_url) {
+            finalRequestData.document_url = document_url;
+        }
 
         const { data, error } = await supabase
             .from(LEAVES_COLLECTION)

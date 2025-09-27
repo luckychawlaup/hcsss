@@ -131,7 +131,8 @@ export default function LeavePageContent() {
             appliedAt: new Date().toISOString(),
         }
         
-        await addLeaveRequest(currentUser.id, newLeave);
+        const documentFile = values.document?.[0];
+        await addLeaveRequest(currentUser.id, newLeave, documentFile);
 
         toast({
             title: "Leave Application Submitted",

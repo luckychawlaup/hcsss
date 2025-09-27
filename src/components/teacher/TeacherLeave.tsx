@@ -120,23 +120,19 @@ export function TeacherLeave({ teacher }: TeacherLeaveProps) {
     setIsSubmitting(true);
     
     try {
-        const startDate = new Date(values.startDate).toISOString();
-        const endDate = values.endDate 
-          ? new Date(values.endDate).toISOString() 
-          : startDate;
-
         const newLeave: Omit<LeaveRequest, "id" | "user_id"> = {
           userName: teacher.name,
           userRole: "Teacher",
-          startDate,
-          endDate,
+          startDate: values.startDate,
+          endDate: values.endDate || values.startDate,
           reason: values.reason.trim(),
           status: "Pending",
           appliedAt: new Date().toISOString(),
           teacherId: teacher.id,
         };
         
-        await addLeaveRequest(teacher.auth_uid, newLeave);
+        const documentFile = values.document?.[0];
+        await addLeaveRequest(teacher.auth_uid, newLeave, documentFile);
         
         toast({
             title: "Leave Application Submitted",
