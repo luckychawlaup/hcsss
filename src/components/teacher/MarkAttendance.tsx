@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import type { Teacher } from "@/lib/supabase/teachers";
 import type { Student } from "@/lib/supabase/students";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -47,15 +47,9 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
         getAttendanceForDate(classTeacherOf, attendanceDate)
             .then(records => {
                 const newAttendanceState: Record<string, AttendanceStatus> = {};
-                // Default all to present
                 studentsInClass.forEach(student => {
-                    newAttendanceState[student.id] = 'present';
-                });
-                // Overwrite with fetched records
-                records.forEach(record => {
-                    if (newAttendanceState.hasOwnProperty(record.student_id)) {
-                        newAttendanceState[record.student_id] = record.status;
-                    }
+                    const existingRecord = records.find(r => r.student_id === student.id);
+                    newAttendanceState[student.id] = existingRecord ? existingRecord.status : 'present';
                 });
                 setAttendance(newAttendanceState);
             })
@@ -69,7 +63,7 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
             })
             .finally(() => setIsFetching(false));
     }
-  }, [attendanceDate, classTeacherOf]); 
+  }, [attendanceDate, classTeacherOf, studentsInClass]);
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
