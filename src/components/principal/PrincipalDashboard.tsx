@@ -7,7 +7,7 @@ import { User, onAuthStateChanged } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { getTeachersAndPending, updateTeacher, deleteTeacher, Teacher, PendingTeacher } from "@/lib/supabase/teachers";
 import { getStudentsAndPending, updateStudent, deleteStudent, Student, CombinedStudent } from "@/lib/supabase/students";
-import { getLeaveRequestsForStudents, getLeaveRequestsForTeachers } from "@/lib/supabase/leaves";
+import { getAllLeaveRequests } from "@/lib/supabase/leaves";
 import type { LeaveRequest } from "@/lib/supabase/leaves";
 import { prepopulateExams } from "@/lib/supabase/exams";
 import { Skeleton } from "../ui/skeleton";
@@ -189,8 +189,7 @@ export default function PrincipalDashboard() {
 
   const [allStudents, setAllStudents] = useState<CombinedStudent[]>([]);
   const [allTeachers, setAllTeachers] = useState<CombinedTeacher[]>([]);
-  const [studentLeaves, setStudentLeaves] = useState<LeaveRequest[]>([]);
-  const [teacherLeaves, setTeacherLeaves] = useState<LeaveRequest[]>([]);
+  const [allLeaves, setAllLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -211,41 +210,21 @@ export default function PrincipalDashboard() {
 
     const unsubStudents = getStudentsAndPending(setAllStudents);
     const unsubTeachers = getTeachersAndPending(setAllTeachers);
+    const unsubLeaves = getAllLeaveRequests(setAllLeaves);
     
     const timer = setTimeout(() => setIsLoading(false), 1500);
 
     return () => {
         authListener.subscription.unsubscribe();
-        // These are not functions, but supabase channels that should be unsubscribed
-        // The functions should return the channel to be unsubscribed.
+        if (unsubStudents) unsubStudents();
+        if (unsubTeachers) unsubTeachers();
+        if (unsubLeaves) unsubLeaves.unsubscribe();
     };
 
   }, [supabase]);
 
-   useEffect(() => {
-    if (activeView === 'viewLeaves' && allStudents.length > 0) {
-      const studentIds = allStudents.map((s) => s.id);
-      const unsub = getLeaveRequestsForStudents(studentIds, (leaves) => {
-        setStudentLeaves(leaves);
-      });
-      return () => { if(unsub) unsub() };
-    }
-  }, [activeView, allStudents]);
-
-  useEffect(() => {
-    if (activeView === 'viewLeaves' && allTeachers.length > 0) {
-      const registeredTeacherIds = allTeachers
-        .filter(t => t.status === 'Registered')
-        .map((t) => t.id);
-        
-      if (registeredTeacherIds.length > 0) {
-        const unsub = getLeaveRequestsForTeachers(registeredTeacherIds, (leaves) => {
-            setTeacherLeaves(leaves);
-        });
-        return () => { if(unsub) unsub() };
-      }
-    }
-  }, [activeView, allTeachers]);
+  const studentLeaves = useMemo(() => allLeaves.filter(l => l.userRole === 'Student'), [allLeaves]);
+  const teacherLeaves = useMemo(() => allLeaves.filter(l => l.userRole === 'Teacher'), [allLeaves]);
 
 
   const handleTeacherAdded = () => {

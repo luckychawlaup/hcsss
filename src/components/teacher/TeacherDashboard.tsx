@@ -93,16 +93,15 @@ export default function TeacherDashboard() {
         setIsLoading(false); // Stop loading once students are fetched
       });
       
-      // If the teacher is a class teacher, fetch leave requests for their class
-      if (teacher.role === 'classTeacher') {
-          const unsubscribeLeaves = getLeaveRequestsForClassTeacher(teacher.id, setLeaves);
-          return () => {
-              unsubscribeStudents();
-              if (unsubscribeLeaves) unsubscribeLeaves();
-          };
+      let unsubscribeLeaves: any;
+      if (teacher.role === 'classTeacher' && teacher.class_teacher_of) {
+          unsubscribeLeaves = getLeaveRequestsForClassTeacher(teacher.class_teacher_of, setLeaves);
       }
 
-       return () => unsubscribeStudents();
+      return () => {
+        if(unsubscribeStudents) unsubscribeStudents();
+        if(unsubscribeLeaves) unsubscribeLeaves.unsubscribe();
+      }
     }
   }, [teacher]);
 

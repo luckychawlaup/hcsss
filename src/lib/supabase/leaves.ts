@@ -248,27 +248,43 @@ export const updateLeaveRequest = async (leaveId: string, updates: Partial<Leave
     }
 };
 
-export const getLeaveRequestsForClassTeacher = (classTeacherId: string, callback: (leaves: LeaveRequest[]) => void) => {
-    
-    // This function needs to be implemented based on your class structure
-    // For now, it's a placeholder that returns empty results
+export const getLeaveRequestsForClassTeacher = (classSection: string, callback: (leaves: LeaveRequest[]) => void) => {
     const fetchClassLeaves = async () => {
         try {
-            // You'll need to implement the logic to get students for this class teacher
-            // and then fetch their leave requests
-            callback([]);
+            const { data, error } = await supabase
+                .from('leaves')
+                .select('*')
+                .eq('userRole', 'Student')
+                .eq('class', classSection)
+                .order('appliedAt', { ascending: false });
+            if (error) throw error;
+            callback(data || []);
         } catch (error) {
             console.error("Error fetching class leaves:", error);
             callback([]);
         }
     };
 
-    fetchClassLeaves();
+    const channel = supabase.channel(`leaves-for-class-${classSection.replace('-', '_')}`)
+        .on<LeaveRequest>(
+            'postgres_changes', 
+            { 
+                event: '*', 
+                schema: 'public', 
+                table: LEAVES_COLLECTION, 
+                filter: `class=eq.${classSection}` 
+            },
+            (payload) => {
+                fetchClassLeaves();
+            }
+        )
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await fetchClassLeaves();
+            }
+        });
 
-    // Return empty unsubscribe function for now
-    return () => {
-        console.log("Unsubscribing from class teacher leaves");
-    };
+    return channel;
 };
 
 // Utility function to get all leave requests (for admin use)

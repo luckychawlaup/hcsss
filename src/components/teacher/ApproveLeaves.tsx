@@ -78,7 +78,7 @@ const formatLeaveDate = (startDate: string, endDate: string) => {
 const getStatusVariant = (status: LeaveRequest["status"]) => {
   switch (status) {
     case "Confirmed":
-      return "default";
+      return "success";
     case "Pending":
       return "secondary";
     case "Rejected":
