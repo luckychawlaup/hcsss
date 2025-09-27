@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -13,11 +12,11 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Download } from "lucide-react";
+import { BookOpen, Download, Info } from "lucide-react";
 import { getHomeworks, Homework } from "@/lib/supabase/homework";
 import { getStudentByAuthId } from "@/lib/supabase/students";
 import { createClient } from "@/lib/supabase/client";
-import { format, isSameDay } from "date-fns";
+import { format } from "date-fns";
 
 function HomeworkSkeleton() {
   return (
@@ -42,50 +41,111 @@ function formatDueDate(dateString: string) {
 export default function Homework() {
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let channel: any;
+    const supabase = createClient();
+    
     const fetchHomework = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            const studentProfile = await getStudentByAuthId(user.id);
-            if (studentProfile) {
-                const classSection = `${studentProfile.class}-${studentProfile.section}`;
-                channel = getHomeworks(classSection, (newHomeworks) => {
-                    setHomeworks(newHomeworks);
-                    setIsLoading(false);
-                }, { dateFilter: 7 }); // Fetch last 7 days
-            } else {
-                setIsLoading(false);
-            }
-        } else {
-            setIsLoading(false);
+      try {
+        console.log('Homework: Starting to fetch user data...');
+        
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) {
+          console.error('Homework: Auth error:', authError);
+          setError('Authentication error');
+          setIsLoading(false);
+          return;
         }
+        
+        if (!user) {
+          console.log('Homework: No user found');
+          setError('User not authenticated');
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('Homework: User found, getting student profile...');
+        
+        const studentProfile = await getStudentByAuthId(user.id);
+        
+        if (!studentProfile) {
+          console.error('Homework: No student profile found for user:', user.id);
+          setError('Student profile not found');
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('Homework: Student profile found:', studentProfile);
+        
+        const classSection = `${studentProfile.class}-${studentProfile.section}`;
+        console.log('Homework: Using class section:', classSection);
+        
+        // Set up homework subscription for last 7 days
+        channel = getHomeworks(classSection, (newHomeworks) => {
+          console.log('Homework: Received homework data:', newHomeworks);
+          setHomeworks(newHomeworks);
+          setIsLoading(false);
+          setError(null);
+        }, { dateFilter: 7 });
+        
+      } catch (err) {
+        console.error('Homework: Error in fetchHomework:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setIsLoading(false);
+      }
     };
 
     fetchHomework();
     
     return () => {
-        if (channel) {
-            supabase.removeChannel(channel);
-        }
+      if (channel) {
+        console.log('Homework: Cleaning up channel...');
+        const supabase = createClient();
+        supabase.removeChannel(channel);
+      }
     };
-  }, [supabase]);
+  }, []); // Remove supabase dependency to prevent recreation
 
   const groupedHomework = useMemo(() => {
+    if (!homeworks.length) return {};
+    
     return homeworks.reduce((acc, hw) => {
-        const dateKey = format(new Date(hw.assigned_at), "yyyy-MM-dd");
-        if (!acc[dateKey]) {
-            acc[dateKey] = [];
+        try {
+            const dateKey = format(new Date(hw.assigned_at), "yyyy-MM-dd");
+            if (!acc[dateKey]) {
+                acc[dateKey] = [];
+            }
+            acc[dateKey].push(hw);
+        } catch (error) {
+            console.error('Error parsing date for homework:', hw, error);
         }
-        acc[dateKey].push(hw);
         return acc;
     }, {} as Record<string, Homework[]>);
   }, [homeworks]);
 
   const sortedDates = Object.keys(groupedHomework).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
+  if (error) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <BookOpen className="h-6 w-6" />
+            Homework Assignments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center text-center p-6 bg-destructive/10 rounded-md">
+            <Info className="h-8 w-8 text-destructive mb-2" />
+            <p className="text-sm font-semibold text-destructive">Error: {error}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -140,6 +200,7 @@ export default function Homework() {
           ))
         ) : (
              <div className="text-center text-muted-foreground p-8 border border-dashed rounded-md">
+                <Info className="h-8 w-8 mx-auto mb-2" />
                 <p>No homework assigned in the last 7 days.</p>
             </div>
         )}

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -40,36 +39,95 @@ function formatDueDate(dateString: string) {
 export default function TodayHomework() {
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
-
+  const [error, setError] = useState<string | null>(null);
+  
   useEffect(() => {
     let channel: any;
+    const supabase = createClient();
+    
     const fetchHomework = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            const studentProfile = await getStudentByAuthId(user.id);
-            if (studentProfile) {
-                const classSection = `${studentProfile.class}-${studentProfile.section}`;
-                channel = getHomeworks(classSection, (newHomeworks) => {
-                    setHomeworks(newHomeworks);
-                    setIsLoading(false);
-                }, { dateFilter: 'today' });
-            } else {
-                setIsLoading(false);
-            }
-        } else {
-            setIsLoading(false);
+      try {
+        console.log('TodayHomework: Starting to fetch user data...');
+        
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) {
+          console.error('TodayHomework: Auth error:', authError);
+          setError('Authentication error');
+          setIsLoading(false);
+          return;
         }
+        
+        if (!user) {
+          console.log('TodayHomework: No user found');
+          setError('User not authenticated');
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('TodayHomework: User found, getting student profile...');
+        
+        const studentProfile = await getStudentByAuthId(user.id);
+        
+        if (!studentProfile) {
+          console.error('TodayHomework: No student profile found for user:', user.id);
+          setError('Student profile not found');
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('TodayHomework: Student profile found:', studentProfile);
+        
+        const classSection = `${studentProfile.class}-${studentProfile.section}`;
+        console.log('TodayHomework: Using class section:', classSection);
+        
+        // Set up homework subscription
+        channel = getHomeworks(classSection, (newHomeworks) => {
+          console.log('TodayHomework: Received homework data:', newHomeworks);
+          setHomeworks(newHomeworks);
+          setIsLoading(false);
+          setError(null);
+        }, { dateFilter: 'today' });
+        
+      } catch (err) {
+        console.error('TodayHomework: Error in fetchHomework:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setIsLoading(false);
+      }
     };
 
     fetchHomework();
 
     return () => {
-        if (channel) {
-            supabase.removeChannel(channel);
-        }
+      if (channel) {
+        console.log('TodayHomework: Cleaning up channel...');
+        const supabase = createClient();
+        supabase.removeChannel(channel);
+      }
     };
-  }, [supabase]);
+  }, []); // Remove supabase dependency to prevent recreation
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Book className="h-6 w-6" />
+            Today's Homework
+          </CardTitle>
+          <Button variant="link" size="sm" asChild>
+            <Link href="/homework">View All</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center text-center p-6 bg-destructive/10 rounded-md">
+            <Info className="h-8 w-8 text-destructive mb-2" />
+            <p className="text-sm font-semibold text-destructive">Error: {error}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

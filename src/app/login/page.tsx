@@ -8,10 +8,19 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RoleSelectionPage() {
   const { settings } = useTheme();
+  const { toast } = useToast();
   
+  const handleFeatureComingSoon = () => {
+    toast({
+      title: "Feature Not Available",
+      description: "This feature is not live yet but will be in a future update.",
+    });
+  };
+
   const RoleCard = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string }) => (
     <Link href={href} className="block">
       <div className="flex flex-col items-center justify-center text-center gap-2 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50 h-full">
@@ -26,8 +35,8 @@ export default function RoleSelectionPage() {
     </Link>
   );
 
-  const ActionCard = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string }) => (
-     <Link href={href} className="block w-full">
+  const ActionCard = ({ icon: Icon, title, description, onClick }: { icon: React.ElementType; title: string; description: string, onClick?: () => void }) => (
+     <button onClick={onClick} className="block w-full text-left">
         <div className="flex items-center gap-4 rounded-lg border p-3 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
@@ -37,7 +46,7 @@ export default function RoleSelectionPage() {
                 <p className="text-sm text-muted-foreground">{description}</p>
             </div>
         </div>
-    </Link>
+    </button>
   )
 
   return (
@@ -72,8 +81,8 @@ export default function RoleSelectionPage() {
         </div>
 
         <div className="w-full space-y-4">
-           <ActionCard href="/apply/student" icon={FilePenLine} title="Apply for Admission" description="entrance exam needs to be passed" />
-           <ActionCard href="/apply/teacher" icon={ClipboardSignature} title="Apply for Teaching Post" description="interview needs to be passed" />
+           <ActionCard onClick={handleFeatureComingSoon} icon={FilePenLine} title="Apply for Admission" description="entrance exam needs to be passed" />
+           <ActionCard onClick={handleFeatureComingSoon} icon={ClipboardSignature} title="Apply for Teaching Post" description="interview needs to be passed" />
         </div>
       </div>
     </div>

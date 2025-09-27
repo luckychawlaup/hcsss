@@ -1,4 +1,3 @@
-
 import { createClient } from "@/lib/supabase/client";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 
@@ -69,6 +68,7 @@ export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment
     }
 };
 
+// Updated getHomeworks function with better error handling and date filtering
 export const getHomeworks = (
     classSection: string, 
     callback: (homeworks: Homework[]) => void,
@@ -76,19 +76,24 @@ export const getHomeworks = (
 ) => {
     const fetchAndCallback = async () => {
         try {
+            console.log(`Fetching homeworks for class: ${classSection}, filter:`, options?.dateFilter);
+            
             let query = supabase
                 .from(HOMEWORK_COLLECTION)
                 .select('*')
                 .eq('class_section', classSection)
                 .order('assigned_at', { ascending: false });
 
+            // Apply date filtering
             if (options?.dateFilter) {
                 if (options.dateFilter === 'today') {
                     const todayStart = startOfDay(new Date()).toISOString();
                     const todayEnd = endOfDay(new Date()).toISOString();
+                    console.log(`Filtering for today: ${todayStart} to ${todayEnd}`);
                     query = query.gte('assigned_at', todayStart).lte('assigned_at', todayEnd);
                 } else if (typeof options.dateFilter === 'number') {
                     const fromDate = startOfDay(subDays(new Date(), options.dateFilter)).toISOString();
+                    console.log(`Filtering from date: ${fromDate}`);
                     query = query.gte('assigned_at', fromDate);
                 }
             }
@@ -101,6 +106,7 @@ export const getHomeworks = (
                 return;
             }
             
+            console.log(`Found ${data?.length || 0} homeworks:`, data);
             callback(data || []);
         } catch (error) {
             console.error('fetchAndCallback error:', error);
@@ -108,18 +114,27 @@ export const getHomeworks = (
         }
     }
 
-    const channel = supabase.channel(`homework-${classSection}-${options?.dateFilter || 'all'}`)
+    // Initial fetch
+    fetchAndCallback();
+
+    // Set up real-time subscription
+    const channelName = `homework-${classSection}-${options?.dateFilter || 'all'}`;
+    console.log('Setting up real-time channel:', channelName);
+    
+    const channel = supabase.channel(channelName)
         .on('postgres_changes', { 
             event: '*', 
             schema: 'public', 
             table: HOMEWORK_COLLECTION, 
             filter: `class_section=eq.${classSection}` 
         }, (payload) => {
+            console.log('Real-time update received:', payload);
             fetchAndCallback();
         })
-        .subscribe((status) => {
+        .subscribe((status, err) => {
+            console.log('Subscription status:', status, err);
             if (status === 'SUBSCRIBED') {
-                fetchAndCallback();
+                console.log('Successfully subscribed to real-time updates');
             }
         });
         
@@ -148,6 +163,9 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
         }
     };
 
+    // Initial fetch
+    fetchAndCallback();
+
     const channel = supabase.channel(`homework-teacher-${teacherId}`)
         .on('postgres_changes', { 
             event: '*', 
@@ -166,7 +184,6 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
         
     return channel;
 };
-
 
 export const updateHomework = async (homeworkId: string, updatedData: Partial<Homework>, newAttachment?: File): Promise<void> => {
     try {
