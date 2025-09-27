@@ -43,30 +43,35 @@ export default function Homework() {
   const supabase = createClient();
 
   useEffect(() => {
-      const fetchHomework = async () => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-              const studentProfile = await getStudentByAuthId(user.id);
-              if (studentProfile) {
-                  const classSection = `${studentProfile.class}-${studentProfile.section}`;
-                  const unsubscribeHomework = getHomeworks(classSection, (newHomeworks) => {
-                      setHomeworks(newHomeworks);
-                      setIsLoading(false);
-                  });
-                  return () => {
-                      // In Supabase V2, you might need to call `supabase.removeSubscription(subscription)`
-                      // Assuming `getHomeworks` returns a subscription object.
-                  };
-              } else {
-                  setIsLoading(false);
-              }
-          } else {
-              setIsLoading(false);
-          }
-      };
+    let unsubscribe: (() => void) | null = null;
+    const fetchHomework = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const studentProfile = await getStudentByAuthId(user.id);
+            if (studentProfile) {
+                const classSection = `${studentProfile.class}-${studentProfile.section}`;
+                const channel = getHomeworks(classSection, (newHomeworks) => {
+                    setHomeworks(newHomeworks);
+                    setIsLoading(false);
+                });
+                unsubscribe = () => {
+                    if (channel) supabase.removeChannel(channel);
+                }
+            } else {
+                setIsLoading(false);
+            }
+        } else {
+            setIsLoading(false);
+        }
+    };
 
-      fetchHomework();
-
+    fetchHomework();
+    
+    return () => {
+        if (unsubscribe) {
+            unsubscribe();
+        }
+    };
   }, [supabase]);
 
   return (

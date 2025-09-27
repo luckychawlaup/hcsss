@@ -43,31 +43,35 @@ export default function TodayHomework() {
   const supabase = createClient();
 
   useEffect(() => {
-      const fetchHomework = async () => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-              const studentProfile = await getStudentByAuthId(user.id);
-              if (studentProfile) {
-                  const classSection = `${studentProfile.class}-${studentProfile.section}`;
-                  const unsubscribeHomework = getHomeworks(classSection, (newHomeworks) => {
-                      setHomeworks(newHomeworks);
-                      setIsLoading(false);
-                  });
-                  return () => {
-                      if(unsubscribeHomework && unsubscribeHomework.unsubscribe) {
-                        unsubscribeHomework.unsubscribe();
-                      }
-                  };
-              } else {
-                  setIsLoading(false);
-              }
-          } else {
-              setIsLoading(false);
-          }
-      };
+    let unsubscribe: (() => void) | null = null;
+    const fetchHomework = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const studentProfile = await getStudentByAuthId(user.id);
+            if (studentProfile) {
+                const classSection = `${studentProfile.class}-${studentProfile.section}`;
+                const channel = getHomeworks(classSection, (newHomeworks) => {
+                    setHomeworks(newHomeworks);
+                    setIsLoading(false);
+                });
+                unsubscribe = () => {
+                    if(channel) supabase.removeChannel(channel);
+                }
+            } else {
+                setIsLoading(false);
+            }
+        } else {
+            setIsLoading(false);
+        }
+    };
 
-      fetchHomework();
+    fetchHomework();
 
+    return () => {
+        if (unsubscribe) {
+            unsubscribe();
+        }
+    };
   }, [supabase]);
 
   return (

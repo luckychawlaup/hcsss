@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -81,14 +82,14 @@ export const getHomeworks = (classSection: string, callback: (homeworks: Homewor
                 
             if (error) {
                 console.error('Error fetching homeworks:', error);
+                callback([]);
                 return;
             }
             
-            if (data) {
-                callback(data);
-            }
+            callback(data || []);
         } catch (error) {
             console.error('fetchAndCallback error:', error);
+            callback([]);
         }
     }
 
@@ -99,13 +100,15 @@ export const getHomeworks = (classSection: string, callback: (homeworks: Homewor
             table: HOMEWORK_COLLECTION, 
             filter: `class_section=eq.${classSection}` 
         }, (payload) => {
-            console.log('Real-time update received:', payload);
+            console.log('Real-time update received for homework:', payload);
             fetchAndCallback();
         })
-        .subscribe();
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                fetchAndCallback();
+            }
+        });
         
-    fetchAndCallback();
-
     return channel;
 };
 
