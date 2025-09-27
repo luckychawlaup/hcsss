@@ -97,10 +97,23 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
 };
 
 export const updateHomework = async (homeworkId: string, updatedData: Partial<Homework>, newAttachment?: File) => {
-    let updatePayload: Partial<Homework> & { attachment_url?: string } = { ...updatedData };
+    let updatePayload: Partial<Homework> & { attachment_url?: string | null } = { ...updatedData };
     if (newAttachment) {
+        // Fetch the old attachment URL to delete it after successful upload
+        const { data: oldHomework, error: fetchError } = await supabase.from(HOMEWORK_COLLECTION).select('attachment_url').eq('id', homeworkId).single();
+        if (fetchError) console.error("Could not fetch old homework to delete attachment:", fetchError);
+
         const attachment_url = await uploadFileToSupabase(newAttachment, 'homework', 'files');
         updatePayload.attachment_url = attachment_url;
+        
+        // If there was an old attachment, delete it from storage
+        if (oldHomework?.attachment_url) {
+            const oldFilePath = oldHomework.attachment_url.split('/homework/')[1];
+            if (oldFilePath) {
+                await supabase.storage.from('homework').remove([oldFilePath]);
+            }
+        }
+
     }
 
     const { error } = await supabase

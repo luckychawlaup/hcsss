@@ -59,6 +59,9 @@ import { addHomework, getHomeworksByTeacher, deleteHomework, updateHomework } fr
 import type { Homework } from "@/lib/supabase/homework";
 import { ScrollArea } from "../ui/scroll-area";
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_FILE_TYPES = ["application/pdf"];
+
 const homeworkSchema = z.object({
   classSection: z.string({ required_error: "Please select a class." }),
   subject: z.string().min(2, "Subject is required."),
@@ -66,7 +69,13 @@ const homeworkSchema = z.object({
     .string()
     .min(10, "Description must be at least 10 characters."),
   dueDate: z.string().min(1, "Due date is required."),
-  attachment: z.any().optional(),
+  attachment: z.any()
+    .optional()
+    .refine((files) => !files || files.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine(
+      (files) => !files || files.length === 0 || ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
+      "Only .pdf format is supported."
+    ),
 });
 
 interface AddHomeworkFormProps {
@@ -324,7 +333,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                 name="attachment"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Attachment (Optional)</FormLabel>
+                    <FormLabel>Attachment (Optional, PDF only, max 5MB)</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Upload className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -332,6 +341,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                           id="homework-attachment"
                           type="file"
                           className="pl-9"
+                          accept={ACCEPTED_FILE_TYPES.join(",")}
                           {...form.register("attachment")}
                         />
                       </div>
@@ -470,9 +480,13 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                             name="attachment"
                             render={() => (
                             <FormItem>
-                                <FormLabel>New Attachment (Optional)</FormLabel>
+                                <FormLabel>New Attachment (Optional, PDF only, 5MB max)</FormLabel>
                                 <FormControl>
-                                <Input type="file" {...form.register("attachment")} />
+                                <Input 
+                                  type="file" 
+                                  accept={ACCEPTED_FILE_TYPES.join(",")} 
+                                  {...form.register("attachment")} 
+                                />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -507,3 +521,5 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     </div>
   );
 }
+
+    
