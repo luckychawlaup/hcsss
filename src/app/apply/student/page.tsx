@@ -133,7 +133,7 @@ export default function StudentApplicationPage() {
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-2xl space-y-6">
         <div className="text-center">
-            <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" />
+            <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
             <h1 className="text-2xl font-bold text-primary">HCSSS</h1>
             <p className="text-muted-foreground">
               Fill out the form below to register for the new admission entrance test.

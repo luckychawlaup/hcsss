@@ -16,7 +16,7 @@ export default function PrincipalLoginPage() {
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-            <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" />
+            <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
             <div className="flex items-center justify-center gap-2">
               <h1 className="text-2xl font-bold text-primary">HCSSS</h1>
               <Badge variant="outline" className="border-primary/50 text-primary">Beta</Badge>
