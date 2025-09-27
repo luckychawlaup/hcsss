@@ -121,6 +121,21 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
   });
 
   const { reset } = form;
+  
+  const resetForm = () => {
+       form.reset({
+        subject: teacher?.subject || "",
+        description: "",
+        classSection: "",
+        dueDate: new Date(),
+        attachment: undefined,
+      });
+       const fileInput = document.getElementById('homework-attachment') as HTMLInputElement;
+      if (fileInput) {
+          fileInput.value = '';
+      }
+  }
+
 
   useEffect(() => {
     if (teacher) {
@@ -146,13 +161,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         attachment: undefined,
       });
     } else {
-      reset({
-        subject: teacher?.subject || "",
-        description: "",
-        classSection: "",
-        dueDate: new Date(),
-        attachment: undefined,
-      });
+      resetForm();
     }
   }, [editingHomework, reset, teacher]);
 
@@ -209,20 +218,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         });
       }
 
-      // Reset form after successful submission
-      form.reset({
-        subject: teacher?.subject || "",
-        description: "",
-        classSection: "",
-        dueDate: new Date(),
-        attachment: undefined,
-      });
-      
-      // Clear file input
-      const fileInput = document.getElementById('homework-attachment') as HTMLInputElement;
-      if (fileInput) {
-          fileInput.value = '';
-      }
+      resetForm();
 
     } catch (error) {
       console.error('Form submission error:', error);
@@ -234,6 +230,11 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingHomework(null);
+    resetForm();
   }
 
   const handleDeleteClick = (homework: Homework) => {
@@ -387,7 +388,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
               )}
             </Button>
             {editingHomework && (
-                <Button type="button" variant="outline" className="w-full" onClick={() => setEditingHomework(null)}>
+                <Button type="button" variant="outline" className="w-full" onClick={handleCancelEdit}>
                     Cancel Edit
                 </Button>
             )}
