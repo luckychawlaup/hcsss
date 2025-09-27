@@ -72,7 +72,7 @@ export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment
 export const getHomeworks = (
     classSection: string, 
     callback: (homeworks: Homework[]) => void,
-    options?: { limit?: number; dateFilter?: 'today' | number }
+    options?: { dateFilter?: 'today' | number }
 ) => {
     const fetchAndCallback = async () => {
         try {
@@ -81,10 +81,6 @@ export const getHomeworks = (
                 .select('*')
                 .eq('class_section', classSection)
                 .order('assigned_at', { ascending: false });
-
-            if (options?.limit) {
-                query = query.limit(options.limit);
-            }
 
             if (options?.dateFilter) {
                 if (options.dateFilter === 'today') {
@@ -112,7 +108,7 @@ export const getHomeworks = (
         }
     }
 
-    const channel = supabase.channel(`homework-${classSection}-${options?.limit || 'all'}-${JSON.stringify(options?.dateFilter)}`)
+    const channel = supabase.channel(`homework-${classSection}-${options?.dateFilter || 'all'}`)
         .on('postgres_changes', { 
             event: '*', 
             schema: 'public', 

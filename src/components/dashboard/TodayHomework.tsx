@@ -43,20 +43,17 @@ export default function TodayHomework() {
   const supabase = createClient();
 
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
+    let channel: any;
     const fetchHomework = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             const studentProfile = await getStudentByAuthId(user.id);
             if (studentProfile) {
                 const classSection = `${studentProfile.class}-${studentProfile.section}`;
-                const channel = getHomeworks(classSection, (newHomeworks) => {
+                channel = getHomeworks(classSection, (newHomeworks) => {
                     setHomeworks(newHomeworks);
                     setIsLoading(false);
                 }, { dateFilter: 'today' });
-                unsubscribe = () => {
-                    if(channel) supabase.removeChannel(channel);
-                }
             } else {
                 setIsLoading(false);
             }
@@ -68,8 +65,8 @@ export default function TodayHomework() {
     fetchHomework();
 
     return () => {
-        if (unsubscribe) {
-            unsubscribe();
+        if (channel) {
+            supabase.removeChannel(channel);
         }
     };
   }, [supabase]);
