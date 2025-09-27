@@ -75,6 +75,14 @@ interface AddHomeworkFormProps {
   teacher: Teacher | null;
 }
 
+const formatDueDate = (date: string) => {
+    try {
+        return format(new Date(date), "do MMM, yyyy");
+    } catch (e) {
+        return "Invalid Date";
+    }
+}
+
 export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [homeworkHistory, setHomeworkHistory] = useState<Homework[]>([]);
@@ -116,14 +124,11 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
 
   useEffect(() => {
     if (teacher) {
-        console.log('Setting up homework subscription for teacher:', teacher.id);
         const channel = getHomeworksByTeacher(teacher.id, (homeworks) => {
-            console.log('Received homeworks update:', homeworks.length);
             setHomeworkHistory(homeworks);
         });
         
         return () => {
-            console.log('Cleaning up homework subscription');
             if (channel && typeof channel.unsubscribe === 'function') {
                 channel.unsubscribe();
             }
@@ -133,7 +138,6 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
 
   useEffect(() => {
     if (editingHomework) {
-      console.log('Setting form for editing:', editingHomework);
       reset({
         classSection: editingHomework.class_section,
         subject: editingHomework.subject,
@@ -153,7 +157,6 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
   }, [editingHomework, reset, teacher]);
 
   async function onSubmit(values: z.infer<typeof homeworkSchema>) {
-    console.log('Form submitted with values:', values);
     
     if (!teacher) {
       toast({
@@ -168,11 +171,9 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
 
     try {
       const file = values.attachment && values.attachment.length > 0 ? values.attachment[0] : undefined;
-      console.log('File to upload:', file ? file.name : 'No file');
       
       if (editingHomework) {
         // Update existing homework
-        console.log('Updating homework:', editingHomework.id);
         const updatedData: Partial<Homework> = {
             class_section: values.classSection,
             subject: values.subject,
@@ -190,7 +191,6 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         setEditingHomework(null);
       } else {
         // Add new homework
-        console.log('Adding new homework for teacher:', teacher.id);
         const homeworkData: Omit<Homework, 'id'> = {
             assigned_by: teacher.id,
             teacher_name: teacher.name,
@@ -201,8 +201,6 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
             assigned_at: new Date().toISOString(),
         };
         
-        console.log('Homework data to submit:', homeworkData);
-        
         await addHomework(homeworkData, file);
         
         toast({
@@ -212,7 +210,6 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
       }
 
       // Reset form after successful submission
-      console.log('Resetting form after successful submission');
       form.reset({
         subject: teacher?.subject || "",
         description: "",
@@ -227,8 +224,6 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
           fileInput.value = '';
       }
 
-      console.log('Form submission completed successfully');
-
     } catch (error) {
       console.error('Form submission error:', error);
       toast({
@@ -237,7 +232,6 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
         description: error instanceof Error ? error.message : "Could not post the homework. Please try again.",
       });
     } finally {
-      console.log('Setting isSubmitting to false');
       setIsSubmitting(false);
     }
   }
@@ -421,7 +415,7 @@ export default function AddHomeworkForm({ teacher }: AddHomeworkFormProps) {
                                         <div className="flex-1 mr-2">
                                             <p className="font-bold">{hw.subject} - {hw.class_section}</p>
                                             <p className="text-muted-foreground line-clamp-2">{hw.description}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">Due: {format(new Date(hw.due_date), "do MMM, yyyy")}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">Due: {formatDueDate(hw.due_date)}</p>
                                             {hw.attachment_url && (
                                                 <p className="text-xs text-blue-600 mt-1">📎 Has attachment</p>
                                             )}
