@@ -42,31 +42,34 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
   }, [students, classTeacherOf]);
   
   useEffect(() => {
-    if (classTeacherOf && attendanceDate && studentsInClass.length > 0) {
+    if (classTeacherOf && attendanceDate) {
         setIsFetching(true);
-        
-        const initialAttendance: Record<string, AttendanceStatus> = {};
-        studentsInClass.forEach(student => {
-            initialAttendance[student.id] = 'present';
-        });
-
+        console.log(`Loading attendance for ${classTeacherOf} on ${attendanceDate}`);
         getAttendanceForDate(classTeacherOf, attendanceDate)
             .then(records => {
-                const fetchedAttendance = { ...initialAttendance };
+                console.log(`Fetched attendance records:`, records);
+                const fetchedAttendance: Record<string, AttendanceStatus> = {};
+                // First set all students to present by default
+                studentsInClass.forEach(student => {
+                    fetchedAttendance[student.id] = 'present';
+                });
+                // Then overwrite with actual records from DB
                 records.forEach(record => {
-                    if (fetchedAttendance.hasOwnProperty(record.student_id)) {
-                        fetchedAttendance[record.student_id] = record.status;
-                    }
+                    fetchedAttendance[record.student_id] = record.status;
                 });
                 setAttendance(fetchedAttendance);
             })
             .catch(error => {
                 console.error("Error loading attendance:", error);
-                setAttendance(initialAttendance); // Fallback to default
+                const initialAttendance: Record<string, AttendanceStatus> = {};
+                studentsInClass.forEach(student => {
+                    initialAttendance[student.id] = 'present';
+                });
+                setAttendance(initialAttendance);
             })
             .finally(() => setIsFetching(false));
     }
-  }, [attendanceDate, classTeacherOf, studentsInClass]);
+  }, [attendanceDate, classTeacherOf, studentsInClass.length]); // depends on length to refetch if students are added/removed
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
@@ -96,11 +99,12 @@ export default function MarkAttendance({ teacher, students, isLoading }: MarkAtt
         const attendanceData: Omit<AttendanceRecord, 'id' | 'created_at'>[] = Object.entries(attendance).map(([student_id, status]) => ({
             student_id,
             class_section: classTeacherOf,
-            date: format(startOfDay(new Date(attendanceDate)), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
+            date: format(new Date(attendanceDate), "yyyy-MM-dd"),
             status,
             marked_by: teacher.id
         }));
-
+        
+        console.log("Submitting attendance data:", attendanceData);
         await setAttendance(attendanceData);
         
         toast({

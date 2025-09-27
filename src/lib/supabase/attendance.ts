@@ -23,7 +23,6 @@ export const setAttendance = async (records: Omit<AttendanceRecord, 'id' | 'crea
 
     const { error } = await supabase.from(ATTENDANCE_COLLECTION).upsert(records, {
         onConflict: 'student_id,date',
-        ignoreDuplicates: false
     });
 
     if (error) {
@@ -34,17 +33,19 @@ export const setAttendance = async (records: Omit<AttendanceRecord, 'id' | 'crea
 
 // Get attendance for a specific class on a specific date
 export const getAttendanceForDate = async (classSection: string, date: string): Promise<AttendanceRecord[]> => {
+    console.log(`Fetching attendance for class ${classSection} on date ${date}`);
     const { data, error } = await supabase
         .from(ATTENDANCE_COLLECTION)
         .select('*')
         .eq('class_section', classSection)
-        .eq('date', date);
+        .eq('date', format(new Date(date), "yyyy-MM-dd"));
 
     if (error) {
         console.error("Error fetching attendance for date:", error);
         return [];
     }
     
+    console.log("Fetched attendance records:", data);
     return data || [];
 };
 
