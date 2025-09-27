@@ -12,9 +12,10 @@ import { ProfileSkeleton, StudentProfile, TeacherProfile } from "./ProfileDetail
 import { SalaryDetails } from "../teacher/SalaryDetails";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, MessageSquareQuote } from "lucide-react";
 import BottomNav from "../dashboard/BottomNav";
 import TeacherNav from "../teacher/TeacherNav";
+import Link from "next/link";
 
 export default function ProfilePageContent() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
@@ -94,8 +95,14 @@ export default function ProfilePageContent() {
           </div>
         )}
         
-        <div className="px-4 sm:px-6 lg:px-8 mt-8">
-            <Button variant="outline" className="w-full" onClick={handleLogout}>
+        <div className="px-4 sm:px-6 lg:px-8 mt-8 space-y-4">
+             <Button variant="outline" className="w-full" asChild>
+                <Link href="/feedback">
+                    <MessageSquareQuote className="mr-2"/>
+                    Submit Complaint or Feedback
+                </Link>
+            </Button>
+            <Button variant="destructive" className="w-full" onClick={handleLogout}>
                 <LogOut className="mr-2"/>
                 Logout
             </Button>
