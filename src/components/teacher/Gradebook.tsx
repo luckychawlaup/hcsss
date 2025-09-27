@@ -47,7 +47,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
     const [exams, setExams] = useState<Exam[]>([]);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-    const [marks, setMarks] = useState<Record<string, { marks?: number, maxMarks?: number, subject: string }>>({});
+    const [marks, setMarks] = useState<Record<string, { marks?: number, max_marks?: number, subject: string }>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFetchingMarks, setIsFetchingMarks] = useState(false);
     const [isCreateExamOpen, setIsCreateExamOpen] = useState(false);
@@ -79,14 +79,14 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
         if (selectedStudent && selectedExam) {
             setIsFetchingMarks(true);
             getStudentMarksForExam(selectedStudent.auth_uid, selectedExam.id).then(existingMarks => {
-                const marksMap: Record<string, { marks?: number, maxMarks?: number, subject: string }> = {};
+                const marksMap: Record<string, { marks?: number, max_marks?: number, subject: string }> = {};
                 existingMarks.forEach(mark => {
-                    marksMap[mark.subject] = { marks: mark.marks, maxMarks: mark.maxMarks, subject: mark.subject };
+                    marksMap[mark.subject] = { marks: mark.marks, max_marks: mark.maxMarks, subject: mark.subject };
                 });
                 // Also prepopulate with student's opted subjects
                 (selectedStudent.opted_subjects || []).forEach(subject => {
                     if (!marksMap[subject]) {
-                        marksMap[subject] = { marks: undefined, maxMarks: 100, subject: subject };
+                        marksMap[subject] = { marks: undefined, max_marks: 100, subject: subject };
                     }
                 })
 
@@ -100,7 +100,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
         const newSubjectName = `Subject${Object.keys(marks).length + 1}`;
         setMarks(prev => ({
             ...prev,
-            [newSubjectName]: { marks: undefined, maxMarks: 100, subject: newSubjectName }
+            [newSubjectName]: { marks: undefined, max_marks: 100, subject: newSubjectName }
         }));
     };
     
@@ -138,9 +138,9 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
         const newMarks = { ...marks };
         const numValue = parseInt(value, 10);
         if (!isNaN(numValue) && numValue > 0) {
-            newMarks[subject].maxMarks = numValue;
+            newMarks[subject].max_marks = numValue;
         } else if (value === '') {
-            newMarks[subject].maxMarks = undefined;
+            newMarks[subject].max_marks = undefined;
         }
         setMarks(newMarks);
     };
@@ -151,9 +151,9 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
             return;
         }
         
-        const validMarks = Object.values(marks).filter(m => m.subject.trim() !== "");
+        const validMarks = Object.values(marks).filter(m => m.subject.trim() !== "" && m.marks !== undefined && m.max_marks !== undefined);
         if (validMarks.length === 0) {
-            toast({ variant: "destructive", title: "No Subjects", description: "Please enter at least one valid subject name." });
+            toast({ variant: "destructive", title: "No Valid Marks", description: "Please enter both marks and max marks for at least one subject." });
             return;
         }
         
@@ -162,12 +162,12 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
             const marksData = validMarks.map(m => ({
                 subject: m.subject,
                 marks: m.marks || 0,
-                maxMarks: m.maxMarks || 100
+                max_marks: m.max_marks || 100
             }));
             await setMarksForStudent(selectedStudent.auth_uid, selectedExam.id, marksData);
             toast({ title: "Marks Saved!", description: `Marks for ${selectedStudent.name} have been successfully saved.` });
         } catch (error) {
-            console.error(error);
+            console.error("Error setting marks:", error);
             toast({ variant: "destructive", title: "Error", description: "Failed to save marks." });
         } finally {
             setIsSubmitting(false);
@@ -269,7 +269,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                                             placeholder="e.g. 85"
                                             value={value.marks ?? ''}
                                             onChange={(e) => handleMarksChange(key, e.target.value)}
-                                            max={value.maxMarks || 100}
+                                            max={value.max_marks || 100}
                                             min={0}
                                         />
                                     </div>
@@ -279,7 +279,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                                             id={`max-marks-${key}`}
                                             type="number"
                                             placeholder="e.g. 100"
-                                            value={value.maxMarks ?? ''}
+                                            value={value.max_marks ?? ''}
                                             onChange={(e) => handleMaxMarksChange(key, e.target.value)}
                                             min={0}
                                         />

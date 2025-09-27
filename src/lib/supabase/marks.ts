@@ -8,11 +8,14 @@ export interface Mark {
     exam_id: string;
     subject: string;
     marks: number;
-    maxMarks: number;
+    max_marks: number;
     grade: string;
 }
 
 export const MARKS_TABLE_SETUP_SQL = `
+-- Drop the old table to ensure a clean start
+DROP TABLE IF EXISTS public.marks;
+
 -- Create the marks table to store student grades for each exam subject
 CREATE TABLE IF NOT EXISTS public.marks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -53,6 +56,7 @@ USING (auth.uid() = student_auth_uid);
 `;
 
 const getGrade = (marks: number, maxMarks: number): string => {
+    if (maxMarks === 0) return 'N/A';
     const percentage = (marks / maxMarks) * 100;
     if (percentage >= 90) return 'A+';
     if (percentage >= 80) return 'A';
@@ -62,12 +66,14 @@ const getGrade = (marks: number, maxMarks: number): string => {
     return 'E';
 };
 
-export const setMarksForStudent = async (studentAuthUid: string, examId: string, marksData: { subject: string; marks: number; maxMarks: number }[]) => {
+export const setMarksForStudent = async (studentAuthUid: string, examId: string, marksData: { subject: string; marks: number; max_marks: number }[]) => {
     const marksWithGrades = marksData.map(m => ({
-        ...m,
         student_auth_uid: studentAuthUid,
         exam_id: examId,
-        grade: getGrade(m.marks, m.maxMarks)
+        subject: m.subject,
+        marks: m.marks,
+        max_marks: m.max_marks,
+        grade: getGrade(m.marks, m.max_marks)
     }));
 
     // Upsert operation: update if composite key exists, else insert
@@ -84,7 +90,7 @@ export const setMarksForStudent = async (studentAuthUid: string, examId: string,
 export const getStudentMarksForExam = async (studentAuthUid: string, examId: string): Promise<Mark[]> => {
     const { data, error } = await supabase
         .from('marks')
-        .select('*')
+        .select('*, max_marks')
         .eq('student_auth_uid', studentAuthUid)
         .eq('exam_id', examId);
     
@@ -93,19 +99,23 @@ export const getStudentMarksForExam = async (studentAuthUid: string, examId: str
         return [];
     }
 
-    return data || [];
+    // Map snake_case to camelCase
+    return (data || []).map(item => ({
+        ...item,
+        maxMarks: item.max_marks
+    }));
 };
 
 export const getMarksForStudent = (studentAuthUid: string, callback: (marksByExam: Record<string, Mark[]>) => void) => {
     const channel = supabase.channel(`marks-student-${studentAuthUid}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'marks', filter: `student_auth_uid=eq.${studentAuthUid}`}, 
         async () => {
-            const { data, error } = await supabase.from('marks').select('*').eq('student_auth_uid', studentAuthUid);
+            const { data, error } = await supabase.from('marks').select('*, max_marks').eq('student_auth_uid', studentAuthUid);
             if (data) {
                 const marksByExam = data.reduce((acc, mark) => {
                     const examId = mark.exam_id;
                     if (!acc[examId]) acc[examId] = [];
-                    acc[examId].push(mark);
+                    acc[examId].push({...mark, maxMarks: mark.max_marks});
                     return acc;
                 }, {} as Record<string, Mark[]>);
                 callback(marksByExam);
@@ -113,12 +123,12 @@ export const getMarksForStudent = (studentAuthUid: string, callback: (marksByExa
         }).subscribe();
 
     (async () => {
-        const { data, error } = await supabase.from('marks').select('*').eq('student_auth_uid', studentAuthUid);
+        const { data, error } = await supabase.from('marks').select('*, max_marks').eq('student_auth_uid', studentAuthUid);
         if (data) {
             const marksByExam = data.reduce((acc, mark) => {
                 const examId = mark.exam_id;
                 if (!acc[examId]) acc[examId] = [];
-                acc[examId].push(mark);
+                acc[examId].push({...mark, maxMarks: mark.max_marks});
                 return acc;
             }, {} as Record<string, Mark[]>);
             callback(marksByExam);

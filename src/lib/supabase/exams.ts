@@ -219,17 +219,13 @@ export const prepopulateExams = async (): Promise<boolean> => {
             return true;
         }
 
-        // Prepopulate with initial data
-        const initialExams = [
-            { 
-                name: "Mid-Term Exam 2024", 
-                date: "2024-09-15T10:00:00Z", 
-            },
-            { 
-                name: "Final Exam 2024", 
-                date: "2025-03-10T10:00:00Z", 
-            },
-        ];
+        // Prepopulate with initial data - REMOVED DEFAULT EXAMS
+        const initialExams:any[] = [];
+        
+        if (initialExams.length === 0) {
+            console.log("✅ No default exams to add. Skipping prepopulation.");
+            return true;
+        }
         
         console.log("📝 Inserting initial exams:", initialExams);
         
