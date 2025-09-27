@@ -20,7 +20,9 @@ import {
   Book,
   Briefcase,
   BookOpen,
+  Info
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
@@ -103,6 +105,14 @@ export function StudentProfile({ student }: { student: Student }) {
                         <DetailItem icon={<Bus size={20} />} label="Transport" value={"School Transport"} />
                     </CardContent>
                 </Card>
+
+                 <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Note</AlertTitle>
+                    <AlertDescription>
+                        For any corrections or updates to your profile data, please contact the school principal.
+                    </AlertDescription>
+                </Alert>
             </div>
         </div>
     )
@@ -160,9 +170,15 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
                         )}
                     </CardContent>
                 </Card>
+                
+                 <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Note</AlertTitle>
+                    <AlertDescription>
+                        For any corrections or updates to your profile data, please contact the school principal.
+                    </AlertDescription>
+                </Alert>
             </div>
         </div>
     )
 }
-
-    
