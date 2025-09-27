@@ -8,6 +8,7 @@ import { getRole } from "@/lib/getRole";
 import DashboardPage from "@/components/dashboard/DashboardPage";
 import AuthProvider from "@/components/auth/AuthProvider";
 import TodayHomework from "@/components/dashboard/TodayHomework";
+import FeePayment from "@/components/dashboard/FeePayment";
 
 export default function Home() {
   const [role, setRole] = useState<string | null>(null);
@@ -42,7 +43,8 @@ export default function Home() {
   return (
     <AuthProvider>
       <DashboardPage>
-         <div className="mx-auto w-full max-w-4xl">
+         <div className="mx-auto w-full max-w-4xl space-y-6">
+            <FeePayment />
             <TodayHomework />
         </div>
       </DashboardPage>
