@@ -103,7 +103,14 @@ export function FeedbackForm() {
     setIsSubmitting(true);
 
     const isStudent = !('classes_taught' in userProfile);
-    const userName = isStudent ? 'Anonymous Student' : userProfile.name;
+    
+    let userName = userProfile.name;
+    if (isStudent) {
+        if (values.category !== 'Fee-related Issues' && values.category !== 'School Portal / IT Issues') {
+            userName = 'Anonymous Student';
+        }
+    }
+    
     const userClass = isStudent ? `${(userProfile as Student).class}-${(userProfile as Student).section}` : undefined;
 
     try {
@@ -138,7 +145,7 @@ export function FeedbackForm() {
         <CardHeader>
             <CardTitle>Submit Your Feedback</CardTitle>
             <CardDescription>
-                We encourage you to share your complaints or suggestions with us. <strong>Don’t worry—your identity will remain anonymous.</strong> You can freely raise concerns about poor behavior or services in the school, and your complaints will be forwarded directly to the principal and your class teacher.
+                Your identity will remain anonymous for most categories. For 'Fee-related Issues' and 'School Portal / IT Issues', your name will be shared with the relevant department to help resolve your issue. Your complaints will be forwarded directly to the appropriate school authority.
             </CardDescription>
         </CardHeader>
         <CardContent>

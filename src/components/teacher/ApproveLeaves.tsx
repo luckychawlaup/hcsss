@@ -173,8 +173,8 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
     return (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
             <CalendarX2 className="h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No Leave Requests</h3>
-            <p className="text-muted-foreground mt-2">{title} haven't requested any leave yet.</p>
+            <h3 className="mt-4 text-lg font-semibold">No Submissions Found</h3>
+            <p className="text-muted-foreground mt-2">There are no complaints or feedback in this category yet.</p>
         </div>
     );
   }
@@ -187,7 +187,7 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                 <Shield className="h-4 w-4 text-blue-600" />
                 <AlertTitle className="text-blue-800 font-semibold">Student Anonymity Notice</AlertTitle>
                 <AlertDescription className="text-blue-700">
-                    To protect student privacy and prevent any form of retribution, all student submissions are anonymous. Only the student's class is shown.
+                    For most categories, student identity is kept anonymous to protect their privacy. For issues requiring direct follow-up (like 'Fee-related' or 'IT Issues'), the student's name is shown.
                 </AlertDescription>
             </Alert>
         )}
