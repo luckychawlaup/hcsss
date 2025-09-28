@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, getDay } from "date-fns";
 import { getHolidays } from "@/lib/supabase/holidays";
 import type { Holiday } from "@/lib/supabase/holidays";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,15 +33,18 @@ export default function SchoolStatus() {
 
   const today = new Date();
   const todayIsHoliday = holidays.find(h => isSameDay(new Date(h.date), today));
+  const isSunday = getDay(today) === 0;
 
-  if (todayIsHoliday) {
+  if (todayIsHoliday || isSunday) {
     return (
       <Card className="bg-blue-500/10 border-blue-500/20">
         <CardContent className="p-4 flex items-center gap-4">
           <PartyPopper className="h-8 w-8 text-blue-600" />
           <div>
             <h3 className="font-bold text-blue-800">School is OFF Today!</h3>
-            <p className="text-sm text-blue-700">{todayIsHoliday.description}</p>
+            <p className="text-sm text-blue-700">
+              {todayIsHoliday ? todayIsHoliday.description : "It's Sunday!"}
+            </p>
           </div>
         </CardContent>
       </Card>
