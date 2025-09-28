@@ -36,7 +36,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Send } from "lucide-react";
 
 const feedbackSchema = z.object({
-  category: z.enum(["General", "Fees Errors", "Academic", "Suggestion", "Feedback", "Student Record Errors"], {
+  category: z.enum([
+    "General Issues",
+    "Academic Concerns",
+    "Student Record Issues",
+    "Fee-related Issues",
+    "Discipline & Behaviour",
+    "Facilities & Infrastructure",
+    "School Portal / IT Issues",
+    "Suggestions & Ideas",
+    "Feedback"
+  ], {
     required_error: "Please select a category.",
   }),
   subject: z.string().min(5, "Subject must be at least 5 characters long."),
@@ -147,12 +157,15 @@ export function FeedbackForm() {
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="General">General Complaint</SelectItem>
-                            <SelectItem value="Academic">Academic Complaint</SelectItem>
-                            <SelectItem value="Student Record Errors">Student Record Errors</SelectItem>
-                            <SelectItem value="Fees Errors">Fees Errors</SelectItem>
-                            <SelectItem value="Suggestion">Suggestion</SelectItem>
-                            <SelectItem value="Feedback">General Feedback</SelectItem>
+                            <SelectItem value="General Issues">General Issues</SelectItem>
+                            <SelectItem value="Academic Concerns">Academic Concerns</SelectItem>
+                            <SelectItem value="Student Record Issues">Student Record Issues</SelectItem>
+                            <SelectItem value="Fee-related Issues">Fee-related Issues</SelectItem>
+                            <SelectItem value="Discipline & Behaviour">Discipline & Behaviour</SelectItem>
+                            <SelectItem value="Facilities & Infrastructure">Facilities & Infrastructure</SelectItem>
+                            <SelectItem value="School Portal / IT Issues">School Portal / IT Issues</SelectItem>
+                            <SelectItem value="Suggestions & Ideas">Suggestions & Ideas</SelectItem>
+                            <SelectItem value="Feedback">Feedback</SelectItem>
                         </SelectContent>
                         </Select>
                         <FormMessage />

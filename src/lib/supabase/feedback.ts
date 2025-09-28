@@ -9,7 +9,7 @@ export interface Feedback {
     user_name: string;
     user_role: string;
     class?: string;
-    category: "General" | "Fees Errors" | "Academic" | "Suggestion" | "Feedback" | "Student Record Errors";
+    category: "General Issues" | "Academic Concerns" | "Student Record Issues" | "Fee-related Issues" | "Discipline & Behaviour" | "Facilities & Infrastructure" | "School Portal / IT Issues" | "Suggestions & Ideas" | "Feedback";
     subject: string;
     description: string;
     created_at?: string;
