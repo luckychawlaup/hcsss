@@ -6,26 +6,25 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getRole } from "@/lib/getRole";
 import DashboardPage from "@/components/dashboard/DashboardPage";
-import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
 
-function LoadingSkeleton() {
+function Preloader() {
     return (
-        <div className="flex min-h-screen w-full flex-col bg-background">
-             <div className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8 space-y-8">
-                <Skeleton className="h-20 w-full" />
-                <div className="space-y-6">
-                    <Skeleton className="h-16 w-full" />
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <Skeleton className="h-48 w-full" />
-                        <Skeleton className="h-48 w-full" />
-                    </div>
-                    <Skeleton className="h-64 w-full" />
-                </div>
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+            <div className="relative flex h-32 w-32 items-center justify-center">
+                <div className="absolute h-full w-full animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <Image 
+                    src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"
+                    alt="School Logo" 
+                    width={100} 
+                    height={100} 
+                    className="rounded-full"
+                    priority
+                />
             </div>
         </div>
     );
 }
-
 
 export default function Home() {
   const [role, setRole] = useState<string | null>(null);
@@ -62,7 +61,7 @@ export default function Home() {
   }, [supabase, router]);
 
   if (isCheckingRole || role !== 'student') {
-    return <LoadingSkeleton />;
+    return <Preloader />;
   }
 
   return (
