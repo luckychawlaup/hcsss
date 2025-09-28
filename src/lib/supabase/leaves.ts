@@ -81,10 +81,7 @@ ON public.leaves FOR ALL
 USING (
   (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
   OR
-  auth.uid() IN (
-    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
-    'cf210695-e635-4363-aea5-740f2707a6d7'  -- Accountant UID
-  )
+  auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7')
 );
 `;
 

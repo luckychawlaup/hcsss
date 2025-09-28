@@ -64,10 +64,10 @@ CREATE POLICY "Allow students to view their own attendance"
 ON public.attendance FOR SELECT
 USING (auth.uid() = (SELECT auth_uid FROM public.students WHERE id = student_id));
 
--- Policy: Allow Principal/Owner to view all attendance records
+-- Policy: Allow Principal/Accountant to view all attendance records
 CREATE POLICY "Allow principal/owner to view all attendance"
 ON public.attendance FOR SELECT
-USING (auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', '946ba406-1ba6-49cf-ab78-f611d1350f33'));
+USING (auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7'));
 
 -- Function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

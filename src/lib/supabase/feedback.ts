@@ -46,10 +46,10 @@ CREATE POLICY "Allow authenticated users to submit feedback"
 ON public.feedback FOR INSERT
 WITH CHECK (auth.role() = 'authenticated' AND auth.uid() = user_id);
 
--- Policy: Allow Principal to read all feedback
+-- Policy: Allow Principal/Accountant to read all feedback
 CREATE POLICY "Allow principal to read all feedback"
 ON public.feedback FOR SELECT
-USING (auth.uid() = '6cc51c80-e098-4d6d-8450-5ff5931b7391'); -- Principal UID
+USING (auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7'));
 
 -- Policy: Allow class teachers to read feedback from their assigned class students
 CREATE POLICY "Allow class teachers to read feedback from their class"
@@ -91,9 +91,12 @@ export const getFeedbackForClassTeacher = (classSection: string, callback: (feed
         .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback', filter: `class=eq.${classSection}` }, (payload) => {
             fetchFeedback();
         })
-        .subscribe((status) => {
+        .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
                 fetchFeedback();
+            }
+             if (err) {
+                console.error('Real-time subscription error:', err);
             }
         });
 
@@ -120,9 +123,12 @@ export const getAllFeedback = (callback: (feedback: Feedback[]) => void) => {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback' }, (payload) => {
             fetchAllFeedback();
         })
-        .subscribe((status) => {
+        .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
                 fetchAllFeedback();
+            }
+             if (err) {
+                console.error('Real-time subscription error:', err);
             }
         });
 
@@ -137,4 +143,5 @@ export const updateFeedback = async (id: string, updates: Partial<Feedback>) => 
         throw error;
     }
 };
+
 

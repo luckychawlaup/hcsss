@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 
@@ -48,17 +49,11 @@ USING (
     )
     OR
     class_section = (
-        SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid() AND role = 'classTeacher'
+        SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()
     )
 )
 WITH CHECK (
-    class_section IN (
-        SELECT unnest(classes_taught) FROM public.teachers WHERE auth_uid = auth.uid()
-    )
-    OR
-    class_section = (
-        SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid() AND role = 'classTeacher'
-    )
+    assigned_by = (SELECT id FROM public.teachers WHERE auth_uid = auth.uid())
 );
 
 -- Policy: Allow students to view homework assigned to their class section.
@@ -68,14 +63,11 @@ USING (
     class_section = (SELECT class || '-' || section FROM public.students WHERE auth_uid = auth.uid())
 );
 
--- Policy: Allow admin users (Principal/Owner) to access all homework records.
+-- Policy: Allow admin users (Principal/Accountant) to access all homework records.
 CREATE POLICY "Allow admins to access all homework"
 ON public.homework FOR ALL
 USING (
-    auth.uid() IN (
-        '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
-        'cf210695-e635-4363-aea5-740f2707a6d7'  -- Accountant UID
-    )
+    auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7')
 );
 
 -- Create indexes for better query performance
