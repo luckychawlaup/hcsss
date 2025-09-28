@@ -26,8 +26,8 @@ import { useRouter } from "next/navigation";
 const settingsSchema = z.object({
   schoolName: z.string().min(5, "School name must be at least 5 characters long."),
   logoUrl: z.string().url("Please enter a valid URL for the logo."),
-  primaryColor: z.string().regex(/^hsl\(\d+, \d+%, \d+%\)$/, "Color must be in HSL format (e.g., hsl(217, 91%, 60%))"),
-  accentColor: z.string().regex(/^hsl\(\d+, \d+%, \d+%\)$/, "Color must be in HSL format (e.g., hsl(258, 90%, 66%))"),
+  primaryColor: z.string().regex(/^hsl\(\d+(\.\d+)?,\s*\d+(\.\d+)?%,\s*\d+(\.\d+)?%\)$/, "Color must be in HSL format (e.g., hsl(217, 91%, 60%))"),
+  accentColor: z.string().regex(/^hsl\(\d+(\.\d+)?,\s*\d+(\.\d+)?%,\s*\d+(\.\d+)?%\)$/, "Color must be in HSL format (e.g., hsl(258, 90%, 66%))"),
 });
 
 function SettingsSkeleton() {
@@ -82,7 +82,7 @@ export default function SchoolSettingsForm() {
         title: "Settings Updated!",
         description: "Your school's branding has been updated. Changes will be visible on next refresh.",
       });
-      router.refresh();
+      // No router.refresh() needed here. The RT subscription handles the state update.
     } catch (e: any) {
       setError("An unexpected error occurred. Please try again.");
     } finally {
