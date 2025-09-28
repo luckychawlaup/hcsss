@@ -4,14 +4,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { User, Briefcase, School, Calculator, ClipboardSignature, FilePenLine } from "lucide-react";
-import { useTheme } from "@/components/theme/ThemeProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 export default function RoleSelectionPage() {
-  const { settings } = useTheme();
   const { toast } = useToast();
   
   const handleFeatureComingSoon = () => {
@@ -53,7 +51,7 @@ export default function RoleSelectionPage() {
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
       <div className="flex w-full max-w-md flex-1 flex-col justify-center">
         <div className="mb-8 flex flex-col items-center justify-center">
-          <Image src={settings.logoUrl || "/hcsss.png"} alt="School Logo" width={90} height={90} className="mb-4 rounded-full" priority />
+          <Image src="/hcsss.png" alt="School Logo" width={90} height={90} className="mb-4 rounded-full" priority />
            <div className="flex items-center gap-2">
             <h1 className="text-center text-3xl font-bold text-primary">HCSSS</h1>
             <Badge variant="outline" className="border-primary/50 text-primary">Beta</Badge>
