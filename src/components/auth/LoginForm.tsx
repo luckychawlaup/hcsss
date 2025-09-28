@@ -63,18 +63,7 @@ export default function LoginForm({ role }: LoginFormProps) {
 
       const actualRole = await getRole(user);
       
-      const allowedAdminRoles = ['principal', 'accountant'];
-      const isAdminLoginAttempt = allowedAdminRoles.includes(role);
-      const isActualAdmin = allowedAdminRoles.includes(actualRole || '');
-
-      if (isAdminLoginAttempt && !isActualAdmin) {
-          setError("Invalid credentials for this administrative role.");
-          await supabase.auth.signOut();
-          setIsLoading(false);
-          return;
-      }
-
-      if (!isAdminLoginAttempt && role !== actualRole) {
+      if (role !== actualRole) {
            setError("Invalid credentials for this role.");
            await supabase.auth.signOut();
            setIsLoading(false);
@@ -106,8 +95,10 @@ export default function LoginForm({ role }: LoginFormProps) {
       });
       
       let targetPath = '/';
-      if (isActualAdmin) {
+      if (actualRole === 'principal') {
           targetPath = '/principal';
+      } else if (actualRole === 'accountant') {
+          targetPath = '/accountant';
       } else if (actualRole === 'teacher') {
           targetPath = '/teacher';
       }

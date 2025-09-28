@@ -69,7 +69,7 @@ const sections = ["A", "B"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
 
-const AnnouncementView = ({ user, isAdmin }: { user: User | null, isAdmin: boolean }) => {
+const AnnouncementView = ({ user }: { user: User | null }) => {
     const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const { toast } = useToast();
@@ -110,8 +110,8 @@ const AnnouncementView = ({ user, isAdmin }: { user: User | null, isAdmin: boole
             content,
             category,
             created_by: user.id,
-            creator_name: isAdmin ? "Principal" : "Accountant",
-            creator_role: isAdmin ? "Principal" : "Accountant",
+            creator_name: "Principal",
+            creator_role: "Principal",
         };
 
         if (selectedGroup === 'Teachers') {
@@ -173,8 +173,8 @@ const AnnouncementView = ({ user, isAdmin }: { user: User | null, isAdmin: boole
                     onSendMessage={handleSendMessage}
                     onUpdateMessage={handleUpdateMessage}
                     onDeleteMessage={handleDeleteMessage}
-                    senderName={isAdmin ? "Principal" : "Accountant"}
-                    senderRole={isAdmin ? "Principal" : "Accountant"}
+                    senderName={"Principal"}
+                    senderRole={"Principal"}
                 />
             </div>
         </div>
@@ -194,19 +194,12 @@ export default function PrincipalDashboard() {
   const [allLeaves, setAllLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
 
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
         const authUser = session?.user ?? null;
         setUser(authUser);
-        if(authUser) {
-            // Simplified check, assuming non-accountant admin is principal
-            if (authUser.id !== "cf210695-e635-4363-aea5-740f2707a6d7") {
-                setIsAdmin(true);
-            }
-        }
     });
 
     setIsLoading(true);
@@ -429,7 +422,7 @@ export default function PrincipalDashboard() {
                                 Publish notices to all teachers or specific class groups.
                             </CardDescription>
                         </CardHeader>
-                        <AnnouncementView user={user} isAdmin={isAdmin} />
+                        <AnnouncementView user={user} />
                     </Card>
               );
           case 'managePayroll':
@@ -512,9 +505,7 @@ export default function PrincipalDashboard() {
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                         <NavCard title="Manage Holidays" description="Declare school holidays" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
-                        {isAdmin && (
-                            <NavCard title="School Settings" description="Customize branding and theme" icon={Settings} onClick={() => setActiveView("schoolSettings")} />
-                        )}
+                        <NavCard title="School Settings" description="Customize branding and theme" icon={Settings} onClick={() => setActiveView("schoolSettings")} />
                     </div>
                 </div>
               );
@@ -524,7 +515,7 @@ export default function PrincipalDashboard() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header title={isAdmin ? "Principal Dashboard" : "Accountant Dashboard"} showAvatar={false} />
+      <Header title={"Principal Dashboard"} showAvatar={false} />
        <main className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-6xl flex-1">
             {renderContent()}
