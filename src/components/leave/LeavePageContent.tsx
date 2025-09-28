@@ -174,11 +174,11 @@ export default function LeavePageContent() {
 
   return (
     <div className="space-y-8 p-4 sm:p-6 lg:p-8">
-      <Card className="border-0 shadow-none">
-        <CardHeader className="p-0">
+      <Card>
+        <CardHeader>
           <CardTitle>Request for Leave</CardTitle>
         </CardHeader>
-        <CardContent className="p-0 mt-6">
+        <CardContent>
           <Form {...form}>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -278,14 +278,14 @@ export default function LeavePageContent() {
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-none">
-        <CardHeader className="p-0">
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
             Leave History
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 p-0 mt-6">
+        <CardContent className="space-y-4">
           {pastLeaves.length > 0 ? (
             pastLeaves.map((leave) => (
               <div

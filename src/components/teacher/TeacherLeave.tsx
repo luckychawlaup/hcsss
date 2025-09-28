@@ -197,11 +197,11 @@ export function TeacherLeave() {
 
   return (
     <div className="space-y-8">
-      <Card className="border-0 shadow-none">
-        <CardHeader className="p-0">
+      <Card>
+        <CardHeader>
           <CardTitle>Request for Leave</CardTitle>
         </CardHeader>
-        <CardContent className="p-0 mt-6">
+        <CardContent>
           <Form {...form}>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -306,14 +306,14 @@ export function TeacherLeave() {
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-none">
-        <CardHeader className="p-0">
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
             Leave History
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 p-0 mt-6">
+        <CardContent className="space-y-4">
           {isLoading ? (
             <div className="text-center py-4">
               <Loader2 className="h-6 w-6 animate-spin mx-auto" />
