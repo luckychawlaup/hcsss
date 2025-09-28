@@ -2,18 +2,15 @@
 import Header from "@/components/dashboard/Header";
 import ProfilePageContent from "@/components/profile/ProfilePageContent";
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileSkeleton } from "@/components/profile/ProfileDetails";
 
-function ProfilePageSkeleton() {
-  return <Skeleton className="w-full h-screen" />;
-}
 
 export default function ProfilePage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header title="My Profile" showAvatar={true} />
-      <main className="flex-1 pb-24 md:pb-8">
-        <Suspense fallback={<ProfilePageSkeleton />}>
+      <Header title="My Profile" showAvatar={false} />
+      <main className="flex-1">
+        <Suspense fallback={<ProfileSkeleton />}>
           <ProfilePageContent />
         </Suspense>
       </main>

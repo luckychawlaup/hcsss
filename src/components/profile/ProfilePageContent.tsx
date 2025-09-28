@@ -9,14 +9,29 @@ import { getTeacherByAuthId } from "@/lib/supabase/teachers";
 import type { Student } from "@/lib/supabase/students";
 import type { Teacher } from "@/lib/supabase/teachers";
 import { ProfileSkeleton, StudentProfile, TeacherProfile } from "./ProfileDetails";
-import { SalaryDetails } from "../teacher/SalaryDetails";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
-import { LogOut, MessageSquareQuote } from "lucide-react";
+import { LogOut, ChevronRight, MessageSquareQuote, Shield, FileText, Info, Users } from "lucide-react";
 import BottomNav from "../dashboard/BottomNav";
 import TeacherNav from "../teacher/TeacherNav";
 import Link from "next/link";
 import { getRole } from "@/lib/getRole";
+import { Card, CardContent } from "../ui/card";
+
+const ProfileLink = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string; }) => (
+    <Link href={href} className="block w-full text-left">
+        <div className="flex items-center gap-4 rounded-lg p-3 transition-all duration-200 hover:bg-accent/50">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+                <h2 className="text-md font-semibold text-foreground">{title}</h2>
+                <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </div>
+    </Link>
+)
 
 export default function ProfilePageContent() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
@@ -78,26 +93,25 @@ export default function ProfilePageContent() {
       </div>
     );
   }
+  
+  const profileDetails = role === "teacher" ? <TeacherProfile teacher={profile as Teacher} /> : <StudentProfile student={profile as Student} />;
 
   return (
     <>
       <div className="pb-20 md:pb-0">
-        {role === "teacher" && <TeacherProfile teacher={profile as Teacher} />}
-        {role === "student" && <StudentProfile student={profile as Student} />}
-
-        {role === 'teacher' && (
-          <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-            <SalaryDetails teacher={profile as Teacher} />
-          </div>
-        )}
+        {profileDetails}
         
-        <div className="px-4 sm:px-6 lg:px-8 mt-8 space-y-4">
-             <Button variant="outline" className="w-full" asChild>
-                <Link href="/feedback">
-                    <MessageSquareQuote className="mr-2"/>
-                    Submit Complaint or Feedback
-                </Link>
-            </Button>
+        <div className="p-4 sm:p-6 lg:p-8 space-y-4">
+             <Card>
+                <CardContent className="p-2">
+                    <ProfileLink href="/feedback" icon={MessageSquareQuote} title="Complaint &amp; Feedback" description="Submit your queries or suggestions" />
+                    <ProfileLink href="/help" icon={Info} title="Help &amp; FAQ" description="Find answers to common questions" />
+                    <ProfileLink href="/about" icon={Users} title="About Us" description="Learn more about our school" />
+                    <ProfileLink href="/privacy" icon={Shield} title="Privacy Policy" description="How we handle your data" />
+                    <ProfileLink href="/terms" icon={FileText} title="Terms &amp; Conditions" description="Our school's usage policies" />
+                </CardContent>
+            </Card>
+
             <Button variant="destructive" className="w-full" onClick={handleLogout}>
                 <LogOut className="mr-2"/>
                 Logout
