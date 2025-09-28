@@ -40,6 +40,12 @@ const nextConfig: NextConfig = {
         hostname: 'ougpdhfuwsnvsaolpohc.supabase.co',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

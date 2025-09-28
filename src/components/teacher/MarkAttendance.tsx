@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import type { Teacher } from "@/lib/supabase/teachers";
 import type { Student } from "@/lib/supabase/students";
 import { getAttendanceForClass, setAttendance, AttendanceRecord } from "@/lib/supabase/attendance";
@@ -118,7 +118,13 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                        <Calendar mode="single" selected={attendanceDate} onSelect={(date) => date && setAttendanceDate(date)} initialFocus disabled={(date) => date > new Date()} />
+                        <Calendar 
+                            mode="single" 
+                            selected={attendanceDate} 
+                            onSelect={(date) => date && setAttendanceDate(date)} 
+                            initialFocus 
+                            disabled={(date) => date > new Date() || date < subDays(new Date(), 3)}
+                        />
                     </PopoverContent>
                 </Popover>
                 <div className="flex gap-4 items-center">
