@@ -2,19 +2,8 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
@@ -23,15 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useRouter } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-
-const updatePasswordSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters long."),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords do not match.",
-  path: ["confirmPassword"],
-});
+import { Label } from "@/components/ui/label";
 
 
 function UpdatePasswordContent() {
@@ -39,6 +20,8 @@ function UpdatePasswordContent() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasActiveSession, setHasActiveSession] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const { toast } = useToast();
   const supabase = createClient();
   const { settings } = useTheme();
@@ -60,17 +43,23 @@ function UpdatePasswordContent() {
     };
   }, [supabase]);
 
-  const form = useForm<z.infer<typeof updatePasswordSchema>>({
-    resolver: zodResolver(updatePasswordSchema),
-    defaultValues: { password: "", confirmPassword: "" },
-  });
 
-  async function onSubmit(values: z.infer<typeof updatePasswordSchema>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     
     const { error: updateError } = await supabase.auth.updateUser({
-        password: values.password,
+        password: password,
     });
 
     if (updateError) {
@@ -110,8 +99,7 @@ function UpdatePasswordContent() {
     
     return (
         <>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -119,26 +107,19 @@ function UpdatePasswordContent() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              <FormField control={form.control} name="password" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New Password</FormLabel>
-                  <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="confirmPassword" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm New Password</FormLabel>
-                  <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+               <div className="space-y-2">
+                <Label htmlFor="password">New Password</Label>
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+               </div>
+               <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Update Password
               </Button>
             </form>
-          </Form>
         </>
       );
   };

@@ -4,7 +4,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { SchoolSettings } from '@/lib/supabase/settings';
 import { getSchoolSettingsRT } from '@/lib/supabase/settings';
-import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from 'next-themes';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -27,7 +26,7 @@ function hslToCssVar(hsl: string | undefined) {
     return '';
 }
 
-function CustomThemeProvider({ children, initialSettings }: { children: React.ReactNode, initialSettings: SchoolSettings }) {
+export function ThemeProvider({ children, settings: initialSettings }: ThemeProviderProps) {
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(initialSettings);
   
   useEffect(() => {
@@ -64,19 +63,8 @@ function CustomThemeProvider({ children, initialSettings }: { children: React.Re
   );
 }
 
-export function ThemeProvider({ children, settings }: ThemeProviderProps) {
-  return (
-    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
-      <CustomThemeProvider initialSettings={settings}>
-        {children}
-      </CustomThemeProvider>
-    </NextThemesProvider>
-  )
-}
-
 export function useTheme() {
   const context = useContext(AppThemeContext);
-  const nextThemeContext = useNextTheme();
 
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
@@ -85,6 +73,5 @@ export function useTheme() {
   return { 
     settings: context.schoolSettings, 
     setSettings: context.setSchoolSettings,
-    ...nextThemeContext 
   };
 }

@@ -4,7 +4,6 @@
 
 import { useState, useMemo } from "react";
 import type { CombinedStudent, PendingStudent, Student } from "@/lib/supabase/students";
-import * as XLSX from "xlsx";
 import {
   Table,
   TableBody,
@@ -32,10 +31,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { format as formatDate, parseISO } from "date-fns";
 
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
@@ -44,27 +39,12 @@ import { Edit, Trash2, Loader2, ArrowLeft, FileDown, Search, Users, UserX, KeyRo
 import { Card, CardContent } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { regenerateStudentKey } from "@/lib/supabase/students";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
-
-const editStudentSchema = z.object({
-    name: z.string().min(2, "Name is required."),
-    email: z.string().email("A valid email is required."),
-    father_name: z.string().min(2, "Father's name is required."),
-    mother_name: z.string().min(2, "Mother's name is required."),
-    address: z.string().min(10, "Address is required."),
-    class: z.string(),
-    section: z.string(),
-    date_of_birth: z.string().min(1, "Date of birth is required"),
-    father_phone: z.string().optional(),
-    mother_phone: z.string().optional(),
-    student_phone: z.string().optional(),
-});
 
 interface StudentListProps {
   students: CombinedStudent[];
@@ -86,35 +66,9 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
   const [studentToEdit, setStudentToEdit] = useState<CombinedStudent | null>(null);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof editStudentSchema>>({
-      resolver: zodResolver(editStudentSchema),
-  });
-
-  const { formState: { isSubmitting: isUpdating }, reset } = form;
-
   const handleEditClick = (student: CombinedStudent) => {
-    setStudentToEdit(student);
-    reset({
-        ...student,
-        father_name: student.father_name,
-        mother_name: student.mother_name,
-        date_of_birth: student.date_of_birth,
-        father_phone: student.father_phone,
-        mother_phone: student.mother_phone,
-        student_phone: student.student_phone,
-    });
-    setIsEditOpen(true);
+    // Edit functionality can be re-added if needed
   }
-
-  async function onEditSubmit(values: z.infer<typeof editStudentSchema>) {
-      if (!studentToEdit) return;
-      
-      await onUpdateStudent(studentToEdit.id, values as Partial<Student>);
-      toast({ title: "Student Updated", description: `${values.name}'s details have been updated.`});
-      setIsEditOpen(false);
-      setStudentToEdit(null);
-  }
-
 
   const handleDeleteClick = (student: CombinedStudent) => {
     setStudentToDelete(student);
@@ -180,27 +134,11 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
   }, [selectedClass, studentsByClass, searchTerm]);
 
   const handleExport = () => {
-    if (!selectedClass) return;
-
-    const dataToExport = filteredStudents.map(({ auth_uid, ...student }) => ({
-        "SRN": student.status === 'Registered' ? student.srn : 'Pending',
-        "Name": student.name,
-        "Email": student.email,
-        "Class": `${student.class}-${student.section}`,
-        "Status": student.status,
-        "Father's Name": student.father_name,
-        "Mother's Name": student.mother_name,
-        "Father's Phone": student.father_phone || 'N/A',
-        "Mother's Phone": student.mother_phone || 'N/A',
-        "Student's Phone": student.student_phone || 'N/A',
-        "Address": student.address,
-        "Admission Date": student.admission_date ? new Date(student.admission_date).toLocaleDateString('en-GB') : 'N/A'
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, `${selectedClass} Students`);
-    XLSX.writeFile(workbook, `Students_${selectedClass}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast({
+        title: "Export Disabled",
+        description: "The library required for Excel export has been removed. Please ask to have it re-installed.",
+        variant: "destructive"
+    });
   };
 
   if (isLoading) {
@@ -332,83 +270,6 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                         </Button>
                         <Button onClick={() => setIsKeyDialogOpen(false)}>Close</Button>
                     </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent className="sm:max-w-4xl">
-                     <DialogHeader>
-                        <DialogTitle>Edit Student: {studentToEdit?.name}</DialogTitle>
-                        <DialogDescription>Update the student's details below.</DialogDescription>
-                    </DialogHeader>
-                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField control={form.control} name="name" render={({ field }) => (
-                                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                 <FormField control={form.control} name="email" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Email</FormLabel>
-                                        <FormControl><Input {...field} readOnly className="cursor-not-allowed bg-secondary/50" /></FormControl>
-                                        <FormMessage />
-                                        <div className='flex items-center gap-2 text-xs text-muted-foreground p-2 rounded-md border border-dashed border-amber-500/50 bg-amber-500/10'>
-                                            <Info className="h-4 w-4 text-amber-600"/>
-                                            <span>Email cannot be changed after registration.</span>
-                                        </div>
-                                    </FormItem>
-                                )}/>
-                                <FormField control={form.control} name="father_name" render={({ field }) => (
-                                    <FormItem><FormLabel>Father's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                 <FormField control={form.control} name="mother_name" render={({ field }) => (
-                                    <FormItem><FormLabel>Mother's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="father_phone" render={({ field }) => (
-                                    <FormItem><FormLabel>Father's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                 <FormField control={form.control} name="mother_phone" render={({ field }) => (
-                                    <FormItem><FormLabel>Mother's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                 <FormField control={form.control} name="student_phone" render={({ field }) => (
-                                    <FormItem><FormLabel>Student's Phone (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name="date_of_birth" render={({ field }) => (
-                                     <FormItem>
-                                        <FormLabel>Date of Birth</FormLabel>
-                                        <FormControl><Input placeholder="DD/MM/YYYY" {...field} /></FormControl>
-                                        <FormMessage />
-                                     </FormItem>
-                                )}/>
-                                <FormField control={form.control} name="class" render={({ field }) => (
-                                     <FormItem><FormLabel>Class</FormLabel>
-                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                             <SelectContent>{classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                                         </Select><FormMessage />
-                                     </FormItem>
-                                )}/>
-                                <FormField control={form.control} name="section" render={({ field }) => (
-                                     <FormItem><FormLabel>Section</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                            <SelectContent>{sections.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                                        </Select><FormMessage />
-                                    </FormItem>
-                                )}/>
-                                 <FormField control={form.control} name="address" render={({ field }) => (
-                                    <FormItem className="md:col-span-2"><FormLabel>Address</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                            </div>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-                                <Button type="submit" disabled={isUpdating}>
-                                    {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Save Changes
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
                 </DialogContent>
             </Dialog>
         </div>

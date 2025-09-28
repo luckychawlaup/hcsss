@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/dashboard/Header";
 import { User, onAuthStateChanged } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { getTeachersAndPending, updateTeacher, deleteTeacher, Teacher, PendingTeacher } from "@/lib/supabase/teachers";
+import { getTeachersAndPending, updateTeacher, deleteTeacher, Teacher } from "@/lib/supabase/teachers";
 import { getStudentsAndPending, updateStudent, deleteStudent, Student, CombinedStudent } from "@/lib/supabase/students";
 import { getAllLeaveRequests } from "@/lib/supabase/leaves";
 import type { LeaveRequest } from "@/lib/supabase/leaves";
@@ -46,7 +46,7 @@ const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
     loading: () => <Skeleton className="h-80 w-full" />
 });
 
-type CombinedTeacher = (Teacher & { status: 'Registered' }) | (PendingTeacher & { status: 'Pending' });
+type CombinedTeacher = (Teacher & { status: 'Registered' });
 
 type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings" | "manageHolidays";
 
@@ -92,10 +92,10 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
         }
         
         return () => {
-            // Supabase real-time subscriptions are automatically managed by the client,
-            // but if an explicit unsubscribe function is returned, call it.
             if (typeof unsubscribe === 'function') {
                 unsubscribe();
+            } else if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+                (unsubscribe as any).unsubscribe();
             }
         };
     }, [selectedGroup]);
@@ -255,7 +255,7 @@ export default function PrincipalDashboard() {
   const pendingStudentLeavesCount = studentLeaves.filter(l => l.status === 'Pending').length;
   const pendingTeacherLeavesCount = teacherLeaves.filter(l => l.status === 'Pending').length;
   const totalPendingLeaves = pendingStudentLeavesCount + pendingTeacherLeavesCount;
-  const newAdmissionsCount = allStudents.filter(s => s.status === 'Registered').length; // Corrected to only show registered
+  const newAdmissionsCount = allStudents.filter(s => s.status === 'Registered').length;
 
   const renderContent = () => {
       switch(activeView) {

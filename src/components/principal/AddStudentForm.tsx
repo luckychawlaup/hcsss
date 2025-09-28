@@ -3,19 +3,7 @@
 "use client"
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { format as formatDate } from "date-fns";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
@@ -29,33 +17,12 @@ import { addStudent } from "@/lib/supabase/students";
 import { createClient } from "@/lib/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
 
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
 const defaultSeniorSubjects = ["Physics", "Chemistry", "Maths", "Biology", "Computer Science", "English", "Commerce", "Accounts", "Economics"];
-
-const addStudentSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  email: z.string().email("Please enter a valid email address."),
-  photo: z.instanceof(FileList).optional(),
-  father_name: z.string().min(2, "Father's name is required."),
-  mother_name: z.string().min(2, "Mother's name is required."),
-  address: z.string().min(10, "Address is too short."),
-  class: z.string({ required_error: "Please select a class."}),
-  section: z.string({ required_error: "Please select a section."}),
-  admission_date: z.date({ required_error: "Admission date is required." }),
-  date_of_birth: z.date({ required_error: "Date of birth is required." }),
-  aadharCard: z.instanceof(FileList).optional(),
-  aadhar_number: z.string().optional(),
-  opted_subjects: z.array(z.string()).optional(),
-  father_phone: z.string().optional(),
-  mother_phone: z.string().optional(),
-  student_phone: z.string().optional(),
-}).refine(data => !!data.father_phone || !!data.mother_phone || !!data.student_phone, {
-  message: "At least one phone number (Father's, Mother's, or Student's) must be provided.",
-  path: ["father_phone"],
-});
 
 
 interface AddStudentFormProps {
@@ -68,43 +35,41 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
   const [successInfo, setSuccessInfo] = useState<{ name: string, email: string } | null>(null);
   const [customSubject, setCustomSubject] = useState("");
   const [seniorSubjects, setSeniorSubjects] = useState(defaultSeniorSubjects);
+  
+  // State for form fields
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [photo, setPhoto] = useState<FileList | null>(null);
+  const [fatherName, setFatherName] = useState("");
+  const [motherName, setMotherName] = useState("");
+  const [address, setAddress] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSection, setSelectedSection] = useState("");
+  const [admissionDate, setAdmissionDate] = useState<Date | undefined>(new Date());
+  const [dob, setDob] = useState<Date | undefined>();
+  const [aadharCard, setAadharCard] = useState<FileList | null>(null);
+  const [aadharNumber, setAadharNumber] = useState("");
+  const [optedSubjects, setOptedSubjects] = useState<string[]>([]);
+  const [fatherPhone, setFatherPhone] = useState("");
+  const [motherPhone, setMotherPhone] = useState("");
+  const [studentPhone, setStudentPhone] = useState("");
+  
   const { toast } = useToast();
   const supabase = createClient();
 
-  const form = useForm<z.infer<typeof addStudentSchema>>({
-    resolver: zodResolver(addStudentSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      father_name: "",
-      mother_name: "",
-      address: "",
-      class: "",
-      section: "",
-      admission_date: new Date(),
-      date_of_birth: undefined,
-      opted_subjects: [],
-      aadhar_number: "",
-      father_phone: "",
-      mother_phone: "",
-      student_phone: "",
-    },
-  });
-
-  const selectedClass = form.watch("class");
-  const optedSubjects = form.watch("opted_subjects") || [];
 
   const handleAddCustomSubject = () => {
     if (customSubject.trim() && !seniorSubjects.includes(customSubject.trim())) {
         const newSubject = customSubject.trim();
         setSeniorSubjects(prev => [...prev, newSubject]);
-        form.setValue("opted_subjects", [...optedSubjects, newSubject]);
+        setOptedSubjects(prev => [...prev, newSubject]);
         setCustomSubject("");
     }
   }
 
 
-  async function onSubmit(values: z.infer<typeof addStudentSchema>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setIsLoading(true);
     setError(null);
     setSuccessInfo(null);
@@ -112,11 +77,18 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     let tempAuthUser = null;
 
     try {
+        if(!name || !email || !fatherName || !motherName || !address || !selectedClass || !selectedSection || !admissionDate || !dob) {
+            throw new Error("Please fill out all required fields.");
+        }
+        if(!fatherPhone && !motherPhone && !studentPhone) {
+            throw new Error("At least one phone number is required.");
+        }
+
         const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: values.email,
+            email: email,
             password: Math.random().toString(36).slice(-8), // Weak temp password
             options: {
-                data: { full_name: values.name, role: 'student' },
+                data: { full_name: name, role: 'student' },
                 email_confirm: true,
             }
         });
@@ -127,22 +99,17 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         tempAuthUser = authData.user;
 
         const studentDataPayload = {
-            ...values,
-            date_of_birth: formatDate(values.date_of_birth, "yyyy-MM-dd"),
-            admission_date: values.admission_date.getTime(),
-            photo: values.photo?.[0],
-            aadharCard: values.aadharCard?.[0],
+            name, email, father_name: fatherName, mother_name: motherName, address, class: selectedClass, section: selectedSection, admission_date: admissionDate.getTime(), date_of_birth: dob.toISOString().split('T')[0], opted_subjects: optedSubjects, aadhar_number: aadharNumber, father_phone: fatherPhone, mother_phone: motherPhone, student_phone: studentPhone, photo: photo?.[0], aadharCard: aadharCard?.[0]
         };
 
         await addStudent(tempAuthUser.id, studentDataPayload as any);
 
-        setSuccessInfo({ name: values.name, email: values.email });
+        setSuccessInfo({ name: name, email: email });
         toast({
             title: "Student Admitted Successfully!",
-            description: `${values.name}'s account has been created. The student will need to use the 'Forgot Password' feature to set their password.`,
+            description: `${name}'s account has been created. The student will need to use the 'Forgot Password' feature to set their password.`,
         });
-        form.reset();
-
+        
     } catch (e: any) {
         if (tempAuthUser) {
             console.warn("An error occurred after user creation. Manual auth user cleanup may be required for:", tempAuthUser.id);
@@ -193,296 +160,59 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g., Rohan Kumar" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                        <Input type="email" placeholder="student@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="photo"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Student Photo (Optional)</FormLabel>
-                        <FormControl>
-                          <Input type="file" accept="image/*" {...form.register('photo')} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="date_of_birth"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Date of Birth</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("2000-01-01")} initialFocus />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="admission_date"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Admission Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="class"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Class</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select class" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="section"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Section</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select section" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {sections.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="father_name"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Father's Name</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g., Anil Kumar" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="mother_name"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Mother's Name</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g., Sunita Kumar" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                
-                 <FormField
-                    control={form.control}
-                    name="father_phone"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Father's Phone</FormLabel>
-                        <FormControl>
-                        <Input placeholder="+91..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="mother_phone"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Mother's Phone</FormLabel>
-                        <FormControl>
-                        <Input placeholder="+91..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="student_phone"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Student's Phone (Optional)</FormLabel>
-                        <FormControl>
-                        <Input placeholder="+91..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="aadhar_number"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Aadhar Number (Optional)</FormLabel>
-                        <FormControl>
-                        <Input placeholder="xxxx-xxxx-xxxx" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="aadharCard"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Aadhar Card (Optional)</FormLabel>
-                        <FormControl>
-                          <Input type="file" accept="image/*,application/pdf" {...form.register('aadharCard')} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                        <Textarea placeholder="Enter full residential address" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+                <div><Label>Full Name</Label><Input placeholder="e.g., Rohan Kumar" value={name} onChange={(e) => setName(e.target.value)} /></div>
+                 <div><Label>Email Address</Label><Input type="email" placeholder="student@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+                <div><Label>Student Photo (Optional)</Label><Input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files)} /></div>
+                <div className="flex flex-col space-y-2"><Label>Date of Birth</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !dob && "text-muted-foreground")}>{dob ? dob.toLocaleDateString() : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={dob} onSelect={setDob} disabled={(date) => date > new Date() || date < new Date("2000-01-01")} initialFocus /></PopoverContent></Popover></div>
+                 <div className="flex flex-col space-y-2"><Label>Admission Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !admissionDate && "text-muted-foreground")}>{admissionDate ? admissionDate.toLocaleDateString() : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={admissionDate} onSelect={setAdmissionDate} initialFocus /></PopoverContent></Popover></div>
+                 <div><Label>Class</Label><Select onValueChange={setSelectedClass}><SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger><SelectContent>{classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
+                 <div><Label>Section</Label><Select onValueChange={setSelectedSection}><SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger><SelectContent>{sections.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+                 <div><Label>Father's Name</Label><Input placeholder="e.g., Anil Kumar" value={fatherName} onChange={(e) => setFatherName(e.target.value)} /></div>
+                 <div><Label>Mother's Name</Label><Input placeholder="e.g., Sunita Kumar" value={motherName} onChange={(e) => setMotherName(e.target.value)} /></div>
+                <div><Label>Father's Phone</Label><Input placeholder="+91..." value={fatherPhone} onChange={(e) => setFatherPhone(e.target.value)} /></div>
+                <div><Label>Mother's Phone</Label><Input placeholder="+91..." value={motherPhone} onChange={(e) => setMotherPhone(e.target.value)} /></div>
+                <div><Label>Student's Phone (Optional)</Label><Input placeholder="+91..." value={studentPhone} onChange={(e) => setStudentPhone(e.target.value)} /></div>
+                 <div><Label>Aadhar Number (Optional)</Label><Input placeholder="xxxx-xxxx-xxxx" value={aadharNumber} onChange={(e) => setAadharNumber(e.target.value)} /></div>
+                <div><Label>Aadhar Card (Optional)</Label><Input type="file" accept="image/*,application/pdf" onChange={(e) => setAadharCard(e.target.files)} /></div>
+                 <div className="md:col-span-2"><Label>Address</Label><Textarea placeholder="Enter full residential address" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
             </div>
 
             {(selectedClass === "11th" || selectedClass === "12th") && (
                 <>
                 <Separator/>
-                <FormField
-                    control={form.control}
-                    name="opted_subjects"
-                    render={() => (
-                        <FormItem>
-                            <div className="mb-4">
-                                <FormLabel className="text-base">Opted Subjects for Class {selectedClass}</FormLabel>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {seniorSubjects.map((subject) => (
-                                    <FormField
-                                        key={subject}
-                                        control={form.control}
-                                        name="opted_subjects"
-                                        render={({ field }) => {
-                                            return (
-                                            <FormItem key={subject} className="flex flex-row items-start space-x-3 space-y-0">
-                                                <FormControl>
-                                                <Checkbox
-                                                    checked={field.value?.includes(subject)}
-                                                    onCheckedChange={(checked) => {
-                                                    return checked
-                                                        ? field.onChange([...(field.value || []), subject])
-                                                        : field.onChange(
-                                                            field.value?.filter(
-                                                                (value) => value !== subject
-                                                            )
-                                                            )
-                                                    }}
-                                                />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">{subject}</FormLabel>
-                                            </FormItem>
-                                            )
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                            <div className="flex gap-2 mt-4">
-                                <Input 
-                                    placeholder="Add custom subject"
-                                    value={customSubject}
-                                    onChange={(e) => setCustomSubject(e.target.value)}
+                <div>
+                    <div className="mb-4">
+                        <Label className="text-base">Opted Subjects for Class {selectedClass}</Label>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {seniorSubjects.map((subject) => (
+                            <div key={subject} className="flex flex-row items-start space-x-3 space-y-0">
+                                <Checkbox
+                                    id={subject}
+                                    checked={optedSubjects.includes(subject)}
+                                    onCheckedChange={(checked) => {
+                                        return checked
+                                            ? setOptedSubjects([...optedSubjects, subject])
+                                            : setOptedSubjects(optedSubjects.filter((value) => value !== subject));
+                                    }}
                                 />
-                                <Button type="button" onClick={handleAddCustomSubject}>
-                                    <Plus className="mr-2" /> Add
-                                </Button>
+                                <Label htmlFor={subject} className="font-normal">{subject}</Label>
                             </div>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                        ))}
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                        <Input 
+                            placeholder="Add custom subject"
+                            value={customSubject}
+                            onChange={(e) => setCustomSubject(e.target.value)}
+                        />
+                        <Button type="button" onClick={handleAddCustomSubject}>
+                            <Plus className="mr-2" /> Add
+                        </Button>
+                    </div>
+                </div>
                 </>
             )}
 
@@ -491,7 +221,6 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
             Admit Student & Create Account
           </Button>
         </form>
-      </Form>
     </>
   );
 }

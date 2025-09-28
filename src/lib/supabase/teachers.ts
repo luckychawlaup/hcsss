@@ -102,22 +102,6 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
     }
 };
 
-export const getRegistrationKeyForTeacher = async (email: string): Promise<string | null> => {
-    const { data, error } = await supabase
-        .from('pending_teachers')
-        .select('registration_key')
-        .eq('email', email)
-        .single();
-    
-    if (error || !data) {
-        console.log("No pending registration found for this email.");
-        return null;
-    }
-
-    return data.registration_key;
-}
-
-
 export const getTeachersAndPending = (callback: (teachers: CombinedTeacher[]) => void) => {
     const channel = supabase.channel('teachers-and-pending')
         .on('postgres_changes', { event: '*', schema: 'public', table: TEACHERS_COLLECTION }, async () => {
