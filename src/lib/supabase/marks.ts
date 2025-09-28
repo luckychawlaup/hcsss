@@ -5,7 +5,7 @@ const supabase = createClient();
 
 export interface Mark {
     id?: string;
-    student_auth_uid: string;
+    student_id: string;
     exam_id: string;
     subject: string;
     marks: number;
@@ -17,7 +17,7 @@ export const MARKS_TABLE_SETUP_SQL = `
 -- Create the marks table to store student grades for each exam subject
 CREATE TABLE IF NOT EXISTS public.marks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_auth_uid UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
     exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
     subject TEXT NOT NULL,
     marks INTEGER NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.marks (
     grade TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT marks_unique_student_exam_subject UNIQUE (student_auth_uid, exam_id, subject)
+    CONSTRAINT marks_unique_student_exam_subject UNIQUE (student_id, exam_id, subject)
 );
 
 -- Enable Row Level Security (RLS) for the marks table
@@ -46,7 +46,8 @@ USING (
 -- Policy: Allow students to view their own marks
 CREATE POLICY "Allow students to view their own marks"
 ON public.marks FOR SELECT
-USING (auth.uid() = student_auth_uid);
+USING (auth.uid() = (SELECT auth_uid FROM public.students WHERE id = student_id));
+
 
 -- Policy: Allow admin users to manage all marks
 CREATE POLICY "Allow admins to manage all marks"
@@ -67,9 +68,9 @@ const getGrade = (marks: number, maxMarks: number): string => {
     return 'E';
 };
 
-export const setMarksForStudent = async (studentAuthUid: string, examId: string, marksData: { subject: string; marks: number; max_marks: number }[]) => {
+export const setMarksForStudent = async (studentId: string, examId: string, marksData: { subject: string; marks: number; max_marks: number }[]) => {
     const marksWithGrades = marksData.map(m => ({
-        student_auth_uid: studentAuthUid,
+        student_id: studentId,
         exam_id: examId,
         subject: m.subject,
         marks: m.marks,
@@ -79,7 +80,7 @@ export const setMarksForStudent = async (studentAuthUid: string, examId: string,
 
     // Upsert operation: update if composite key exists, else insert
     const { error } = await supabase.from('marks').upsert(marksWithGrades, {
-        onConflict: 'student_auth_uid,exam_id,subject',
+        onConflict: 'student_id,exam_id,subject',
     });
 
     if (error) {
@@ -88,11 +89,11 @@ export const setMarksForStudent = async (studentAuthUid: string, examId: string,
     }
 };
 
-export const getStudentMarksForExam = async (studentAuthUid: string, examId: string): Promise<Mark[]> => {
+export const getStudentMarksForExam = async (studentId: string, examId: string): Promise<Mark[]> => {
     const { data, error } = await supabase
         .from('marks')
         .select('*, max_marks')
-        .eq('student_auth_uid', studentAuthUid)
+        .eq('student_id', studentId)
         .eq('exam_id', examId);
     
     if (error) {
@@ -107,11 +108,11 @@ export const getStudentMarksForExam = async (studentAuthUid: string, examId: str
     }));
 };
 
-export const getMarksForStudent = async (studentAuthUid: string): Promise<Record<string, Mark[]>> => {
+export const getMarksForStudent = async (studentId: string): Promise<Record<string, Mark[]>> => {
     const { data, error } = await supabase
         .from('marks')
         .select('*, max_marks')
-        .eq('student_auth_uid', studentAuthUid);
+        .eq('student_id', studentId);
 
     if (error) {
         console.error("Error getting marks for student:", error);

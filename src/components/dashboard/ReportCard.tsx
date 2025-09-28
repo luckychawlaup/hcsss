@@ -14,15 +14,17 @@ import { createClient } from "@/lib/supabase/client";
 import { getExams, Exam } from "@/lib/supabase/exams";
 import { getMarksForStudent, Mark } from "@/lib/supabase/marks";
 import { Skeleton } from "../ui/skeleton";
+import { getStudentByAuthId } from "@/lib/supabase/students";
+
 
 export default function ReportCardComponent() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [marks, setMarks] = useState<Record<string, Mark[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
-    const supabase = createClient();
     
     const fetchData = async () => {
       setIsLoading(true);
@@ -32,101 +34,34 @@ export default function ReportCardComponent() {
         // Get authenticated user
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (authError) {
-          console.error("Auth error:", authError);
+        if (authError || !user) {
           setError("Authentication error");
+          setIsLoading(false);
           return;
         }
 
-        if (!user) {
-          console.log("No authenticated user found");
-          setExams([]);
-          setMarks({});
-          return;
-        }
+        const studentProfile = await getStudentByAuthId(user.id);
 
-        console.log("Fetching data for user:", user.id);
-
-        // First, get the student profile to get the correct student ID
-        const { data: studentProfile, error: profileError } = await supabase
-          .from('students')
-          .select('*')
-          .eq('auth_uid', user.id)
-          .single();
-
-        if (profileError || !studentProfile) {
-          console.error("Error fetching student profile:", profileError);
+        if (!studentProfile) {
           setError("Student profile not found");
+          setIsLoading(false);
           return;
         }
 
-        console.log("Student profile found:", studentProfile);
-
-        // Fetch exams and marks concurrently using the student's database ID
+        // Fetch exams and marks concurrently
         const [allExams, studentMarks] = await Promise.all([
-          // Fixed: Properly handle the getExams function
           new Promise<Exam[]>((resolve, reject) => {
             try {
-              const result = getExams((exams) => {
-                console.log("Received exams:", exams);
+              const unsubscribe = getExams((exams) => {
                 resolve(exams || []);
+                if (unsubscribe) unsubscribe.unsubscribe(); // Clean up subscription after first fetch
               });
-              
-              // Handle case where getExams might return a promise or subscription
-              if (result && typeof result.then === 'function') {
-                result.then(resolve).catch(reject);
-              }
             } catch (err) {
-              console.error("Error in getExams:", err);
               reject(err);
             }
           }),
-          // Fixed: Use the student's database ID instead of auth UID
-          (async () => {
-            try {
-              // Try both the auth UID and the student database ID
-              console.log("Trying to fetch marks with auth UID:", user.id);
-              let studentMarks = await getMarksForStudent(user.id);
-              console.log("Marks with auth UID result:", studentMarks);
-              
-              // If no marks found with auth UID, try with student database ID
-              if (!studentMarks || Object.keys(studentMarks).length === 0) {
-                console.log("No marks found with auth UID, trying student ID:", studentProfile.id);
-                studentMarks = await getMarksForStudent(studentProfile.id);
-                console.log("Marks with student ID result:", studentMarks);
-              }
-              
-              // Let's also try a direct Supabase query to see what's in the marks table
-              console.log("Trying direct query to marks table...");
-              const { data: directMarks, error: marksError } = await supabase
-                .from('marks')
-                .select('*')
-                .or(`student_id.eq.${studentProfile.id},auth_uid.eq.${user.id}`)
-                .limit(10);
-              
-              console.log("Direct marks query result:", directMarks);
-              console.log("Direct marks query error:", marksError);
-              
-              // Also check if there are ANY marks in the database
-              const { data: allMarks, error: allMarksError } = await supabase
-                .from('marks')
-                .select('*')
-                .limit(5);
-              
-              console.log("Sample marks from database:", allMarks);
-              console.log("All marks query error:", allMarksError);
-              
-              console.log("Final received marks:", studentMarks);
-              return studentMarks || {};
-            } catch (err) {
-              console.error("Error fetching marks:", err);
-              return {};
-            }
-          })()
+          getMarksForStudent(studentProfile.id) // Use student's primary key `id`
         ]);
-        
-        console.log("All exams:", allExams);
-        console.log("Student marks:", studentMarks);
         
         setExams(allExams || []);
         setMarks(studentMarks || {});
@@ -140,22 +75,19 @@ export default function ReportCardComponent() {
     };
 
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter exams that have marks for the student
   const availableReportCards = exams
     .filter((exam) => {
       const examMarks = marks[exam.id];
-      const hasMarks = examMarks && Array.isArray(examMarks) && examMarks.length > 0;
-      console.log(`Exam ${exam.name} (${exam.id}) has marks:`, hasMarks, examMarks);
-      return hasMarks;
+      return examMarks && Array.isArray(examMarks) && examMarks.length > 0;
     })
     .sort(
       (a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
-  console.log("Available report cards:", availableReportCards);
 
   if (isLoading) {
     return (
@@ -238,15 +170,6 @@ export default function ReportCardComponent() {
         ) : (
           <div className="text-center text-muted-foreground p-4">
             <p>No report cards available yet.</p>
-            {exams.length > 0 && (
-              <div className="text-xs mt-2 space-y-1">
-                <p>Found {exams.length} exam{exams.length !== 1 ? 's' : ''} but no marks recorded:</p>
-                {exams.map(exam => (
-                  <p key={exam.id}>• {exam.name} ({exam.id})</p>
-                ))}
-                <p className="mt-2">Debug: Marks object keys: {Object.keys(marks).join(', ') || 'None'}</p>
-              </div>
-            )}
           </div>
         )}
       </CardContent>
