@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -76,7 +77,7 @@ export default function TeacherAnnouncementsPage() {
     }
 
     const announcementData: Partial<Announcement> = {
-        title: `${teacher.subject} Announcement`, // Or a more dynamic title
+        title: "Announcement",
         content,
         category,
         target: "students",

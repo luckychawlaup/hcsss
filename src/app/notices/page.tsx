@@ -50,15 +50,12 @@ function AnnouncementCard({ notice }: { notice: Announcement }) {
             <p className="whitespace-pre-wrap">{notice.content}</p>
             {notice.attachment_url && <AttachmentPreview url={notice.attachment_url} />}
         </CardContent>
-        <CardFooter className="bg-secondary/40 px-6 py-3">
-             <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
+        <CardFooter className="bg-secondary/40 px-6 py-2">
+             <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <Avatar className="h-6 w-6">
                     <AvatarFallback>{notice.creator_name?.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <div>
-                    <p className="text-sm font-semibold">{notice.creator_name}</p>
-                    <p className="text-xs text-muted-foreground">{notice.creator_role}</p>
-                </div>
+                <p><span className="font-semibold text-foreground">{notice.creator_name}</span> ({notice.creator_role})</p>
             </div>
         </CardFooter>
     </Card>

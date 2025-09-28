@@ -106,7 +106,7 @@ const AnnouncementView = ({ user }: { user: User | null }) => {
         }
 
         const announcementData: Partial<Announcement> = {
-            title: "School Announcement",
+            title: "Announcement",
             content,
             category,
             created_by: user.id,
