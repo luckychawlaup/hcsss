@@ -60,6 +60,18 @@ export default function Attendance() {
     const [studentInfo, setStudentInfo] = useState<any>(null);
     const supabase = createClient();
 
+    const fetchAttendanceForStudent = useCallback(async (studentId: string, month: Date) => {
+        setIsLoading(true);
+        try {
+            const records = await getStudentAttendanceForMonth(studentId, month);
+            setAttendance(records);
+        } catch (error) {
+            console.error("Failed to fetch attendance in component:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         const getStudentAndSetupSubscription = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -68,19 +80,7 @@ export default function Attendance() {
                 setStudentInfo(student);
 
                 if (student) {
-                    const fetchAttendance = async (month: Date) => {
-                        setIsLoading(true);
-                        try {
-                            const records = await getStudentAttendanceForMonth(student.id, month);
-                            setAttendance(records);
-                        } catch (error) {
-                            console.error("Failed to fetch attendance in component:", error);
-                        } finally {
-                            setIsLoading(false);
-                        }
-                    };
-
-                    fetchAttendance(currentMonth);
+                    fetchAttendanceForStudent(student.id, currentMonth);
 
                     const channel = supabase
                         .channel(`public:attendance:student_id=eq.${student.id}`)
@@ -92,7 +92,7 @@ export default function Attendance() {
                         },
                             (payload) => {
                                 console.log('Attendance change detected, refetching...');
-                                fetchAttendance(currentMonth);
+                                fetchAttendanceForStudent(student.id, currentMonth);
                             }
                         ).subscribe();
                     
@@ -113,7 +113,7 @@ export default function Attendance() {
             subscriptionCleanupPromise.then(cleanup => cleanup && cleanup());
         };
         
-    }, [currentMonth, supabase]);
+    }, [currentMonth, supabase, fetchAttendanceForStudent]);
 
     const navigateMonth = (direction: 'prev' | 'next') => {
         const newMonth = direction === 'prev' 
