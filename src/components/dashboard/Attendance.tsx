@@ -76,11 +76,6 @@ export default function Attendance() {
             </CardTitle>
              <p className="font-bold text-lg">{monthName}</p>
         </div>
-        <div className="flex items-center justify-between pt-4">
-            <p className="text-muted-foreground text-sm">Monthly Attendance</p>
-            <p className="font-bold text-lg">{attendancePercentage}%</p>
-        </div>
-        <Progress value={attendancePercentage} className="mt-1 h-2"/>
       </CardHeader>
       <CardContent>
           <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground mb-2">
@@ -94,13 +89,6 @@ export default function Attendance() {
           </div>
           <div className="grid grid-cols-7 gap-2">
             {calendarDays}
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 text-xs">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-green-500"/> Present</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-red-500"/> Absent</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-yellow-500"/> Half-day</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-blue-500/20"/> Holiday</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-muted"/> Sunday</div>
           </div>
       </CardContent>
     </Card>
