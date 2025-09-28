@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
+export type FeedbackStatus = "Pending" | "Resolving" | "Solved" | "Incomplete Details";
+
 export interface Feedback {
     id?: string;
     user_id: string;
@@ -13,23 +15,23 @@ export interface Feedback {
     subject: string;
     description: string;
     created_at?: string;
-    status?: "Pending" | "Reviewed"; // Added status for tracking
+    status: FeedbackStatus;
 }
 
 
 export const FEEDBACK_TABLE_SETUP_SQL = `
--- Re-create the table to ensure the 'class' column is added
+-- Re-create the table to ensure the 'class' column is added and status has new values
 DROP TABLE IF EXISTS public.feedback;
 CREATE TABLE public.feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     user_name TEXT NOT NULL,
     user_role TEXT NOT NULL,
-    class TEXT, -- This column was missing
+    class TEXT, 
     category TEXT NOT NULL,
     subject TEXT NOT NULL,
     description TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'Pending',
+    status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Resolving', 'Solved', 'Incomplete Details')),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -54,12 +56,12 @@ USING (auth.uid() = user_id);
 
 -- Policy: Allow Principal to read all feedback
 CREATE POLICY "Allow principal to read all feedback"
-ON public.feedback FOR SELECT
+ON public.feedback FOR ALL
 USING (auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7'));
 
 -- Policy: Allow class teachers to read feedback from their assigned class students
 CREATE POLICY "Allow class teachers to read feedback from their class"
-ON public.feedback FOR SELECT
+ON public.feedback FOR ALL
 USING (
     (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
     AND
@@ -71,7 +73,7 @@ USING (
 export const addFeedback = async (feedbackData: Omit<Feedback, 'id' | 'created_at' | 'status'>) => {
     const payload = {
         ...feedbackData,
-        status: 'Pending'
+        status: 'Pending' as FeedbackStatus
     };
     const { error } = await supabase.from('feedback').insert([payload]);
     if (error) {

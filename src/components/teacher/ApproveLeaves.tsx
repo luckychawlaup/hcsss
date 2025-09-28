@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, startOfDay } from "date-fns";
 import type { LeaveRequest } from "@/lib/supabase/leaves";
+import type { Feedback, FeedbackStatus } from "@/lib/supabase/feedback";
 import {
   Card,
   CardContent,
@@ -34,19 +35,28 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ThumbsUp, ThumbsDown, CalendarX2, Loader2, MessageSquare, Calendar as CalendarIcon, Pencil, FileText, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateLeaveRequest } from "@/lib/supabase/leaves";
+import { updateFeedback } from "@/lib/supabase/feedback";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
+type CombinedItem = LeaveRequest & Feedback;
 
 interface ApproveLeavesProps {
-  leaves: LeaveRequest[];
+  leaves: CombinedItem[];
   title: string;
   isPrincipal?: boolean;
 }
@@ -55,119 +65,43 @@ const commentSchema = z.object({
   comment: z.string().min(1, "Comment cannot be empty."),
 });
 
-const editDateSchema = z.object({
-  dateRange: z.object({
-    from: z.date({ required_error: "Start date is required." }),
-    to: z.date().optional(),
-  }),
-});
-
-const formatLeaveDate = (startDate: string, endDate: string) => {
-    if (!startDate || !endDate) return "Invalid Date";
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        return "Invalid Date";
-    }
-    if (start.getTime() === end.getTime()) {
-        return format(start, "do MMM, yyyy");
-    }
-    return `${format(start, "do MMM")} - ${format(end, "do MMM, yyyy")}`;
-}
-
-const getStatusVariant = (status: LeaveRequest["status"]) => {
+const getStatusVariant = (status: CombinedItem["status"]) => {
   switch (status) {
     case "Confirmed":
+    case "Solved":
       return "success";
     case "Pending":
       return "secondary";
     case "Rejected":
+    case "Incomplete Details":
       return "destructive";
+    case "Resolving":
+      return "default";
+    default:
+      return "outline";
   }
 };
 
+
 export default function ApproveLeaves({ leaves, title, isPrincipal = false }: ApproveLeavesProps) {
   const { toast } = useToast();
-  const [dialogState, setDialogState] = useState<{
-    type: 'comment' | 'reject' | 'edit_date' | null;
-    leave: LeaveRequest | null;
-  }>({ type: null, leave: null });
-
-  const commentForm = useForm<z.infer<typeof commentSchema>>({
-    resolver: zodResolver(commentSchema),
-  });
-
-  const dateForm = useForm<z.infer<typeof editDateSchema>>({
-    resolver: zodResolver(editDateSchema),
-  });
-
-  const { formState: { isSubmitting } } = commentForm;
-
-  const handleApprove = async (leaveId: string) => {
+  
+  const handleStatusChange = async (itemId: string, newStatus: FeedbackStatus) => {
     try {
-      await updateLeaveRequest(leaveId, { status: "Confirmed" });
+      await updateFeedback(itemId, { status: newStatus });
       toast({
-        title: "Leave Approved",
-        description: "The leave request has been marked as confirmed.",
+        title: "Status Updated",
+        description: "The complaint status has been updated.",
       });
     } catch (error) {
+      console.error(error);
       toast({
         variant: "destructive",
         title: "Update Failed",
-        description: "Could not approve the leave status.",
+        description: "Could not update the complaint status.",
       });
     }
   };
-  
-  const handleOpenDialog = (type: 'comment' | 'reject' | 'edit_date', leave: LeaveRequest) => {
-      setDialogState({ type, leave });
-      if (type === 'comment' || type === 'reject') {
-          commentForm.reset({ comment: leave.approverComment || leave.rejectionReason || "" });
-      }
-      if (type === 'edit_date' && leave.startDate && leave.endDate) {
-          dateForm.reset({ dateRange: { from: new Date(leave.startDate), to: new Date(leave.endDate) } });
-      }
-  }
-
-  const handleCommentSubmit = async (values: z.infer<typeof commentSchema>) => {
-    if (!dialogState.leave) return;
-
-    let updates: Partial<LeaveRequest> = {};
-    if (dialogState.type === 'reject') {
-      updates = { 
-        status: 'Rejected',
-        rejectionReason: values.comment 
-      };
-    } else {
-      updates = { approverComment: values.comment };
-    }
-    
-    try {
-        await updateLeaveRequest(dialogState.leave.id, updates);
-        toast({
-            title: dialogState.type === 'reject' ? "Leave Rejected" : "Comment Saved",
-            description: "The leave request has been updated.",
-        });
-        setDialogState({ type: null, leave: null });
-    } catch (error) {
-         toast({ variant: "destructive", title: "Update Failed", description: "Could not update the leave request."});
-    }
-  }
-
-  const handleDateEditSubmit = async (values: z.infer<typeof editDateSchema>) => {
-      if (!dialogState.leave) return;
-      const updates = {
-          startDate: values.dateRange.from.toISOString(),
-          endDate: (values.dateRange.to || values.dateRange.from).toISOString(),
-      };
-      try {
-        await updateLeaveRequest(dialogState.leave.id, updates);
-        toast({ title: "Leave Dates Updated", description: "The leave duration has been modified."});
-        setDialogState({ type: null, leave: null });
-      } catch (error) {
-          toast({ variant: "destructive", title: "Update Failed", description: "Could not update the dates."});
-      }
-  }
 
   if (leaves.length === 0) {
     return (
@@ -207,20 +141,6 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                 <CardContent>
                     <p className="font-semibold text-sm">{leave.subject}</p>
                     <p className="text-muted-foreground mt-2">{leave.description}</p>
-                     {(leave.status === 'Rejected' && leave.rejectionReason) && (
-                        <Alert variant="destructive" className="mt-4">
-                            <ThumbsDown className="h-4 w-4" />
-                            <AlertTitle>Rejection Reason</AlertTitle>
-                            <AlertDescription>{leave.rejectionReason}</AlertDescription>
-                        </Alert>
-                    )}
-                    {leave.approverComment && (
-                        <Alert className="mt-4">
-                            <MessageSquare className="h-4 w-4" />
-                            <AlertTitle>Approver's Comment</AlertTitle>
-                            <AlertDescription>{leave.approverComment}</AlertDescription>
-                        </Alert>
-                    )}
                 </CardContent>
                 <CardFooter className="flex flex-wrap gap-2 justify-end">
                     {leave.document_url && (
@@ -230,107 +150,21 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                             </Link>
                         </Button>
                     )}
-                    {leave.status === 'Pending' && (
-                        <>
-                        <Button variant="outline" size="sm" onClick={() => handleOpenDialog('reject', leave)}>
-                            <ThumbsDown className="mr-2" /> Reject
-                        </Button>
-                        <Button size="sm" onClick={() => handleApprove(leave.id)}>
-                            <ThumbsUp className="mr-2" /> Approve
-                        </Button>
-                        </>
-                    )}
-                    {isPrincipal && leave.userRole === 'Teacher' && (
-                       <Button variant="outline" size="sm" onClick={() => handleOpenDialog('edit_date', leave)}>
-                           <Pencil className="mr-2" /> Edit Dates
-                        </Button>
-                    )}
-                    <Button variant="outline" size="sm" onClick={() => handleOpenDialog('comment', leave)}>
-                        <MessageSquare className="mr-2" /> {leave.approverComment ? 'Edit Comment' : 'Add Comment'}
-                    </Button>
+                    <Select onValueChange={(newStatus) => handleStatusChange(leave.id, newStatus as FeedbackStatus)} defaultValue={leave.status}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Update status..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="Resolving">Resolving</SelectItem>
+                        <SelectItem value="Solved">Solved</SelectItem>
+                        <SelectItem value="Incomplete Details">Incomplete Details</SelectItem>
+                      </SelectContent>
+                    </Select>
                 </CardFooter>
             </Card>
         ))}
     </div>
-
-    {/* Comment/Rejection Dialog */}
-    <Dialog open={dialogState.type === 'comment' || dialogState.type === 'reject'} onOpenChange={() => setDialogState({ type: null, leave: null })}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{dialogState.type === 'reject' ? "Reason for Rejection" : "Add/Edit Comment"}</DialogTitle>
-                <DialogDescription>
-                    {dialogState.type === 'reject'
-                        ? `Provide a reason for rejecting the leave for ${dialogState.leave?.userName}.`
-                        : `Add a comment to the leave request for ${dialogState.leave?.userName}.`}
-                </DialogDescription>
-            </DialogHeader>
-            <Form {...commentForm}>
-                <form onSubmit={commentForm.handleSubmit(handleCommentSubmit)} className="space-y-4">
-                     <FormField
-                        control={commentForm.control}
-                        name="comment"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{dialogState.type === 'reject' ? "Rejection Reason" : "Comment"}</FormLabel>
-                            <FormControl>
-                                <Textarea {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <DialogFooter>
-                        <Button type="button" variant="ghost" onClick={() => setDialogState({ type: null, leave: null })} disabled={isSubmitting}>Cancel</Button>
-                        <Button type="submit" variant={dialogState.type === 'reject' ? "destructive" : "default"} disabled={isSubmitting}>
-                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                             {dialogState.type === 'reject' ? "Confirm Rejection" : "Save Comment"}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </Form>
-        </DialogContent>
-    </Dialog>
-
-    {/* Edit Date Dialog */}
-    <Dialog open={dialogState.type === 'edit_date'} onOpenChange={() => setDialogState({ type: null, leave: null })}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Edit Leave Dates</DialogTitle>
-                <DialogDescription>Modify the leave duration for {dialogState.leave?.userName}.</DialogDescription>
-            </DialogHeader>
-            <Form {...dateForm}>
-                <form onSubmit={dateForm.handleSubmit(handleDateEditSubmit)} className="space-y-4">
-                    <FormField
-                        control={dateForm.control}
-                        name="dateRange"
-                        render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Leave Dates</FormLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                <FormControl>
-                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value?.from && "text-muted-foreground")}>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {field.value?.from ? (field.value.to ? (<>{format(field.value.from, "LLL dd, y")} - {format(field.value.to, "LLL dd, y")}</>) : (format(field.value.from, "LLL dd, y"))) : (<span>Pick a date or range</span>)}
-                                    </Button>
-                                </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar initialFocus mode="range" defaultMonth={field.value?.from} selected={{ from: field.value?.from, to: field.value?.to }} onSelect={field.onChange} numberOfMonths={1} />
-                                </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <DialogFooter>
-                        <Button type="button" variant="ghost" onClick={() => setDialogState({ type: null, leave: null })}>Cancel</Button>
-                        <Button type="submit">Save Changes</Button>
-                    </DialogFooter>
-                </form>
-            </Form>
-        </DialogContent>
-    </Dialog>
     </>
   );
 }

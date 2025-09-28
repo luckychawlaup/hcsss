@@ -1,9 +1,10 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getFeedbackForUser, Feedback } from "@/lib/supabase/feedback";
+import { getFeedbackForUser, Feedback, FeedbackStatus } from "@/lib/supabase/feedback";
 import { getRole } from "@/lib/getRole";
 import {
   Card,
@@ -18,11 +19,16 @@ import { format } from "date-fns";
 
 const getStatusVariant = (status: Feedback["status"]) => {
   switch (status) {
-    case "Reviewed":
+    case "Solved":
       return "success";
     case "Pending":
-    default:
       return "secondary";
+    case "Incomplete Details":
+      return "destructive";
+    case "Resolving":
+      return "default"
+    default:
+      return "outline";
   }
 };
 
