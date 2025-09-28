@@ -18,27 +18,15 @@ import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/supabase/le
 import { Skeleton } from "../ui/skeleton";
 import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
-import dynamic from "next/dynamic";
 import TeacherNav from "./TeacherNav";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
 import { TeacherLeave } from "./TeacherLeave";
-
-const TeacherStudentList = dynamic(() => import('./TeacherStudentList'), {
-  loading: () => <Skeleton className="h-64 w-full" />,
-});
-const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
-  loading: () => <Skeleton className="h-48 w-full" />,
-});
-const AddHomeworkForm = dynamic(() => import('./AddHomeworkForm'), {
-  loading: () => <Skeleton className="h-96 w-full" />,
-});
-const Gradebook = dynamic(() => import('./Gradebook'), {
-    loading: () => <Skeleton className="h-96 w-full" />
-});
-const MarkAttendance = dynamic(() => import('./MarkAttendance'), {
-    loading: () => <Skeleton className="h-96 w-full" />,
-});
+import TeacherStudentList from './TeacherStudentList';
+import ApproveLeaves from '../teacher/ApproveLeaves';
+import AddHomeworkForm from './AddHomeworkForm';
+import Gradebook from './Gradebook';
+import MarkAttendance from './MarkAttendance';
 
 
 export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance";
