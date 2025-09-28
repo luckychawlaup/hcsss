@@ -78,36 +78,37 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         return students.filter(s => `${s.class}-${s.section}` === classTeacherOf);
     }, [students, classTeacherOf]);
 
-    const loadAttendance = useCallback(async (date: Date) => {
+    useEffect(() => {
         if (!classTeacherOf || studentsInClass.length === 0) {
             setIsLoading(false);
             return;
         };
-        setIsLoading(true);
-        try {
-            const records = await getAttendanceForClass(classTeacherOf, date);
-            const statuses: Record<string, AttendanceStatus> = {};
-            studentsInClass.forEach(student => {
-                const record = records.find(r => r.student_id === student.id);
-                statuses[student.id] = record?.status || 'present';
-            });
-            setStudentStatuses(statuses);
-        } catch (error) {
-            console.error('Failed to load attendance:', error);
-            toast({ variant: "destructive", title: "Error", description: "Failed to load attendance records." });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [classTeacherOf, studentsInClass, toast]);
 
-    useEffect(() => {
+        const loadAttendance = async (date: Date) => {
+            setIsLoading(true);
+            try {
+                const records = await getAttendanceForClass(classTeacherOf, date);
+                const statuses: Record<string, AttendanceStatus> = {};
+                studentsInClass.forEach(student => {
+                    const record = records.find(r => r.student_id === student.id);
+                    statuses[student.id] = record?.status || 'present';
+                });
+                setStudentStatuses(statuses);
+            } catch (error) {
+                console.error('Failed to load attendance:', error);
+                toast({ variant: "destructive", title: "Error", description: "Failed to load attendance records." });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        
         loadAttendance(attendanceDate);
-    }, [attendanceDate, loadAttendance]);
+
+    }, [attendanceDate, classTeacherOf, studentsInClass, toast]);
 
     const handleDateChange = (date: Date | undefined) => {
         if (date) {
             setAttendanceDate(date);
-            // reset selections when date changes
             setSelectedStudents([]);
         }
     };
@@ -438,3 +439,5 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         </div>
     );
 }
+
+    
