@@ -28,8 +28,7 @@ const mainNavItems: NavItem[] = [
 
 const mobileNavItems: NavItem[] = [
   { view: "dashboard", label: "Home", icon: Home, href: "/teacher" },
-  { view: "addHomework", label: "Homework", icon: BookUp },
-  { view: "teacherLeave", label: "Leave", icon: CalendarPlus },
+  { view: "makeAnnouncement", label: "Announce", icon: Megaphone, href: "/teacher/announcements" },
   { view: "profile", label: "Profile", icon: User, href: "/profile" },
 ];
 
@@ -71,29 +70,41 @@ export default function TeacherNav({ activeView, setActiveView, teacherRole }: T
     return true;
   });
 
-  // Only render the mobile bottom nav
-  return (
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-sm md:hidden">
-          <div className="grid h-16 grid-cols-4 items-center justify-items-center">
-              {mobileNavItems.map(item => {
-                  const isActive = getIsActive(item);
-                  return (
-                      <button
-                          key={item.label}
-                          onClick={() => handleNavigation(item)}
-                          className={cn(
-                              "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors w-full h-full",
-                              isActive
-                              ? "text-primary"
-                              : "text-muted-foreground hover:text-primary"
-                          )}
-                          >
-                          <item.icon className="h-5 w-5" />
-                          <span>{item.label}</span>
-                      </button>
-                  )
-              })}
-          </div>
-      </nav>
-  )
+  const filteredMobileNavItems = mobileNavItems.filter(item => {
+    if (item.classTeacherOnly) {
+      return teacherRole === 'classTeacher';
+    }
+    return true;
+  });
+  
+  const navItemsToRender = isMobile ? filteredMobileNavItems : filteredMainNavItems;
+
+  if (isMobile) {
+    return (
+        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-sm md:hidden">
+            <div className="grid h-16 grid-cols-3 items-center justify-items-center">
+                {navItemsToRender.map(item => {
+                    const isActive = getIsActive(item);
+                    return (
+                        <button
+                            key={item.label}
+                            onClick={() => handleNavigation(item)}
+                            className={cn(
+                                "flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors w-full h-full",
+                                isActive
+                                ? "text-primary"
+                                : "text-muted-foreground hover:text-primary"
+                            )}
+                            >
+                            <item.icon className="h-5 w-5" />
+                            <span>{item.label}</span>
+                        </button>
+                    )
+                })}
+            </div>
+        </nav>
+    );
+  }
+
+  return null; // No sidebar for desktop
 }
