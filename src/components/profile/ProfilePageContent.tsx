@@ -11,7 +11,7 @@ import type { Teacher } from "@/lib/supabase/teachers";
 import { ProfileSkeleton, StudentProfile, TeacherProfile, StudentProfileDetails, TeacherProfileDetails } from "./ProfileDetails";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
-import { LogOut, ChevronRight, MessageSquareQuote, Shield, FileText, Info, Users } from "lucide-react";
+import { LogOut, ChevronRight, MessageSquareQuote, Shield, FileText, Info, Users, Eye } from "lucide-react";
 import BottomNav from "../dashboard/BottomNav";
 import TeacherNav from "../teacher/TeacherNav";
 import Link from "next/link";
@@ -37,6 +37,7 @@ export default function ProfilePageContent() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
   const [role, setRole] = useState<"student" | "teacher" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDetails, setShowDetails] = useState(true);
   const supabase = createClient();
   const router = useRouter();
 
@@ -80,6 +81,10 @@ export default function ProfilePageContent() {
     router.push("/login");
   };
 
+  const toggleDetails = () => {
+      setShowDetails(prev => !prev);
+  }
+
   if (isLoading) {
     return <ProfileSkeleton />;
   }
@@ -105,10 +110,18 @@ export default function ProfilePageContent() {
   return (
     <>
       <div className="pb-20 md:pb-0">
-        {profileHeader}
+        <div onClick={toggleDetails} className="cursor-pointer">
+            {profileHeader}
+        </div>
         
         <div className="p-4 sm:p-6 lg:p-8 space-y-4">
-             {profileDetails}
+             {showDetails ? (
+                profileDetails
+             ) : (
+                <Button variant="outline" className="w-full" onClick={toggleDetails}>
+                    <Eye className="mr-2" /> View Full Details
+                </Button>
+             )}
 
              <Card>
                 <CardContent className="p-2">
