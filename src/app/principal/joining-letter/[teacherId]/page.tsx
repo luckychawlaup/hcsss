@@ -12,14 +12,14 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { getRegistrationKeyForTeacher } from '@/lib/supabase/teachers';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useTheme } from '@/components/theme/ThemeProvider';
+import { useSchoolInfo } from '@/hooks/use-school-info';
 
 export default function JoiningLetterPage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [registrationKey, setRegistrationKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { settings } = useTheme();
+  const { schoolInfo, isLoading: isSchoolInfoLoading } = useSchoolInfo();
   const params = useParams();
   const teacherId = params.teacherId as string;
 
@@ -52,7 +52,7 @@ export default function JoiningLetterPage() {
     })
   }
 
-  if (isLoading) {
+  if (isLoading || isSchoolInfoLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -60,7 +60,7 @@ export default function JoiningLetterPage() {
     );
   }
 
-  if (!teacher) {
+  if (!teacher || !schoolInfo) {
     notFound();
   }
 
@@ -68,7 +68,7 @@ export default function JoiningLetterPage() {
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:p-0">
         <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:hidden">
             <h1 className="text-[12rem] font-bold text-gray-200/50 transform -rotate-45 select-none whitespace-nowrap">
-                {settings.schoolName || "Hilton Convent School"}
+                {schoolInfo.name || "Hilton Convent School"}
             </h1>
         </div>
 
@@ -76,25 +76,25 @@ export default function JoiningLetterPage() {
         
         <header className="flex items-start justify-between pb-6">
             <div className="flex-shrink-0">
-                <Image src={settings.logoUrl || "/hcsss.png"} alt="School Logo" width={80} height={80} />
+                <Image src="/hcsss.png" alt="School Logo" width={80} height={80} />
             </div>
             <div className="text-right">
-                <h1 className="text-3xl font-bold text-primary">{settings.schoolName || "Hilton Convent School"}</h1>
-                <p className="text-sm text-muted-foreground mt-1">Joya Road, Amroha, 244221, Uttar Pradesh</p>
+                <h1 className="text-3xl font-bold text-primary">{schoolInfo.name}</h1>
+                <p className="text-sm text-muted-foreground mt-1">{schoolInfo.address}</p>
                 <div className="flex justify-end items-center gap-4 text-xs text-muted-foreground mt-2">
                     <div className="flex items-center gap-1.5">
                         <Mail className="h-3 w-3" />
-                        <span>hiltonconventschool@gmail.com</span>
+                        <span>{schoolInfo.email}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <Phone className="h-3 w-3" />
-                        <span>+91 9548322595</span>
+                        <span>{schoolInfo.phone}</span>
                     </div>
                 </div>
                  <div className="flex justify-end items-center gap-4 text-xs text-muted-foreground mt-1">
                      <div className="flex items-center gap-1.5">
                         <Shield className="h-3 w-3" />
-                        <span>CBSE Affiliation No: 2131151</span>
+                        <span>CBSE Affiliation No: {schoolInfo.affiliationNo}</span>
                     </div>
                 </div>
             </div>
@@ -125,7 +125,7 @@ export default function JoiningLetterPage() {
             <p className="mt-8">Dear {teacher.name},</p>
 
             <p className="mt-4">
-                We are pleased to offer you the position of <strong>{teacher.subject} Teacher</strong> at {settings.schoolName || "Hilton Convent School"}, effective from {new Date(teacher.joining_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
+                We are pleased to offer you the position of <strong>{teacher.subject} Teacher</strong> at {schoolInfo.name}, effective from {new Date(teacher.joining_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
             </p>
 
             <p className="mt-4">
@@ -139,13 +139,13 @@ export default function JoiningLetterPage() {
             <div className="mt-16">
                 <p>Sincerely,</p>
                 <p className="font-semibold mt-8">Principal</p>
-                <p>{settings.schoolName || "Hilton Convent School"}</p>
+                <p>{schoolInfo.name}</p>
             </div>
         </main>
         
         <footer className="mt-16 border-t pt-4 text-center text-xs text-muted-foreground">
              <p>This is a computer-generated document and does not require a signature.</p>
-            <p className="print:hidden">© {new Date().getFullYear()} {settings.schoolName || "Hilton Convent School"}. All rights reserved.</p>
+            <p className="print:hidden">© {new Date().getFullYear()} {schoolInfo.name}. All rights reserved.</p>
         </footer>
 
       </div>

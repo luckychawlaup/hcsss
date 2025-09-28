@@ -12,6 +12,7 @@ import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { getSalarySlipById, SalarySlip } from '@/lib/supabase/salary';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSchoolInfo } from '@/hooks/use-school-info';
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
@@ -40,6 +41,7 @@ function SalarySlipContent() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [salarySlip, setSalarySlip] = useState<SalarySlip | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { schoolInfo, isLoading: isSchoolInfoLoading } = useSchoolInfo();
   const supabase = createClient();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -73,7 +75,7 @@ function SalarySlipContent() {
   const totalDeductions = salarySlip?.deductions?.reduce((acc, ded) => acc + ded.amount, 0) ?? 0;
   const netSalary = totalEarnings - totalDeductions;
 
-  if (isLoading) {
+  if (isLoading || isSchoolInfoLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -81,7 +83,7 @@ function SalarySlipContent() {
     );
   }
 
-  if (!teacher || !salarySlip) {
+  if (!teacher || !salarySlip || !schoolInfo) {
     notFound();
   }
 
@@ -89,20 +91,20 @@ function SalarySlipContent() {
     <div className="bg-gray-100 p-4 sm:p-8 print:p-0">
        <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:hidden">
             <div className="text-[10vw] font-bold text-gray-200/50 transform -rotate-45 select-none whitespace-nowrap opacity-50">
-                Hilton Convent School
+                {schoolInfo.name}
             </div>
         </div>
 
       <div className="mx-auto max-w-4xl bg-white p-6 sm:p-10 shadow-lg print:shadow-none relative z-10 print:border-none border rounded-lg">
         
         <header className="flex flex-col items-center justify-center border-b-2 border-primary pb-4 text-center">
-          <Image src="/hcsss.png" alt="Hilton Convent School Logo" width={80} height={80} />
-          <h1 className="text-2xl font-bold text-primary mt-2">Hilton Convent School</h1>
-          <p className="text-xs text-muted-foreground">Joya Road, Amroha, 244221, Uttar Pradesh</p>
+          <Image src="/hcsss.png" alt="School Logo" width={80} height={80} />
+          <h1 className="text-2xl font-bold text-primary mt-2">{schoolInfo.name}</h1>
+          <p className="text-xs text-muted-foreground">{schoolInfo.address}</p>
            <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-            <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /><span>hiltonconventschool@gmail.com</span></div>
-            <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" /><span>+91 9548322595</span></div>
-             <div className="flex items-center gap-1.5"><Shield className="h-3 w-3" /><span>CBSE Affiliation: 2131151</span></div>
+            <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /><span>{schoolInfo.email}</span></div>
+            <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" /><span>{schoolInfo.phone}</span></div>
+             <div className="flex items-center gap-1.5"><Shield className="h-3 w-3" /><span>CBSE Affiliation: {schoolInfo.affiliationNo}</span></div>
           </div>
         </header>
 

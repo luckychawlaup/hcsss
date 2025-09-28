@@ -11,21 +11,29 @@ export default function NavigationPreloader() {
   const previousPath = useRef(pathname);
 
   useEffect(() => {
+    // Only show preloader for actual page navigations, not initial load or simple query changes.
     if (previousPath.current !== pathname) {
       setLoading(true);
-      previousPath.current = pathname;
     }
+    // Update previousPath to the new pathname for the next comparison.
+    previousPath.current = pathname;
   }, [pathname]);
 
   useEffect(() => {
     // This effect runs when the component using the Suspense boundary has loaded.
     // We can then safely turn off the loading indicator.
+    // This relies on Next.js Suspense behavior.
     setLoading(false);
   }, [pathname]);
 
 
   if (!loading) {
     return null;
+  }
+
+  // Do not show preloader on the initial role selection page when interacting with it.
+  if (pathname === '/login' && !loading) {
+      return null;
   }
 
   return (

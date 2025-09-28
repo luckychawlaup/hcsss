@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -44,13 +43,13 @@ const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
 const GenerateSalary = dynamic(() => import('./GenerateSalary'), {
     loading: () => <Skeleton className="h-80 w-full" />
 });
-const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
+const SchoolInfoForm = dynamic(() => import('./SchoolInfoForm'), {
     loading: () => <Skeleton className="h-80 w-full" />
 });
 
 type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "makeAnnouncement" | "managePayroll" | "schoolSettings" | "manageHolidays" | "reviewLeaves";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "makeAnnouncement" | "managePayroll" | "schoolInfo" | "manageHolidays" | "reviewLeaves";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -474,7 +473,7 @@ export default function PrincipalDashboard() {
                         </CardContent>
                     </Card>
               );
-          case 'schoolSettings':
+          case 'schoolInfo':
               return (
                   <Card>
                       <CardHeader>
@@ -483,15 +482,15 @@ export default function PrincipalDashboard() {
                               Back to Dashboard
                           </Button>
                           <CardTitle className="flex items-center gap-2">
-                              <Settings />
-                              School Settings
+                              <Info />
+                              School Information
                           </CardTitle>
                           <CardDescription>
-                              Customize school name, logo, and theme colors.
+                              Manage the school's public contact information.
                           </CardDescription>
                       </CardHeader>
                       <CardContent>
-                          <SchoolSettingsForm />
+                          <SchoolInfoForm />
                       </CardContent>
                   </Card>
               );
@@ -534,7 +533,7 @@ export default function PrincipalDashboard() {
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                         <NavCard title="Manage Holidays" description="Declare school holidays" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
-                        <NavCard title="School Settings" description="Customize branding and theme" icon={Settings} onClick={() => setActiveView("schoolSettings")} />
+                        <NavCard title="School Information" description="Update school contact details" icon={Info} onClick={() => setActiveView("schoolInfo")} />
                     </div>
                 </div>
               );

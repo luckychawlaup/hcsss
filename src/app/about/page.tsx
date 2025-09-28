@@ -1,10 +1,33 @@
 
+"use client";
 import Header from "@/components/dashboard/Header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Building, Target, BookOpen } from "lucide-react";
 import Image from "next/image";
+import { useSchoolInfo } from "@/hooks/use-school-info";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AboutUsPage() {
+  const { schoolInfo, isLoading } = useSchoolInfo();
+
+  if (isLoading || !schoolInfo) {
+    return (
+        <div className="flex min-h-screen w-full flex-col bg-background">
+            <Header title="About Us" />
+            <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
+                <div className="mx-auto w-full max-w-4xl space-y-8">
+                    <Skeleton className="h-64 w-full" />
+                    <div className="grid gap-8 md:grid-cols-2">
+                        <Skeleton className="h-48 w-full" />
+                        <Skeleton className="h-48 w-full" />
+                    </div>
+                     <Skeleton className="h-32 w-full" />
+                </div>
+            </main>
+        </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header title="About Us" />
@@ -22,7 +45,7 @@ export default function AboutUsPage() {
             </div>
             <CardHeader className="text-center pt-6">
               <CardTitle className="text-3xl font-bold text-primary">
-                Hilton Convent Senior Secondary School
+                {schoolInfo.name}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center text-muted-foreground">
@@ -75,7 +98,7 @@ export default function AboutUsPage() {
             </CardHeader>
             <CardContent>
               <p>
-                Welcome to Hilton Convent! We believe in creating an
+                Welcome to {schoolInfo.name}! We believe in creating an
                 atmosphere of reverence for education and a healthy environment
                 where work, sports, and co-curricular activities will mould our
                 students and spur them on to be the brightest and the best. We
