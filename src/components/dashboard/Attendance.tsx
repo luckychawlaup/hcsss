@@ -66,20 +66,23 @@ export default function Attendance() {
 
         const setupSubscription = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const student = await getStudentByAuthId(user.id);
-                if (student) {
-                    setStudentInfo(student);
-                    attendanceChannel = getStudentAttendanceForMonthRT(student.id, currentMonth, (records) => {
-                        setAttendance(records);
-                        setIsLoading(false);
-                    });
-                } else {
-                    setIsLoading(false);
-                }
-            } else {
+            if (!user) {
                 setIsLoading(false);
+                return;
             }
+
+            const student = await getStudentByAuthId(user.id);
+            if (!student) {
+                setIsLoading(false);
+                return;
+            }
+            
+            setStudentInfo(student);
+
+            attendanceChannel = getStudentAttendanceForMonthRT(student.id, currentMonth, (records) => {
+                setAttendance(records);
+                setIsLoading(false);
+            });
         };
 
         setupSubscription();
@@ -89,7 +92,7 @@ export default function Attendance() {
                 supabase.removeChannel(attendanceChannel);
             }
         };
-    }, [currentMonth, supabase]);
+    }, [currentMonth]);
 
     const navigateMonth = (direction: 'prev' | 'next') => {
         const newMonth = direction === 'prev' 
@@ -101,13 +104,11 @@ export default function Attendance() {
     const renderCalendarDays = () => {
         const monthStart = startOfMonth(currentMonth);
         const daysInMonth = getDaysInMonth(currentMonth);
-        const firstDayOfWeek = monthStart.getDay(); // 0 for Sunday, 1 for Monday etc.
+        const firstDayOfWeek = monthStart.getDay(); 
         const today = new Date();
 
         const calendarDays = [];
         
-        // Add empty cells for days before the 1st of the month
-        // Adjust for Monday start (0=Sunday, 1=Monday, etc.)
         const emptyDays = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
         for (let i = 0; i < emptyDays; i++) {
             calendarDays.push(<div key={`empty-${i}`} className="h-10"></div>);
@@ -118,7 +119,6 @@ export default function Attendance() {
             const dayOfWeek = date.getDay();
             const formattedDate = format(date, 'yyyy-MM-dd');
             
-            // Find attendance record for this day
             const record = attendance.find(a => a.date === formattedDate);
 
             let status: DayStatus = 'unmarked';
@@ -137,45 +137,73 @@ export default function Attendance() {
         return calendarDays;
     };
 
+    const attendanceStats = {
+        total: attendance.filter(a => a.status !== 'holiday').length,
+        present: attendance.filter(a => a.status === 'present').length,
+        absent: attendance.filter(a => a.status === 'absent').length,
+        halfDay: attendance.filter(a => a.status === 'half-day').length,
+    };
+    
+    const attendancePercentage = attendanceStats.total > 0 
+        ? Math.round((attendanceStats.present / attendanceStats.total) * 100) 
+        : 0;
+
     return (
         <Card>
-            <CardHeader>
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <CardTitle className="flex items-center gap-2 text-primary">
-                        <UserCheck className="h-6 w-6" />
-                        My Attendance
-                        {studentInfo && (
-                            <span className="text-sm font-normal text-muted-foreground">
-                                - {studentInfo.class}-{studentInfo.section}
-                            </span>
-                        )}
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => navigateMonth('prev')}
-                            disabled={isLoading}
-                            className="h-8 w-8"
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <div className="min-w-[140px] text-center">
-                            <p className="font-bold text-lg">{format(currentMonth, 'MMMM yyyy')}</p>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => navigateMonth('next')}
-                            disabled={isLoading || currentMonth >= new Date()}
-                             className="h-8 w-8"
-                        >
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
+            <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle className="flex items-center gap-2 text-primary">
+                    <UserCheck className="h-6 w-6" />
+                    My Attendance
+                    {studentInfo && (
+                        <span className="text-sm font-normal text-muted-foreground">
+                            - {studentInfo.class}-{studentInfo.section}
+                        </span>
+                    )}
+                </CardTitle>
+                <div className="flex items-center gap-2 self-center md:self-auto">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => navigateMonth('prev')}
+                        disabled={isLoading}
+                        className="h-8 w-8"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="min-w-[140px] text-center">
+                        <p className="font-bold text-lg">{format(currentMonth, 'MMMM yyyy')}</p>
                     </div>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => navigateMonth('next')}
+                        disabled={isLoading || startOfMonth(currentMonth) >= startOfMonth(new Date())}
+                        className="h-8 w-8"
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
+                {!isLoading && attendance.length > 0 && (
+                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mb-4 justify-center">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                            <span className="font-medium">Present: {attendanceStats.present}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
+                             <span className="font-medium">Absent: {attendanceStats.absent}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></div>
+                             <span className="font-medium">Half Day: {attendanceStats.halfDay}</span>
+                        </div>
+                        <div className="font-semibold text-primary">
+                            Attendance: {attendancePercentage}%
+                        </div>
+                    </div>
+                )}
                 <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground mb-2">
                     <span>Mon</span>
                     <span>Tue</span>
@@ -196,6 +224,15 @@ export default function Attendance() {
                             {renderCalendarDays()}
                         </div>
                         
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs justify-center border-t pt-3">
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div><span>Present</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div><span>Absent</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></div><span>Half Day</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div><span>Holiday</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-gray-200 rounded-full"></div><span>Not Marked</span></div>
+                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-muted rounded-full"></div><span>Sunday</span></div>
+                        </div>
+                        
                         {attendance.length === 0 && !isLoading && (
                             <div className="text-center py-8">
                                 <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
@@ -211,3 +248,5 @@ export default function Attendance() {
         </Card>
     );
 }
+
+    
