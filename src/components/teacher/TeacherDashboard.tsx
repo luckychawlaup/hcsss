@@ -16,7 +16,7 @@ import { getTeacherByAuthId, Teacher } from "@/lib/supabase/teachers";
 import { getStudentsForTeacher, CombinedStudent, updateStudent, Student } from "@/lib/supabase/students";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/supabase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import dynamic from "next/dynamic";
 import TeacherNav from "./TeacherNav";
@@ -36,9 +36,12 @@ const AddHomeworkForm = dynamic(() => import('./AddHomeworkForm'), {
 const Gradebook = dynamic(() => import('./Gradebook'), {
     loading: () => <Skeleton className="h-96 w-full" />
 });
+const MarkAttendance = dynamic(() => import('./MarkAttendance'), {
+    loading: () => <Skeleton className="h-96 w-full" />,
+});
 
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook";
+export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -81,7 +84,7 @@ export default function TeacherDashboard() {
     });
 
     return () => authListener.subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     if (teacher) {
@@ -232,6 +235,27 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 );
+            case 'markAttendance':
+                return (
+                    <Card>
+                        <CardHeader>
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <UserCheckIcon />
+                                Mark Attendance
+                            </CardTitle>
+                            <CardDescription>
+                                Mark daily attendance for your class students.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <MarkAttendance teacher={teacher} students={assignedStudents.filter(s => s.status === 'Registered') as Student[]} />
+                        </CardContent>
+                    </Card>
+                );
             default:
                 return (
                     <div className="space-y-6">
@@ -251,6 +275,7 @@ export default function TeacherDashboard() {
                            <NavCard title="Announcements" description="Send announcements to classes" icon={Megaphone} onClick={() => router.push('/teacher/announcements')} />
                            {teacher?.role === 'classTeacher' && (
                                 <>
+                                    <NavCard title="Mark Attendance" description="Mark daily student attendance" icon={UserCheckIcon} onClick={() => setActiveView("markAttendance")} />
                                     <NavCard title="Gradebook & Assessments" description="Manage student grades and performance" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
                                 </>
                            )}
@@ -262,7 +287,7 @@ export default function TeacherDashboard() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
-      <TeacherNav activeView={activeView} setActiveView={setActiveView} />
+      <TeacherNav activeView={activeView} setActiveView={setActiveView} teacherRole={teacher?.role} />
       <div className="flex flex-1 flex-col">
         <Header title="Teacher Dashboard" showAvatar={true} />
         <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">

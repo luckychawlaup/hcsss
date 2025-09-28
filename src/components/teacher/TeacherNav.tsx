@@ -2,7 +2,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Home, ClipboardCheck, BookUp, User, Camera, Megaphone, CalendarPlus, BookMarked } from "lucide-react";
+import { Home, ClipboardCheck, BookUp, User, Camera, Megaphone, CalendarPlus, BookMarked, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { TeacherView } from "./TeacherDashboard";
@@ -19,6 +19,7 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { view: "dashboard", label: "Home", icon: Home, href: "/teacher" },
   { view: "addHomework", label: "Homework", icon: BookUp },
+  { view: "markAttendance", label: "Attendance", icon: UserCheck, classTeacherOnly: true },
   { view: "gradebook", label: "Gradebook", icon: BookMarked, classTeacherOnly: true },
   { view: "teacherLeave", label: "Leave", icon: CalendarPlus },
   { view: "makeAnnouncement", label: "Announce", icon: Megaphone, href: "/teacher/announcements" },
@@ -35,9 +36,10 @@ const mobileNavItems: NavItem[] = [
 interface TeacherNavProps {
     activeView: TeacherView | "profile" | "gallery" | "teacherLeave";
     setActiveView: (view: TeacherView) => void;
+    teacherRole?: "classTeacher" | "subjectTeacher";
 }
 
-export default function TeacherNav({ activeView, setActiveView }: TeacherNavProps) {
+export default function TeacherNav({ activeView, setActiveView, teacherRole }: TeacherNavProps) {
   const router = useRouter();
   const isMobile = useIsMobile();
   const pathname = usePathname();
@@ -61,6 +63,13 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
       }
       return activeView === item.view && pathname === '/teacher';
   }
+  
+  const filteredMainNavItems = mainNavItems.filter(item => {
+    if (item.classTeacherOnly) {
+      return teacherRole === 'classTeacher';
+    }
+    return true;
+  });
 
   if (isMobile) {
     return (
@@ -94,7 +103,7 @@ export default function TeacherNav({ activeView, setActiveView }: TeacherNavProp
         <div className="flex-1">
              <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Main Menu</p>
             <div className="grid items-start gap-1">
-                {mainNavItems.map((item) => {
+                {filteredMainNavItems.map((item) => {
                      const isActive = getIsActive(item);
                     return (
                         <Button
