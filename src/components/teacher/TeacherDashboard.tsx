@@ -27,6 +27,7 @@ import ApproveLeaves from '../teacher/ApproveLeaves';
 import AddHomeworkForm from './AddHomeworkForm';
 import Gradebook from './Gradebook';
 import MarkAttendance from './MarkAttendance';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 
 export type TeacherView = "dashboard" | "manageStudents" | "approveLeaves" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance";
@@ -53,6 +54,7 @@ export default function TeacherDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
+  const isMobile = useIsMobile();
 
 
   useEffect(() => {
@@ -260,7 +262,7 @@ export default function TeacherDashboard() {
                             )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <NavCard title="Announcements" description="Send announcements to classes" icon={Megaphone} onClick={() => router.push('/teacher/announcements')} />
+                           {!isMobile && <NavCard title="Announcements" description="Send announcements to classes" icon={Megaphone} onClick={() => router.push('/teacher/announcements')} />}
                            <NavCard title="Assign Homework" description="Create and manage homework" icon={BookUp} onClick={() => setActiveView("addHomework")} />
                            <NavCard title="My Leave" description="Apply for your own leave" icon={CalendarPlus} onClick={() => setActiveView("teacherLeave")} />
                            {teacher?.role === 'classTeacher' && (
