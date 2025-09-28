@@ -136,7 +136,7 @@ export default function TeacherAnnouncementsPage() {
       <Header title="Announcements" showAvatar={true} />
       <main className="flex flex-1 overflow-hidden">
         {isMobile ? (
-          <div className="w-full flex flex-col">
+          <div className="w-full flex flex-col h-full">
             {!selectedClass ? (
                <ClassChatGroup 
                   assignedClasses={assignedClasses}
