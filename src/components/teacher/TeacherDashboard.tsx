@@ -113,7 +113,7 @@ export default function TeacherDashboard() {
   
   const relevantFeedback = useMemo(() => {
     if (teacher?.role !== 'classTeacher') return [];
-    const teacherCategories = ["General Issues", "Academic Concerns", "Student Record Issues", "Discipline & Behaviour", "Suggestions & Ideas", "Feedback"];
+    const teacherCategories = ["General Issues", "Academic Concerns", "Student Record Issues", "Discipline & Behaviour"];
     return feedback.filter(f => teacherCategories.includes(f.category));
   }, [feedback, teacher]);
   
@@ -186,7 +186,7 @@ export default function TeacherDashboard() {
                             </Button>
                              <CardTitle className="flex items-center gap-2">
                                 <CalendarCheck />
-                                Review Leave Requests
+                                Review Student Leave Requests
                             </CardTitle>
                              <CardDescription>
                                 Approve or reject leave requests from your students.

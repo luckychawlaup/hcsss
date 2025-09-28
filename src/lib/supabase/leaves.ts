@@ -148,60 +148,25 @@ export const getLeaveRequestsForUser = (userId: string, callback: (leaves: Leave
     return channel;
 };
 
-export const getLeaveRequestsForStudents = (studentIds: string[], callback: (leaves: LeaveRequest[]) => void) => {
-    if (!studentIds || studentIds.length === 0) {
-        callback([]);
-        return;
-    }
-
-    const channel = supabase.channel('student-leaves');
-
-    const fetchStudentLeaves = async () => {
-        try {
-            const { data, error } = await supabase.from('leaves').select('*').in('user_id', studentIds).eq('userRole', 'Student').order('appliedAt', { ascending: false });
-            if (error) throw error;
-            callback(data || []);
-        } catch (error) {
-            console.error("Error fetching student leaves:", error);
-        }
-    };
-
-    channel
-        .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: 'userRole=eq.Student' }, 
-        (payload) => {
-             fetchStudentLeaves();
-        })
-        .subscribe(async (status, err) => {
-            if (status === 'SUBSCRIBED') {
-                await fetchStudentLeaves();
-            }
-             if (err) {
-                console.error(`Real-time channel error in student-leaves:`, err);
-            }
-        });
-    return channel;
-};
-
-export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (leaves: LeaveRequest[]) => void) => {
-    if (!teacherIds || teacherIds.length === 0) {
-        callback([]);
-        return;
-    }
-
-     const channel = supabase.channel('teacher-leaves');
-
+// This function is for the Principal to get leave requests from Teachers
+export const getLeaveRequestsForTeachers = (callback: (leaves: LeaveRequest[]) => void) => {
     const fetchTeacherLeaves = async () => {
         try {
-            const { data, error } = await supabase.from('leaves').select('*').in('teacherId', teacherIds).eq('userRole', 'Teacher').order('appliedAt', { ascending: false });
+            const { data, error } = await supabase
+                .from('leaves')
+                .select('*')
+                .eq('userRole', 'Teacher')
+                .order('appliedAt', { ascending: false });
             if (error) throw error;
             callback(data || []);
         } catch (error) {
             console.error("Error fetching teacher leaves:", error);
+            callback([]);
         }
     };
 
-    channel
-        .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: 'userRole=eq.Teacher' }, 
+    const channel = supabase.channel('teacher-leaves')
+        .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION, filter: 'userRole=eq.Teacher' }, 
         (payload) => {
             fetchTeacherLeaves();
         })
@@ -209,8 +174,8 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
             if (status === 'SUBSCRIBED') {
                 await fetchTeacherLeaves();
             }
-             if (err) {
-                console.error(`Real-time channel error in teacher-leaves:`, err);
+            if (err) {
+                console.error('Real-time channel error in teacher-leaves:', err);
             }
         });
     return channel;

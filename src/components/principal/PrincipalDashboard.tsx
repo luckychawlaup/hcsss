@@ -227,9 +227,21 @@ export default function PrincipalDashboard() {
   }, [supabase]);
 
   const principalFeedback = useMemo(() => {
-    const principalCategories = ["General Issues", "Academic Concerns", "Discipline & Behaviour", "Facilities & Infrastructure", "School Portal / IT Issues", "Suggestions & Ideas", "Feedback"];
+    const principalCategories = [
+        "General Issues", 
+        "Academic Concerns", 
+        "Discipline & Behaviour", 
+        "Facilities & Infrastructure", 
+        "School Portal / IT Issues", 
+        "Suggestions & Ideas", 
+        "Feedback"
+    ];
     return allFeedback.filter(f => principalCategories.includes(f.category));
   }, [allFeedback]);
+
+  const teacherLeaveRequests = useMemo(() => {
+    return allLeaves.filter(l => l.userRole === 'Teacher');
+  }, [allLeaves]);
 
 
   const handleTeacherAdded = () => {
@@ -257,7 +269,7 @@ export default function PrincipalDashboard() {
   };
 
   const pendingStudentFeedbackCount = principalFeedback.filter(l => l.status === 'Pending').length;
-  const pendingLeavesCount = allLeaves.filter(l => l.status === 'Pending').length;
+  const pendingLeavesCount = teacherLeaveRequests.filter(l => l.status === 'Pending').length;
   const newAdmissionsCount = allStudents.filter(s => s.status === 'Registered').length;
 
   const renderContent = () => {
@@ -411,14 +423,14 @@ export default function PrincipalDashboard() {
                             </Button>
                             <CardTitle className="flex items-center gap-2">
                                 <CalendarCheck />
-                                Review Leave Requests
+                                Review Teacher Leave Requests
                             </CardTitle>
                             <CardDescription>
-                                Approve or reject leave requests from students and teachers.
+                                Approve or reject leave requests from teachers.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <ApproveLeaves leaves={allLeaves as any} title="Submissions" isPrincipal={true} />
+                           <ApproveLeaves leaves={teacherLeaveRequests} title="Teacher Leaves" isPrincipal={true} />
                         </CardContent>
                     </Card>
                );
