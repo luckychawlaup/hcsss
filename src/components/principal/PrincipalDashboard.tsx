@@ -222,7 +222,11 @@ export default function PrincipalDashboard() {
 
   }, [supabase]);
 
-  const studentFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Student' && (l.category === 'General' || l.category === 'Academic' || l.category === 'Student Record Errors')), [allFeedback]);
+  const studentFeedback = useMemo(() => {
+    const principalCategories = ["General Issues", "Academic Concerns", "Discipline & Behaviour", "Facilities & Infrastructure", "School Portal / IT Issues", "Suggestions & Ideas", "Feedback"];
+    return allFeedback.filter(l => l.user_role === 'Student' && principalCategories.includes(l.category));
+  }, [allFeedback]);
+  
   const teacherFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Teacher'), [allFeedback]);
 
 

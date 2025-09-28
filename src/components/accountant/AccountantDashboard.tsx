@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -75,7 +76,7 @@ export default function AccountantDashboard() {
         return map;
     }, [fees]);
     
-    const feeComplaints = useMemo(() => allFeedback.filter(f => f.category === 'Fees Errors'), [allFeedback]);
+    const feeComplaints = useMemo(() => allFeedback.filter(f => f.category === 'Fee-related Issues'), [allFeedback]);
 
 
     const handleStatusChange = async (studentId: string, month: string, newStatus: FeeStatus) => {
