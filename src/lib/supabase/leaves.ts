@@ -228,7 +228,7 @@ export const updateLeaveRequest = async (leaveId: string, updates: Partial<Leave
         
         if (error) {
             console.error("Error updating leave request:", error);
-            throw new Error(`Failed to update leave request: ${error.message}`);
+            throw error;
         }
         
         return data;
@@ -314,5 +314,3 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
 
     return channel;
 };
-
-    
