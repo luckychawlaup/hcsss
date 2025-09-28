@@ -111,7 +111,7 @@ export const getStudentMarksForExam = async (studentId: string, examId: string):
 export const getMarksForStudent = async (studentId: string): Promise<Record<string, Mark[]>> => {
     const { data, error } = await supabase
         .from('marks')
-        .select('*, max_marks')
+        .select('*')
         .eq('student_id', studentId);
 
     if (error) {

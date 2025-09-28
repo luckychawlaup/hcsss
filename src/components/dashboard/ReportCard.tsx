@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,7 +32,6 @@ export default function ReportCardComponent() {
       setError(null);
       
       try {
-        // Get authenticated user
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
@@ -48,19 +48,20 @@ export default function ReportCardComponent() {
           return;
         }
 
-        // Fetch exams and marks concurrently
         const [allExams, studentMarks] = await Promise.all([
           new Promise<Exam[]>((resolve, reject) => {
             try {
               const unsubscribe = getExams((exams) => {
                 resolve(exams || []);
-                if (unsubscribe) unsubscribe.unsubscribe(); // Clean up subscription after first fetch
+                if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+                    unsubscribe.unsubscribe();
+                }
               });
             } catch (err) {
               reject(err);
             }
           }),
-          getMarksForStudent(studentProfile.id) // Use student's primary key `id`
+          getMarksForStudent(studentProfile.id)
         ]);
         
         setExams(allExams || []);
