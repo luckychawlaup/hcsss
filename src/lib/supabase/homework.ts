@@ -31,30 +31,6 @@ CREATE TABLE IF NOT EXISTS public.homework (
     attachment_url TEXT
 );
 
--- Create a function to get the classes taught by the current user
-CREATE OR REPLACE FUNCTION get_teacher_classes()
-RETURNS TEXT[] AS $$
-DECLARE
-    teacher_classes TEXT[];
-BEGIN
-    SELECT
-        CASE
-            WHEN role = 'classTeacher' THEN
-                -- Include class_teacher_of and classes_taught
-                ARRAY(SELECT DISTINCT unnest(array_append(classes_taught, class_teacher_of)))
-            ELSE
-                -- Include only classes_taught
-                classes_taught
-        END
-    INTO teacher_classes
-    FROM public.teachers
-    WHERE auth_uid = auth.uid();
-
-    RETURN teacher_classes;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.homework ENABLE ROW LEVEL SECURITY;
 
@@ -67,10 +43,22 @@ DROP POLICY IF EXISTS "Allow admins to access all homework" ON public.homework;
 CREATE POLICY "Allow teachers to manage homework for their classes"
 ON public.homework FOR ALL
 USING (
-    class_section = ANY(get_teacher_classes())
+    class_section IN (
+        SELECT unnest(classes_taught) FROM public.teachers WHERE auth_uid = auth.uid()
+    )
+    OR
+    class_section = (
+        SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid() AND role = 'classTeacher'
+    )
 )
 WITH CHECK (
-    class_section = ANY(get_teacher_classes())
+    class_section IN (
+        SELECT unnest(classes_taught) FROM public.teachers WHERE auth_uid = auth.uid()
+    )
+    OR
+    class_section = (
+        SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid() AND role = 'classTeacher'
+    )
 );
 
 -- Policy: Allow students to view homework assigned to their class section.
@@ -86,7 +74,7 @@ ON public.homework FOR ALL
 USING (
     auth.uid() IN (
         '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
-        '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
+        'cf210695-e635-4363-aea5-740f2707a6d7'  -- Accountant UID
     )
 );
 
@@ -350,3 +338,5 @@ export const deleteHomework = async (homeworkId: string): Promise<void> => {
         throw error;
     }
 };
+
+    

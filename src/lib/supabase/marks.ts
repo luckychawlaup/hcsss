@@ -34,23 +34,32 @@ ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
 -- Drop existing policies to prevent conflicts
 DROP POLICY IF EXISTS "Allow teachers to manage marks" ON public.marks;
 DROP POLICY IF EXISTS "Allow students to view their own marks" ON public.marks;
+DROP POLICY IF EXISTS "Allow admins to manage all marks" ON public.marks;
 
 -- Policy: Allow authenticated teachers and admins to perform all operations on marks
 CREATE POLICY "Allow teachers to manage marks"
 ON public.marks FOR ALL
 USING (
   (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
-  OR
-  auth.uid() IN (
-    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
-    '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
-  )
+)
+WITH CHECK (
+  (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
 );
 
 -- Policy: Allow students to view their own marks
 CREATE POLICY "Allow students to view their own marks"
 ON public.marks FOR SELECT
 USING (auth.uid() = student_auth_uid);
+
+-- Policy: Allow admin users to manage all marks
+CREATE POLICY "Allow admins to manage all marks"
+ON public.marks FOR ALL
+USING (
+    auth.uid() IN (
+        '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
+        'cf210695-e635-4363-aea5-740f2707a6d7'  -- Accountant UID
+    )
+);
 `;
 
 const getGrade = (marks: number, maxMarks: number): string => {
@@ -127,3 +136,5 @@ export const getMarksForStudent = async (studentAuthUid: string): Promise<Record
 
     return {};
 };
+
+    
