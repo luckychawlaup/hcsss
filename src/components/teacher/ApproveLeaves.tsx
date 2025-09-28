@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState } from "react";
@@ -23,11 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarX2, MessageSquare, FileText, Shield } from "lucide-react";
+import { CalendarX2, MessageSquare, FileText, Shield, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateFeedback } from "@/lib/supabase/feedback";
+import { updateLeaveRequest } from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import Link from "next/link";
+import { Textarea } from "../ui/textarea";
 
 type CombinedItem = LeaveRequest | Feedback;
 
@@ -56,23 +57,66 @@ const getStatusVariant = (status: CombinedItem["status"]) => {
 
 export default function ApproveLeaves({ leaves, title, isPrincipal = false }: ApproveLeavesProps) {
   const { toast } = useToast();
+  const [localChanges, setLocalChanges] = useState<Record<string, { status?: CombinedItem['status']; comment?: string }>>({});
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
 
-  const handleStatusChange = async (itemId: string, newStatus: FeedbackStatus) => {
+  const handleLocalChange = (itemId: string, field: 'status' | 'comment', value: string) => {
+    setLocalChanges(prev => ({
+        ...prev,
+        [itemId]: {
+            ...prev[itemId],
+            [field]: value
+        }
+    }));
+  };
+
+  const handleSave = async (item: CombinedItem) => {
+    const changes = localChanges[item.id];
+    if (!changes) {
+        toast({ variant: 'destructive', title: 'No changes to save.' });
+        return;
+    }
+    
+    setSubmittingId(item.id);
+
     try {
-      await updateFeedback(itemId, { status: newStatus });
-      toast({
-        title: "Status Updated",
-        description: "The complaint status has been updated.",
-      });
+        const isFeedback = 'category' in item;
+        if (isFeedback) {
+            await updateFeedback(item.id, { 
+                status: changes.status as FeedbackStatus, 
+                comment: changes.comment 
+            });
+        } else {
+             await updateLeaveRequest(item.id, { 
+                status: changes.status as LeaveRequest['status'], 
+                rejectionReason: changes.comment 
+            });
+        }
+        
+        toast({
+            title: "Status Updated",
+            description: "The item has been updated successfully.",
+        });
+        
+        // Clear local changes for this item after saving
+        setLocalChanges(prev => {
+            const newChanges = { ...prev };
+            delete newChanges[item.id];
+            return newChanges;
+        });
+
     } catch (error) {
-      console.error(error);
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: "Could not update the complaint status.",
-      });
+        console.error("Error updating item:", error);
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: "Could not update the item.",
+        });
+    } finally {
+        setSubmittingId(null);
     }
   };
+
 
   if (leaves.length === 0) {
     return (
@@ -98,6 +142,7 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
         )}
         {leaves.map((item) => {
           const isFeedback = 'category' in item;
+          const currentStatus = localChanges[item.id]?.status || item.status;
           
           return (
             <Card key={item.id}>
@@ -110,10 +155,10 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                              {isFeedback && <span className="font-semibold"> ({item.category})</span>}
                         </CardDescription>
                         </div>
-                        <Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>
+                        <Badge variant={getStatusVariant(currentStatus)}>{currentStatus}</Badge>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <p className="font-semibold text-sm">{isFeedback ? item.subject : item.reason}</p>
                     {isFeedback && <p className="text-muted-foreground mt-2">{item.description}</p>}
                     {!isFeedback && (
@@ -121,28 +166,51 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                             From: {format(new Date(item.startDate), "PPP")} To: {format(new Date(item.endDate), "PPP")}
                         </p>
                     )}
-                </CardContent>
-                <CardFooter className="flex flex-wrap gap-2 justify-end">
-                    {item.document_url && (
+                     {item.document_url && (
                         <Button asChild variant="secondary" size="sm">
                             <Link href={item.document_url} target="_blank">
                                 <FileText className="mr-2" /> View Document
                             </Link>
                         </Button>
                     )}
-                    {isFeedback && (
-                      <Select onValueChange={(newStatus) => handleStatusChange(item.id, newStatus as FeedbackStatus)} defaultValue={item.status}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Update status..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="Resolving">Resolving</SelectItem>
-                          <SelectItem value="Solved">Solved</SelectItem>
-                          <SelectItem value="Incomplete Details">Incomplete Details</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
+                    { isFeedback && item.comment && <Alert variant="default"><AlertTitle>Admin Comment</AlertTitle><AlertDescription>{item.comment}</AlertDescription></Alert>}
+                    { !isFeedback && item.rejectionReason && <Alert variant="destructive"><AlertTitle>Rejection Reason</AlertTitle><AlertDescription>{item.rejectionReason}</AlertDescription></Alert>}
+                </CardContent>
+                <CardFooter className="flex flex-col gap-2 items-end">
+                     <div className="w-full space-y-2">
+                        <Textarea 
+                            placeholder="Add a comment or reason (optional)..."
+                            value={localChanges[item.id]?.comment || ''}
+                            onChange={(e) => handleLocalChange(item.id, 'comment', e.target.value)}
+                        />
+                        <div className="flex justify-between items-center w-full">
+                            <Select onValueChange={(newStatus) => handleLocalChange(item.id, 'status', newStatus)} defaultValue={item.status}>
+                                <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Update status..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                {isFeedback ? (
+                                    <>
+                                        <SelectItem value="Pending">Pending</SelectItem>
+                                        <SelectItem value="Resolving">Resolving</SelectItem>
+                                        <SelectItem value="Solved">Solved</SelectItem>
+                                        <SelectItem value="Incomplete Details">Incomplete Details</SelectItem>
+                                    </>
+                                ) : (
+                                    <>
+                                        <SelectItem value="Pending">Pending</SelectItem>
+                                        <SelectItem value="Confirmed">Confirm</SelectItem>
+                                        <SelectItem value="Rejected">Reject</SelectItem>
+                                    </>
+                                )}
+                                </SelectContent>
+                            </Select>
+                             <Button onClick={() => handleSave(item)} disabled={!localChanges[item.id] || submittingId === item.id}>
+                                {submittingId === item.id ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+                                Save
+                            </Button>
+                        </div>
+                    </div>
                 </CardFooter>
             </Card>
         )})}

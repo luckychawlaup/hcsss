@@ -217,7 +217,7 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
 };
 
 
-export const updateLeaveRequest = async (leaveId: string, updates: Partial<LeaveRequest>) => {
+export const updateLeaveRequest = async (leaveId: string, updates: Partial<Pick<LeaveRequest, 'status' | 'rejectionReason' | 'approverComment'>>) => {
     try {
         const { data, error } = await supabase
             .from(LEAVES_COLLECTION)

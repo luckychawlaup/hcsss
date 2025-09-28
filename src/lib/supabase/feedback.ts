@@ -185,7 +185,7 @@ export const getFeedbackForUser = (userId: string, callback: (feedback: Feedback
 
 
 // Update feedback status or add comments (for teachers/principal)
-export const updateFeedback = async (id: string, updates: Partial<Feedback>) => {
+export const updateFeedback = async (id: string, updates: Partial<{status: FeedbackStatus, comment?: string}>) => {
     const { error } = await supabase.from('feedback').update(updates).eq('id', id);
     if (error) {
         console.error("Error updating feedback:", error);
