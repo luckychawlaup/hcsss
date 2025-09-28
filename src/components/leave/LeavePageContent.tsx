@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 
@@ -171,6 +171,8 @@ export default function LeavePageContent() {
     }
   }
 
+  const today = startOfDay(new Date());
+
 
   return (
     <div className="space-y-8 p-4 sm:p-6 lg:p-8">
@@ -198,7 +200,14 @@ export default function LeavePageContent() {
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                            <Calendar 
+                                mode="single" 
+                                selected={field.value} 
+                                onSelect={field.onChange} 
+                                initialFocus 
+                                disabled={(date) => date < today}
+                                classNames={{ day_today: "" }}
+                            />
                           </PopoverContent>
                         </Popover>
                         <FormMessage />
@@ -221,7 +230,14 @@ export default function LeavePageContent() {
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                            <Calendar 
+                                mode="single" 
+                                selected={field.value} 
+                                onSelect={field.onChange} 
+                                initialFocus 
+                                disabled={(date) => date < today}
+                                classNames={{ day_today: "" }}
+                            />
                           </PopoverContent>
                         </Popover>
                         <FormMessage />

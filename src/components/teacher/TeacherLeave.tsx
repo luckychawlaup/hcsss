@@ -7,7 +7,7 @@ import type { Teacher } from "@/lib/supabase/teachers";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import {
   Card,
   CardHeader,
@@ -183,6 +183,8 @@ export function TeacherLeave() {
     }
   }
 
+  const today = startOfDay(new Date());
+
   if (isLoading) {
       return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   }
@@ -221,7 +223,14 @@ export function TeacherLeave() {
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                            <Calendar 
+                                mode="single" 
+                                selected={field.value} 
+                                onSelect={field.onChange} 
+                                initialFocus 
+                                disabled={(date) => date < today}
+                                classNames={{ day_today: "" }}
+                            />
                           </PopoverContent>
                         </Popover>
                         <FormMessage />
@@ -244,7 +253,14 @@ export function TeacherLeave() {
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                            <Calendar 
+                                mode="single" 
+                                selected={field.value} 
+                                onSelect={field.onChange} 
+                                initialFocus 
+                                disabled={(date) => date < today}
+                                classNames={{ day_today: "" }}
+                            />
                           </PopoverContent>
                         </Popover>
                         <FormMessage />
