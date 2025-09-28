@@ -93,6 +93,7 @@ export function TeacherLeave() {
   const supabase = createClient();
 
   useEffect(() => {
+    let channel: any;
     const fetchTeacherAndLeaves = async () => {
         setIsLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
@@ -100,26 +101,22 @@ export function TeacherLeave() {
             const teacherProfile = await getTeacherByAuthId(user.id);
             setTeacher(teacherProfile);
             if (teacherProfile) {
-                const channel = getLeaveRequestsForUser(teacherProfile.auth_uid, (leaves) => {
+                channel = getLeaveRequestsForUser(teacherProfile.auth_uid, (leaves) => {
                     setPastLeaves(leaves || []);
                 });
-                setIsLoading(false);
-                return () => {
-                    if (channel) {
-                        channel.unsubscribe();
-                    }
-                };
             }
         }
         setIsLoading(false);
     };
 
-    const cleanup = fetchTeacherAndLeaves();
+    fetchTeacherAndLeaves();
     
     return () => {
-        // This is conceptual; real cleanup would be returned by fetchTeacherAndLeaves
+        if (channel) {
+            supabase.removeChannel(channel);
+        }
     };
-  }, [supabase]);
+  }, []);
 
   const form = useForm<z.infer<typeof leaveSchema>>({
     resolver: zodResolver(leaveSchema),
