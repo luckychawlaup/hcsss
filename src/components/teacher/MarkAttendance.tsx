@@ -206,7 +206,7 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                                     />
                                 </div>
                                 <CardContent className="p-4 flex flex-col items-center justify-center gap-2 cursor-pointer" onClick={() => handleStatusChange(student.id)}>
-                                     <Image src={student.photo_url || `https://api.dicebear.com/8.x/initials/svg?seed=${student.name}`} alt={student.name} width={64} height={64} className="rounded-full h-16 w-16 object-cover" />
+                                     <Image src={student.photo_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`} alt={student.name} width={64} height={64} className="rounded-full h-16 w-16 object-cover" />
                                     <p className="font-semibold text-sm truncate">{student.name}</p>
                                     <div className={cn("flex items-center gap-1.5 text-xs font-medium", config.textClass)}>
                                         {config.icon}
