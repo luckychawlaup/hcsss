@@ -115,7 +115,7 @@ export default function LeavePageContent() {
             supabase.removeChannel(channel);
         }
     };
-  }, []);
+  }, [supabase]);
 
 
   const form = useForm<z.infer<typeof leaveSchema>>({

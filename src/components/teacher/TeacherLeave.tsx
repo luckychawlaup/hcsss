@@ -116,7 +116,7 @@ export function TeacherLeave() {
             supabase.removeChannel(channel);
         }
     };
-  }, []);
+  }, [supabase]);
 
   const form = useForm<z.infer<typeof leaveSchema>>({
     resolver: zodResolver(leaveSchema),
