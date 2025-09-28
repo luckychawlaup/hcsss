@@ -46,8 +46,12 @@ USING (
 -- Policy: Allow students to view their own marks
 CREATE POLICY "Allow students to view their own marks"
 ON public.marks FOR SELECT
-USING (student_id = (SELECT id FROM public.students WHERE auth_uid = auth.uid()));
-
+USING (
+  EXISTS (
+    SELECT 1 FROM public.students
+    WHERE students.id = marks.student_id AND students.auth_uid = auth.uid()
+  )
+);
 
 -- Policy: Allow admin users to manage all marks
 CREATE POLICY "Allow admins to manage all marks"
