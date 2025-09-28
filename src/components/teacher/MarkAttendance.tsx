@@ -64,7 +64,7 @@ interface MarkAttendanceProps {
 export default function MarkAttendance({ teacher, students }: MarkAttendanceProps) {
     const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
     const [studentStatuses, setStudentStatuses] = useState<Record<string, AttendanceStatus>>({});
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const { toast } = useToast();
@@ -79,7 +79,10 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
     }, [students, classTeacherOf]);
 
     const loadAttendance = useCallback(async (date: Date) => {
-        if (!classTeacherOf) return;
+        if (!classTeacherOf || studentsInClass.length === 0) {
+            setIsLoading(false);
+            return;
+        };
         setIsLoading(true);
         try {
             const records = await getAttendanceForClass(classTeacherOf, date);
@@ -104,6 +107,8 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
     const handleDateChange = (date: Date | undefined) => {
         if (date) {
             setAttendanceDate(date);
+            // reset selections when date changes
+            setSelectedStudents([]);
         }
     };
     
@@ -274,7 +279,7 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                         <div className="flex items-center space-x-2">
                             <Checkbox
                                 id="select-all"
-                                checked={selectedStudents.length === studentsInClass.length && studentsInClass.length > 0}
+                                checked={studentsInClass.length > 0 && selectedStudents.length === studentsInClass.length}
                                 onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
                             />
                             <Label htmlFor="select-all" className="text-sm">Select All Students</Label>
@@ -433,5 +438,3 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         </div>
     );
 }
-
-    
