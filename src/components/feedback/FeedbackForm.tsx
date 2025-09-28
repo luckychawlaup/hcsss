@@ -128,7 +128,7 @@ export function FeedbackForm() {
         <CardHeader>
             <CardTitle>Submit Your Feedback</CardTitle>
             <CardDescription>
-                We value your input. Please let us know if you have a complaint, suggestion, or general feedback. Your identity as a student will be kept anonymous.
+                We encourage you to file complaints or give suggestions to us. Don't worry, while filing a complaint here your identity will be kept anonymous so you don't need to be afraid of calling out poor behaviour or services of the school. These complaints are directly forwarded to the principal & the class teacher.
             </CardDescription>
         </CardHeader>
         <CardContent>
