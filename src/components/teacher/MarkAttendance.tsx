@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -69,49 +70,25 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
     const { toast } = useToast();
 
     const classTeacherOf = useMemo(() => {
-        const result = teacher?.role === 'classTeacher' ? teacher.class_teacher_of : null;
-        console.log('Class teacher of:', result);
-        console.log('Teacher role:', teacher?.role);
-        return result;
+        return teacher?.role === 'classTeacher' ? teacher.class_teacher_of : null;
     }, [teacher]);
     
     const studentsInClass = useMemo(() => {
-        if (!classTeacherOf) {
-            console.log('No class assigned to teacher');
-            return [];
-        }
-        
-        console.log('Filtering students for class:', classTeacherOf);
-        console.log('Total students:', students.length);
-        console.log('Sample student classes:', students.slice(0, 3).map(s => `${s.class}-${s.section}`));
-        
-        const filtered = students.filter(s => {
-            const studentClass = `${s.class}-${s.section}`;
-            console.log(`Student ${s.name}: ${studentClass} === ${classTeacherOf}?`, studentClass === classTeacherOf);
-            return studentClass === classTeacherOf;
-        });
-        
-        console.log('Filtered students count:', filtered.length);
-        console.log('Filtered students:', filtered.map(s => s.name));
-        
-        return filtered;
+        if (!classTeacherOf) return [];
+        return students.filter(s => `${s.class}-${s.section}` === classTeacherOf);
     }, [students, classTeacherOf]);
 
     const loadAttendance = useCallback(async () => {
         if (!classTeacherOf) return;
         setIsLoading(true);
         try {
-            console.log(`Loading attendance for class: ${classTeacherOf}, date: ${format(attendanceDate, 'yyyy-MM-dd')}`);
             const records = await getAttendanceForClass(classTeacherOf, attendanceDate);
-            console.log('Loaded attendance records:', records);
-            
             const statuses: Record<string, AttendanceStatus> = {};
             studentsInClass.forEach(student => {
                 const record = records.find(r => r.student_id === student.id);
                 statuses[student.id] = record?.status || 'present';
             });
             setStudentStatuses(statuses);
-            console.log('Student statuses set:', statuses);
         } catch (error) {
             console.error('Failed to load attendance:', error);
             toast({ variant: "destructive", title: "Error", description: "Failed to load attendance records." });
@@ -128,28 +105,18 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         setStudentStatuses(prev => {
             const currentStatus = prev[studentId] || 'present';
             const newStatus = statusCycle[currentStatus];
-            console.log(`Status changed for student ${studentId}: ${currentStatus} -> ${newStatus}`);
-            return {
-                ...prev,
-                [studentId]: newStatus
-            };
+            return { ...prev, [studentId]: newStatus };
         });
     };
 
     const handleSelectionChange = (studentId: string, checked: boolean) => {
         setSelectedStudents(prev => {
-            const newSelection = checked ? [...prev, studentId] : prev.filter(id => id !== studentId);
-            console.log(`Selection changed for student ${studentId}:`, newSelection);
-            return newSelection;
+            return checked ? [...prev, studentId] : prev.filter(id => id !== studentId);
         });
     };
 
     const handleSelectAll = (checked: boolean) => {
-        if (checked) {
-            setSelectedStudents(studentsInClass.map(s => s.id));
-        } else {
-            setSelectedStudents([]);
-        }
+        setSelectedStudents(checked ? studentsInClass.map(s => s.id) : []);
     };
 
     const handleBulkMark = (status: AttendanceStatus) => {
@@ -162,12 +129,9 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
             return;
         }
         
-        console.log(`Bulk marking ${selectedStudents.length} students as ${status}`);
         setStudentStatuses(prev => {
             const newStatuses = { ...prev };
-            selectedStudents.forEach(id => {
-                newStatuses[id] = status;
-            });
+            selectedStudents.forEach(id => { newStatuses[id] = status; });
             return newStatuses;
         });
         setSelectedStudents([]); // Deselect all after action
@@ -181,36 +145,25 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
     const handleSubmit = async () => {
         if (!classTeacherOf || !teacher) {
             console.error('Missing class or teacher information');
+            toast({ variant: "destructive", title: "Error", description: "Cannot save attendance. Teacher or class info missing." });
             return;
         }
         
-        console.log('Starting attendance submission...');
-        console.log('Teacher:', teacher);
-        console.log('Class:', classTeacherOf);
-        console.log('Date:', format(attendanceDate, 'yyyy-MM-dd'));
-        console.log('Student statuses:', studentStatuses);
-        
         setIsSubmitting(true);
         try {
-            const attendanceData: Omit<AttendanceRecord, 'id'>[] = studentsInClass.map(student => {
-                const status = studentStatuses[student.id] || 'present';
-                return {
-                    student_id: student.id,
-                    class_section: classTeacherOf,
-                    date: format(attendanceDate, "yyyy-MM-dd"),
-                    status: status,
-                    marked_by: teacher.id,
-                };
-            });
-            
-            console.log('Attendance data to be saved:', attendanceData);
+            const attendanceData: Omit<AttendanceRecord, 'id'>[] = studentsInClass.map(student => ({
+                student_id: student.id,
+                class_section: classTeacherOf,
+                date: format(attendanceDate, "yyyy-MM-dd"),
+                status: studentStatuses[student.id] || 'present',
+                marked_by: teacher.id,
+            }));
             
             if (attendanceData.length === 0) {
                 throw new Error('No students found to mark attendance for');
             }
             
             await setAttendance(attendanceData);
-            console.log('Attendance saved successfully');
             
             toast({ 
                 title: "Success", 
@@ -228,12 +181,9 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         }
     };
 
-    // Quick action buttons
     const handleQuickMarkAll = (status: AttendanceStatus) => {
         const newStatuses: Record<string, AttendanceStatus> = {};
-        studentsInClass.forEach(student => {
-            newStatuses[student.id] = status;
-        });
+        studentsInClass.forEach(student => { newStatuses[student.id] = status; });
         setStudentStatuses(newStatuses);
         toast({
             title: 'Quick Action Applied',
@@ -257,7 +207,6 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
 
     return (
         <div className="space-y-6">
-            {/* Header with date picker and stats */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                     <Popover>
@@ -279,7 +228,7 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                                 selected={attendanceDate} 
                                 onSelect={(date) => date && setAttendanceDate(date)} 
                                 initialFocus 
-                                disabled={(date) => date > new Date() || date < subDays(new Date(), 7)}
+                                disabled={(date) => date > new Date() || date < subDays(new Date(), 3)}
                             />
                         </PopoverContent>
                     </Popover>
@@ -308,9 +257,7 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                 </div>
             </div>
 
-            {/* Quick actions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Bulk selection controls */}
                 <Card className="p-4">
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
@@ -362,7 +309,6 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                     </div>
                 </Card>
 
-                {/* Quick mark all */}
                 <Card className="p-4">
                     <div className="flex flex-col gap-3">
                         <Label className="text-sm font-medium">Quick Mark All</Label>
@@ -390,7 +336,6 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                 </Card>
             </div>
 
-            {/* Students grid */}
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -459,7 +404,6 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                 </div>
             )}
             
-            {/* Submit button */}
             <div className="flex justify-center pt-4">
                 <Button 
                     onClick={handleSubmit} 

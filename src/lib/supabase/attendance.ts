@@ -102,7 +102,7 @@ export const getAttendanceForClass = async (classSection: string, date: Date): P
             throw new Error(`Failed to fetch attendance: ${error.message}`);
         }
         
-        console.log(`[Attendance] Fetched ${data?.length || 0} attendance records:`, data);
+        console.log(`[Attendance] Fetched ${data?.length || 0} attendance records.`);
         return data || [];
     } catch (error) {
         console.error(`[Attendance] Unexpected error in getAttendanceForClass:`, error);
@@ -159,6 +159,8 @@ export const getStudentAttendanceForMonth = async (studentId: string, month: Dat
         const startDate = format(new Date(month.getFullYear(), month.getMonth(), 1), 'yyyy-MM-dd');
         const endDate = format(new Date(month.getFullYear(), month.getMonth() + 1, 0), 'yyyy-MM-dd');
 
+        console.log(`[Attendance] Fetching records for student ${studentId} from ${startDate} to ${endDate}`);
+        
         const { data, error } = await supabase
             .from(ATTENDANCE_TABLE)
             .select('*')
@@ -169,9 +171,11 @@ export const getStudentAttendanceForMonth = async (studentId: string, month: Dat
 
         if (error) {
             console.error(`[Attendance] Error fetching student attendance:`, error);
+            // Don't throw, return empty array so the UI can handle it gracefully.
             return [];
         }
         
+        console.log(`[Attendance] Found ${data?.length || 0} records for student ${studentId}.`);
         return data || [];
     } catch (error) {
         console.error(`[Attendance] Unexpected error in getStudentAttendanceForMonth:`, error);
@@ -180,19 +184,18 @@ export const getStudentAttendanceForMonth = async (studentId: string, month: Dat
 };
 
 
-// Get attendance for a single student for a given month with Real-Time
+// Real-time function is removed for stability. We will use direct fetches.
 export const getStudentAttendanceForMonthRT = (
     studentId: string, 
     month: Date, 
     callback: (records: AttendanceRecord[]) => void
 ) => {
-    const startDate = format(startOfMonth(month), 'yyyy-MM-dd');
-    const endDate = format(endOfMonth(month), 'yyyy-MM-dd');
-
     const fetchAndCallback = async () => {
         const records = await getStudentAttendanceForMonth(studentId, month);
         callback(records);
     };
+
+    fetchAndCallback();
 
     const channel = supabase
         .channel(`student-attendance-${studentId}-${format(month, 'yyyy-MM')}`)
@@ -205,16 +208,13 @@ export const getStudentAttendanceForMonthRT = (
                 filter: `student_id=eq.${studentId}` 
             }, 
             (payload) => {
-                console.log(`[RT Attendance] Payload received for student ${studentId}:`, payload);
-                // Simple refetch on any change for this student
+                console.log(`[RT Attendance] Payload received for student ${studentId}. Refetching.`);
                 fetchAndCallback();
             }
         )
         .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
                 console.log(`[RT Attendance] Subscribed for student ${studentId}`);
-                // Initial fetch after subscription is confirmed
-                fetchAndCallback();
             }
             if (status === 'CHANNEL_ERROR') {
                 console.error(`[RT Attendance] Subscription error for student ${studentId}:`, err);
@@ -259,5 +259,3 @@ export const getAttendanceStats = async (classSection: string, startDate: Date, 
         throw error;
     }
 };
-
-    

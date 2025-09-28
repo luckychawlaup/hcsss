@@ -9,10 +9,10 @@ import {
 } from "@/components/ui/card";
 import { UserCheck, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId } from "@/lib/supabase/students";
-import { getStudentAttendanceForMonthRT, AttendanceRecord } from "@/lib/supabase/attendance";
+import { getStudentAttendanceForMonth, AttendanceRecord } from "@/lib/supabase/attendance";
 import { format, getDaysInMonth, startOfMonth, addMonths, subMonths } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,39 +60,51 @@ export default function Attendance() {
     const [studentInfo, setStudentInfo] = useState<any>(null);
     const supabase = createClient();
 
-    useEffect(() => {
+    const fetchAttendance = useCallback(async (studentId: string, month: Date) => {
         setIsLoading(true);
-        let attendanceChannel: any;
+        try {
+            const records = await getStudentAttendanceForMonth(studentId, month);
+            setAttendance(records);
+        } catch (error) {
+            console.error("Failed to fetch attendance in component:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
-        const setupSubscription = async () => {
+    useEffect(() => {
+        const getStudentAndFetchAttendance = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
+            if (user) {
+                const student = await getStudentByAuthId(user.id);
+                if (student) {
+                    setStudentInfo(student);
+                    fetchAttendance(student.id, currentMonth);
+                } else {
+                    setIsLoading(false);
+                }
+            } else {
                 setIsLoading(false);
-                return;
             }
-
-            const student = await getStudentByAuthId(user.id);
-            if (!student) {
-                setIsLoading(false);
-                return;
-            }
-            
-            setStudentInfo(student);
-
-            attendanceChannel = getStudentAttendanceForMonthRT(student.id, currentMonth, (records) => {
-                setAttendance(records);
-                setIsLoading(false);
-            });
         };
 
-        setupSubscription();
+        getStudentAndFetchAttendance();
+        
+        // Set up a real-time subscription to refetch data on any change.
+        const channel = supabase
+            .channel('attendance-student-dashboard')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' },
+                (payload) => {
+                    console.log('Attendance change detected, refetching...');
+                    getStudentAndFetchAttendance();
+                }
+            ).subscribe();
 
         return () => {
-            if (attendanceChannel) {
-                supabase.removeChannel(attendanceChannel);
-            }
+            supabase.removeChannel(channel);
         };
-    }, [currentMonth]);
+        
+    }, [currentMonth, fetchAttendance, supabase]);
 
     const navigateMonth = (direction: 'prev' | 'next') => {
         const newMonth = direction === 'prev' 
@@ -138,7 +150,7 @@ export default function Attendance() {
     };
 
     const attendanceStats = {
-        total: attendance.filter(a => a.status !== 'holiday').length,
+        total: attendance.filter(a => a.status !== 'holiday' && a.status !== 'unmarked').length,
         present: attendance.filter(a => a.status === 'present').length,
         absent: attendance.filter(a => a.status === 'absent').length,
         halfDay: attendance.filter(a => a.status === 'half-day').length,
@@ -185,7 +197,7 @@ export default function Attendance() {
                 </div>
             </CardHeader>
             <CardContent>
-                {!isLoading && attendance.length > 0 && (
+                {attendance.length > 0 && (
                      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mb-4 justify-center">
                         <div className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
@@ -248,5 +260,3 @@ export default function Attendance() {
         </Card>
     );
 }
-
-    
