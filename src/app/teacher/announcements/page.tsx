@@ -134,7 +134,7 @@ export default function TeacherAnnouncementsPage() {
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       <Header title="Announcements" showAvatar={true} />
-      <main className="flex flex-1 overflow-hidden">
+      <main className="flex flex-1 overflow-hidden pb-16 md:pb-0">
         {isMobile ? (
           <div className="w-full flex flex-col h-full">
             {!selectedClass ? (
