@@ -63,7 +63,11 @@ USING (
 
 
 export const addFeedback = async (feedbackData: Omit<Feedback, 'id' | 'created_at' | 'status'>) => {
-    const { error } = await supabase.from('feedback').insert([{ ...feedbackData, status: 'Pending' }]);
+    const payload = {
+        ...feedbackData,
+        status: 'Pending'
+    };
+    const { error } = await supabase.from('feedback').insert([payload]);
     if (error) {
         console.error("Error adding feedback:", error);
         throw error;
@@ -143,5 +147,6 @@ export const updateFeedback = async (id: string, updates: Partial<Feedback>) => 
         throw error;
     }
 };
+
 
 
