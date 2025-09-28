@@ -156,11 +156,16 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
 
 
   if (leaves.length === 0) {
+    const isLeaveReview = title.toLowerCase().includes('leave');
     return (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
             <CalendarX2 className="h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-semibold">No Submissions Found</h3>
-            <p className="text-muted-foreground mt-2">There are no complaints or leave requests in this category yet.</p>
+            <p className="text-muted-foreground mt-2">
+                {isLeaveReview 
+                    ? "There are no new leave requests to review at this time." 
+                    : "There are no complaints or feedback in this category yet."}
+            </p>
         </div>
     );
   }
@@ -184,22 +189,24 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
           
           return (
             <Card key={item.id}>
-                <CardHeader 
-                  className={cn(isActionable && "cursor-pointer hover:bg-secondary/50 transition-colors")}
-                  onClick={isActionable ? () => handleViewStudentDetails(item.user_id) : undefined}
-                >
-                    <div className="flex items-start justify-between">
-                        <div>
-                        <CardTitle className="flex items-center gap-2">
-                          {item.userName}
-                          {isActionable && <Info className="h-4 w-4 text-primary" title="Click to view student details"/>}
-                        </CardTitle>
-                        <CardDescription>
-                            {item.userRole === "Student" && item.class ? `Class ${item.class}` : `Teacher`}
-                             {isFeedback && <span className="font-semibold"> ({item.category})</span>}
-                        </CardDescription>
+                <CardHeader>
+                    <div 
+                        className={cn(isActionable && "cursor-pointer hover:bg-secondary/50 transition-colors -m-4 p-4 rounded-t-lg")}
+                        onClick={isActionable ? () => handleViewStudentDetails(item.user_id) : undefined}
+                    >
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <CardTitle className="flex items-center gap-2">
+                                {item.userName}
+                                {isActionable && <Info className="h-4 w-4 text-primary" title="Click to view student details"/>}
+                                </CardTitle>
+                                <CardDescription>
+                                    {item.userRole === "Student" && item.class ? `Class ${item.class}` : `Teacher`}
+                                    {isFeedback && <span className="font-semibold"> ({item.category})</span>}
+                                </CardDescription>
+                            </div>
+                            <Badge variant={getStatusVariant(currentStatus)}>{currentStatus}</Badge>
                         </div>
-                        <Badge variant={getStatusVariant(currentStatus)}>{currentStatus}</Badge>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
