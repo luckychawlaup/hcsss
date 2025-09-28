@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, CalendarIcon, Save, UserX, UserCheck, UserMinus, User } from "lucide-react";
+import { Loader2, CalendarIcon, Save, UserX, UserCheck, UserMinus, User, CheckSquare, Square } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 type AttendanceStatus = "present" | "absent" | "half-day";
 
@@ -39,6 +41,7 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
     const [studentStatuses, setStudentStatuses] = useState<Record<string, AttendanceStatus>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const { toast } = useToast();
 
     const classTeacherOf = useMemo(() => teacher?.role === 'classTeacher' ? teacher.class_teacher_of : null, [teacher]);
@@ -75,6 +78,39 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
             ...prev,
             [studentId]: statusCycle[prev[studentId] || 'present']
         }));
+    };
+
+    const handleSelectionChange = (studentId: string, checked: boolean) => {
+        setSelectedStudents(prev => 
+            checked ? [...prev, studentId] : prev.filter(id => id !== studentId)
+        );
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedStudents(studentsInClass.map(s => s.id));
+        } else {
+            setSelectedStudents([]);
+        }
+    };
+
+    const handleBulkMark = (status: AttendanceStatus) => {
+        if (selectedStudents.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: 'No Students Selected',
+                description: 'Please select students to mark their attendance.'
+            });
+            return;
+        }
+        setStudentStatuses(prev => {
+            const newStatuses = { ...prev };
+            selectedStudents.forEach(id => {
+                newStatuses[id] = status;
+            });
+            return newStatuses;
+        });
+        setSelectedStudents([]); // Deselect all after action
     };
 
     const handleSubmit = async () => {
@@ -134,6 +170,25 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                 </div>
             </div>
 
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 border rounded-lg bg-secondary/50">
+                <div className="flex items-center space-x-2">
+                    <Checkbox
+                        id="select-all"
+                        checked={selectedStudents.length === studentsInClass.length && studentsInClass.length > 0}
+                        onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
+                    />
+                    <Label htmlFor="select-all">Select All Students</Label>
+                </div>
+                <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => handleBulkMark('present')} disabled={selectedStudents.length === 0}>
+                        <CheckSquare className="mr-2 h-4 w-4"/>Mark Selected as Present
+                    </Button>
+                     <Button size="sm" variant="destructive" onClick={() => handleBulkMark('absent')} disabled={selectedStudents.length === 0}>
+                        <Square className="mr-2 h-4 w-4"/>Mark Selected as Absent
+                    </Button>
+                </div>
+            </div>
+
             {isLoading ? (
                 <div className="text-center"><Loader2 className="animate-spin" /> Loading students...</div>
             ) : (
@@ -142,8 +197,15 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                         const status = studentStatuses[student.id] || 'present';
                         const config = statusConfig[status];
                         return (
-                            <Card key={student.id} className={cn("text-center cursor-pointer transition-all", config.cardClass)} onClick={() => handleStatusChange(student.id)}>
-                                <CardContent className="p-4 flex flex-col items-center justify-center gap-2">
+                            <Card key={student.id} className={cn("text-center transition-all relative", config.cardClass)}>
+                                <div className="absolute top-2 right-2 z-10">
+                                    <Checkbox
+                                        checked={selectedStudents.includes(student.id)}
+                                        onCheckedChange={(checked) => handleSelectionChange(student.id, Boolean(checked))}
+                                        className="bg-white"
+                                    />
+                                </div>
+                                <CardContent className="p-4 flex flex-col items-center justify-center gap-2 cursor-pointer" onClick={() => handleStatusChange(student.id)}>
                                      <Image src={student.photo_url || `https://api.dicebear.com/8.x/initials/svg?seed=${student.name}`} alt={student.name} width={64} height={64} className="rounded-full h-16 w-16 object-cover" />
                                     <p className="font-semibold text-sm truncate">{student.name}</p>
                                     <div className={cn("flex items-center gap-1.5 text-xs font-medium", config.textClass)}>
