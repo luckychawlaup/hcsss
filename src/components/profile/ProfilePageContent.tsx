@@ -115,13 +115,7 @@ export default function ProfilePageContent() {
         </div>
         
         <div className="p-4 sm:p-6 lg:p-8 space-y-4">
-             {showDetails ? (
-                profileDetails
-             ) : (
-                <Button variant="outline" className="w-full" onClick={toggleDetails}>
-                    <Eye className="mr-2" /> View Full Details
-                </Button>
-             )}
+             {showDetails && profileDetails}
 
              <Card>
                 <CardContent className="p-2">
