@@ -101,16 +101,17 @@ export default function TeacherDashboard() {
   };
 
 
-  const pendingFeedbackCount = useMemo(() => feedback.filter(l => l.status === 'Pending').length, [feedback]);
   const classTeacherStudentsCount = useMemo(() => {
     if (teacher?.role !== 'classTeacher' || !teacher.class_teacher_of) return 0;
     return assignedStudents.filter(s => `${s.class}-${s.section}` === teacher.class_teacher_of).length;
   }, [teacher, assignedStudents]);
   
   const relevantFeedback = useMemo(() => {
-    const teacherCategories = ["General Issues", "Academic Concerns", "Student Record Issues", "Discipline & Behaviour"];
+    const teacherCategories = ["General Issues", "Academic Concerns", "Suggestions & Ideas", "Feedback"];
     return feedback.filter(f => teacherCategories.includes(f.category));
   }, [feedback]);
+  
+  const pendingFeedbackCount = useMemo(() => relevantFeedback.filter(l => l.status === 'Pending').length, [relevantFeedback]);
 
 
    const renderContent = () => {

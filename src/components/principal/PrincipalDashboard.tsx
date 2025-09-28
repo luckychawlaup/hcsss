@@ -222,12 +222,10 @@ export default function PrincipalDashboard() {
 
   }, [supabase]);
 
-  const studentFeedback = useMemo(() => {
+  const principalFeedback = useMemo(() => {
     const principalCategories = ["General Issues", "Academic Concerns", "Discipline & Behaviour", "Facilities & Infrastructure", "School Portal / IT Issues", "Suggestions & Ideas", "Feedback"];
-    return allFeedback.filter(l => l.user_role === 'Student' && principalCategories.includes(l.category));
+    return allFeedback.filter(f => principalCategories.includes(f.category));
   }, [allFeedback]);
-  
-  const teacherFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Teacher'), [allFeedback]);
 
 
   const handleTeacherAdded = () => {
@@ -254,9 +252,7 @@ export default function PrincipalDashboard() {
       await deleteStudent(studentId);
   };
 
-  const pendingStudentFeedbackCount = studentFeedback.filter(l => l.status === 'Pending').length;
-  const pendingTeacherFeedbackCount = teacherFeedback.filter(l => l.status === 'Pending').length;
-  const totalPendingFeedback = pendingStudentFeedbackCount + pendingTeacherFeedbackCount;
+  const pendingStudentFeedbackCount = principalFeedback.filter(l => l.status === 'Pending').length;
   const newAdmissionsCount = allStudents.filter(s => s.status === 'Registered').length;
 
   const renderContent = () => {
@@ -396,18 +392,7 @@ export default function PrincipalDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Tabs defaultValue="students">
-                                <TabsList className="grid grid-cols-2">
-                                    <TabsTrigger value="students">Student Feedback ({pendingStudentFeedbackCount})</TabsTrigger>
-                                    <TabsTrigger value="teachers">Teacher Feedback ({pendingTeacherFeedbackCount})</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="students" className="mt-4">
-                                    <ApproveLeaves leaves={studentFeedback as any} title="Students" isPrincipal={true} />
-                                </TabsContent>
-                                <TabsContent value="teachers" className="mt-4">
-                                    <ApproveLeaves leaves={teacherFeedback as any} title="Teachers" isPrincipal={true} />
-                                </TabsContent>
-                            </Tabs>
+                           <ApproveLeaves leaves={principalFeedback as any} title="Submissions" isPrincipal={true} />
                         </CardContent>
                     </Card>
                );
@@ -500,7 +485,7 @@ export default function PrincipalDashboard() {
                         <StatCard title="Total Students" value={isLoading ? '...' : allStudents.length.toString()} icon={GraduationCap} />
                         <StatCard title="Total Teachers" value={isLoading ? '...' : allTeachers.length.toString()} icon={Users} />
                         <StatCard title="New Admissions" value={isLoading ? '...' : newAdmissionsCount.toString()} icon={UserPlus} />
-                        <StatCard title="Pending Feedback" value={isLoading ? '...' : totalPendingFeedback.toString()} icon={CalendarCheck} />
+                        <StatCard title="Pending Feedback" value={isLoading ? '...' : pendingStudentFeedbackCount.toString()} icon={CalendarCheck} />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
