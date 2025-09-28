@@ -36,8 +36,7 @@ function AnnouncementCard({ notice }: { notice: Announcement }) {
         <CardHeader>
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <CardTitle className="text-lg">{notice.title || "Announcement"}</CardTitle>
-                     <div className="text-xs text-muted-foreground mt-1">
+                     <div className="text-xs text-muted-foreground">
                         <span>{createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                         {' at '}
                         <span>{createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
