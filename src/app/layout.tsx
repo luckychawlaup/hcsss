@@ -5,7 +5,6 @@ import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Suspense } from "react";
 import NavigationPreloader from "@/components/global/NavigationPreloader";
 
@@ -53,13 +52,11 @@ export default function RootLayout({
     <html lang="en" className={`${poppins.variable}`} suppressHydrationWarning>
       <head/>
       <body className="antialiased bg-background">
-        <ThemeProvider settings={initialSettings}>
             <Suspense>
               <NavigationPreloader />
               {children}
             </Suspense>
             <Toaster />
-        </ThemeProvider>
       </body>
     </html>
   );
