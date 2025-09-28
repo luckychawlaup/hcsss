@@ -8,7 +8,7 @@ import { getStudentByAuthId } from "@/lib/supabase/students";
 import { getTeacherByAuthId } from "@/lib/supabase/teachers";
 import type { Student } from "@/lib/supabase/students";
 import type { Teacher } from "@/lib/supabase/teachers";
-import { ProfileSkeleton, StudentProfile, TeacherProfile } from "./ProfileDetails";
+import { ProfileSkeleton, StudentProfile, TeacherProfile, StudentProfileDetails, TeacherProfileDetails } from "./ProfileDetails";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
 import { LogOut, ChevronRight, MessageSquareQuote, Shield, FileText, Info, Users } from "lucide-react";
@@ -94,21 +94,34 @@ export default function ProfilePageContent() {
     );
   }
   
-  const profileDetails = role === "teacher" ? <TeacherProfile teacher={profile as Teacher} /> : <StudentProfile student={profile as Student} />;
+  const profileHeader = role === "teacher" 
+    ? <TeacherProfile teacher={profile as Teacher} /> 
+    : <StudentProfile student={profile as Student} />;
+    
+  const profileDetails = role === "teacher" 
+    ? <TeacherProfileDetails teacher={profile as Teacher} />
+    : <StudentProfileDetails student={profile as Student} />;
 
   return (
     <>
       <div className="pb-20 md:pb-0">
-        {profileDetails}
+        {profileHeader}
         
         <div className="p-4 sm:p-6 lg:p-8 space-y-4">
+             {profileDetails}
+
              <Card>
                 <CardContent className="p-2">
                     <ProfileLink href="/feedback" icon={MessageSquareQuote} title="Complaint &amp; Feedback" description="Submit your queries or suggestions" />
-                    <ProfileLink href="/help" icon={Info} title="Help &amp; FAQ" description="Find answers to common questions" />
                     <ProfileLink href="/about" icon={Users} title="About Us" description="Learn more about our school" />
-                    <ProfileLink href="/privacy" icon={Shield} title="Privacy Policy" description="How we handle your data" />
+                    <ProfileLink href="/help" icon={Info} title="Help &amp; FAQ" description="Find answers to common questions" />
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardContent className="p-2">
                     <ProfileLink href="/terms" icon={FileText} title="Terms &amp; Conditions" description="Our school's usage policies" />
+                    <ProfileLink href="/privacy" icon={Shield} title="Privacy Policy" description="How we handle your data" />
                 </CardContent>
             </Card>
 
