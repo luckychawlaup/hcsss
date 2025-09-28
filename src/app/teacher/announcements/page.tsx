@@ -132,65 +132,63 @@ export default function TeacherAnnouncementsPage() {
 
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header title="Announcements" showAvatar={true} />
-        <main className="flex flex-1 overflow-hidden">
-          {isMobile ? (
-            <div className="w-full flex flex-col h-full">
-              {!selectedClass ? (
+    <div className="flex h-screen w-full flex-col bg-background">
+      <Header title="Announcements" showAvatar={true} />
+      <main className="flex flex-1 overflow-hidden">
+        {isMobile ? (
+          <div className="w-full flex flex-col">
+            {!selectedClass ? (
+               <ClassChatGroup 
+                  assignedClasses={assignedClasses}
+                  onSelectClass={handleSelectClass}
+                  selectedClass={selectedClass}
+                  isLoading={isLoading}
+              />
+            ) : (
+               <AnnouncementChat 
+                  announcements={announcements}
+                  chatTitle={selectedClass}
+                  onSendMessage={handleSendMessage}
+                  onUpdateMessage={handleUpdateMessage}
+                  onDeleteMessage={handleDeleteMessage}
+                  senderName={teacher?.name || "Teacher"}
+                  senderRole={teacher?.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}
+                  headerContent={chatHeader}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-1 md:grid md:grid-cols-[300px_1fr]">
+            <div className="border-r">
                  <ClassChatGroup 
                     assignedClasses={assignedClasses}
                     onSelectClass={handleSelectClass}
                     selectedClass={selectedClass}
                     isLoading={isLoading}
                 />
-              ) : (
-                 <AnnouncementChat 
-                    announcements={announcements}
-                    chatTitle={selectedClass}
-                    onSendMessage={handleSendMessage}
-                    onUpdateMessage={handleUpdateMessage}
-                    onDeleteMessage={handleDeleteMessage}
-                    senderName={teacher?.name || "Teacher"}
-                    senderRole={teacher?.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}
-                    headerContent={chatHeader}
-                />
-              )}
             </div>
-          ) : (
-            <div className="flex flex-1 md:grid md:grid-cols-[300px_1fr]">
-              <div className="border-r">
-                   <ClassChatGroup 
-                      assignedClasses={assignedClasses}
-                      onSelectClass={handleSelectClass}
-                      selectedClass={selectedClass}
-                      isLoading={isLoading}
-                  />
-              </div>
-              <div className="flex flex-col">
-                  {isLoading ? (
-                      <div className="flex-1 p-4 space-y-4">
-                          <Skeleton className="h-16 w-2/3" />
-                          <Skeleton className="h-16 w-3/4 self-end" />
-                          <Skeleton className="h-12 w-1/2" />
-                      </div>
-                  ) : (
-                      <AnnouncementChat 
-                          announcements={announcements}
-                          chatTitle={selectedClass}
-                          onSendMessage={handleSendMessage}
-                          onUpdateMessage={handleUpdateMessage}
-                          onDeleteMessage={handleDeleteMessage}
-                          senderName={teacher?.name || "Teacher"}
-                          senderRole={teacher?.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}
-                      />
-                  )}
-              </div>
+            <div className="flex flex-col">
+                {isLoading ? (
+                    <div className="flex-1 p-4 space-y-4">
+                        <Skeleton className="h-16 w-2/3" />
+                        <Skeleton className="h-16 w-3/4 self-end" />
+                        <Skeleton className="h-12 w-1/2" />
+                    </div>
+                ) : (
+                    <AnnouncementChat 
+                        announcements={announcements}
+                        chatTitle={selectedClass}
+                        onSendMessage={handleSendMessage}
+                        onUpdateMessage={handleUpdateMessage}
+                        onDeleteMessage={handleDeleteMessage}
+                        senderName={teacher?.name || "Teacher"}
+                        senderRole={teacher?.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'}
+                    />
+                )}
             </div>
-          )}
-        </main>
-      </div>
+          </div>
+        )}
+      </main>
       <TeacherNav activeView="makeAnnouncement" setActiveView={() => {}} teacherRole={teacher?.role}/>
     </div>
   );
