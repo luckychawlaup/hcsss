@@ -19,7 +19,8 @@ export interface Feedback {
 
 export const FEEDBACK_TABLE_SETUP_SQL = `
 -- Creates the table for storing user-submitted feedback and complaints.
-CREATE TABLE IF NOT EXISTS public.feedback (
+DROP TABLE IF EXISTS public.feedback;
+CREATE TABLE public.feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     user_name TEXT NOT NULL,
@@ -147,6 +148,7 @@ export const updateFeedback = async (id: string, updates: Partial<Feedback>) => 
         throw error;
     }
 };
+
 
 
 
