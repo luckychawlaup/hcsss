@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import TeacherNav from "@/components/teacher/TeacherNav";
 
 const supabase = createClient();
 
@@ -188,6 +189,7 @@ export default function TeacherAnnouncementsPage() {
           </div>
         )}
       </main>
+      <TeacherNav activeView="makeAnnouncement" setActiveView={() => {}} teacherRole={teacher?.role} />
     </div>
   );
 }

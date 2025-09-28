@@ -194,7 +194,7 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
     <>
     <div className="flex flex-col h-full">
       {headerContent}
-      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 md:pb-4">
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
         {announcements.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center h-full">
             <Info className="h-12 w-12 text-muted-foreground" />
