@@ -137,7 +137,8 @@ export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveR
 };
 
 export const getLeaveRequestsForUser = (userId: string, callback: (leaves: LeaveRequest[]) => void) => {
-    const channel = supabase.channel(`leaves-user-${userId}`);
+    const channelName = `leaves-user-${userId}`;
+    const channel = supabase.channel(channelName);
 
     const fetchLeaves = async () => {
         try {
