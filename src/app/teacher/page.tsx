@@ -42,7 +42,7 @@ export default function TeacherPage() {
                     setRole(userRole);
                     if (userRole === 'student') {
                         router.replace('/');
-                    } else if (userRole === 'principal' || userRole === 'owner') {
+                    } else if (userRole === 'principal' || userRole === 'accountant') {
                         router.replace('/principal');
                     } else {
                         setLoading(false);

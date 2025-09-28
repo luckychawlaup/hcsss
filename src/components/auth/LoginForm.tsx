@@ -28,7 +28,7 @@ const loginSchema = z.object({
 });
 
 interface LoginFormProps {
-  role: "student" | "teacher" | "principal" | "owner";
+  role: "student" | "teacher" | "principal" | "accountant";
 }
 
 export default function LoginForm({ role }: LoginFormProps) {
@@ -63,18 +63,18 @@ export default function LoginForm({ role }: LoginFormProps) {
 
       const actualRole = await getRole(user);
       
-      const allowedPrincipalRoles = ['principal', 'owner'];
-      const isPrincipalLoginAttempt = allowedPrincipalRoles.includes(role);
-      const isActualPrincipal = allowedPrincipalRoles.includes(actualRole || '');
+      const allowedAdminRoles = ['principal', 'accountant'];
+      const isAdminLoginAttempt = allowedAdminRoles.includes(role);
+      const isActualAdmin = allowedAdminRoles.includes(actualRole || '');
 
-      if (isPrincipalLoginAttempt && !isActualPrincipal) {
+      if (isAdminLoginAttempt && !isActualAdmin) {
           setError("Invalid credentials for this administrative role.");
           await supabase.auth.signOut();
           setIsLoading(false);
           return;
       }
 
-      if (!isPrincipalLoginAttempt && role !== actualRole) {
+      if (!isAdminLoginAttempt && role !== actualRole) {
            setError("Invalid credentials for this role.");
            await supabase.auth.signOut();
            setIsLoading(false);
@@ -106,7 +106,7 @@ export default function LoginForm({ role }: LoginFormProps) {
       });
       
       let targetPath = '/';
-      if (isActualPrincipal) {
+      if (isActualAdmin) {
           targetPath = '/principal';
       } else if (actualRole === 'teacher') {
           targetPath = '/teacher';
@@ -148,7 +148,7 @@ export default function LoginForm({ role }: LoginFormProps) {
                   <Input
                     type="email"
                     placeholder={
-                      role === "principal" || role === "owner"
+                      role === "principal" || role === "accountant"
                       ? ""
                       : `${role}@example.com`
                     }
@@ -168,7 +168,7 @@ export default function LoginForm({ role }: LoginFormProps) {
                 <FormControl>
                   <Input 
                     type="password"
-                    placeholder={role === 'principal' || role === 'owner' ? '' : '••••••••'}
+                    placeholder={role === 'principal' || role === 'accountant' ? '' : '••••••••'}
                     {...field}
                   />
                 </FormControl>

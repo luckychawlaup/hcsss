@@ -42,7 +42,7 @@ export default function Home() {
             setRole(userRole);
             if (userRole === 'teacher') {
               router.replace('/teacher');
-            } else if (userRole === 'principal' || userRole === 'owner') {
+            } else if (userRole === 'principal' || userRole === 'accountant') {
               router.replace('/principal');
             } else {
               setIsCheckingRole(false);

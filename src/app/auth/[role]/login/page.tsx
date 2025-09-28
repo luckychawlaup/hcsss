@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -20,7 +21,7 @@ export default function LoginPage() {
   
   const role = Array.isArray(params.role) ? params.role[0] : params.role;
 
-  if (!role || !["student", "teacher", "principal", "owner"].includes(role)) {
+  if (!role || !["student", "teacher", "principal", "accountant"].includes(role)) {
     // Or redirect to a generic login/error page
     return <div>Invalid role specified.</div>;
   }
@@ -48,7 +49,7 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <LoginForm role={role as "student" | "teacher" | "principal" | "owner"} />
+          <LoginForm role={role as "student" | "teacher" | "principal" | "accountant"} />
         </div>
 
         <div className="text-center text-sm text-muted-foreground">

@@ -64,14 +64,12 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
     </Card>
 );
 
-const ownerUID = "946ba406-1ba6-49cf-ab78-f611d1350f33";
-
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
 
-const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boolean }) => {
+const AnnouncementView = ({ user, isAdmin }: { user: User | null, isAdmin: boolean }) => {
     const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const { toast } = useToast();
@@ -112,8 +110,8 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
             content,
             category,
             created_by: user.id,
-            creator_name: isOwner ? "Owner" : "Principal",
-            creator_role: isOwner ? "Owner" : "Principal",
+            creator_name: isAdmin ? "Principal" : "Accountant",
+            creator_role: isAdmin ? "Principal" : "Accountant",
         };
 
         if (selectedGroup === 'Teachers') {
@@ -175,8 +173,8 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
                     onSendMessage={handleSendMessage}
                     onUpdateMessage={handleUpdateMessage}
                     onDeleteMessage={handleDeleteMessage}
-                    senderName={isOwner ? "Owner" : "Principal"}
-                    senderRole={isOwner ? "Owner" : "Principal"}
+                    senderName={isAdmin ? "Principal" : "Accountant"}
+                    senderRole={isAdmin ? "Principal" : "Accountant"}
                 />
             </div>
         </div>
@@ -196,15 +194,18 @@ export default function PrincipalDashboard() {
   const [allLeaves, setAllLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [isOwner, setIsOwner] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
         const authUser = session?.user ?? null;
         setUser(authUser);
-        if(authUser && authUser.id === ownerUID) {
-            setIsOwner(true);
+        if(authUser) {
+            // Simplified check, assuming non-accountant admin is principal
+            if (authUser.id !== "cf210695-e635-4363-aea5-740f2707a6d7") {
+                setIsAdmin(true);
+            }
         }
     });
 
@@ -428,7 +429,7 @@ export default function PrincipalDashboard() {
                                 Publish notices to all teachers or specific class groups.
                             </CardDescription>
                         </CardHeader>
-                        <AnnouncementView user={user} isOwner={isOwner} />
+                        <AnnouncementView user={user} isAdmin={isAdmin} />
                     </Card>
               );
           case 'managePayroll':
@@ -511,7 +512,7 @@ export default function PrincipalDashboard() {
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                         <NavCard title="Manage Holidays" description="Declare school holidays" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
-                        {isOwner && (
+                        {isAdmin && (
                             <NavCard title="School Settings" description="Customize branding and theme" icon={Settings} onClick={() => setActiveView("schoolSettings")} />
                         )}
                     </div>
@@ -523,7 +524,7 @@ export default function PrincipalDashboard() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header title={isOwner ? "Owner Dashboard" : "Principal Dashboard"} showAvatar={false} />
+      <Header title={isAdmin ? "Principal Dashboard" : "Accountant Dashboard"} showAvatar={false} />
        <main className="flex flex-1 flex-col p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-6xl flex-1">
             {renderContent()}
@@ -532,5 +533,3 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
-
-    

@@ -60,7 +60,7 @@ export default function PrincipalPage() {
         checkUserRole();
     }, [supabase, router]);
 
-    if (loading || (role !== 'principal' && role !== 'owner')) {
+    if (loading || (role !== 'principal' && role !== 'accountant')) {
         return <Preloader />;
     }
 

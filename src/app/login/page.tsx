@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { User, Briefcase, School, Crown, ClipboardSignature, FilePenLine } from "lucide-react";
+import { User, Briefcase, School, Calculator, ClipboardSignature, FilePenLine } from "lucide-react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -69,7 +69,7 @@ export default function RoleSelectionPage() {
                 <RoleCard href="/auth/student/login" icon={User} title="Student" description="Student Portal" />
                 <RoleCard href="/auth/teacher/login" icon={Briefcase} title="Teacher" description="Teacher Portal" />
                 <RoleCard href="/auth/principal/login" icon={School} title="Principal" description="Admin Dashboard" />
-                <RoleCard href="/auth/owner/login" icon={Crown} title="Owner" description="Owner Dashboard" />
+                <RoleCard href="/auth/accountant/login" icon={Calculator} title="Accountant" description="Accounts Dept." />
             </div>
           </CardContent>
         </Card>
