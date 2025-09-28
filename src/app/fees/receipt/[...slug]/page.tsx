@@ -10,7 +10,7 @@ import { getStudentByAuthId, Student } from '@/lib/supabase/students';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
-import { useTheme } from '@/components/theme/ThemeProvider';
+import { useSchoolInfo } from '@/hooks/use-school-info';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 
@@ -43,7 +43,7 @@ function ReceiptPageContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [receiptNo, setReceiptNo] = useState('');
     
-    const { settings } = useTheme();
+    const { schoolInfo, isLoading: isSchoolInfoLoading } = useSchoolInfo();
     const params = useParams();
     const slug = params.slug as string[];
     const supabase = createClient();
@@ -73,11 +73,11 @@ function ReceiptPageContent() {
     const feeAmount = 5000;
     const paymentDate = new Date();
 
-    if (isLoading) {
+    if (isLoading || isSchoolInfoLoading) {
         return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
     }
 
-    if (!student || !session || !month) {
+    if (!student || !session || !month || !schoolInfo) {
         notFound();
     }
 
@@ -93,17 +93,17 @@ function ReceiptPageContent() {
                 <div className="bg-card p-6 sm:p-10 shadow-lg print:shadow-none relative z-10 border rounded-lg overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
                         <h1 className="text-[10vw] md:text-[8rem] font-bold text-gray-500/10 transform -rotate-45 select-none whitespace-nowrap">
-                            {settings.schoolName}
+                            {schoolInfo.name}
                         </h1>
                     </div>
                     <div className="relative z-10">
                         <header className="flex items-start justify-between pb-4 border-b-2 border-primary">
                             <div className="flex-shrink-0">
-                                <Image src={settings.logoUrl || "/hcsss.png"} alt="School Logo" width={80} height={80} />
+                                <Image src="/hcsss.png" alt="School Logo" width={80} height={80} />
                             </div>
                             <div className="text-center">
-                                <h1 className="text-xl font-bold text-primary">{settings.schoolName}</h1>
-                                <p className="text-xs text-muted-foreground">Joya Road, Amroha, 244221, Uttar Pradesh</p>
+                                <h1 className="text-xl font-bold text-primary">{schoolInfo.name}</h1>
+                                <p className="text-xs text-muted-foreground">{schoolInfo.address}</p>
                                 <h2 className="text-lg font-semibold mt-2">Fee Receipt</h2>
                             </div>
                             <div className="w-20"/>
@@ -170,3 +170,5 @@ export default function FeeReceiptPage() {
         </Suspense>
     );
 }
+
+    

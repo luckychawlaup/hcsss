@@ -12,10 +12,10 @@ import { getExams, Exam } from '@/lib/supabase/exams';
 import { Button } from '@/components/ui/button';
 import { Loader2, Printer, Award, Check, Percent } from 'lucide-react';
 import Image from 'next/image';
-import { useTheme } from '@/components/theme/ThemeProvider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { useSchoolInfo } from '@/hooks/use-school-info';
 
 
 function ReportCardSkeleton() {
@@ -32,8 +32,8 @@ function ReportCardContent() {
     const [exam, setExam] = useState<Exam | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState<User | null>(null);
+    const { schoolInfo, isLoading: isSchoolInfoLoading } = useSchoolInfo();
 
-    const { settings } = useTheme();
     const params = useParams();
     const router = useRouter();
     const examId = params.examId as string;
@@ -60,7 +60,7 @@ function ReportCardContent() {
                     setExam(currentExam || null);
 
                     if (studentData) {
-                        const marksData = await getStudentMarksForExam(studentData.auth_uid, examId);
+                        const marksData = await getStudentMarksForExam(studentData.id, examId);
                         setMarks(marksData);
                     }
                 } catch (error) {
@@ -81,10 +81,10 @@ function ReportCardContent() {
     const handlePrint = () => window.print();
 
     const totalMarksObtained = marks.reduce((acc, m) => acc + m.marks, 0);
-    const totalMaxMarks = marks.reduce((acc, m) => acc + m.maxMarks, 0);
+    const totalMaxMarks = marks.reduce((acc, m) => acc + m.max_marks, 0);
     const overallPercentage = totalMaxMarks > 0 ? (totalMarksObtained / totalMaxMarks) * 100 : 0;
     
-    const hasFailedAnySubject = marks.some(m => (m.marks / m.maxMarks) < 0.33);
+    const hasFailedAnySubject = marks.some(m => (m.marks / m.max_marks) < 0.33);
     
     const getResultStatus = () => {
         return hasFailedAnySubject ? { text: "NEEDS IMPROVEMENT", color: "text-red-500" } : { text: "PASS", color: "text-green-600" };
@@ -97,8 +97,8 @@ function ReportCardContent() {
         return percentage >= 33 ? { text: "Pass", variant: "success" as const } : { text: "Fail", variant: "destructive" as const };
     }
 
-    if (isLoading) return <ReportCardSkeleton />;
-    if (!student || !exam) return notFound();
+    if (isLoading || isSchoolInfoLoading) return <ReportCardSkeleton />;
+    if (!student || !exam || !schoolInfo) return notFound();
     if (marks.length === 0) {
         return (
              <div className="flex h-screen items-center justify-center text-center p-4">
@@ -118,11 +118,11 @@ function ReportCardContent() {
             <div className="mx-auto max-w-4xl bg-card p-6 sm:p-10 shadow-lg print:shadow-none relative z-10 border rounded-lg">
                 <header className="flex items-start justify-between pb-4 border-b-2 border-primary">
                     <div className="flex-shrink-0">
-                        <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} />
+                        <Image src="/hcsss.png" alt="School Logo" width={80} height={80} />
                     </div>
                     <div className="text-center">
-                        <h1 className="text-2xl font-bold text-primary">{settings.schoolName}</h1>
-                        <p className="text-sm text-muted-foreground">Joya Road, Amroha, 244221, Uttar Pradesh</p>
+                        <h1 className="text-2xl font-bold text-primary">{schoolInfo.name}</h1>
+                        <p className="text-sm text-muted-foreground">{schoolInfo.address}</p>
                         <h2 className="text-lg font-semibold mt-2">{exam.name} - Report Card</h2>
                     </div>
                     <div className="w-20"/>
@@ -154,11 +154,11 @@ function ReportCardContent() {
                         </TableHeader>
                         <TableBody>
                             {marks.map(m => {
-                                const subjectStatus = getSubjectStatus(m.marks, m.maxMarks);
+                                const subjectStatus = getSubjectStatus(m.marks, m.max_marks);
                                 return (
                                     <TableRow key={m.subject}>
                                         <TableCell className="font-medium">{m.subject}</TableCell>
-                                        <TableCell className="text-center">{m.maxMarks}</TableCell>
+                                        <TableCell className="text-center">{m.max_marks}</TableCell>
                                         <TableCell className="text-center">{m.marks}</TableCell>
                                         <TableCell className="text-center font-semibold">{m.grade}</TableCell>
                                         <TableCell className="text-center">
@@ -212,3 +212,5 @@ export default function ReportCardPage() {
         </Suspense>
     );
 }
+
+    
