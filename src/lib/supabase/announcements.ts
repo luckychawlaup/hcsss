@@ -93,7 +93,7 @@ export const getAnnouncementsForStudent = (
     };
     
     const channel = supabase
-    .channel(`announcements-for-student-${studentInfo.studentId}`)
+    .channel(`announcements-student-${studentInfo.studentId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (payload) => {
         fetchAnnouncements();
     })
@@ -121,7 +121,7 @@ export const getAnnouncementsForClass = (
         if (error) console.error(error);
     }
     const channel = supabase
-        .channel(`announcements-for-class-${classSection}`)
+        .channel(`announcements-class-${classSection}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target_audience->>value=eq.${classSection}` }, (payload) => {
              fetchAndCallback();
         })
@@ -146,7 +146,7 @@ export const getAnnouncementsForTeachers = (
     }
 
      const channel = supabase
-        .channel('announcements-for-teachers')
+        .channel('announcements-teachers')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("teachers","both")`}, (payload) => {
             fetchAndCallback();
         })
@@ -170,7 +170,7 @@ export const getAnnouncementsForAllStudents = (
     }
 
      const channel = supabase
-        .channel('announcements-for-all-students')
+        .channel('announcements-all-students')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("students","both")`}, (payload) => {
             fetchAndCallback();
         })

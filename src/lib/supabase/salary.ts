@@ -41,17 +41,17 @@ export const getSalarySlipById = async (slipId: string): Promise<SalarySlip | nu
 }
 
 export const getSalarySlipsForTeacher = (teacherId: string, callback: (slips: SalarySlip[]) => void) => {
-    const channel = supabase.channel(`salary-slips-teacher-${teacherId}`)
+    const channel = supabase.channel(`salary-slips-${teacherId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: SALARY_COLLECTION, filter: `teacher_id=eq.${teacherId}` }, 
         async () => {
             const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacher_id', teacherId).order('createdAt', { ascending: false });
             if(data) callback(data);
-        }).subscribe();
-    
-    (async () => {
-        const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacher_id', teacherId).order('createdAt', { ascending: false });
-        if(data) callback(data);
-    })();
+        }).subscribe(async (status) => {
+             if (status === 'SUBSCRIBED') {
+                const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacher_id', teacherId).order('createdAt', { ascending: false });
+                if(data) callback(data);
+            }
+        });
 
     return channel;
 };

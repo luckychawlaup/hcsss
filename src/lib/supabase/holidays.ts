@@ -78,7 +78,7 @@ export const getHolidays = (callback: (holidays: Holiday[]) => void) => {
     };
 
     const channel = supabase
-        .channel('school-holidays-channel')
+        .channel('school-holidays')
         .on('postgres_changes', { event: '*', schema: 'public', table: HOLIDAYS_TABLE }, (payload) => {
             fetchHolidays();
         })
@@ -111,7 +111,7 @@ export const getHolidaysForMonth = (month: Date, callback: (holidays: Holiday[])
     };
 
      const channel = supabase
-        .channel(`school-holidays-month-${format(month, 'yyyy-MM')}`)
+        .channel(`holidays-month-${format(month, 'yyyy-MM')}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: HOLIDAYS_TABLE }, (payload) => {
             fetchMonthHolidays();
         })

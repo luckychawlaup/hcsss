@@ -103,18 +103,19 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
 };
 
 export const getTeachersAndPending = (callback: (teachers: CombinedTeacher[]) => void) => {
-    const channel = supabase.channel('teachers-and-pending')
-        .on('postgres_changes', { event: '*', schema: 'public', table: TEACHERS_COLLECTION }, async () => {
-            const { data: teachers } = await supabase.from(TEACHERS_COLLECTION).select('*');
-            callback([...(teachers || []).map(t => ({ ...t, status: 'Registered' as const }))]);
-        })
-        .subscribe();
-    
-    (async () => {
-        const { data: teachers } = await supabase.from(TEACHERS_COLLECTION).select('*');
-        callback([...(teachers || []).map(t => ({ ...t, status: 'Registered' as const }))]);
-    })();
+    const fetchAndCallback = async () => {
+         const { data: teachers } = await supabase.from(TEACHERS_COLLECTION).select('*');
+         callback([...(teachers || []).map(t => ({ ...t, status: 'Registered' as const }))]);
+    };
 
+    const channel = supabase.channel('all-teachers')
+        .on('postgres_changes', { event: '*', schema: 'public', table: TEACHERS_COLLECTION }, fetchAndCallback)
+        .subscribe((status) => {
+            if(status === 'SUBSCRIBED') {
+                fetchAndCallback();
+            }
+        });
+    
     return () => supabase.removeChannel(channel);
 }
 
@@ -164,4 +165,13 @@ export const deleteTeacher = async (id: string) => {
             throw new Error("DB record deleted, but failed to delete auth user.");
         }
     }
+};
+
+export const getRegistrationKeyForTeacher = async (email: string): Promise<string | null> => {
+    const { data, error } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('email', email)
+        .single();
+    return data ? data.id : null;
 };

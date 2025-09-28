@@ -53,7 +53,7 @@ export const getFeesForAllStudents = (callback: (fees: Fee[]) => void) => {
     };
     
     const channel = supabase
-        .channel('all-student-fees')
+        .channel('all-fees')
         .on('postgres_changes', { event: '*', schema: 'public', table: FEES_TABLE },
         (payload) => {
             fetchFees();
@@ -92,7 +92,7 @@ export const getFeesForStudent = (studentId: string, callback: (fees: Fee[]) => 
     };
 
     const channel = supabase
-        .channel(`student-fees-${studentId}`)
+        .channel(`fees-student-${studentId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: FEES_TABLE, filter: `student_id=eq.${studentId}`},
         (payload) => {
             fetchFees();

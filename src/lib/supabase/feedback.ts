@@ -87,7 +87,7 @@ export const getFeedbackForClassTeacher = (classSection: string, callback: (feed
     };
     
     const channel = supabase
-        .channel(`feedback-for-class-${classSection}`)
+        .channel(`feedback-class-${classSection}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback', filter: `class=eq.${classSection}` }, (payload) => {
             fetchFeedback();
         })

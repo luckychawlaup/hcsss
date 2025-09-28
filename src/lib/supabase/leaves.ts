@@ -266,7 +266,7 @@ export const getLeaveRequestsForClassTeacher = (classSection: string, callback: 
         }
     };
 
-    const channel = supabase.channel(`leaves-for-class-${classSection.replace('-', '_')}`)
+    const channel = supabase.channel(`leaves-class-${classSection}`)
         .on<LeaveRequest>(
             'postgres_changes', 
             { 

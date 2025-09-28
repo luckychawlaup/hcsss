@@ -21,23 +21,22 @@ const defaultSettings: SchoolSettings = {
 // Get school settings with real-time updates
 export const getSchoolSettingsRT = (callback: (settings: SchoolSettings) => void) => {
     const channel = supabase
-        .channel('school-settings')
+        .channel('settings')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings', filter: `id=eq.${SETTINGS_ID}`},
         (payload) => {
             callback(payload.new as SchoolSettings);
         })
-        .subscribe();
-    
-    // Initial fetch
-    (async () => {
-        const { data, error } = await supabase.from('settings').select('*').eq('id', SETTINGS_ID).single();
-        if (data) {
-            callback(data);
-        } else if (error) {
-            console.warn("No school settings found, using defaults.", error.message);
-            callback(defaultSettings);
-        }
-    })();
+        .subscribe(async (status) => {
+             if (status === 'SUBSCRIBED') {
+                const { data, error } = await supabase.from('settings').select('*').eq('id', SETTINGS_ID).single();
+                if (data) {
+                    callback(data);
+                } else if (error) {
+                    console.warn("No school settings found, using defaults.", error.message);
+                    callback(defaultSettings);
+                }
+            }
+        });
     
     return channel;
 };

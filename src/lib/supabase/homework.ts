@@ -115,11 +115,7 @@ export const getHomeworks = (
         }
     }
 
-    // Initial fetch
-    fetchAndCallback();
-
-    // Set up real-time subscription with a stable channel name
-    const channelName = `homework-${classSection.replace('-', '_')}`;
+    const channelName = `homework-${classSection}`;
 
     console.log('Setting up real-time channel:', channelName);
     
@@ -136,6 +132,7 @@ export const getHomeworks = (
         .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
                 console.log('Successfully subscribed to real-time updates');
+                fetchAndCallback();
             } else if (status === 'CHANNEL_ERROR') {
                 console.error('Real-time channel error:', err);
             } else {
@@ -167,9 +164,6 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
             callback([]);
         }
     };
-
-    // Initial fetch
-    fetchAndCallback();
 
     const channel = supabase.channel(`homework-teacher-${teacherId}`)
         .on('postgres_changes', { 

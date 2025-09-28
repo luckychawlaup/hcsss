@@ -81,22 +81,21 @@ export const addStudent = async (authUid: string, studentData: Omit<Student, 'id
 };
 
 export const getStudentsAndPending = (callback: (students: CombinedStudent[]) => void) => {
-    const channel = supabase
-        .channel('students-and-pending')
-        .on('postgres_changes', { event: '*', schema: 'public', table: STUDENTS_COLLECTION }, async () => {
-            const { data: students, error: studentsError } = await supabase.from(STUDENTS_COLLECTION).select('*');
-            
-            const combined: CombinedStudent[] = (students || []).map(s => ({ ...s, status: 'Registered' as const }));
-            callback(combined);
-        })
-        .subscribe();
-    
-    (async () => {
+    const fetchAndCallback = async () => {
         const { data: students, error: studentsError } = await supabase.from(STUDENTS_COLLECTION).select('*');
         const combined: CombinedStudent[] = (students || []).map(s => ({ ...s, status: 'Registered' as const }));
         callback(combined);
-    })();
+    };
 
+    const channel = supabase
+        .channel('all-students')
+        .on('postgres_changes', { event: '*', schema: 'public', table: STUDENTS_COLLECTION }, fetchAndCallback)
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                fetchAndCallback();
+            }
+        });
+    
     return () => supabase.removeChannel(channel);
 }
 
@@ -193,13 +192,15 @@ export const getStudentsForTeacher = (teacher: any, callback: (students: Combine
         }
     }
 
-    const channel = supabase.channel(`students-for-teacher-${teacher.id}`)
+    const channel = supabase.channel(`students-teacher-${teacher.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: STUDENTS_COLLECTION }, (payload) => {
              fetchAndFilterStudents();
         })
-        .subscribe();
-    
-    fetchAndFilterStudents();
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                 fetchAndFilterStudents();
+            }
+        });
 
     return () => supabase.removeChannel(channel);
 }
