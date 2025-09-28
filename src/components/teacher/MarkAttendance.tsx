@@ -78,33 +78,32 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         return students.filter(s => `${s.class}-${s.section}` === classTeacherOf);
     }, [students, classTeacherOf]);
 
-    useEffect(() => {
-        if (!classTeacherOf || studentsInClass.length === 0) {
+    const loadAttendance = useCallback(async (date: Date) => {
+        if (!classTeacherOf) return;
+        setIsLoading(true);
+        try {
+            const records = await getAttendanceForClass(classTeacherOf, date);
+            const statuses: Record<string, AttendanceStatus> = {};
+            studentsInClass.forEach(student => {
+                const record = records.find(r => r.student_id === student.id);
+                statuses[student.id] = record?.status || 'present';
+            });
+            setStudentStatuses(statuses);
+        } catch (error) {
+            console.error('Failed to load attendance:', error);
+            toast({ variant: "destructive", title: "Error", description: "Failed to load attendance records." });
+        } finally {
             setIsLoading(false);
-            return;
-        };
+        }
+    }, [classTeacherOf, studentsInClass, toast]);
 
-        const loadAttendance = async (date: Date) => {
-            setIsLoading(true);
-            try {
-                const records = await getAttendanceForClass(classTeacherOf, date);
-                const statuses: Record<string, AttendanceStatus> = {};
-                studentsInClass.forEach(student => {
-                    const record = records.find(r => r.student_id === student.id);
-                    statuses[student.id] = record?.status || 'present';
-                });
-                setStudentStatuses(statuses);
-            } catch (error) {
-                console.error('Failed to load attendance:', error);
-                toast({ variant: "destructive", title: "Error", description: "Failed to load attendance records." });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        
-        loadAttendance(attendanceDate);
-
-    }, [attendanceDate, classTeacherOf, studentsInClass, toast]);
+    useEffect(() => {
+        if (classTeacherOf && studentsInClass.length > 0) {
+            loadAttendance(attendanceDate);
+        } else {
+            setIsLoading(false);
+        }
+    }, [attendanceDate, classTeacherOf, studentsInClass, loadAttendance]);
 
     const handleDateChange = (date: Date | undefined) => {
         if (date) {
@@ -387,17 +386,7 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                                     className="p-3 flex flex-col items-center justify-center gap-2"
                                     onClick={() => handleStatusChange(student.id)}
                                 >
-                                    <div className="relative">
-                                        <Image 
-                                            src={student.photo_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`} 
-                                            alt={student.name} 
-                                            width={56} 
-                                            height={56} 
-                                            className="rounded-full h-14 w-14 object-cover border-2 border-white shadow-sm" 
-                                        />
-                                    </div>
-                                    
-                                    <div className="w-full">
+                                    <div className="w-full pt-4">
                                         <p className="font-medium text-xs truncate mb-1" title={student.name}>
                                             {student.name}
                                         </p>
@@ -439,5 +428,3 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         </div>
     );
 }
-
-    
