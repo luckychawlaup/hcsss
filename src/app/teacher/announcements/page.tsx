@@ -91,7 +91,7 @@ export default function TeacherAnnouncementsPage() {
     };
     
      try {
-      await addAnnouncement(announcementData, file);
+      await addAnnouncement(announcementData as Omit<Announcement, "id" | "created_at">, file);
       toast({
         title: "Announcement Sent!",
         description: `Your message has been sent to ${selectedClass}.`,

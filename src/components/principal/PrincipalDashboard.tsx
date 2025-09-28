@@ -18,7 +18,7 @@ import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { addAnnouncement, getAllAnnouncements, Announcement, getAnnouncementsForClass, getAnnouncementsForTeachers, updateAnnouncement, deleteAnnouncement } from "@/lib/supabase/announcements";
+import { addAnnouncement, getAnnouncementsForClass, getAnnouncementsForTeachers, getAnnouncementsForAllStudents, updateAnnouncement, deleteAnnouncement, Announcement } from "@/lib/supabase/announcements";
 import AnnouncementChat from "../teacher/AnnouncementChat";
 import { useToast } from "@/hooks/use-toast";
 import ClassChatGroup from "../teacher/ClassChatGroup";
@@ -88,19 +88,7 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
         if (selectedGroup === 'Teachers') {
             unsubscribe = getAnnouncementsForTeachers(setAnnouncements);
         } else if (selectedGroup === 'All Students') {
-            // Special case for all students - this needs a different kind of query
-            // Let's get all announcements targeted to students without specific class
-             unsubscribe = supabase.channel('announcements-for-all-students')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (payload) => {
-                     (async () => {
-                         const { data, error } = await supabase.from('announcements').select('*').eq('target', 'students').is('target_audience', null);
-                         if(data) setAnnouncements(data);
-                     })();
-                }).subscribe();
-                 (async () => {
-                         const { data, error } = await supabase.from('announcements').select('*').eq('target', 'students').is('target_audience', null);
-                         if(data) setAnnouncements(data);
-                 })();
+            unsubscribe = getAnnouncementsForAllStudents(setAnnouncements);
         } else {
             unsubscribe = getAnnouncementsForClass(selectedGroup, setAnnouncements);
         }

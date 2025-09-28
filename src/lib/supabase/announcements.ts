@@ -39,7 +39,7 @@ const uploadFileToSupabase = async (file: File, bucket: string, folder: string):
 
 // Add a new announcement
 export const addAnnouncement = async (
-    announcementData: Partial<Omit<Announcement, 'id' | 'created_at'>>,
+    announcementData: Omit<Announcement, 'id' | 'created_at' | 'edited_at' >,
     attachment?: File
 ) => {
   try {
@@ -65,8 +65,13 @@ export const getAnnouncementsForStudent = (
 ) => {
 
     const fetchAnnouncements = async () => {
+        // Corrected query to fetch:
+        // 1. Announcements for 'both' students and teachers (no specific audience)
+        // 2. Announcements for 'all students' (target 'students', no specific audience)
+        // 3. Announcements for the student's specific class
+        // 4. Announcements for the specific student ID (not common, but supported)
         const orQuery = [
-            `target.eq.both`,
+            `target.eq.both,target_audience.is.null`,
             `target.eq.students,target_audience.is.null`,
             `target_audience->>value.eq.${studentInfo.classSection}`,
             `target_audience->>value.eq.${studentInfo.studentId}`
@@ -79,7 +84,7 @@ export const getAnnouncementsForStudent = (
             .order('created_at', { ascending: true });
 
         if (error) {
-            console.error(error);
+            console.error("Error fetching announcements for student:", error);
             callback([]);
             return;
         }
@@ -88,7 +93,7 @@ export const getAnnouncementsForStudent = (
     };
     
     const channel = supabase
-    .channel('announcements-for-student')
+    .channel(`announcements-for-student-${studentInfo.studentId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (payload) => {
         fetchAnnouncements();
     })
@@ -134,7 +139,8 @@ export const getAnnouncementsForTeachers = (
     callback: (announcements: Announcement[]) => void
 ) => {
     const fetchAndCallback = async () => {
-        const { data, error } = await supabase.from('announcements').select('*').in('target', ['teachers', 'both']).is('target_audience', null).order('created_at', { ascending: true });
+        const orQuery = 'target.eq.teachers,target.eq.both';
+        const { data, error } = await supabase.from('announcements').select('*').or(orQuery).is('target_audience', null).order('created_at', { ascending: true });
         if (data) callback(data);
         if (error) console.error(error);
     }
@@ -142,6 +148,30 @@ export const getAnnouncementsForTeachers = (
      const channel = supabase
         .channel('announcements-for-teachers')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("teachers","both")`}, (payload) => {
+            fetchAndCallback();
+        })
+        .subscribe((status) => {
+            if(status === 'SUBSCRIBED') {
+                fetchAndCallback();
+            }
+        });
+        
+    return channel;
+}
+
+export const getAnnouncementsForAllStudents = (
+    callback: (announcements: Announcement[]) => void
+) => {
+    const fetchAndCallback = async () => {
+        const orQuery = 'target.eq.students,target.eq.both';
+        const { data, error } = await supabase.from('announcements').select('*').or(orQuery).is('target_audience', null).order('created_at', { ascending: true });
+        if (data) callback(data);
+        if (error) console.error(error);
+    }
+
+     const channel = supabase
+        .channel('announcements-for-all-students')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("students","both")`}, (payload) => {
             fetchAndCallback();
         })
         .subscribe((status) => {
@@ -186,4 +216,3 @@ export const deleteAnnouncement = async (announcementId: string) => {
   const { error } = await supabase.from('announcements').delete().eq('id', announcementId);
   if (error) throw error;
 };
-
