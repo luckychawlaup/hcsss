@@ -134,9 +134,9 @@ export default function TeacherAnnouncementsPage() {
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       <Header title="Announcements" showAvatar={true} />
-      <main className="flex flex-1 overflow-hidden">
+      <main className="flex-1 overflow-y-auto">
         {isMobile ? (
-          <div className="w-full flex flex-col h-full">
+          <div className="w-full h-full">
             {!selectedClass ? (
                <ClassChatGroup 
                   assignedClasses={assignedClasses}
@@ -158,7 +158,7 @@ export default function TeacherAnnouncementsPage() {
             )}
           </div>
         ) : (
-          <div className="flex flex-1 md:grid md:grid-cols-[300px_1fr]">
+          <div className="flex flex-1 md:grid md:grid-cols-[300px_1fr] h-full">
             <div className="border-r">
                  <ClassChatGroup 
                     assignedClasses={assignedClasses}
