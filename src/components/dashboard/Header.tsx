@@ -32,7 +32,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   const isPrincipal = pathname.startsWith('/principal');
 
   // Determine notification link based on role
-  const noticesLink = isTeacher ? "/teacher/announcements" : "/notices";
+  const noticesLink = isTeacher ? "/teacher/notices" : "/notices";
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
