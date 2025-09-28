@@ -6,12 +6,12 @@ import { AlertTriangle } from "lucide-react";
 export default function RefundPolicyPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header title="Refund Policy" />
+      <Header title="Return & Refund Policy" />
       <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-4xl">
           <Card>
             <CardHeader>
-              <CardTitle>Refund Policy</CardTitle>
+              <CardTitle>Return &amp; Refund Policy</CardTitle>
               <p className="text-muted-foreground pt-2">
                 Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>

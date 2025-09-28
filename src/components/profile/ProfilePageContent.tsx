@@ -119,8 +119,8 @@ export default function ProfilePageContent() {
 
              <Card>
                 <CardContent className="p-2">
-                    <ProfileLink href="/about" icon={Users} title="About Us" description="Learn more about our school" />
                     <ProfileLink href="/feedback" icon={MessageSquareQuote} title="Complaint & Feedback" description="Submit your queries or suggestions" />
+                    <ProfileLink href="/about" icon={Users} title="About Us" description="Learn more about our school" />
                     <ProfileLink href="/help" icon={Info} title="Help & FAQ" description="Find answers to common questions" />
                 </CardContent>
             </Card>
@@ -129,7 +129,7 @@ export default function ProfilePageContent() {
                 <CardContent className="p-2">
                     <ProfileLink href="/terms" icon={FileText} title="Terms & Conditions" description="Our school's usage policies" />
                     <ProfileLink href="/privacy" icon={Shield} title="Privacy Policy" description="How we handle your data" />
-                    <ProfileLink href="/refund-policy" icon={Receipt} title="Refund Policy" description="Information on fee refunds" />
+                    <ProfileLink href="/refund-policy" icon={Receipt} title="Return & Refund Policy" description="Information on fee refunds" />
                 </CardContent>
             </Card>
 
