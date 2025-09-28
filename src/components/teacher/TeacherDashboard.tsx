@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { getTeacherByAuthId, Teacher } from "@/lib/supabase/teachers";
 import { getStudentsForTeacher, CombinedStudent, updateStudent, Student } from "@/lib/supabase/students";
-import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/supabase/leaves";
+import { getFeedbackForClassTeacher, Feedback } from "@/lib/supabase/feedback";
 import { Skeleton } from "../ui/skeleton";
 import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
@@ -50,7 +50,7 @@ export default function TeacherDashboard() {
   const [activeView, setActiveView] = useState<TeacherView>("dashboard");
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [assignedStudents, setAssignedStudents] = useState<CombinedStudent[]>([]);
-  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
@@ -83,14 +83,14 @@ export default function TeacherDashboard() {
         setIsLoading(false); // Stop loading once students are fetched
       });
       
-      let unsubscribeLeaves: any;
+      let unsubscribeFeedback: any;
       if (teacher.role === 'classTeacher' && teacher.class_teacher_of) {
-          unsubscribeLeaves = getLeaveRequestsForClassTeacher(teacher.class_teacher_of, setLeaves);
+          unsubscribeFeedback = getFeedbackForClassTeacher(teacher.class_teacher_of, setFeedback);
       }
 
       return () => {
         if(unsubscribeStudents) unsubscribeStudents();
-        if(unsubscribeLeaves) unsubscribeLeaves.unsubscribe();
+        if(unsubscribeFeedback) unsubscribeFeedback.unsubscribe();
       }
     }
   }, [teacher]);
@@ -100,7 +100,7 @@ export default function TeacherDashboard() {
   };
 
 
-  const pendingLeavesCount = leaves.filter(l => l.status === 'Pending').length;
+  const pendingFeedbackCount = feedback.filter(l => l.status === 'Pending').length;
   const classTeacherStudentsCount = useMemo(() => {
     if (teacher?.role !== 'classTeacher' || !teacher.class_teacher_of) return 0;
     return assignedStudents.filter(s => `${s.class}-${s.section}` === teacher.class_teacher_of).length;
@@ -145,19 +145,19 @@ export default function TeacherDashboard() {
                             </Button>
                              <CardTitle className="flex items-center gap-2">
                                 <CalendarCheck />
-                                Approve Student Leaves
+                                Approve Student Feedback
                             </CardTitle>
                              <CardDescription>
-                                Review and approve or reject leave applications from your students.
+                                Review and act on feedback and complaints from your students.
                             </CardDescription>
                         </CardHeader>
                          <CardContent>
                             {teacher?.role !== 'classTeacher' ? (
                                 <div className="text-center text-muted-foreground p-8 border border-dashed rounded-md">
-                                    <p>Leave approval is only available for Class Teachers.</p>
+                                    <p>Complaint review is only available for Class Teachers.</p>
                                 </div>
                             ) : (
-                                <ApproveLeaves leaves={leaves} title="your students" />
+                                <ApproveLeaves leaves={feedback as any} title="your students" />
                             )}
                         </CardContent>
                     </Card>
@@ -257,7 +257,7 @@ export default function TeacherDashboard() {
                             )}
                              {teacher?.role === 'classTeacher' && (
                                 <div className="cursor-pointer" onClick={() => setActiveView("approveLeaves")}>
-                                    <StatCard title="Pending Leaves" value={isLoading ? '...' : pendingLeavesCount.toString()} icon={CalendarCheck} />
+                                    <StatCard title="Pending Feedback" value={isLoading ? '...' : pendingFeedbackCount.toString()} icon={CalendarCheck} />
                                 </div>
                             )}
                         </div>
@@ -267,7 +267,7 @@ export default function TeacherDashboard() {
                            <NavCard title="My Leave" description="Apply for your own leave" icon={CalendarPlus} onClick={() => setActiveView("teacherLeave")} />
                            {teacher?.role === 'classTeacher' && (
                                 <>
-                                    <NavCard title="Approve Leaves" description="Manage student leave requests" icon={CalendarCheck} onClick={() => setActiveView("approveLeaves")} />
+                                    <NavCard title="Review Feedback" description="Manage student feedback" icon={CalendarCheck} onClick={() => setActiveView("approveLeaves")} />
                                     <NavCard title="Mark Attendance" description="Mark daily student attendance" icon={UserCheckIcon} onClick={() => setActiveView("markAttendance")} />
                                     <NavCard title="Gradebook & Assessments" description="Manage student grades and performance" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
                                 </>

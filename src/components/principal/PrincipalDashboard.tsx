@@ -7,8 +7,8 @@ import { User, onAuthStateChanged } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { getTeachersAndPending, updateTeacher, deleteTeacher, Teacher } from "@/lib/supabase/teachers";
 import { getStudentsAndPending, updateStudent, deleteStudent, Student, CombinedStudent } from "@/lib/supabase/students";
-import { getAllLeaveRequests } from "@/lib/supabase/leaves";
-import type { LeaveRequest } from "@/lib/supabase/leaves";
+import { getAllFeedback } from "@/lib/supabase/feedback";
+import type { Feedback } from "@/lib/supabase/feedback";
 import { prepopulateExams } from "@/lib/supabase/exams";
 import { Skeleton } from "../ui/skeleton";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info, CalendarOff } from "lucide-react";
@@ -191,7 +191,7 @@ export default function PrincipalDashboard() {
 
   const [allStudents, setAllStudents] = useState<CombinedStudent[]>([]);
   const [allTeachers, setAllTeachers] = useState<CombinedTeacher[]>([]);
-  const [allLeaves, setAllLeaves] = useState<LeaveRequest[]>([]);
+  const [allFeedback, setAllFeedback] = useState<Feedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
 
@@ -208,7 +208,7 @@ export default function PrincipalDashboard() {
 
     const unsubStudents = getStudentsAndPending(setAllStudents);
     const unsubTeachers = getTeachersAndPending(setAllTeachers);
-    const unsubLeaves = getAllLeaveRequests(setAllLeaves);
+    const unsubFeedback = getAllFeedback(setAllFeedback);
     
     const timer = setTimeout(() => setIsLoading(false), 1500);
 
@@ -216,13 +216,13 @@ export default function PrincipalDashboard() {
         authListener.subscription.unsubscribe();
         if (unsubStudents) unsubStudents();
         if (unsubTeachers) unsubTeachers();
-        if (unsubLeaves) unsubLeaves.unsubscribe();
+        if (unsubFeedback) unsubFeedback.unsubscribe();
     };
 
   }, [supabase]);
 
-  const studentLeaves = useMemo(() => allLeaves.filter(l => l.userRole === 'Student'), [allLeaves]);
-  const teacherLeaves = useMemo(() => allLeaves.filter(l => l.userRole === 'Teacher'), [allLeaves]);
+  const studentFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Student'), [allFeedback]);
+  const teacherFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Teacher'), [allFeedback]);
 
 
   const handleTeacherAdded = () => {
@@ -249,9 +249,9 @@ export default function PrincipalDashboard() {
       await deleteStudent(studentId);
   };
 
-  const pendingStudentLeavesCount = studentLeaves.filter(l => l.status === 'Pending').length;
-  const pendingTeacherLeavesCount = teacherLeaves.filter(l => l.status === 'Pending').length;
-  const totalPendingLeaves = pendingStudentLeavesCount + pendingTeacherLeavesCount;
+  const pendingStudentFeedbackCount = studentFeedback.filter(l => l.status === 'Pending').length;
+  const pendingTeacherFeedbackCount = teacherFeedback.filter(l => l.status === 'Pending').length;
+  const totalPendingFeedback = pendingStudentFeedbackCount + pendingTeacherFeedbackCount;
   const newAdmissionsCount = allStudents.filter(s => s.status === 'Registered').length;
 
   const renderContent = () => {
@@ -384,23 +384,23 @@ export default function PrincipalDashboard() {
                             </Button>
                             <CardTitle className="flex items-center gap-2">
                                 <CalendarCheck />
-                                Review Leave Applications
+                                Review Complaints & Feedback
                             </CardTitle>
                             <CardDescription>
-                                Review and approve or reject leave applications from all students and teachers.
+                                Review and act on submissions from all students and teachers.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Tabs defaultValue="students">
                                 <TabsList className="grid grid-cols-2">
-                                    <TabsTrigger value="students">Student Leaves ({pendingStudentLeavesCount})</TabsTrigger>
-                                    <TabsTrigger value="teachers">Teacher Leaves ({pendingTeacherLeavesCount})</TabsTrigger>
+                                    <TabsTrigger value="students">Student Feedback ({pendingStudentFeedbackCount})</TabsTrigger>
+                                    <TabsTrigger value="teachers">Teacher Feedback ({pendingTeacherFeedbackCount})</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="students" className="mt-4">
-                                    <ApproveLeaves leaves={studentLeaves} title="Students" />
+                                    <ApproveLeaves leaves={studentFeedback as any} title="Students" isPrincipal={true} />
                                 </TabsContent>
                                 <TabsContent value="teachers" className="mt-4">
-                                    <ApproveLeaves leaves={teacherLeaves} title="Teachers" isPrincipal={true} />
+                                    <ApproveLeaves leaves={teacherFeedback as any} title="Teachers" isPrincipal={true} />
                                 </TabsContent>
                             </Tabs>
                         </CardContent>
@@ -495,14 +495,14 @@ export default function PrincipalDashboard() {
                         <StatCard title="Total Students" value={isLoading ? '...' : allStudents.length.toString()} icon={GraduationCap} />
                         <StatCard title="Total Teachers" value={isLoading ? '...' : allTeachers.length.toString()} icon={Users} />
                         <StatCard title="New Admissions" value={isLoading ? '...' : newAdmissionsCount.toString()} icon={UserPlus} />
-                        <StatCard title="Pending Leaves" value={isLoading ? '...' : totalPendingLeaves.toString()} icon={CalendarCheck} />
+                        <StatCard title="Pending Feedback" value={isLoading ? '...' : totalPendingFeedback.toString()} icon={CalendarCheck} />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <NavCard title="Manage Teachers" description="Add, view, and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
                         <NavCard title="Manage Students" description="Admit, view, and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
                         <NavCard title="Manage Payroll" description="Generate salary slips for teachers" icon={DollarSign} onClick={() => setActiveView("managePayroll")} />
-                        <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
+                        <NavCard title="Review Feedback" description="Review submissions and complaints" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                         <NavCard title="Manage Holidays" description="Declare school holidays" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
                         <NavCard title="School Settings" description="Customize branding and theme" icon={Settings} onClick={() => setActiveView("schoolSettings")} />
