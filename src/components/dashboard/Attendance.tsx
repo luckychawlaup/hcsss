@@ -73,13 +73,31 @@ export default function Attendance() {
     }, []);
 
     useEffect(() => {
-        const getStudentAndFetchAttendance = async () => {
+        const getStudentAndSetupSubscription = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const student = await getStudentByAuthId(user.id);
                 if (student) {
                     setStudentInfo(student);
                     fetchAttendance(student.id, currentMonth);
+
+                    const channel = supabase
+                        .channel(`public:attendance:student_id=eq.${student.id}`)
+                        .on('postgres_changes', { 
+                            event: '*', 
+                            schema: 'public', 
+                            table: 'attendance', 
+                            filter: `student_id=eq.${student.id}` 
+                        },
+                            (payload) => {
+                                console.log('Attendance change detected, refetching...');
+                                fetchAttendance(student.id, currentMonth);
+                            }
+                        ).subscribe();
+                    
+                    return () => {
+                        supabase.removeChannel(channel);
+                    };
                 } else {
                     setIsLoading(false);
                 }
@@ -88,20 +106,10 @@ export default function Attendance() {
             }
         };
 
-        getStudentAndFetchAttendance();
+        const subscriptionCleanup = getStudentAndSetupSubscription();
         
-        // Set up a real-time subscription to refetch data on any change.
-        const channel = supabase
-            .channel('attendance-student-dashboard')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' },
-                (payload) => {
-                    console.log('Attendance change detected, refetching...');
-                    getStudentAndFetchAttendance();
-                }
-            ).subscribe();
-
         return () => {
-            supabase.removeChannel(channel);
+            subscriptionCleanup.then(cleanup => cleanup && cleanup());
         };
         
     }, [currentMonth, fetchAttendance, supabase]);
@@ -260,3 +268,5 @@ export default function Attendance() {
         </Card>
     );
 }
+
+    

@@ -183,47 +183,6 @@ export const getStudentAttendanceForMonth = async (studentId: string, month: Dat
     }
 };
 
-
-// Real-time function is removed for stability. We will use direct fetches.
-export const getStudentAttendanceForMonthRT = (
-    studentId: string, 
-    month: Date, 
-    callback: (records: AttendanceRecord[]) => void
-) => {
-    const fetchAndCallback = async () => {
-        const records = await getStudentAttendanceForMonth(studentId, month);
-        callback(records);
-    };
-
-    fetchAndCallback();
-
-    const channel = supabase
-        .channel(`student-attendance-${studentId}-${format(month, 'yyyy-MM')}`)
-        .on(
-            'postgres_changes', 
-            { 
-                event: '*', 
-                schema: 'public', 
-                table: ATTENDANCE_TABLE, 
-                filter: `student_id=eq.${studentId}` 
-            }, 
-            (payload) => {
-                console.log(`[RT Attendance] Payload received for student ${studentId}. Refetching.`);
-                fetchAndCallback();
-            }
-        )
-        .subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') {
-                console.log(`[RT Attendance] Subscribed for student ${studentId}`);
-            }
-            if (status === 'CHANNEL_ERROR') {
-                console.error(`[RT Attendance] Subscription error for student ${studentId}:`, err);
-            }
-        });
-
-    return channel;
-};
-
 // Get attendance statistics for a class
 export const getAttendanceStats = async (classSection: string, startDate: Date, endDate: Date) => {
     try {
@@ -259,3 +218,5 @@ export const getAttendanceStats = async (classSection: string, startDate: Date, 
         throw error;
     }
 };
+
+    

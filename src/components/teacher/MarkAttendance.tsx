@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, CalendarIcon, Save, UserX, UserCheck, UserMinus, CheckSquare, Square, Users } from "lucide-react";
+import { Loader2, CalendarIcon, Save, UserX, UserCheck, UserMinus, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -78,11 +78,11 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         return students.filter(s => `${s.class}-${s.section}` === classTeacherOf);
     }, [students, classTeacherOf]);
 
-    const loadAttendance = useCallback(async () => {
+    const loadAttendance = useCallback(async (date: Date) => {
         if (!classTeacherOf) return;
         setIsLoading(true);
         try {
-            const records = await getAttendanceForClass(classTeacherOf, attendanceDate);
+            const records = await getAttendanceForClass(classTeacherOf, date);
             const statuses: Record<string, AttendanceStatus> = {};
             studentsInClass.forEach(student => {
                 const record = records.find(r => r.student_id === student.id);
@@ -95,12 +95,18 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         } finally {
             setIsLoading(false);
         }
-    }, [classTeacherOf, attendanceDate, studentsInClass, toast]);
+    }, [classTeacherOf, studentsInClass, toast]);
 
     useEffect(() => {
-        loadAttendance();
-    }, [loadAttendance]);
+        loadAttendance(attendanceDate);
+    }, [attendanceDate, loadAttendance]);
 
+    const handleDateChange = (date: Date | undefined) => {
+        if (date) {
+            setAttendanceDate(date);
+        }
+    };
+    
     const handleStatusChange = (studentId: string) => {
         setStudentStatuses(prev => {
             const currentStatus = prev[studentId] || 'present';
@@ -226,7 +232,7 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                             <Calendar 
                                 mode="single" 
                                 selected={attendanceDate} 
-                                onSelect={(date) => date && setAttendanceDate(date)} 
+                                onSelect={handleDateChange} 
                                 initialFocus 
                                 disabled={(date) => date > new Date() || date < subDays(new Date(), 3)}
                             />
@@ -427,3 +433,5 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         </div>
     );
 }
+
+    
