@@ -14,9 +14,6 @@ export interface Mark {
 }
 
 export const MARKS_TABLE_SETUP_SQL = `
--- Drop the old table to ensure a clean start
-DROP TABLE IF EXISTS public.marks;
-
 -- Create the marks table to store student grades for each exam subject
 CREATE TABLE IF NOT EXISTS public.marks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

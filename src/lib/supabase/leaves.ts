@@ -38,11 +38,8 @@ const uploadFileToSupabase = async (file: File): Promise<string> => {
 
 
 export const LEAVES_TABLE_SETUP_SQL = `
--- 1. Drop the old table if it exists to ensure a clean start
-DROP TABLE IF EXISTS public.leaves;
-
--- 2. Create the 'leaves' table with correctly quoted column names
-CREATE TABLE public.leaves (
+-- 1. Create the 'leaves' table with correctly quoted column names
+CREATE TABLE IF NOT EXISTS public.leaves (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     "userName" TEXT NOT NULL,
@@ -59,17 +56,15 @@ CREATE TABLE public.leaves (
     document_url TEXT
 );
 
--- 3. Enable RLS on the 'leaves' table
+-- 2. Enable RLS on the 'leaves' table
 ALTER TABLE public.leaves ENABLE ROW LEVEL SECURITY;
 
--- 4. Drop existing policies to avoid conflicts from previous attempts
+-- 3. Drop existing policies to avoid conflicts
 DROP POLICY IF EXISTS "Allow authenticated users to insert their own leave" ON public.leaves;
 DROP POLICY IF EXISTS "Allow users to view their own leave requests" ON public.leaves;
-DROP POLICY IF EXISTS "Allow teachers/admins to view all leave requests" ON public.leaves;
-DROP POLICY IF EXISTS "Allow users to update their own pending requests" ON public.leaves;
-DROP POLICY IF EXISTS "Allow teachers/admins to update any leave request" ON public.leaves;
+DROP POLICY IF EXISTS "Allow teachers/admins to manage all leave requests" ON public.leaves;
 
--- 5. Create new, correct RLS policies
+-- 4. Create new, correct RLS policies
 -- Users can create their own leave requests
 CREATE POLICY "Allow authenticated users to insert their own leave"
 ON public.leaves FOR INSERT
@@ -80,21 +75,9 @@ CREATE POLICY "Allow users to view their own leave requests"
 ON public.leaves FOR SELECT
 USING (auth.uid() = user_id);
 
--- Admins/Teachers can see all leave requests
-CREATE POLICY "Allow teachers/admins to view all leave requests"
-ON public.leaves FOR SELECT
-USING (
-  (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
-  OR
-  auth.uid() IN (
-    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
-    'cf210695-e635-4363-aea5-740f2707a6d7'  -- Accountant UID
-  )
-);
-
--- Admins/Teachers can update any leave request (to approve/reject)
-CREATE POLICY "Allow teachers/admins to update any leave request"
-ON public.leaves FOR UPDATE
+-- Admins/Teachers can see and update all leave requests
+CREATE POLICY "Allow teachers/admins to manage all leave requests"
+ON public.leaves FOR ALL
 USING (
   (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
   OR
@@ -156,9 +139,12 @@ export const getLeaveRequestsForUser = (userId: string, callback: (leaves: Leave
         (payload) => {
             fetchLeaves(); // Re-fetch on change
         })
-        .subscribe(async (status) => {
+        .subscribe(async (status, err) => {
             if (status === 'SUBSCRIBED') {
                 await fetchLeaves();
+            }
+             if (err) {
+                console.error(`Real-time channel error in ${channelName}:`, err);
             }
         });
 
@@ -188,9 +174,12 @@ export const getLeaveRequestsForStudents = (studentIds: string[], callback: (lea
         (payload) => {
              fetchStudentLeaves();
         })
-        .subscribe(async (status) => {
+        .subscribe(async (status, err) => {
             if (status === 'SUBSCRIBED') {
                 await fetchStudentLeaves();
+            }
+             if (err) {
+                console.error(`Real-time channel error in student-leaves:`, err);
             }
         });
     return channel;
@@ -219,9 +208,12 @@ export const getLeaveRequestsForTeachers = (teacherIds: string[], callback: (lea
         (payload) => {
             fetchTeacherLeaves();
         })
-        .subscribe(async (status) => {
+        .subscribe(async (status, err) => {
             if (status === 'SUBSCRIBED') {
                 await fetchTeacherLeaves();
+            }
+             if (err) {
+                console.error(`Real-time channel error in teacher-leaves:`, err);
             }
         });
     return channel;
@@ -279,9 +271,12 @@ export const getLeaveRequestsForClassTeacher = (classSection: string, callback: 
                 fetchClassLeaves();
             }
         )
-        .subscribe(async (status) => {
+        .subscribe(async (status, err) => {
             if (status === 'SUBSCRIBED') {
                 await fetchClassLeaves();
+            }
+             if (err) {
+                console.error(`Real-time channel error in leaves-class-${classSection}:`, err);
             }
         });
 
@@ -311,9 +306,12 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
                 fetchAllLeaves();
             }
         )
-        .subscribe(async (status) => {
+        .subscribe(async (status, err) => {
             if (status === 'SUBSCRIBED') {
                 await fetchAllLeaves();
+            }
+             if (err) {
+                console.error(`Real-time channel error in all-leaves:`, err);
             }
         });
 

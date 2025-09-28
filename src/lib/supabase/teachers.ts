@@ -110,9 +110,12 @@ export const getTeachersAndPending = (callback: (teachers: CombinedTeacher[]) =>
 
     const channel = supabase.channel('all-teachers')
         .on('postgres_changes', { event: '*', schema: 'public', table: TEACHERS_COLLECTION }, fetchAndCallback)
-        .subscribe((status) => {
+        .subscribe((status, err) => {
             if(status === 'SUBSCRIBED') {
                 fetchAndCallback();
+            }
+             if (err) {
+                console.error(`Real-time channel error in all-teachers:`, err);
             }
         });
     

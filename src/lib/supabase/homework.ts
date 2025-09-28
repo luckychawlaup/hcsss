@@ -17,6 +17,85 @@ export interface Homework {
   attachment_url?: string;
 }
 
+export const HOMEWORK_TABLE_SETUP_SQL = `
+-- Create the homework table to store assignments for each class
+CREATE TABLE IF NOT EXISTS public.homework (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assigned_by UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
+    teacher_name TEXT NOT NULL,
+    class_section TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    description TEXT NOT NULL,
+    due_date DATE NOT NULL,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    attachment_url TEXT
+);
+
+-- Create a function to get the classes taught by the current user
+CREATE OR REPLACE FUNCTION get_teacher_classes()
+RETURNS TEXT[] AS $$
+DECLARE
+    teacher_classes TEXT[];
+BEGIN
+    SELECT
+        CASE
+            WHEN role = 'classTeacher' THEN
+                -- Include class_teacher_of and classes_taught
+                ARRAY(SELECT DISTINCT unnest(array_append(classes_taught, class_teacher_of)))
+            ELSE
+                -- Include only classes_taught
+                classes_taught
+        END
+    INTO teacher_classes
+    FROM public.teachers
+    WHERE auth_uid = auth.uid();
+
+    RETURN teacher_classes;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.homework ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Allow teachers to manage homework for their classes" ON public.homework;
+DROP POLICY IF EXISTS "Allow students to view homework for their class" ON public.homework;
+DROP POLICY IF EXISTS "Allow admins to access all homework" ON public.homework;
+
+-- Policy: Allow teachers to manage (view, insert, update, delete) homework for their assigned classes.
+CREATE POLICY "Allow teachers to manage homework for their classes"
+ON public.homework FOR ALL
+USING (
+    class_section = ANY(get_teacher_classes())
+)
+WITH CHECK (
+    class_section = ANY(get_teacher_classes())
+);
+
+-- Policy: Allow students to view homework assigned to their class section.
+CREATE POLICY "Allow students to view homework for their class"
+ON public.homework FOR SELECT
+USING (
+    class_section = (SELECT class || '-' || section FROM public.students WHERE auth_uid = auth.uid())
+);
+
+-- Policy: Allow admin users (Principal/Owner) to access all homework records.
+CREATE POLICY "Allow admins to access all homework"
+ON public.homework FOR ALL
+USING (
+    auth.uid() IN (
+        '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
+        '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
+    )
+);
+
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_homework_class_section ON public.homework(class_section);
+CREATE INDEX IF NOT EXISTS idx_homework_assigned_by ON public.homework(assigned_by);
+`;
+
+
 const uploadFileToSupabase = async (file: File, bucket: string, folder: string): Promise<string> => {
     const filePath = `${folder}/${Date.now()}_${file.name}`;
     
@@ -116,8 +195,6 @@ export const getHomeworks = (
     }
 
     const channelName = `homework-${classSection}`;
-
-    console.log('Setting up real-time channel:', channelName);
     
     const channel = supabase.channel(channelName)
         .on('postgres_changes', { 
@@ -126,17 +203,14 @@ export const getHomeworks = (
             table: HOMEWORK_COLLECTION, 
             filter: `class_section=eq.${classSection}` 
         }, (payload) => {
-            console.log('Real-time update received:', payload);
             fetchAndCallback();
         })
         .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
-                console.log('Successfully subscribed to real-time updates');
                 fetchAndCallback();
-            } else if (status === 'CHANNEL_ERROR') {
-                console.error('Real-time channel error:', err);
-            } else {
-                console.log('Subscription status:', status);
+            }
+            if (err) {
+                console.error(`Real-time channel error in ${channelName}:`, err);
             }
         });
         
@@ -172,12 +246,14 @@ export const getHomeworksByTeacher = (teacherId: string, callback: (homeworks: H
             table: HOMEWORK_COLLECTION, 
             filter: `assigned_by=eq.${teacherId}` 
         }, (payload) => {
-            console.log('Teacher homework real-time update:', payload);
             fetchAndCallback();
         })
-        .subscribe((status) => {
+        .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
                 fetchAndCallback();
+            }
+            if(err) {
+                 console.error(`Real-time channel error in homework-teacher-${teacherId}:`, err);
             }
         });
         

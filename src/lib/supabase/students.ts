@@ -90,9 +90,12 @@ export const getStudentsAndPending = (callback: (students: CombinedStudent[]) =>
     const channel = supabase
         .channel('all-students')
         .on('postgres_changes', { event: '*', schema: 'public', table: STUDENTS_COLLECTION }, fetchAndCallback)
-        .subscribe((status) => {
+        .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
                 fetchAndCallback();
+            }
+             if (err) {
+                console.error(`Real-time channel error in all-students:`, err);
             }
         });
     
@@ -163,8 +166,11 @@ export const deleteStudent = async (studentId: string) => {
     }
 };
 
-export const getStudentsForTeacher = (teacher: any, callback: (students: CombinedStudent[]) => void) => {
-    if (!teacher) return () => {};
+export const getStudentsForTeacher = (teacher: Teacher | null, callback: (students: CombinedStudent[]) => void) => {
+    if (!teacher) {
+        callback([]);
+        return () => {};
+    }
 
     const assignedClasses = new Set<string>();
     if(teacher.class_teacher_of) assignedClasses.add(teacher.class_teacher_of);
@@ -178,7 +184,11 @@ export const getStudentsForTeacher = (teacher: any, callback: (students: Combine
     }
 
     const fetchAndFilterStudents = async () => {
-        const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*');
+        const { data, error } = await supabase.from(STUDENTS_COLLECTION)
+            .select('*')
+            .in('class', classList.map(c => c.split('-')[0]))
+            .in('section', classList.map(c => c.split('-')[1]));
+            
         if (error) {
             console.error("Error fetching students for teacher:", error);
             callback([]);
@@ -196,9 +206,12 @@ export const getStudentsForTeacher = (teacher: any, callback: (students: Combine
         .on('postgres_changes', { event: '*', schema: 'public', table: STUDENTS_COLLECTION }, (payload) => {
              fetchAndFilterStudents();
         })
-        .subscribe((status) => {
+        .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
                  fetchAndFilterStudents();
+            }
+             if (err) {
+                console.error(`Real-time channel error in students-teacher-${teacher.id}:`, err);
             }
         });
 
