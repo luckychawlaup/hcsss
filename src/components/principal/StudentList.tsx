@@ -38,10 +38,12 @@ import { Input } from "../ui/input";
 import { Edit, Trash2, Loader2, ArrowLeft, FileDown, Search, Users, UserX, KeyRound, Copy, Info } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { regenerateStudentKey } from "@/lib/supabase/students";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
@@ -60,7 +62,7 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
-  const [selectedStudentForKey, setSelectedStudentForKey] = useState<PendingStudent | null>(null);
+  const [selectedStudentForKey, setSelectedStudentForKey] = useState<CombinedStudent | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [studentToEdit, setStudentToEdit] = useState<CombinedStudent | null>(null);
@@ -85,20 +87,21 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
     }
   };
   
-  const handleViewKey = (student: PendingStudent) => {
+  const handleViewKey = (student: CombinedStudent) => {
     setSelectedStudentForKey(student);
     setIsKeyDialogOpen(true);
   }
 
-  const handleRegenerateKey = async () => {
+  const handleForcePasswordReset = async () => {
     if (!selectedStudentForKey) return;
     setIsRegenerating(true);
     try {
-        const newKey = await regenerateStudentKey(selectedStudentForKey.id);
-        setSelectedStudentForKey(prev => prev ? { ...prev, registrationKey: newKey, id: newKey } : null);
-        toast({ title: "Key Regenerated", description: "A new registration key has been created." });
+        const { error } = await supabase.auth.resetPasswordForEmail(selectedStudentForKey.email);
+        if (error) throw error;
+        toast({ title: "Password Reset Sent", description: `An email has been sent to ${selectedStudentForKey.email} to reset their password.` });
+        setIsKeyDialogOpen(false);
     } catch (error) {
-        toast({ variant: "destructive", title: "Error", description: "Failed to regenerate key." });
+        toast({ variant: "destructive", title: "Error", description: "Failed to send password reset email." });
     } finally {
         setIsRegenerating(false);
     }
@@ -206,7 +209,7 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                             <TableCell>{student.father_name}</TableCell>
                             <TableCell>{student.father_phone || student.mother_phone || student.student_phone}</TableCell>
                             <TableCell className="text-right">
-                                {student.status === 'Pending' && (
+                                {student.status === 'Registered' && (
                                      <Button variant="ghost" size="icon" onClick={() => handleViewKey(student)}>
                                         <KeyRound className="h-4 w-4" />
                                     </Button>
@@ -252,21 +255,18 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
             <Dialog open={isKeyDialogOpen} onOpenChange={setIsKeyDialogOpen}>
                 <DialogContent>
                      <DialogHeader>
-                        <DialogTitle>Registration Key for {selectedStudentForKey?.name}</DialogTitle>
+                        <DialogTitle>Account Action for {selectedStudentForKey?.name}</DialogTitle>
                         <DialogDescription>
-                            Share this one-time key with the student to complete their account registration.
+                            You can force a password reset for this student's account.
                         </DialogDescription>
                     </DialogHeader>
                      <div className="flex items-center justify-between rounded-md border bg-secondary p-3">
-                        <span className="font-mono text-lg text-primary">{selectedStudentForKey?.registrationKey}</span>
-                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedStudentForKey!.registrationKey)}>
-                            <Copy className="mr-2 h-4 w-4" /> Copy
-                        </Button>
+                        <span className="font-mono text-sm">{selectedStudentForKey?.email}</span>
                     </div>
                      <DialogFooter className="sm:justify-between gap-2">
-                        <Button variant="outline" onClick={handleRegenerateKey} disabled={isRegenerating}>
+                        <Button variant="outline" onClick={handleForcePasswordReset} disabled={isRegenerating}>
                              {isRegenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Regenerate Key
+                            Force Password Reset
                         </Button>
                         <Button onClick={() => setIsKeyDialogOpen(false)}>Close</Button>
                     </DialogFooter>

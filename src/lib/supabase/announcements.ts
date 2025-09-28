@@ -186,3 +186,4 @@ export const deleteAnnouncement = async (announcementId: string) => {
   const { error } = await supabase.from('announcements').delete().eq('id', announcementId);
   if (error) throw error;
 };
+
