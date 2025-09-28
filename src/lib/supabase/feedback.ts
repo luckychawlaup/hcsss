@@ -9,7 +9,7 @@ export interface Feedback {
     user_name: string;
     user_role: string;
     class?: string;
-    category: "General" | "Fees Errors" | "Academic" | "Suggestion" | "Feedback";
+    category: "General" | "Fees Errors" | "Academic" | "Suggestion" | "Feedback" | "Student Record Errors";
     subject: string;
     description: string;
     created_at?: string;
@@ -145,8 +145,3 @@ export const updateFeedback = async (id: string, updates: Partial<Feedback>) => 
         throw error;
     }
 };
-
-
-
-
-

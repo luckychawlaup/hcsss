@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -221,7 +222,7 @@ export default function PrincipalDashboard() {
 
   }, [supabase]);
 
-  const studentFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Student' && (l.category === 'General' || l.category === 'Academic')), [allFeedback]);
+  const studentFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Student' && (l.category === 'General' || l.category === 'Academic' || l.category === 'Student Record Errors')), [allFeedback]);
   const teacherFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Teacher'), [allFeedback]);
 
 

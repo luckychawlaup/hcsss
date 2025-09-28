@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Send } from "lucide-react";
 
 const feedbackSchema = z.object({
-  category: z.enum(["General", "Fees Errors", "Academic", "Suggestion", "Feedback"], {
+  category: z.enum(["General", "Fees Errors", "Academic", "Suggestion", "Feedback", "Student Record Errors"], {
     required_error: "Please select a category.",
   }),
   subject: z.string().min(5, "Subject must be at least 5 characters long."),
@@ -128,8 +128,7 @@ export function FeedbackForm() {
         <CardHeader>
             <CardTitle>Submit Your Feedback</CardTitle>
             <CardDescription>
-                We encourage you to share your complaints or suggestions with us.{' '}
-                <strong>Don’t worry—your identity will remain anonymous.</strong> You can freely raise concerns about poor behavior or services in the school, and your complaints will be forwarded directly to the principal and your class teacher.
+                We encourage you to share your complaints or suggestions with us. <strong>Don’t worry—your identity will remain anonymous.</strong> You can freely raise concerns about poor behavior or services in the school, and your complaints will be forwarded directly to the principal and your class teacher.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -149,8 +148,9 @@ export function FeedbackForm() {
                         </FormControl>
                         <SelectContent>
                             <SelectItem value="General">General Complaint</SelectItem>
-                            <SelectItem value="Fees Errors">Fees Errors</SelectItem>
                             <SelectItem value="Academic">Academic Complaint</SelectItem>
+                            <SelectItem value="Student Record Errors">Student Record Errors</SelectItem>
+                            <SelectItem value="Fees Errors">Fees Errors</SelectItem>
                             <SelectItem value="Suggestion">Suggestion</SelectItem>
                             <SelectItem value="Feedback">General Feedback</SelectItem>
                         </SelectContent>
