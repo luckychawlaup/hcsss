@@ -23,11 +23,11 @@ const getStatusVariant = (status: Feedback["status"]) => {
     case "Solved":
       return "success";
     case "Pending":
-      return "secondary";
+      return "warning";
     case "Incomplete Details":
-      return "destructive";
+      return "orange";
     case "Resolving":
-      return "default"
+      return "info"
     default:
       return "outline";
   }
@@ -114,7 +114,6 @@ export default function ComplaintHistory() {
               {item.comment && (
                 <Alert variant="default" className="mt-2 bg-secondary">
                   <MessageCircle className="h-4 w-4" />
-                  <AlertTitle>Admin Comment</AlertTitle>
                   <AlertDescription>{item.comment}</AlertDescription>
                 </Alert>
               )}
