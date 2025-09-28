@@ -6,63 +6,78 @@ import Header from "@/components/dashboard/Header";
 import TeacherNav from "@/components/teacher/TeacherNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAnnouncementsForTeachers, Announcement } from "@/lib/supabase/announcements";
-import { Card } from "@/components/ui/card";
-import { Info, Paperclip } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Info, Paperclip, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+
 
 function AttachmentPreview({ url }: { url: string }) {
     const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
 
     return (
-        <div className="mt-2">
-            {isImage ? (
-                <Image src={url} alt="Attachment" width={200} height={200} className="rounded-md object-cover" />
-            ) : (
-                <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 underline flex items-center gap-2">
-                    <Paperclip className="h-4 w-4" /> View Attachment
-                </a>
-            )}
-        </div>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="mt-4 flex items-center gap-2 rounded-md border bg-secondary p-2 text-sm text-secondary-foreground transition-colors hover:bg-secondary/80">
+            <Paperclip className="h-4 w-4" /> 
+            {isImage ? 'View Image' : 'View Attachment'}
+        </a>
     )
 }
 
-function AnnouncementBubble({ notice }: { notice: Announcement }) {
-  const isSender = false; // Teachers are always receivers in this view
+function AnnouncementCard({ notice }: { notice: Announcement }) {
+  const createdAt = notice.created_at ? new Date(notice.created_at) : new Date();
   
   return (
-    <div className={cn("flex items-end gap-2.5", isSender ? "justify-end" : "justify-start")}>
-        {!isSender && (
-             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                 {notice.creator_name?.charAt(0)}
+    <Card className="overflow-hidden">
+        <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <CardTitle className="text-lg">{notice.title || "Announcement"}</CardTitle>
+                     <div className="text-xs text-muted-foreground mt-1">
+                        <span>{createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                        {' at '}
+                        <span>{createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                </div>
+                <Badge variant="secondary">{notice.category}</Badge>
             </div>
-        )}
-        <div className={cn("flex flex-col gap-1 w-full max-w-[320px]")}>
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                <span className="text-xs font-semibold text-foreground">{notice.creator_name}</span>
-                <span className="text-xs font-normal text-muted-foreground">{new Date(notice.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+        </CardHeader>
+        <CardContent>
+            <p className="whitespace-pre-wrap">{notice.content}</p>
+            {notice.attachment_url && <AttachmentPreview url={notice.attachment_url} />}
+        </CardContent>
+        <CardFooter className="bg-secondary/40 px-6 py-3">
+             <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                    <AvatarFallback>{notice.creator_name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <p className="text-sm font-semibold">{notice.creator_name}</p>
+                    <p className="text-xs text-muted-foreground">{notice.creator_role}</p>
+                </div>
             </div>
-            <div className={cn("p-3 rounded-lg", isSender ? "bg-primary text-primary-foreground rounded-ee-none" : "bg-secondary rounded-es-none")}>
-                {notice.title && <p className="text-sm font-semibold pb-1">{notice.title}</p>}
-                <p className="text-sm font-normal">{notice.content}</p>
-                 {notice.attachment_url && <AttachmentPreview url={notice.attachment_url} />}
-            </div>
-             <span className="text-xs font-normal text-muted-foreground">{notice.creator_role} ({notice.category})</span>
-        </div>
-    </div>
+        </CardFooter>
+    </Card>
   )
 }
 
 function AnnouncementSkeleton() {
     return (
         <>
-            <div className="flex items-end gap-2.5 justify-start">
-                <Skeleton className="w-8 h-8 rounded-full" />
-                <div className="flex flex-col gap-1 w-full max-w-[320px]">
-                    <Skeleton className="h-4 w-24 mb-1" />
-                    <Skeleton className="h-16 w-full" />
-                </div>
-            </div>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                </CardContent>
+                <CardFooter>
+                    <Skeleton className="h-8 w-1/3" />
+                </CardFooter>
+            </Card>
         </>
     )
 }
@@ -74,7 +89,8 @@ export default function TeacherNoticesPage() {
   useEffect(() => {
     setIsLoading(true);
     const unsubscribe = getAnnouncementsForTeachers((announcements) => {
-        setNotices(announcements);
+        const sorted = announcements.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setNotices(sorted);
         setIsLoading(false);
     });
 
@@ -100,12 +116,9 @@ export default function TeacherNoticesPage() {
              </Card>
           ) : (
             notices.map((notice) => (
-                <AnnouncementBubble key={notice.id} notice={notice} />
+                <AnnouncementCard key={notice.id} notice={notice} />
             ))
           )}
-        </div>
-        <div className="text-center text-xs text-muted-foreground pt-4 mt-auto">
-            This is a one-way announcement channel. You cannot reply to these messages.
         </div>
       </main>
       <TeacherNav activeView="dashboard" setActiveView={() => {}} />
