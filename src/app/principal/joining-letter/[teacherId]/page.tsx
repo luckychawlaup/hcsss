@@ -76,7 +76,7 @@ export default function JoiningLetterPage() {
         
         <header className="flex items-start justify-between pb-6">
             <div className="flex-shrink-0">
-                <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} />
+                <Image src={settings.logoUrl || "/hcsss.png"} alt="School Logo" width={80} height={80} />
             </div>
             <div className="text-right">
                 <h1 className="text-3xl font-bold text-primary">{settings.schoolName || "Hilton Convent School"}</h1>

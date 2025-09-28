@@ -43,7 +43,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between gap-4 border-b bg-card/80 px-4 shadow-sm backdrop-blur-sm sm:px-6">
       <Link href="/" className="flex items-center gap-3">
-        <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={56} height={56} />
+        <Image src={settings.logoUrl || "/hcsss.png"} alt="School Logo" width={56} height={56} />
         <h1 className="text-xl font-bold text-foreground sm:text-2xl font-headline truncate">
           {title || "HCSSS"}
         </h1>

@@ -13,7 +13,7 @@ export interface SchoolSettings {
 
 const defaultSettings: SchoolSettings = {
     schoolName: "Hilton Convent School",
-    logoUrl: "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png",
+    logoUrl: "/hcsss.png",
     primaryColor: "hsl(358, 80%, 47%)",
     accentColor: "hsl(358, 80%, 47%)",
 };

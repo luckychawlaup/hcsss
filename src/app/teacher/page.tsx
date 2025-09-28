@@ -15,7 +15,7 @@ function Preloader() {
             <div className="relative flex h-32 w-32 items-center justify-center">
                 <div className="absolute h-full w-full animate-spin rounded-full border-4 border-primary border-t-transparent" />
                 <Image 
-                    src="https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"
+                    src="/hcsss.png"
                     alt="School Logo" 
                     width={100} 
                     height={100} 

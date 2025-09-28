@@ -99,7 +99,7 @@ function ReceiptPageContent() {
                     <div className="relative z-10">
                         <header className="flex items-start justify-between pb-4 border-b-2 border-primary">
                             <div className="flex-shrink-0">
-                                <Image src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"} alt="School Logo" width={80} height={80} />
+                                <Image src={settings.logoUrl || "/hcsss.png"} alt="School Logo" width={80} height={80} />
                             </div>
                             <div className="text-center">
                                 <h1 className="text-xl font-bold text-primary">{settings.schoolName}</h1>

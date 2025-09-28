@@ -35,7 +35,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Image
-            src={settings.logoUrl || "https://cnvwsxlwpvyjxemgpdks.supabase.co/storage/v1/object/public/files/hcsss.png"}
+            src={settings.logoUrl || "/hcsss.png"}
             alt="School Logo"
             width={80}
             height={80}
