@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { History, Loader2 } from "lucide-react";
+import { History, Loader2, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 
 const getStatusVariant = (status: Feedback["status"]) => {
   switch (status) {
@@ -109,6 +110,15 @@ export default function ComplaintHistory() {
                 </div>
                 <Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>
               </div>
+              
+              {item.comment && (
+                <Alert variant="default" className="mt-2 bg-secondary">
+                  <MessageCircle className="h-4 w-4" />
+                  <AlertTitle>Admin Comment</AlertTitle>
+                  <AlertDescription>{item.comment}</AlertDescription>
+                </Alert>
+              )}
+
               <p className="text-xs text-muted-foreground pt-2 border-t mt-2">
                 Submitted on {formatDate(item.created_at)}
               </p>

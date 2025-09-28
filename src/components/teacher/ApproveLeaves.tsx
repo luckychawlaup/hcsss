@@ -39,6 +39,7 @@ import Link from "next/link";
 import { Textarea } from "../ui/textarea";
 import { StudentProfile, StudentProfileDetails } from "../profile/ProfileDetails";
 import { Skeleton } from "../ui/skeleton";
+import { cn } from "@/lib/utils";
 
 type CombinedItem = LeaveRequest | Feedback;
 
@@ -77,9 +78,6 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
 
 
   const handleViewStudentDetails = async (userId: string) => {
-    const isActionableComplaint = isPrincipal || title === "Fees";
-    if (!isActionableComplaint) return;
-
     setIsLoadingStudent(true);
     setIsStudentDetailOpen(true);
     try {
@@ -185,8 +183,11 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
           const isActionable = isFeedback && (item.category === "Fee-related Issues" || item.category === "School Portal / IT Issues");
           
           return (
-            <Card key={item.id} className={isActionable ? "cursor-pointer hover:border-primary/50" : ""} onClick={isActionable ? () => handleViewStudentDetails(item.user_id) : undefined}>
-                <CardHeader>
+            <Card key={item.id}>
+                <CardHeader 
+                  className={cn(isActionable && "cursor-pointer hover:bg-secondary/50 transition-colors")}
+                  onClick={isActionable ? () => handleViewStudentDetails(item.user_id) : undefined}
+                >
                     <div className="flex items-start justify-between">
                         <div>
                         <CardTitle className="flex items-center gap-2">
@@ -194,7 +195,7 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                           {isActionable && <Info className="h-4 w-4 text-primary" title="Click to view student details"/>}
                         </CardTitle>
                         <CardDescription>
-                            {item.userRole === "Student" ? `Class ${item.class}` : `Teacher`}
+                            {item.userRole === "Student" && item.class ? `Class ${item.class}` : `Teacher`}
                              {isFeedback && <span className="font-semibold"> ({item.category})</span>}
                         </CardDescription>
                         </div>
@@ -298,4 +299,3 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
     </>
   );
 }
-
