@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import {
   Card,
   CardHeader,
@@ -11,7 +12,7 @@ import {
   CardFooter
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Circle, Banknote, Info, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, Circle, Banknote, Info, AlertTriangle, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { Checkbox } from "../ui/checkbox";
@@ -155,10 +156,19 @@ export default function FeeStatus() {
                     )}
                     <label htmlFor={month} className={cn("font-medium", !isSelectable && "cursor-not-allowed text-muted-foreground")}>{month}</label>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                     <p className="text-sm text-muted-foreground w-20 text-right">₹{monthData.amount.toLocaleString('en-IN')}</p>
-                    <div className="w-20 text-center">
-                        <StatusBadge status={currentMonthStatus} />
+                    <div className="w-[110px] text-center flex justify-end">
+                        {currentMonthStatus === 'paid' ? (
+                             <Button asChild variant="secondary" size="sm">
+                                <Link href={`/fees/receipt/${currentSession}/${month}`}>
+                                    <FileText className="mr-2 h-3 w-3" />
+                                    Receipt
+                                </Link>
+                            </Button>
+                        ) : (
+                            <StatusBadge status={currentMonthStatus} />
+                        )}
                     </div>
                     </div>
                 </div>
