@@ -27,7 +27,7 @@ CREATE TABLE public.attendance (
     class_section TEXT NOT NULL,
     date DATE NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('present', 'absent', 'half-day')),
-    marked_by UUID NOT NULL,
+    marked_by UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT attendance_unique_student_date UNIQUE (student_id, date)
 );

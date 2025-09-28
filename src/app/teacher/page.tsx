@@ -37,14 +37,20 @@ export default function TeacherPage() {
         const checkUserRole = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                const userRole = await getRole(user);
-                setRole(userRole);
-                if (userRole === 'student') {
-                    router.replace('/');
-                } else if (userRole === 'principal' || userRole === 'owner') {
-                    router.replace('/principal');
-                } else {
-                    setLoading(false);
+                try {
+                    const userRole = await getRole(user);
+                    setRole(userRole);
+                    if (userRole === 'student') {
+                        router.replace('/');
+                    } else if (userRole === 'principal' || userRole === 'owner') {
+                        router.replace('/principal');
+                    } else {
+                        setLoading(false);
+                    }
+                } catch(e) {
+                    console.error("Error getting user role:", e);
+                    await supabase.auth.signOut();
+                    router.replace('/login');
                 }
             } else {
                 router.replace('/login');

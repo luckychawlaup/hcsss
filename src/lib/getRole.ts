@@ -10,14 +10,15 @@ export const getRole = async (user: User | null): Promise<'teacher' | 'student' 
     if (user.id === principalUID) return 'principal';
     if (user.id === ownerUID) return 'owner';
     
-    // For a student user, this call will be rejected by RLS, but we can catch it.
     try {
         const teacher = await getTeacherByAuthId(user.id);
         if (teacher) return 'teacher';
     } catch (error) {
-        // This is expected for non-teacher roles. We can ignore the error.
+        // This is an expected error for non-teacher roles due to RLS.
+        // We can safely ignore it and proceed to check for the student role.
     }
     
-    // If it's not any of the admin roles and not a teacher, it must be a student.
+    // If not an admin and not a teacher, assume student.
+    // A more robust system might check a students table, but this is the current logic.
     return 'student';
 }

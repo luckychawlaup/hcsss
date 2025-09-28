@@ -3,7 +3,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { format } from "date-fns";
-import type { Teacher, Student } from "@/lib/supabase/students";
+import type { Teacher } from "@/lib/supabase/teachers";
+import type { Student } from "@/lib/supabase/students";
 import { getAttendanceForClass, setAttendance, AttendanceRecord } from "@/lib/supabase/attendance";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -85,7 +86,7 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                 class_section: classTeacherOf,
                 date: format(attendanceDate, "yyyy-MM-dd"),
                 status: studentStatuses[student.id] || 'present',
-                marked_by: teacher.auth_uid,
+                marked_by: teacher.id,
             }));
             await setAttendance(attendanceData);
             toast({ title: "Success", description: `Attendance for ${format(attendanceDate, "PPP")} has been saved.` });
@@ -96,7 +97,7 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
         }
     };
     
-    if (!classTeacherOf) {
+    if (teacher?.role !== 'classTeacher') {
         return (
             <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
                 <UserX className="h-12 w-12 text-muted-foreground" />

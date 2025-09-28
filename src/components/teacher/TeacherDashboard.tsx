@@ -84,7 +84,7 @@ export default function TeacherDashboard() {
     });
 
     return () => authListener.subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (teacher) {
