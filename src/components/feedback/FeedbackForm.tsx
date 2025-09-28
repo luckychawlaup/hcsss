@@ -128,7 +128,8 @@ export function FeedbackForm() {
         <CardHeader>
             <CardTitle>Submit Your Feedback</CardTitle>
             <CardDescription>
-                We encourage you to file complaints or give suggestions to us. Don't worry, while filing a complaint here your identity will be kept anonymous so you don't need to be afraid of calling out poor behaviour or services of the school. These complaints are directly forwarded to the principal & the class teacher.
+                We encourage you to share your complaints or suggestions with us.{' '}
+                <strong>Don’t worry—your identity will remain anonymous.</strong> You can freely raise concerns about poor behavior or services in the school, and your complaints will be forwarded directly to the principal and your class teacher.
             </CardDescription>
         </CardHeader>
         <CardContent>
