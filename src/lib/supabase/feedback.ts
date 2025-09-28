@@ -16,11 +16,12 @@ export interface Feedback {
     description: string;
     created_at?: string;
     status: FeedbackStatus;
+    comment?: string;
 }
 
 
 export const FEEDBACK_TABLE_SETUP_SQL = `
--- Re-create the table to ensure the 'class' column is added and status has new values
+-- Re-create the table to ensure the 'class' and 'comment' columns are added and status has new values
 DROP TABLE IF EXISTS public.feedback;
 CREATE TABLE public.feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -32,14 +33,14 @@ CREATE TABLE public.feedback (
     subject TEXT NOT NULL,
     description TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Resolving', 'Solved', 'Incomplete Details')),
+    comment TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Enable RLS for the feedback table
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow authenticated users to submit feedback" ON public.feedback;
-DROP POLICY IF EXISTS "Allow principal to read all feedback" ON public.feedback;
-DROP POLICY IF EXISTS "Allow class teachers to read feedback from their class" ON public.feedback;
+DROP POLICY IF EXISTS "Allow admins and teachers to manage feedback" ON public.feedback;
 DROP POLICY IF EXISTS "Allow users to read their own feedback" ON public.feedback;
 
 
@@ -54,23 +55,24 @@ ON public.feedback FOR SELECT
 USING (auth.uid() = user_id);
 
 
--- Policy: Allow Principal to read all feedback
-CREATE POLICY "Allow principal to read all feedback"
-ON public.feedback FOR ALL
-USING (auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7'));
-
--- Policy: Allow class teachers to read feedback from their assigned class students
-CREATE POLICY "Allow class teachers to read feedback from their class"
+-- Policy: Allow Principal, Accountant, and Teachers to read and update feedback
+CREATE POLICY "Allow admins and teachers to manage feedback"
 ON public.feedback FOR ALL
 USING (
-    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
-    AND
-    class = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid())
+  auth.uid() IN (
+    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
+    'cf210695-e635-4363-aea5-740f2707a6d7'  -- Accountant UID
+  )
+  OR
+  EXISTS (
+    SELECT 1 FROM public.teachers
+    WHERE auth_uid = auth.uid()
+  )
 );
 `;
 
 
-export const addFeedback = async (feedbackData: Omit<Feedback, 'id' | 'created_at' | 'status'>) => {
+export const addFeedback = async (feedbackData: Omit<Feedback, 'id' | 'created_at' | 'status' | 'comment'>) => {
     const payload = {
         ...feedbackData,
         status: 'Pending' as FeedbackStatus
@@ -115,7 +117,7 @@ export const getFeedbackForClassTeacher = (classSection: string, callback: (feed
     return channel;
 };
 
-// For Principal: Get all feedback
+// For Principal/Accountant: Get all feedback
 export const getAllFeedback = (callback: (feedback: Feedback[]) => void) => {
     const fetchAllFeedback = async () => {
         const { data, error } = await supabase.from('feedback')
