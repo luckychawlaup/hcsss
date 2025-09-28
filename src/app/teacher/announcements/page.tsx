@@ -132,8 +132,7 @@ export default function TeacherAnnouncementsPage() {
 
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
-      <TeacherNav activeView="makeAnnouncement" setActiveView={() => {}} teacherRole={teacher?.role}/>
+    <div className="flex min-h-screen w-full flex-col bg-background">
       <div className="flex flex-1 flex-col">
         <Header title="Announcements" showAvatar={true} />
         <main className="flex flex-1">
@@ -192,6 +191,7 @@ export default function TeacherAnnouncementsPage() {
           )}
         </main>
       </div>
+      <TeacherNav activeView="makeAnnouncement" setActiveView={() => {}} teacherRole={teacher?.role}/>
     </div>
   );
 }

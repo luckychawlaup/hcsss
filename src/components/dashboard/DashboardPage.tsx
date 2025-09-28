@@ -27,8 +27,7 @@ function DashboardLoadingSkeleton() {
 
 export default function DashboardPage() {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
-      <StudentNav />
+    <div className="flex min-h-screen w-full flex-col bg-background">
       <div className="flex flex-1 flex-col">
         <Header title="Student Dashboard" showAvatar={true} />
         <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
@@ -44,9 +43,7 @@ export default function DashboardPage() {
             </Suspense>
         </main>
       </div>
-      <div className="md:hidden">
-        <BottomNav />
-      </div>
+      <StudentNav />
     </div>
   );
 }

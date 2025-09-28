@@ -111,7 +111,7 @@ export default function TeacherDashboard() {
                 return (
                      <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -137,7 +137,7 @@ export default function TeacherDashboard() {
                 return (
                     <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -164,7 +164,7 @@ export default function TeacherDashboard() {
                 return (
                     <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -185,7 +185,7 @@ export default function TeacherDashboard() {
                 return (
                     <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -206,7 +206,7 @@ export default function TeacherDashboard() {
                 return (
                     <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -227,7 +227,7 @@ export default function TeacherDashboard() {
                 return (
                     <Card>
                         <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary md:hidden">
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to Dashboard
                             </Button>
@@ -250,7 +250,7 @@ export default function TeacherDashboard() {
                         <div className="mx-auto grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
                            {teacher?.role === 'classTeacher' && (
                                 <div className="cursor-pointer" onClick={() => setActiveView("manageStudents")}>
-                                    <StatCard title="Total Students" value={isLoading ? '...' : classTeacherStudentsCount.toString()} icon={Users} />
+                                    <StatCard title="My Class Students" value={isLoading ? '...' : classTeacherStudentsCount.toString()} icon={Users} />
                                 </div>
                             )}
                              {teacher?.role === 'classTeacher' && (
@@ -260,9 +260,13 @@ export default function TeacherDashboard() {
                             )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <NavCard title="My Students" description="View students in your classes" icon={Users} onClick={() => setActiveView("manageStudents")} />
                            <NavCard title="Announcements" description="Send announcements to classes" icon={Megaphone} onClick={() => router.push('/teacher/announcements')} />
+                           <NavCard title="Assign Homework" description="Create and manage homework" icon={BookUp} onClick={() => setActiveView("addHomework")} />
+                           <NavCard title="My Leave" description="Apply for your own leave" icon={CalendarPlus} onClick={() => setActiveView("teacherLeave")} />
                            {teacher?.role === 'classTeacher' && (
                                 <>
+                                    <NavCard title="Approve Leaves" description="Manage student leave requests" icon={CalendarCheck} onClick={() => setActiveView("approveLeaves")} />
                                     <NavCard title="Mark Attendance" description="Mark daily student attendance" icon={UserCheckIcon} onClick={() => setActiveView("markAttendance")} />
                                     <NavCard title="Gradebook & Assessments" description="Manage student grades and performance" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
                                 </>
@@ -274,7 +278,7 @@ export default function TeacherDashboard() {
    };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
+    <div className="flex min-h-screen w-full flex-col bg-background">
       <TeacherNav activeView={activeView} setActiveView={setActiveView} teacherRole={teacher?.role} />
       <div className="flex flex-1 flex-col">
         <Header title="Teacher Dashboard" showAvatar={true} />
