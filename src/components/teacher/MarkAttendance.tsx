@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -10,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, CalendarIcon, Save, UserX, UserCheck, UserMinus, User, CheckSquare, Square } from "lucide-react";
+import { Loader2, CalendarIcon, Save, UserX, UserCheck, UserMinus, CheckSquare, Square, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 type AttendanceStatus = "present" | "absent" | "half-day";
 
@@ -25,10 +25,34 @@ const statusCycle: Record<AttendanceStatus, AttendanceStatus> = {
     'half-day': 'present'
 };
 
-const statusConfig: Record<AttendanceStatus, { label: string; icon: React.ReactNode; cardClass: string; textClass: string }> = {
-    present: { label: 'Present', icon: <UserCheck />, cardClass: 'bg-green-500/10 border-green-500/30', textClass: 'text-green-600' },
-    absent: { label: 'Absent', icon: <UserX />, cardClass: 'bg-red-500/10 border-red-500/30', textClass: 'text-red-600' },
-    'half-day': { label: 'Half Day', icon: <UserMinus />, cardClass: 'bg-yellow-500/10 border-yellow-500/30', textClass: 'text-yellow-600' }
+const statusConfig: Record<AttendanceStatus, { 
+    label: string; 
+    icon: React.ReactNode; 
+    cardClass: string; 
+    textClass: string;
+    badgeVariant: "default" | "destructive" | "secondary" | "outline";
+}> = {
+    present: { 
+        label: 'Present', 
+        icon: <UserCheck className="w-4 h-4" />, 
+        cardClass: 'bg-green-50 border-green-200 hover:bg-green-100', 
+        textClass: 'text-green-700',
+        badgeVariant: 'default'
+    },
+    absent: { 
+        label: 'Absent', 
+        icon: <UserX className="w-4 h-4" />, 
+        cardClass: 'bg-red-50 border-red-200 hover:bg-red-100', 
+        textClass: 'text-red-700',
+        badgeVariant: 'destructive'
+    },
+    'half-day': { 
+        label: 'Half Day', 
+        icon: <UserMinus className="w-4 h-4" />, 
+        cardClass: 'bg-orange-50 border-orange-200 hover:bg-orange-100', 
+        textClass: 'text-orange-700',
+        badgeVariant: 'secondary'
+    }
 };
 
 interface MarkAttendanceProps {
@@ -44,25 +68,52 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
     const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const { toast } = useToast();
 
-    const classTeacherOf = useMemo(() => teacher?.role === 'classTeacher' ? teacher.class_teacher_of : null, [teacher]);
+    const classTeacherOf = useMemo(() => {
+        const result = teacher?.role === 'classTeacher' ? teacher.class_teacher_of : null;
+        console.log('Class teacher of:', result);
+        console.log('Teacher role:', teacher?.role);
+        return result;
+    }, [teacher]);
     
     const studentsInClass = useMemo(() => {
-        if (!classTeacherOf) return [];
-        return students.filter(s => `${s.class}-${s.section}` === classTeacherOf);
+        if (!classTeacherOf) {
+            console.log('No class assigned to teacher');
+            return [];
+        }
+        
+        console.log('Filtering students for class:', classTeacherOf);
+        console.log('Total students:', students.length);
+        console.log('Sample student classes:', students.slice(0, 3).map(s => `${s.class}-${s.section}`));
+        
+        const filtered = students.filter(s => {
+            const studentClass = `${s.class}-${s.section}`;
+            console.log(`Student ${s.name}: ${studentClass} === ${classTeacherOf}?`, studentClass === classTeacherOf);
+            return studentClass === classTeacherOf;
+        });
+        
+        console.log('Filtered students count:', filtered.length);
+        console.log('Filtered students:', filtered.map(s => s.name));
+        
+        return filtered;
     }, [students, classTeacherOf]);
 
     const loadAttendance = useCallback(async () => {
         if (!classTeacherOf) return;
         setIsLoading(true);
         try {
+            console.log(`Loading attendance for class: ${classTeacherOf}, date: ${format(attendanceDate, 'yyyy-MM-dd')}`);
             const records = await getAttendanceForClass(classTeacherOf, attendanceDate);
+            console.log('Loaded attendance records:', records);
+            
             const statuses: Record<string, AttendanceStatus> = {};
             studentsInClass.forEach(student => {
                 const record = records.find(r => r.student_id === student.id);
                 statuses[student.id] = record?.status || 'present';
             });
             setStudentStatuses(statuses);
+            console.log('Student statuses set:', statuses);
         } catch (error) {
+            console.error('Failed to load attendance:', error);
             toast({ variant: "destructive", title: "Error", description: "Failed to load attendance records." });
         } finally {
             setIsLoading(false);
@@ -74,16 +125,23 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
     }, [loadAttendance]);
 
     const handleStatusChange = (studentId: string) => {
-        setStudentStatuses(prev => ({
-            ...prev,
-            [studentId]: statusCycle[prev[studentId] || 'present']
-        }));
+        setStudentStatuses(prev => {
+            const currentStatus = prev[studentId] || 'present';
+            const newStatus = statusCycle[currentStatus];
+            console.log(`Status changed for student ${studentId}: ${currentStatus} -> ${newStatus}`);
+            return {
+                ...prev,
+                [studentId]: newStatus
+            };
+        });
     };
 
     const handleSelectionChange = (studentId: string, checked: boolean) => {
-        setSelectedStudents(prev => 
-            checked ? [...prev, studentId] : prev.filter(id => id !== studentId)
-        );
+        setSelectedStudents(prev => {
+            const newSelection = checked ? [...prev, studentId] : prev.filter(id => id !== studentId);
+            console.log(`Selection changed for student ${studentId}:`, newSelection);
+            return newSelection;
+        });
     };
 
     const handleSelectAll = (checked: boolean) => {
@@ -103,6 +161,8 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
             });
             return;
         }
+        
+        console.log(`Bulk marking ${selectedStudents.length} students as ${status}`);
         setStudentStatuses(prev => {
             const newStatuses = { ...prev };
             selectedStudents.forEach(id => {
@@ -111,26 +171,74 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
             return newStatuses;
         });
         setSelectedStudents([]); // Deselect all after action
+        
+        toast({
+            title: 'Bulk Action Applied',
+            description: `Marked ${selectedStudents.length} students as ${status}.`
+        });
     };
 
     const handleSubmit = async () => {
-        if (!classTeacherOf || !teacher) return;
+        if (!classTeacherOf || !teacher) {
+            console.error('Missing class or teacher information');
+            return;
+        }
+        
+        console.log('Starting attendance submission...');
+        console.log('Teacher:', teacher);
+        console.log('Class:', classTeacherOf);
+        console.log('Date:', format(attendanceDate, 'yyyy-MM-dd'));
+        console.log('Student statuses:', studentStatuses);
+        
         setIsSubmitting(true);
         try {
-            const attendanceData: Omit<AttendanceRecord, 'id'>[] = studentsInClass.map(student => ({
-                student_id: student.id,
-                class_section: classTeacherOf,
-                date: format(attendanceDate, "yyyy-MM-dd"),
-                status: studentStatuses[student.id] || 'present',
-                marked_by: teacher.id,
-            }));
+            const attendanceData: Omit<AttendanceRecord, 'id'>[] = studentsInClass.map(student => {
+                const status = studentStatuses[student.id] || 'present';
+                return {
+                    student_id: student.id,
+                    class_section: classTeacherOf,
+                    date: format(attendanceDate, "yyyy-MM-dd"),
+                    status: status,
+                    marked_by: teacher.id,
+                };
+            });
+            
+            console.log('Attendance data to be saved:', attendanceData);
+            
+            if (attendanceData.length === 0) {
+                throw new Error('No students found to mark attendance for');
+            }
+            
             await setAttendance(attendanceData);
-            toast({ title: "Success", description: `Attendance for ${format(attendanceDate, "PPP")} has been saved.` });
+            console.log('Attendance saved successfully');
+            
+            toast({ 
+                title: "Success", 
+                description: `Attendance for ${format(attendanceDate, "PPP")} has been saved successfully.` 
+            });
         } catch (error) {
-            toast({ variant: "destructive", title: "Error", description: "Failed to save attendance." });
+            console.error('Failed to save attendance:', error);
+            toast({ 
+                variant: "destructive", 
+                title: "Error", 
+                description: `Failed to save attendance: ${error instanceof Error ? error.message : 'Unknown error'}` 
+            });
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    // Quick action buttons
+    const handleQuickMarkAll = (status: AttendanceStatus) => {
+        const newStatuses: Record<string, AttendanceStatus> = {};
+        studentsInClass.forEach(student => {
+            newStatuses[student.id] = status;
+        });
+        setStudentStatuses(newStatuses);
+        toast({
+            title: 'Quick Action Applied',
+            description: `Marked all students as ${status}.`
+        });
     };
     
     if (teacher?.role !== 'classTeacher') {
@@ -140,89 +248,238 @@ export default function MarkAttendance({ teacher, students }: MarkAttendanceProp
                 <h3 className="mt-4 text-lg font-semibold">Permission Denied</h3>
                 <p className="text-muted-foreground mt-2">Only Class Teachers can mark attendance.</p>
             </div>
-        )
+        );
     }
+
+    const presentCount = Object.values(studentStatuses).filter(s => s === 'present').length;
+    const absentCount = Object.values(studentStatuses).filter(s => s === 'absent').length;
+    const halfDayCount = Object.values(studentStatuses).filter(s => s === 'half-day').length;
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant={"outline"} className={cn("w-full md:w-[280px] justify-start text-left font-normal", !attendanceDate && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {attendanceDate ? format(attendanceDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        <Calendar 
-                            mode="single" 
-                            selected={attendanceDate} 
-                            onSelect={(date) => date && setAttendanceDate(date)} 
-                            initialFocus 
-                            disabled={(date) => date > new Date() || date < subDays(new Date(), 3)}
-                        />
-                    </PopoverContent>
-                </Popover>
-                <div className="flex gap-4 items-center">
-                    <div className="flex items-center gap-2 text-sm"><UserCheck className="text-green-600"/>Present: {Object.values(studentStatuses).filter(s => s === 'present').length}</div>
-                    <div className="flex items-center gap-2 text-sm"><UserX className="text-red-600"/>Absent: {Object.values(studentStatuses).filter(s => s === 'absent').length}</div>
-                    <div className="flex items-center gap-2 text-sm"><UserMinus className="text-yellow-600"/>Half Day: {Object.values(studentStatuses).filter(s => s === 'half-day').length}</div>
+            {/* Header with date picker and stats */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button 
+                                variant="outline" 
+                                className={cn(
+                                    "w-full sm:w-[280px] justify-start text-left font-normal",
+                                    !attendanceDate && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {attendanceDate ? format(attendanceDate, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar 
+                                mode="single" 
+                                selected={attendanceDate} 
+                                onSelect={(date) => date && setAttendanceDate(date)} 
+                                initialFocus 
+                                disabled={(date) => date > new Date() || date < subDays(new Date(), 7)}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    
+                    <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                            Class: <span className="font-medium text-foreground">{classTeacherOf}</span>
+                        </span>
+                    </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="bg-green-50 text-green-700">
+                        <UserCheck className="w-3 h-3 mr-1" />
+                        Present: {presentCount}
+                    </Badge>
+                    <Badge variant="outline" className="bg-red-50 text-red-700">
+                        <UserX className="w-3 h-3 mr-1" />
+                        Absent: {absentCount}
+                    </Badge>
+                    <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                        <UserMinus className="w-3 h-3 mr-1" />
+                        Half Day: {halfDayCount}
+                    </Badge>
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 border rounded-lg bg-secondary/50">
-                <div className="flex items-center space-x-2">
-                    <Checkbox
-                        id="select-all"
-                        checked={selectedStudents.length === studentsInClass.length && studentsInClass.length > 0}
-                        onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
-                    />
-                    <Label htmlFor="select-all">Select All Students</Label>
-                </div>
-                <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleBulkMark('present')} disabled={selectedStudents.length === 0}>
-                        <CheckSquare className="mr-2 h-4 w-4"/>Mark Selected as Present
-                    </Button>
-                     <Button size="sm" variant="destructive" onClick={() => handleBulkMark('absent')} disabled={selectedStudents.length === 0}>
-                        <Square className="mr-2 h-4 w-4"/>Mark Selected as Absent
-                    </Button>
-                </div>
+            {/* Quick actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Bulk selection controls */}
+                <Card className="p-4">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">Bulk Actions</Label>
+                            <Badge variant="outline">{selectedStudents.length} selected</Badge>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="select-all"
+                                checked={selectedStudents.length === studentsInClass.length && studentsInClass.length > 0}
+                                onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
+                            />
+                            <Label htmlFor="select-all" className="text-sm">Select All Students</Label>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2">
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleBulkMark('present')} 
+                                disabled={selectedStudents.length === 0}
+                                className="text-green-700 border-green-200 hover:bg-green-50"
+                            >
+                                <UserCheck className="mr-1 h-3 w-3" />
+                                Mark Present
+                            </Button>
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleBulkMark('absent')} 
+                                disabled={selectedStudents.length === 0}
+                                className="text-red-700 border-red-200 hover:bg-red-50"
+                            >
+                                <UserX className="mr-1 h-3 w-3" />
+                                Mark Absent
+                            </Button>
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleBulkMark('half-day')} 
+                                disabled={selectedStudents.length === 0}
+                                className="text-orange-700 border-orange-200 hover:bg-orange-50"
+                            >
+                                <UserMinus className="mr-1 h-3 w-3" />
+                                Mark Half Day
+                            </Button>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* Quick mark all */}
+                <Card className="p-4">
+                    <div className="flex flex-col gap-3">
+                        <Label className="text-sm font-medium">Quick Mark All</Label>
+                        <div className="flex flex-wrap gap-2">
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleQuickMarkAll('present')}
+                                className="text-green-700 border-green-200 hover:bg-green-50"
+                            >
+                                <UserCheck className="mr-1 h-3 w-3" />
+                                All Present
+                            </Button>
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleQuickMarkAll('absent')}
+                                className="text-red-700 border-red-200 hover:bg-red-50"
+                            >
+                                <UserX className="mr-1 h-3 w-3" />
+                                All Absent
+                            </Button>
+                        </div>
+                    </div>
+                </Card>
             </div>
 
+            {/* Students grid */}
             {isLoading ? (
-                <div className="text-center"><Loader2 className="animate-spin" /> Loading students...</div>
+                <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="mt-2 text-sm text-muted-foreground">Loading students...</p>
+                </div>
+            ) : studentsInClass.length === 0 ? (
+                <div className="text-center py-12">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto" />
+                    <h3 className="mt-4 text-lg font-semibold">No Students Found</h3>
+                    <p className="text-muted-foreground mt-2">No students are assigned to your class.</p>
+                </div>
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {studentsInClass.map(student => {
                         const status = studentStatuses[student.id] || 'present';
                         const config = statusConfig[status];
+                        const isSelected = selectedStudents.includes(student.id);
+                        
                         return (
-                            <Card key={student.id} className={cn("text-center transition-all relative", config.cardClass)}>
+                            <Card 
+                                key={student.id} 
+                                className={cn(
+                                    "text-center transition-all duration-200 relative cursor-pointer border-2",
+                                    config.cardClass,
+                                    isSelected && "ring-2 ring-blue-500 ring-offset-2"
+                                )}
+                            >
                                 <div className="absolute top-2 right-2 z-10">
                                     <Checkbox
-                                        checked={selectedStudents.includes(student.id)}
+                                        checked={isSelected}
                                         onCheckedChange={(checked) => handleSelectionChange(student.id, Boolean(checked))}
-                                        className="bg-white"
+                                        className="bg-white shadow-sm"
                                     />
                                 </div>
-                                <CardContent className="p-4 flex flex-col items-center justify-center gap-2 cursor-pointer" onClick={() => handleStatusChange(student.id)}>
-                                     <Image src={student.photo_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`} alt={student.name} width={64} height={64} className="rounded-full h-16 w-16 object-cover" />
-                                    <p className="font-semibold text-sm truncate">{student.name}</p>
-                                    <div className={cn("flex items-center gap-1.5 text-xs font-medium", config.textClass)}>
-                                        {config.icon}
-                                        {config.label}
+                                
+                                <CardContent 
+                                    className="p-3 flex flex-col items-center justify-center gap-2"
+                                    onClick={() => handleStatusChange(student.id)}
+                                >
+                                    <div className="relative">
+                                        <Image 
+                                            src={student.photo_url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(student.name)}`} 
+                                            alt={student.name} 
+                                            width={56} 
+                                            height={56} 
+                                            className="rounded-full h-14 w-14 object-cover border-2 border-white shadow-sm" 
+                                        />
+                                    </div>
+                                    
+                                    <div className="w-full">
+                                        <p className="font-medium text-xs truncate mb-1" title={student.name}>
+                                            {student.name}
+                                        </p>
+                                        <Badge 
+                                            variant={config.badgeVariant}
+                                            className="text-xs py-0 px-2 h-5"
+                                        >
+                                            {config.icon}
+                                            <span className="ml-1">{config.label}</span>
+                                        </Badge>
                                     </div>
                                 </CardContent>
                             </Card>
-                        )
+                        );
                     })}
                 </div>
             )}
             
-            <Button onClick={handleSubmit} disabled={isSubmitting || isLoading || studentsInClass.length === 0} className="w-full">
-                {isSubmitting ? <Loader2 className="animate-spin" /> : <Save />}
-                {isSubmitting ? "Saving..." : "Save Attendance"}
-            </Button>
+            {/* Submit button */}
+            <div className="flex justify-center pt-4">
+                <Button 
+                    onClick={handleSubmit} 
+                    disabled={isSubmitting || isLoading || studentsInClass.length === 0} 
+                    className="w-full max-w-md h-12 text-base font-medium"
+                    size="lg"
+                >
+                    {isSubmitting ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving Attendance...
+                        </>
+                    ) : (
+                        <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save Attendance
+                        </>
+                    )}
+                </Button>
+            </div>
         </div>
     );
 }
