@@ -11,6 +11,7 @@ import { getStudentsAndPending, updateStudent, deleteStudent, Student, CombinedS
 import { getAllFeedback } from "@/lib/supabase/feedback";
 import type { Feedback } from "@/lib/supabase/feedback";
 import { prepopulateExams } from "@/lib/supabase/exams";
+import { getAllLeaveRequests, LeaveRequest } from "@/lib/supabase/leaves";
 import { Skeleton } from "../ui/skeleton";
 import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info, CalendarOff } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -49,7 +50,7 @@ const SchoolSettingsForm = dynamic(() => import('./SchoolSettingsForm'), {
 
 type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewLeaves" | "makeAnnouncement" | "managePayroll" | "schoolSettings" | "manageHolidays";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "makeAnnouncement" | "managePayroll" | "schoolSettings" | "manageHolidays" | "reviewLeaves";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -193,6 +194,7 @@ export default function PrincipalDashboard() {
   const [allStudents, setAllStudents] = useState<CombinedStudent[]>([]);
   const [allTeachers, setAllTeachers] = useState<CombinedTeacher[]>([]);
   const [allFeedback, setAllFeedback] = useState<Feedback[]>([]);
+  const [allLeaves, setAllLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
 
@@ -210,6 +212,7 @@ export default function PrincipalDashboard() {
     const unsubStudents = getStudentsAndPending(setAllStudents);
     const unsubTeachers = getTeachersAndPending(setAllTeachers);
     const unsubFeedback = getAllFeedback(setAllFeedback);
+    const unsubLeaves = getAllLeaveRequests(setAllLeaves);
     
     const timer = setTimeout(() => setIsLoading(false), 1500);
 
@@ -218,6 +221,7 @@ export default function PrincipalDashboard() {
         if (unsubStudents) unsubStudents();
         if (unsubTeachers) unsubTeachers();
         if (unsubFeedback) unsubFeedback.unsubscribe();
+        if (unsubLeaves) unsubLeaves.unsubscribe();
     };
 
   }, [supabase]);
@@ -253,6 +257,7 @@ export default function PrincipalDashboard() {
   };
 
   const pendingStudentFeedbackCount = principalFeedback.filter(l => l.status === 'Pending').length;
+  const pendingLeavesCount = allLeaves.filter(l => l.status === 'Pending').length;
   const newAdmissionsCount = allStudents.filter(s => s.status === 'Registered').length;
 
   const renderContent = () => {
@@ -375,7 +380,28 @@ export default function PrincipalDashboard() {
                     </CardContent>
                 </Card>
               );
-          case 'viewLeaves':
+          case 'viewFeedback':
+               return (
+                    <Card>
+                        <CardHeader>
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <ClipboardCheck />
+                                Review Complaints & Feedback
+                            </CardTitle>
+                            <CardDescription>
+                                Review and act on submissions from all students and teachers.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <ApproveLeaves leaves={principalFeedback as any} title="Submissions" isPrincipal={true} />
+                        </CardContent>
+                    </Card>
+               );
+          case 'reviewLeaves':
                return (
                     <Card>
                         <CardHeader>
@@ -385,14 +411,14 @@ export default function PrincipalDashboard() {
                             </Button>
                             <CardTitle className="flex items-center gap-2">
                                 <CalendarCheck />
-                                Review Complaints & Feedback
+                                Review Leave Requests
                             </CardTitle>
                             <CardDescription>
-                                Review and act on submissions from all students and teachers.
+                                Approve or reject leave requests from students and teachers.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <ApproveLeaves leaves={principalFeedback as any} title="Submissions" isPrincipal={true} />
+                           <ApproveLeaves leaves={allLeaves as any} title="Submissions" isPrincipal={true} />
                         </CardContent>
                     </Card>
                );
@@ -484,15 +510,16 @@ export default function PrincipalDashboard() {
                     <div className="mx-auto grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
                         <StatCard title="Total Students" value={isLoading ? '...' : allStudents.length.toString()} icon={GraduationCap} />
                         <StatCard title="Total Teachers" value={isLoading ? '...' : allTeachers.length.toString()} icon={Users} />
-                        <StatCard title="New Admissions" value={isLoading ? '...' : newAdmissionsCount.toString()} icon={UserPlus} />
-                        <StatCard title="Pending Feedback" value={isLoading ? '...' : pendingStudentFeedbackCount.toString()} icon={CalendarCheck} />
+                        <StatCard title="Pending Feedback" value={isLoading ? '...' : pendingStudentFeedbackCount.toString()} icon={ClipboardCheck} />
+                        <StatCard title="Pending Leaves" value={isLoading ? '...' : pendingLeavesCount.toString()} icon={CalendarCheck} />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <NavCard title="Manage Teachers" description="Add, view, and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
+                        <NavCard title="Manage Teachers" description="Add, view, and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
                         <NavCard title="Manage Students" description="Admit, view, and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
                         <NavCard title="Manage Payroll" description="Generate salary slips for teachers" icon={DollarSign} onClick={() => setActiveView("managePayroll")} />
-                        <NavCard title="Review Feedback" description="Review submissions and complaints" icon={CalendarCheck} onClick={() => setActiveView("viewLeaves")} />
+                        <NavCard title="Review Feedback" description="Review submissions and complaints" icon={ClipboardCheck} onClick={() => setActiveView("viewFeedback")} />
+                        <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                         <NavCard title="Manage Holidays" description="Declare school holidays" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
                         <NavCard title="School Settings" description="Customize branding and theme" icon={Settings} onClick={() => setActiveView("schoolSettings")} />
