@@ -7,6 +7,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Suspense } from "react";
+import NavigationPreloader from "@/components/global/NavigationPreloader";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -54,6 +55,7 @@ export default function RootLayout({
       <body className="antialiased bg-background">
         <ThemeProvider settings={initialSettings}>
             <Suspense>
+              <NavigationPreloader />
               {children}
             </Suspense>
             <Toaster />
