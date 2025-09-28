@@ -3,7 +3,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useTheme } from "@/components/theme/ThemeProvider";
 import LoginForm from "@/components/auth/LoginForm";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -15,7 +14,6 @@ function capitalize(s: string) {
 }
 
 export default function LoginPage() {
-  const { settings } = useTheme();
   const params = useParams();
   const router = useRouter();
   
@@ -35,7 +33,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Image
-            src={settings.logoUrl || "/hcsss.png"}
+            src={"/hcsss.png"}
             alt="School Logo"
             width={80}
             height={80}

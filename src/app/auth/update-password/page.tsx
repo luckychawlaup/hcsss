@@ -10,7 +10,6 @@ import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import Link from "next/link";
-import { useTheme } from "@/components/theme/ThemeProvider";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 
@@ -24,7 +23,6 @@ function UpdatePasswordContent() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const { toast } = useToast();
   const supabase = createClient();
-  const { settings } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -128,7 +126,7 @@ function UpdatePasswordContent() {
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-            <Image src={settings.logoUrl || "/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
+            <Image src={"/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
             <h1 className="text-2xl font-bold text-primary">Reset Your Password</h1>
             <p className="text-muted-foreground">
               Enter and confirm your new password below.
