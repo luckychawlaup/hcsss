@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarX2, MessageSquare, FileText, Shield, Save, Loader2 } from "lucide-react";
+import { CalendarX2, MessageSquare, FileText, Shield, Save, Loader2, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateFeedback } from "@/lib/supabase/feedback";
 import { updateLeaveRequest } from "@/lib/supabase/leaves";
@@ -38,18 +38,19 @@ interface ApproveLeavesProps {
   isPrincipal?: boolean;
 }
 
-const getStatusVariant = (status: CombinedItem["status"]) => {
+const getStatusVariant = (status: CombinedItem['status']) => {
   switch (status) {
     case "Confirmed":
     case "Solved":
       return "success";
     case "Pending":
-      return "secondary";
+      return "warning";
     case "Rejected":
-    case "Incomplete Details":
       return "destructive";
+    case "Incomplete Details":
+        return "orange";
     case "Resolving":
-      return "default";
+      return "info";
     default:
       return "outline";
   }
@@ -123,7 +124,7 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
             <CalendarX2 className="h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-semibold">No Submissions Found</h3>
-            <p className="text-muted-foreground mt-2">There are no complaints or feedback in this category yet.</p>
+            <p className="text-muted-foreground mt-2">There are no complaints or leave requests in this category yet.</p>
         </div>
     );
   }
@@ -173,7 +174,13 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                             </Link>
                         </Button>
                     )}
-                    { isFeedback && item.comment && <Alert variant="default"><AlertTitle>Admin Comment</AlertTitle><AlertDescription>{item.comment}</AlertDescription></Alert>}
+                     { isFeedback && item.comment && 
+                        <Alert variant="default" className="bg-secondary">
+                          <MessageCircle className="h-4 w-4 text-foreground" />
+                          <AlertTitle className="font-semibold">Admin Comment</AlertTitle>
+                          <AlertDescription>{item.comment}</AlertDescription>
+                        </Alert>
+                     }
                     { !isFeedback && item.rejectionReason && <Alert variant="destructive"><AlertTitle>Rejection Reason</AlertTitle><AlertDescription>{item.rejectionReason}</AlertDescription></Alert>}
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2 items-end">
