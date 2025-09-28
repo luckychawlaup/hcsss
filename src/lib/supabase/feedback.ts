@@ -9,7 +9,7 @@ export interface Feedback {
     user_name: string;
     user_role: string;
     class?: string;
-    category: "Complaint" | "Suggestion" | "Feedback";
+    category: "General" | "Fees Errors" | "Academic" | "Suggestion" | "Feedback";
     subject: string;
     description: string;
     created_at?: string;
@@ -18,14 +18,14 @@ export interface Feedback {
 
 
 export const FEEDBACK_TABLE_SETUP_SQL = `
--- Creates the table for storing user-submitted feedback and complaints.
+-- Re-create the table to ensure the 'class' column is added
 DROP TABLE IF EXISTS public.feedback;
 CREATE TABLE public.feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     user_name TEXT NOT NULL,
     user_role TEXT NOT NULL,
-    class TEXT,
+    class TEXT, -- This column was missing
     category TEXT NOT NULL,
     subject TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -35,19 +35,16 @@ CREATE TABLE public.feedback (
 
 -- Enable RLS for the feedback table
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
-
--- Drop policies if they exist to prevent conflicts
 DROP POLICY IF EXISTS "Allow authenticated users to submit feedback" ON public.feedback;
 DROP POLICY IF EXISTS "Allow principal to read all feedback" ON public.feedback;
 DROP POLICY IF EXISTS "Allow class teachers to read feedback from their class" ON public.feedback;
-
 
 -- Policy: Allow any authenticated user to insert their own feedback
 CREATE POLICY "Allow authenticated users to submit feedback"
 ON public.feedback FOR INSERT
 WITH CHECK (auth.role() = 'authenticated' AND auth.uid() = user_id);
 
--- Policy: Allow Principal/Accountant to read all feedback
+-- Policy: Allow Principal to read all feedback
 CREATE POLICY "Allow principal to read all feedback"
 ON public.feedback FOR SELECT
 USING (auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7'));
@@ -148,6 +145,7 @@ export const updateFeedback = async (id: string, updates: Partial<Feedback>) => 
         throw error;
     }
 };
+
 
 
 

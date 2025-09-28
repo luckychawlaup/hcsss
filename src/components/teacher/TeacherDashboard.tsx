@@ -100,11 +100,13 @@ export default function TeacherDashboard() {
   };
 
 
-  const pendingFeedbackCount = feedback.filter(l => l.status === 'Pending').length;
+  const pendingFeedbackCount = useMemo(() => feedback.filter(l => l.status === 'Pending' && l.category === "General").length, [feedback]);
   const classTeacherStudentsCount = useMemo(() => {
     if (teacher?.role !== 'classTeacher' || !teacher.class_teacher_of) return 0;
     return assignedStudents.filter(s => `${s.class}-${s.section}` === teacher.class_teacher_of).length;
   }, [teacher, assignedStudents]);
+  
+  const generalFeedback = useMemo(() => feedback.filter(f => f.category === 'General'), [feedback]);
 
 
    const renderContent = () => {
@@ -157,7 +159,7 @@ export default function TeacherDashboard() {
                                     <p>Complaint review is only available for Class Teachers.</p>
                                 </div>
                             ) : (
-                                <ApproveLeaves leaves={feedback as any} title="your students" />
+                                <ApproveLeaves leaves={generalFeedback as any} title="your students" />
                             )}
                         </CardContent>
                     </Card>

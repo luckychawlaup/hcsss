@@ -221,7 +221,7 @@ export default function PrincipalDashboard() {
 
   }, [supabase]);
 
-  const studentFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Student'), [allFeedback]);
+  const studentFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Student' && (l.category === 'General' || l.category === 'Academic')), [allFeedback]);
   const teacherFeedback = useMemo(() => allFeedback.filter(l => l.user_role === 'Teacher'), [allFeedback]);
 
 

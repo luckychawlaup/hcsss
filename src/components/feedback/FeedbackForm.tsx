@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Send } from "lucide-react";
 
 const feedbackSchema = z.object({
-  category: z.enum(["Complaint", "Suggestion", "Feedback"], {
+  category: z.enum(["General", "Fees Errors", "Academic", "Suggestion", "Feedback"], {
     required_error: "Please select a category.",
   }),
   subject: z.string().min(5, "Subject must be at least 5 characters long."),
@@ -148,7 +148,9 @@ export function FeedbackForm() {
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="Complaint">Complaint</SelectItem>
+                            <SelectItem value="General">General Complaint</SelectItem>
+                            <SelectItem value="Fees Errors">Fees Errors</SelectItem>
+                            <SelectItem value="Academic">Academic Complaint</SelectItem>
                             <SelectItem value="Suggestion">Suggestion</SelectItem>
                             <SelectItem value="Feedback">General Feedback</SelectItem>
                         </SelectContent>
