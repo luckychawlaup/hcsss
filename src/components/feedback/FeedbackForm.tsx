@@ -104,11 +104,15 @@ export function FeedbackForm() {
 
     const isStudent = !('classes_taught' in userProfile);
     
-    let userName = userProfile.name;
-    if (isStudent) {
-        if (values.category !== 'Fee-related Issues' && values.category !== 'School Portal / IT Issues') {
-            userName = 'Anonymous Student';
-        }
+    let userName: string;
+    const studentProfile = userProfile as Student;
+
+    if (isStudent && (values.category === 'Fee-related Issues' || values.category === 'School Portal / IT Issues')) {
+      userName = `${studentProfile.name} (SRN: ${studentProfile.srn})`;
+    } else if (isStudent) {
+      userName = 'Anonymous Student';
+    } else {
+      userName = userProfile.name;
     }
     
     const userClass = isStudent ? `${(userProfile as Student).class}-${(userProfile as Student).section}` : undefined;

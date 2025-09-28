@@ -205,8 +205,8 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <p className="font-semibold text-sm">{formatLeaveDate(leave.startDate, leave.endDate)}</p>
-                    <p className="text-muted-foreground mt-2">{leave.reason}</p>
+                    <p className="font-semibold text-sm">{leave.subject}</p>
+                    <p className="text-muted-foreground mt-2">{leave.description}</p>
                      {(leave.status === 'Rejected' && leave.rejectionReason) && (
                         <Alert variant="destructive" className="mt-4">
                             <ThumbsDown className="h-4 w-4" />
