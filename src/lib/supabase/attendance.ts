@@ -1,7 +1,8 @@
+
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 
 const supabase = createClient();
 const ATTENDANCE_TABLE = 'attendance';
@@ -259,6 +260,56 @@ export const getStudentAttendanceForMonth = async (studentId: string, month: Dat
         console.error(`[Attendance] Unexpected error in getStudentAttendanceForMonth:`, error);
         return [];
     }
+};
+
+// Get attendance for a single student for a given month with Real-Time
+export const getStudentAttendanceForMonthRT = (
+  studentId: string,
+  month: Date,
+  callback: (records: AttendanceRecord[]) => void
+) => {
+  const startDate = format(startOfMonth(month), 'yyyy-MM-dd');
+  const endDate = format(endOfMonth(month), 'yyyy-MM-dd');
+
+  const fetchAttendance = async () => {
+    const { data, error } = await supabase
+      .from(ATTENDANCE_TABLE)
+      .select('*')
+      .eq('student_id', studentId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching student attendance:', error);
+      callback([]);
+    } else {
+      callback(data || []);
+    }
+  };
+
+  const channel = supabase
+    .channel(`student-attendance-${studentId}-${format(month, 'yyyy-MM')}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: ATTENDANCE_TABLE,
+        filter: `student_id=eq.${studentId}`,
+      },
+      (payload) => {
+        // Re-fetch all data for the month on any change
+        fetchAttendance();
+      }
+    )
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await fetchAttendance();
+      }
+    });
+
+  return channel;
 };
 
 // Get attendance statistics for a class

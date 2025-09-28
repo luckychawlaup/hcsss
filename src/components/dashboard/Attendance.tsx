@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId } from "@/lib/supabase/students";
-import { getStudentAttendanceForMonth, AttendanceRecord } from "@/lib/supabase/attendance";
+import { getStudentAttendanceForMonthRT, AttendanceRecord } from "@/lib/supabase/attendance";
 import { format, getDaysInMonth, startOfMonth, addMonths, subMonths } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,49 +60,36 @@ export default function Attendance() {
     const [studentInfo, setStudentInfo] = useState<any>(null);
     const supabase = createClient();
 
-    const fetchAttendance = async (month: Date) => {
-        setIsLoading(true);
-        try {
-            console.log(`[Student Attendance] Fetching attendance for month:`, format(month, 'yyyy-MM'));
-            
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
-            
-            if (userError) {
-                console.error(`[Student Attendance] Auth error:`, userError);
-                return;
-            }
-            
-            if (!user) {
-                console.error(`[Student Attendance] No authenticated user found`);
-                return;
-            }
-            
-            console.log(`[Student Attendance] Current user ID:`, user.id);
-            
-            const student = await getStudentByAuthId(user.id);
-            console.log(`[Student Attendance] Student data:`, student);
-            
-            if (!student) {
-                console.error(`[Student Attendance] No student found for auth ID:`, user.id);
-                return;
-            }
-            
-            setStudentInfo(student);
-            
-            const records = await getStudentAttendanceForMonth(student.id, month);
-            console.log(`[Student Attendance] Fetched ${records.length} attendance records:`, records);
-            
-            setAttendance(records);
-        } catch (error) {
-            console.error(`[Student Attendance] Error fetching attendance:`, error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchAttendance(currentMonth);
-    }, [currentMonth]);
+        setIsLoading(true);
+        let attendanceChannel: any;
+
+        const setupSubscription = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const student = await getStudentByAuthId(user.id);
+                if (student) {
+                    setStudentInfo(student);
+                    attendanceChannel = getStudentAttendanceForMonthRT(student.id, currentMonth, (records) => {
+                        setAttendance(records);
+                        setIsLoading(false);
+                    });
+                } else {
+                    setIsLoading(false);
+                }
+            } else {
+                setIsLoading(false);
+            }
+        };
+
+        setupSubscription();
+
+        return () => {
+            if (attendanceChannel) {
+                supabase.removeChannel(attendanceChannel);
+            }
+        };
+    }, [currentMonth, supabase]);
 
     const navigateMonth = (direction: 'prev' | 'next') => {
         const newMonth = direction === 'prev' 
@@ -133,13 +120,6 @@ export default function Attendance() {
             
             // Find attendance record for this day
             const record = attendance.find(a => a.date === formattedDate);
-            
-            console.log(`[Student Attendance] Day ${day} (${formattedDate}):`, {
-                record: record ? `${record.status}` : 'no record',
-                dayOfWeek,
-                isToday: format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'),
-                isFuture: date > today
-            });
 
             let status: DayStatus = 'unmarked';
             
