@@ -81,11 +81,7 @@ export function StudentProfile({ student }: { student: Student }) {
         <div className="w-full">
              <div className="bg-card p-6 text-center border-b">
                 <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
-                    {student.photo_url ? (
-                         <Image src={student.photo_url} alt={student.name} width={96} height={96} className="object-cover" />
-                    ) : (
-                        <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${student.name}`} alt={student.name} />
-                    )}
+                    <AvatarImage src={student.photo_url || `https://api.dicebear.com/8.x/initials/svg?seed=${student.name}`} alt={student.name} />
                     <AvatarFallback>{student.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{student.name}</h1>
@@ -122,11 +118,7 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
          <div className="w-full">
              <div className="bg-card p-6 text-center border-b">
                 <Avatar className="h-24 w-24 mx-auto border-4 border-background shadow-lg">
-                     {teacher.photo_url ? (
-                         <Image src={teacher.photo_url} alt={teacher.name} width={96} height={96} className="object-cover" />
-                    ) : (
-                        <AvatarImage src={`https://api.dicebear.com/8.x/initials/svg?seed=${teacher.name}`} alt={teacher.name} />
-                    )}
+                    <AvatarImage src={teacher.photo_url || `https://api.dicebear.com/8.x/initials/svg?seed=${teacher.name}`} alt={teacher.name} />
                     <AvatarFallback>{teacher.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{teacher.name}</h1>
