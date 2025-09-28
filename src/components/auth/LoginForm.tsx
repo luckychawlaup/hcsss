@@ -113,7 +113,6 @@ export default function LoginForm({ role }: LoginFormProps) {
       }
       
       router.push(targetPath);
-      router.refresh();
 
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";

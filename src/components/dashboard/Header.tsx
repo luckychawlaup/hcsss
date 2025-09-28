@@ -37,7 +37,6 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
-    router.refresh();
   }
 
 
