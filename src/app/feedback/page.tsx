@@ -3,6 +3,7 @@ import Header from "@/components/dashboard/Header";
 import BottomNav from "@/components/dashboard/BottomNav";
 import TeacherNav from "@/components/teacher/TeacherNav";
 import { FeedbackForm } from "@/components/feedback/FeedbackForm";
+import ComplaintHistory from "@/components/feedback/ComplaintHistory";
 
 export default function FeedbackPage() {
   return (
@@ -11,6 +12,9 @@ export default function FeedbackPage() {
       <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
         <div className="mx-auto w-full max-w-2xl">
             <FeedbackForm />
+        </div>
+        <div className="mx-auto w-full max-w-2xl">
+           <ComplaintHistory />
         </div>
       </main>
       {/* We need to conditionally render the correct nav. This is a simple way for now. */}

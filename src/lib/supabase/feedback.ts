@@ -38,11 +38,19 @@ ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow authenticated users to submit feedback" ON public.feedback;
 DROP POLICY IF EXISTS "Allow principal to read all feedback" ON public.feedback;
 DROP POLICY IF EXISTS "Allow class teachers to read feedback from their class" ON public.feedback;
+DROP POLICY IF EXISTS "Allow users to read their own feedback" ON public.feedback;
+
 
 -- Policy: Allow any authenticated user to insert their own feedback
 CREATE POLICY "Allow authenticated users to submit feedback"
 ON public.feedback FOR INSERT
 WITH CHECK (auth.role() = 'authenticated' AND auth.uid() = user_id);
+
+-- Policy: Allow users to read their own feedback
+CREATE POLICY "Allow users to read their own feedback"
+ON public.feedback FOR SELECT
+USING (auth.uid() = user_id);
+
 
 -- Policy: Allow Principal to read all feedback
 CREATE POLICY "Allow principal to read all feedback"
@@ -136,6 +144,41 @@ export const getAllFeedback = (callback: (feedback: Feedback[]) => void) => {
 
     return channel;
 };
+
+// For currently logged-in user (student or teacher)
+export const getFeedbackForUser = (userId: string, callback: (feedback: Feedback[]) => void) => {
+    const fetchUserFeedback = async () => {
+        const { data, error } = await supabase
+            .from('feedback')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('Error fetching user feedback:', error);
+            callback([]);
+        } else {
+            callback(data || []);
+        }
+    };
+
+    const channel = supabase
+        .channel(`feedback-user-${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback', filter: `user_id=eq.${userId}` }, (payload) => {
+            fetchUserFeedback();
+        })
+        .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+                fetchUserFeedback();
+            }
+            if (err) {
+                console.error('Real-time subscription error on user feedback:', err);
+            }
+        });
+    
+    return channel;
+};
+
 
 // Update feedback status or add comments (for teachers/principal)
 export const updateFeedback = async (id: string, updates: Partial<Feedback>) => {
