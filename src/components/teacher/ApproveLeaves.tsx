@@ -5,6 +5,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import type { LeaveRequest } from "@/lib/supabase/leaves";
 import type { Feedback, FeedbackStatus } from "@/lib/supabase/feedback";
+import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import {
   Card,
   CardContent,
@@ -22,13 +23,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarX2, MessageSquare, FileText, Shield, Save, Loader2, MessageCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { CalendarX2, MessageSquare, FileText, Shield, Save, Loader2, MessageCircle, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateFeedback } from "@/lib/supabase/feedback";
 import { updateLeaveRequest } from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import Link from "next/link";
 import { Textarea } from "../ui/textarea";
+import { StudentProfile, StudentProfileDetails } from "../profile/ProfileDetails";
+import { Skeleton } from "../ui/skeleton";
 
 type CombinedItem = LeaveRequest | Feedback;
 
@@ -60,6 +70,34 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
   const { toast } = useToast();
   const [localChanges, setLocalChanges] = useState<Record<string, { status?: CombinedItem['status']; comment?: string }>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+
+  const [isStudentDetailOpen, setIsStudentDetailOpen] = useState(false);
+  const [selectedStudentDetails, setSelectedStudentDetails] = useState<Student | null>(null);
+  const [isLoadingStudent, setIsLoadingStudent] = useState(false);
+
+
+  const handleViewStudentDetails = async (userId: string) => {
+    const isActionableComplaint = isPrincipal || title === "Fees";
+    if (!isActionableComplaint) return;
+
+    setIsLoadingStudent(true);
+    setIsStudentDetailOpen(true);
+    try {
+        const student = await getStudentByAuthId(userId);
+        if (student) {
+            setSelectedStudentDetails(student);
+        } else {
+            toast({ variant: "destructive", title: "Error", description: "Could not find student details." });
+            setIsStudentDetailOpen(false);
+        }
+    } catch (e) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to fetch student details." });
+        setIsStudentDetailOpen(false);
+    } finally {
+        setIsLoadingStudent(false);
+    }
+  };
+
 
   const handleLocalChange = (itemId: string, field: 'status' | 'comment', value: string) => {
     setLocalChanges(prev => ({
@@ -144,13 +182,17 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
         {leaves.map((item) => {
           const isFeedback = 'category' in item;
           const currentStatus = localChanges[item.id]?.status || item.status;
+          const isActionable = isFeedback && (item.category === "Fee-related Issues" || item.category === "School Portal / IT Issues");
           
           return (
-            <Card key={item.id}>
+            <Card key={item.id} className={isActionable ? "cursor-pointer hover:border-primary/50" : ""} onClick={isActionable ? () => handleViewStudentDetails(item.user_id) : undefined}>
                 <CardHeader>
                     <div className="flex items-start justify-between">
                         <div>
-                        <CardTitle>{item.userName}</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                          {item.userName}
+                          {isActionable && <Info className="h-4 w-4 text-primary" title="Click to view student details"/>}
+                        </CardTitle>
                         <CardDescription>
                             {item.userRole === "Student" ? `Class ${item.class}` : `Teacher`}
                              {isFeedback && <span className="font-semibold"> ({item.category})</span>}
@@ -222,6 +264,38 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
             </Card>
         )})}
     </div>
+    <Dialog open={isStudentDetailOpen} onOpenChange={setIsStudentDetailOpen}>
+        <DialogContent className="max-w-xl">
+            <DialogHeader>
+                <DialogTitle>Student Details</DialogTitle>
+                <DialogDescription>
+                    Full profile of the student who submitted the complaint.
+                </DialogDescription>
+            </DialogHeader>
+            {isLoadingStudent || !selectedStudentDetails ? (
+                 <div className="space-y-4 py-4">
+                    <Skeleton className="h-24 w-24 mx-auto rounded-full" />
+                    <Skeleton className="h-6 w-1/2 mx-auto" />
+                    <Skeleton className="h-4 w-3/4 mx-auto" />
+                    <div className="pt-4 grid grid-cols-2 gap-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </div>
+            ) : (
+                <div className="max-h-[70vh] overflow-y-auto pr-2">
+                    <StudentProfile student={selectedStudentDetails} />
+                    <div className="p-4">
+                         <StudentProfileDetails student={selectedStudentDetails} />
+                    </div>
+                </div>
+            )}
+        </DialogContent>
+    </Dialog>
+
     </>
   );
 }
+
