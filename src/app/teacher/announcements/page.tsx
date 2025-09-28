@@ -30,8 +30,8 @@ export default function TeacherAnnouncementsPage() {
   const assignedClasses = useMemo(() => {
     if (!teacher) return [];
     const classes = new Set<string>();
-    if (teacher.classTeacherOf) classes.add(teacher.classTeacherOf);
-    if (teacher.classesTaught) teacher.classesTaught.forEach(c => classes.add(c));
+    if (teacher.class_teacher_of) classes.add(teacher.class_teacher_of);
+    if (teacher.classes_taught) teacher.classes_taught.forEach(c => classes.add(c));
     return Array.from(classes).sort();
   }, [teacher]);
 
@@ -76,7 +76,7 @@ export default function TeacherAnnouncementsPage() {
         return;
     }
 
-    const announcementData: Omit<Announcement, 'id' | 'created_at'> = {
+    const announcementData: Partial<Announcement> = {
         title: `${teacher.subject} Announcement`, // Or a more dynamic title
         content,
         category,
@@ -133,7 +133,7 @@ export default function TeacherAnnouncementsPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background md:flex-row">
-      <TeacherNav activeView="makeAnnouncement" setActiveView={() => {}} />
+      <TeacherNav activeView="makeAnnouncement" setActiveView={() => {}} teacherRole={teacher?.role}/>
       <div className="flex flex-1 flex-col">
         <Header title="Announcements" showAvatar={true} />
         <main className="flex flex-1">

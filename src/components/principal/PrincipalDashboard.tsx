@@ -76,7 +76,7 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const { toast } = useToast();
 
-    const announcementGroups = useMemo(() => ["Teachers", ...allClassSections], []);
+    const announcementGroups = useMemo(() => ["Teachers", "All Students", ...allClassSections], []);
 
     useEffect(() => {
         if (!selectedGroup) {
@@ -84,18 +84,30 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
             return;
         };
 
-        let unsubscribe;
+        let unsubscribe: any;
         if (selectedGroup === 'Teachers') {
             unsubscribe = getAnnouncementsForTeachers(setAnnouncements);
+        } else if (selectedGroup === 'All Students') {
+            // Special case for all students - this needs a different kind of query
+            // Let's get all announcements targeted to students without specific class
+             unsubscribe = supabase.channel('announcements-for-all-students')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (payload) => {
+                     (async () => {
+                         const { data, error } = await supabase.from('announcements').select('*').eq('target', 'students').is('target_audience', null);
+                         if(data) setAnnouncements(data);
+                     })();
+                }).subscribe();
+                 (async () => {
+                         const { data, error } = await supabase.from('announcements').select('*').eq('target', 'students').is('target_audience', null);
+                         if(data) setAnnouncements(data);
+                 })();
         } else {
             unsubscribe = getAnnouncementsForClass(selectedGroup, setAnnouncements);
         }
         
         return () => {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe();
-            } else if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
-                (unsubscribe as any).unsubscribe();
+            if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+                unsubscribe.unsubscribe();
             }
         };
     }, [selectedGroup]);
@@ -118,6 +130,9 @@ const AnnouncementView = ({ user, isOwner }: { user: User | null, isOwner: boole
 
         if (selectedGroup === 'Teachers') {
             announcementData.target = 'teachers';
+        } else if (selectedGroup === 'All Students') {
+             announcementData.target = 'students';
+             announcementData.target_audience = undefined;
         } else {
             announcementData.target = 'students';
             announcementData.target_audience = {
@@ -483,7 +498,7 @@ export default function PrincipalDashboard() {
                               Manage Holidays
                           </CardTitle>
                           <CardDescription>
-                              Declare holidays for the school. These days will not be counted for attendance.
+                              Declare school holidays. These days will not be counted for attendance.
                           </CardDescription>
                       </CardHeader>
                       <CardContent>

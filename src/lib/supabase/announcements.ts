@@ -1,5 +1,4 @@
 
-
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -40,7 +39,7 @@ const uploadFileToSupabase = async (file: File, bucket: string, folder: string):
 
 // Add a new announcement
 export const addAnnouncement = async (
-    announcementData: Omit<Announcement, 'id' | 'created_at'>,
+    announcementData: Partial<Omit<Announcement, 'id' | 'created_at'>>,
     attachment?: File
 ) => {
   try {
@@ -64,52 +63,45 @@ export const getAnnouncementsForStudent = (
     studentInfo: { classSection: string; studentId: string },
     callback: (announcements: Announcement[]) => void
 ) => {
-  const channel = supabase
-    .channel('announcements-for-student')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, async () => {
+
+    const fetchAnnouncements = async () => {
+        const orQuery = [
+            `target.eq.both`,
+            `target.eq.students,target_audience.is.null`,
+            `target_audience->>value.eq.${studentInfo.classSection}`,
+            `target_audience->>value.eq.${studentInfo.studentId}`
+        ].join(',');
+
         const { data, error } = await supabase
             .from('announcements')
             .select('*')
-            .or(`target.eq.students,target.eq.both,target_audience->>value.eq.${studentInfo.classSection},target_audience->>value.eq.${studentInfo.studentId}`)
+            .or(orQuery)
             .order('created_at', { ascending: true });
 
         if (error) {
             console.error(error);
+            callback([]);
             return;
         }
-        
-        const filtered = (data || []).filter(ann => {
-            if (ann.target === "students" && !ann.target_audience) return true;
-            if (ann.target === "both" && !ann.target_audience) return true;
-            if (ann.target_audience?.type === 'class' && ann.target_audience.value === studentInfo.classSection) return true;
-            if (ann.target_audience?.type === 'student' && ann.target_audience.value === studentInfo.studentId) return true;
-            return false;
-        });
 
-        callback(filtered);
+        callback(data || []);
+    };
+    
+    const channel = supabase
+    .channel('announcements-for-student')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (payload) => {
+        fetchAnnouncements();
     })
-    .subscribe();
-
-    // Fetch initial data
-    (async () => {
-         const { data, error } = await supabase
-            .from('announcements')
-            .select('*')
-            .or(`target.eq.students,target.eq.both,target_audience->>value.eq.${studentInfo.classSection},target_audience->>value.eq.${studentInfo.studentId}`)
-            .order('created_at', { ascending: true });
-        if (data) {
-             const filtered = (data || []).filter(ann => {
-                if (ann.target === "students" && !ann.target_audience) return true;
-                if (ann.target === "both" && !ann.target_audience) return true;
-                if (ann.target_audience?.type === 'class' && ann.target_audience.value === studentInfo.classSection) return true;
-                if (ann.target_audience?.type === 'student' && ann.target_audience.value === studentInfo.studentId) return true;
-                return false;
-            });
-            callback(filtered);
+    .subscribe((status, err) => {
+        if(status === 'SUBSCRIBED') {
+            fetchAnnouncements();
         }
-    })();
+        if (err) {
+            console.error('Realtime subscription error:', err);
+        }
+    });
 
-  return () => supabase.removeChannel(channel);
+    return channel;
 };
 
 // Get announcements for a specific class (for teachers)
@@ -117,42 +109,48 @@ export const getAnnouncementsForClass = (
     classSection: string,
     callback: (announcements: Announcement[]) => void
 ) => {
-    const channel = supabase
-        .channel(`announcements-for-class-${classSection}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target_audience->>value=eq.${classSection}` }, async (payload) => {
-             const { data, error } = await supabase.from('announcements').select('*').eq('target_audience->>value', classSection).order('created_at', { ascending: true });
-             if (data) callback(data);
-        })
-        .subscribe();
-    
-    // Initial fetch
-    (async () => {
+
+    const fetchAndCallback = async () => {
         const { data, error } = await supabase.from('announcements').select('*').eq('target_audience->>value', classSection).order('created_at', { ascending: true });
         if (data) callback(data);
-    })();
-
-    return () => supabase.removeChannel(channel);
+        if (error) console.error(error);
+    }
+    const channel = supabase
+        .channel(`announcements-for-class-${classSection}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target_audience->>value=eq.${classSection}` }, (payload) => {
+             fetchAndCallback();
+        })
+        .subscribe((status) => {
+            if(status === 'SUBSCRIBED') {
+                fetchAndCallback();
+            }
+        });
+    
+    return channel;
 }
 
 // Get announcements for all teachers
 export const getAnnouncementsForTeachers = (
     callback: (announcements: Announcement[]) => void
 ) => {
-     const channel = supabase
-        .channel('announcements-for-teachers')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("teachers","both")`}, async (payload) => {
-            const { data, error } = await supabase.from('announcements').select('*').in('target', ['teachers', 'both']).is('target_audience', null).order('created_at', { ascending: true });
-            if (data) callback(data);
-        })
-        .subscribe();
-        
-    // Initial fetch
-     (async () => {
+    const fetchAndCallback = async () => {
         const { data, error } = await supabase.from('announcements').select('*').in('target', ['teachers', 'both']).is('target_audience', null).order('created_at', { ascending: true });
         if (data) callback(data);
-    })();
+        if (error) console.error(error);
+    }
 
-    return () => supabase.removeChannel(channel);
+     const channel = supabase
+        .channel('announcements-for-teachers')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("teachers","both")`}, (payload) => {
+            fetchAndCallback();
+        })
+        .subscribe((status) => {
+            if(status === 'SUBSCRIBED') {
+                fetchAndCallback();
+            }
+        });
+        
+    return channel;
 }
 
 
@@ -188,5 +186,3 @@ export const deleteAnnouncement = async (announcementId: string) => {
   const { error } = await supabase.from('announcements').delete().eq('id', announcementId);
   if (error) throw error;
 };
-
-    

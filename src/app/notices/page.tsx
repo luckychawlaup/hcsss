@@ -84,6 +84,7 @@ export default function NoticesPage() {
 
   useEffect(() => {
     setIsLoading(true);
+    let unsubscribeAnnouncements: any;
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
         const user = session?.user;
@@ -93,26 +94,24 @@ export default function NoticesPage() {
                 const classSection = `${studentProfile.class}-${studentProfile.section}`;
                 const studentId = studentProfile.id;
 
-                const unsubscribeAnnouncements = getAnnouncementsForStudent(
-                { classSection, studentId },
-                (announcements) => {
-                    setNotices(announcements);
-                    setIsLoading(false);
-                }
+                unsubscribeAnnouncements = getAnnouncementsForStudent(
+                    { classSection, studentId },
+                    (announcements) => {
+                        setNotices(announcements);
+                        setIsLoading(false);
+                    }
                 );
-                // Note: The Supabase realtime subscription needs to be manually unsubscribed.
-                // The way getAnnouncementsForStudent is written, it should return the channel to unsubscribe.
-                return () => {
-                    // This is conceptual; actual implementation depends on getAnnouncementsForStudent
-                    // For example: if (unsubscribeAnnouncements) unsubscribeAnnouncements.unsubscribe();
-                };
             }
+        } else {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     });
 
     return () => {
         authListener.subscription.unsubscribe();
+        if (unsubscribeAnnouncements && typeof unsubscribeAnnouncements.unsubscribe === 'function') {
+            unsubscribeAnnouncements.unsubscribe();
+        }
     };
   }, []);
 
