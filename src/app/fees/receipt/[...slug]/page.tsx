@@ -92,7 +92,7 @@ function ReceiptPageContent() {
                 </div>
                 <div className="bg-card p-6 sm:p-10 shadow-lg print:shadow-none relative z-10 border rounded-lg overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
-                        <h1 className="text-[8vw] md:text-[6rem] font-bold text-gray-200/30 transform -rotate-45 select-none whitespace-nowrap opacity-50">
+                        <h1 className="text-[10vw] md:text-[8rem] font-bold text-gray-500/10 transform -rotate-45 select-none whitespace-nowrap">
                             {settings.schoolName}
                         </h1>
                     </div>
