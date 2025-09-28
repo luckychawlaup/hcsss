@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
@@ -7,6 +8,7 @@ export interface Feedback {
     user_id: string;
     user_name: string;
     user_role: string;
+    class?: string;
     category: "Complaint" | "Suggestion" | "Feedback";
     subject: string;
     description: string;
@@ -22,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.feedback (
     user_id UUID NOT NULL,
     user_name TEXT NOT NULL,
     user_role TEXT NOT NULL,
+    class TEXT,
     category TEXT NOT NULL,
     subject TEXT NOT NULL,
     description TEXT NOT NULL,

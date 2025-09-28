@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -91,11 +92,16 @@ export function FeedbackForm() {
     }
     setIsSubmitting(true);
 
+    const isStudent = !('classes_taught' in userProfile);
+    const userName = isStudent ? 'Anonymous Student' : userProfile.name;
+    const userClass = isStudent ? `${(userProfile as Student).class}-${(userProfile as Student).section}` : undefined;
+
     try {
         await addFeedback({
             user_id: currentUser.id,
-            user_name: userProfile.name,
-            user_role: 'classes_taught' in userProfile ? 'Teacher' : 'Student',
+            user_name: userName,
+            user_role: isStudent ? 'Student' : 'Teacher',
+            class: userClass,
             ...values,
         });
 
@@ -122,7 +128,7 @@ export function FeedbackForm() {
         <CardHeader>
             <CardTitle>Submit Your Feedback</CardTitle>
             <CardDescription>
-                We value your input. Please let us know if you have a complaint, suggestion, or general feedback.
+                We value your input. Please let us know if you have a complaint, suggestion, or general feedback. Your identity as a student will be kept anonymous.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -199,5 +205,3 @@ export function FeedbackForm() {
     </Card>
   );
 }
-
-    

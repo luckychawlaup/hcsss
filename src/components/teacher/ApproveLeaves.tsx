@@ -35,7 +35,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { ThumbsUp, ThumbsDown, CalendarX2, Loader2, MessageSquare, Calendar as CalendarIcon, Pencil, FileText } from "lucide-react";
+import { ThumbsUp, ThumbsDown, CalendarX2, Loader2, MessageSquare, Calendar as CalendarIcon, Pencil, FileText, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateLeaveRequest } from "@/lib/supabase/leaves";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
@@ -182,6 +182,15 @@ export default function ApproveLeaves({ leaves, title, isPrincipal = false }: Ap
   return (
     <>
     <div className="space-y-4">
+        {title === "Students" && (
+             <Alert variant="default" className="bg-blue-50 border-blue-200">
+                <Shield className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="text-blue-800 font-semibold">Student Anonymity Notice</AlertTitle>
+                <AlertDescription className="text-blue-700">
+                    To protect student privacy and prevent any form of retribution, all student submissions are anonymous. Only the student's class is shown.
+                </AlertDescription>
+            </Alert>
+        )}
         {leaves.map((leave) => (
             <Card key={leave.id}>
                 <CardHeader>
