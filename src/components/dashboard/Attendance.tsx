@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -101,7 +102,7 @@ export default function Attendance() {
 
     useEffect(() => {
         fetchAttendance(currentMonth);
-    }, [currentMonth, supabase]);
+    }, [currentMonth]);
 
     const navigateMonth = (direction: 'prev' | 'next') => {
         const newMonth = direction === 'prev' 
@@ -156,22 +157,10 @@ export default function Attendance() {
         return calendarDays;
     };
 
-    // Calculate attendance statistics
-    const attendanceStats = {
-        total: attendance.length,
-        present: attendance.filter(a => a.status === 'present').length,
-        absent: attendance.filter(a => a.status === 'absent').length,
-        halfDay: attendance.filter(a => a.status === 'half-day').length,
-    };
-
-    const attendancePercentage = attendanceStats.total > 0 
-        ? Math.round((attendanceStats.present / attendanceStats.total) * 100) 
-        : 0;
-
     return (
         <Card>
             <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <CardTitle className="flex items-center gap-2 text-primary">
                         <UserCheck className="h-6 w-6" />
                         My Attendance
@@ -184,9 +173,10 @@ export default function Attendance() {
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
-                            size="sm"
+                            size="icon"
                             onClick={() => navigateMonth('prev')}
                             disabled={isLoading}
+                            className="h-8 w-8"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -195,35 +185,15 @@ export default function Attendance() {
                         </div>
                         <Button
                             variant="outline"
-                            size="sm"
+                            size="icon"
                             onClick={() => navigateMonth('next')}
                             disabled={isLoading || currentMonth >= new Date()}
+                             className="h-8 w-8"
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
-                
-                {/* Attendance Statistics */}
-                {!isLoading && attendanceStats.total > 0 && (
-                    <div className="flex flex-wrap gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                            <span>Present: {attendanceStats.present}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                            <span>Absent: {attendanceStats.absent}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                            <span>Half Day: {attendanceStats.halfDay}</span>
-                        </div>
-                        <div className="font-semibold">
-                            Attendance: {attendancePercentage}%
-                        </div>
-                    </div>
-                )}
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground mb-2">
@@ -244,30 +214,6 @@ export default function Attendance() {
                     <>
                         <div className="grid grid-cols-7 gap-2 mb-4">
                             {renderCalendarDays()}
-                        </div>
-                        
-                        {/* Legend */}
-                        <div className="flex flex-wrap gap-3 text-xs justify-center border-t pt-3">
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                <span>Present</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                <span>Absent</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                                <span>Half Day</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-gray-200 rounded-full"></div>
-                                <span>Not Marked</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-muted rounded-full"></div>
-                                <span>Sunday</span>
-                            </div>
                         </div>
                         
                         {attendance.length === 0 && !isLoading && (
