@@ -11,8 +11,7 @@ interface ThemeProviderProps {
 }
 
 interface AppThemeContextType {
-  schoolSettings: SchoolSettings;
-  setSchoolSettings: React.Dispatch<React.SetStateAction<SchoolSettings>>;
+  settings: SchoolSettings;
 }
 
 const AppThemeContext = createContext<AppThemeContextType | undefined>(undefined);
@@ -27,7 +26,7 @@ function hslToCssVar(hsl: string | undefined) {
 }
 
 export function ThemeProvider({ children, settings: initialSettings }: ThemeProviderProps) {
-  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(initialSettings);
+  const [settings, setSettings] = useState<SchoolSettings>(initialSettings);
   
   useEffect(() => {
     if (initialSettings.primaryColor) {
@@ -39,7 +38,7 @@ export function ThemeProvider({ children, settings: initialSettings }: ThemeProv
     }
 
     const channel = getSchoolSettingsRT((newSettings) => {
-        setSchoolSettings(newSettings);
+        setSettings(newSettings);
         if (newSettings.primaryColor) {
             document.documentElement.style.setProperty('--primary', hslToCssVar(newSettings.primaryColor));
             document.documentElement.style.setProperty('--ring', hslToCssVar(newSettings.primaryColor));
@@ -57,7 +56,7 @@ export function ThemeProvider({ children, settings: initialSettings }: ThemeProv
   }, [initialSettings]);
 
   return (
-    <AppThemeContext.Provider value={{ schoolSettings, setSchoolSettings }}>
+    <AppThemeContext.Provider value={{ settings }}>
       {children}
     </AppThemeContext.Provider>
   );
@@ -71,7 +70,6 @@ export function useTheme() {
   }
 
   return { 
-    settings: context.schoolSettings, 
-    setSettings: context.setSchoolSettings,
+    settings: context.settings,
   };
 }

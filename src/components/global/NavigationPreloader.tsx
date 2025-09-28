@@ -11,42 +11,26 @@ export default function NavigationPreloader() {
   const previousPath = useRef(pathname);
 
   useEffect(() => {
+    // When the path changes, immediately set loading to true.
     if (previousPath.current !== pathname) {
       setLoading(true);
-    }
-    
-    // A timer is still needed to give Suspense time to take over.
-    // When the new page's content is ready, Suspense will unmount this loader.
-    // If navigation is very fast, this prevents a flicker.
-    const timer = setTimeout(() => {
-      setLoading(false);
       previousPath.current = pathname;
-    }, 1000); // Increased timeout to better handle complex pages
-
-    return () => clearTimeout(timer);
-
+    }
   }, [pathname]);
 
+  // On the client, this component is part of a Suspense boundary.
+  // When navigation starts, this component remains mounted, showing the loader.
+  // When the new page is ready, React Suspense will swap the old content
+  // with the new content, and this preloader component will be unmounted,
+  // automatically hiding the loader.
 
-  // This effect handles the initial page load case.
+  // The loading state is set back to false here as a cleanup/fallback mechanism,
+  // ensuring the loader is hidden when the component unmounts or path changes again.
   useEffect(() => {
-      const handleLoad = () => {
-          setLoading(false);
-      };
-      
-      // Check if document is already loaded
-      if (document.readyState === 'complete') {
-          handleLoad();
-      } else {
-          window.addEventListener('load', handleLoad);
-          // Fallback timeout in case 'load' event doesn't fire
-          const fallbackTimer = setTimeout(handleLoad, 1500);
-          return () => {
-              window.removeEventListener('load', handleLoad);
-              clearTimeout(fallbackTimer);
-          };
-      }
-  }, []);
+    return () => {
+      setLoading(false);
+    };
+  }, [pathname]);
 
 
   if (!loading) {
@@ -69,5 +53,3 @@ export default function NavigationPreloader() {
     </div>
   );
 }
-
-    
