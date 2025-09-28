@@ -1,31 +1,35 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 
 export default function NavigationPreloader() {
   const [loading, setLoading] = useState(false);
   const pathname = usePathname();
+  const previousPath = useRef(pathname);
 
   useEffect(() => {
-    // This is a simple way to trigger loading on path change.
-    // For Next.js 13+ App Router, navigation is often too fast for a loader to be noticeable
-    // for simple pages. This ensures it's shown for a very short duration for perceived performance.
+    // If the path changes, it means navigation has started.
+    if (previousPath.current !== pathname) {
+      setLoading(true);
+    }
     
-    // We set loading to true, then false after a short delay.
-    setLoading(true);
+    // We update the previous path. For the *end* of the loading,
+    // Next.js Suspense handles showing the content. When the new page
+    // renders, this component will re-evaluate.
+    previousPath.current = pathname;
+    
+    // A small delay to hide the loader allows Suspense to take over
+    // and prevents flickering on very fast navigations.
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 400); // Adjust delay as needed
+    }, 500); // This delay ensures the loader is visible for a minimum duration.
 
     return () => clearTimeout(timer);
 
   }, [pathname]);
-
-  // A more robust solution might use router events if available in a stable way
-  // in future Next.js versions or a global state management for loading states.
 
   if (!loading) {
     return null;
