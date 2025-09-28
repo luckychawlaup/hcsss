@@ -11,25 +11,43 @@ export default function NavigationPreloader() {
   const previousPath = useRef(pathname);
 
   useEffect(() => {
-    // If the path changes, it means navigation has started.
     if (previousPath.current !== pathname) {
       setLoading(true);
     }
     
-    // We update the previous path. For the *end* of the loading,
-    // Next.js Suspense handles showing the content. When the new page
-    // renders, this component will re-evaluate.
-    previousPath.current = pathname;
-    
-    // A small delay to hide the loader allows Suspense to take over
-    // and prevents flickering on very fast navigations.
+    // A timer is still needed to give Suspense time to take over.
+    // When the new page's content is ready, Suspense will unmount this loader.
+    // If navigation is very fast, this prevents a flicker.
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 500); // This delay ensures the loader is visible for a minimum duration.
+      previousPath.current = pathname;
+    }, 1000); // Increased timeout to better handle complex pages
 
     return () => clearTimeout(timer);
 
   }, [pathname]);
+
+
+  // This effect handles the initial page load case.
+  useEffect(() => {
+      const handleLoad = () => {
+          setLoading(false);
+      };
+      
+      // Check if document is already loaded
+      if (document.readyState === 'complete') {
+          handleLoad();
+      } else {
+          window.addEventListener('load', handleLoad);
+          // Fallback timeout in case 'load' event doesn't fire
+          const fallbackTimer = setTimeout(handleLoad, 1500);
+          return () => {
+              window.removeEventListener('load', handleLoad);
+              clearTimeout(fallbackTimer);
+          };
+      }
+  }, []);
+
 
   if (!loading) {
     return null;
