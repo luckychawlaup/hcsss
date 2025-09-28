@@ -11,7 +11,7 @@ import type { Teacher } from "@/lib/supabase/teachers";
 import { ProfileSkeleton, StudentProfile, TeacherProfile, StudentProfileDetails, TeacherProfileDetails } from "./ProfileDetails";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
-import { LogOut, ChevronRight, MessageSquareQuote, Shield, FileText, Info, Users, Eye } from "lucide-react";
+import { LogOut, ChevronRight, MessageSquareQuote, Shield, FileText, Info, Users, Eye, Receipt } from "lucide-react";
 import BottomNav from "../dashboard/BottomNav";
 import TeacherNav from "../teacher/TeacherNav";
 import Link from "next/link";
@@ -37,7 +37,7 @@ export default function ProfilePageContent() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
   const [role, setRole] = useState<"student" | "teacher" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showDetails, setShowDetails] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
   const supabase = createClient();
   const router = useRouter();
 
@@ -119,16 +119,17 @@ export default function ProfilePageContent() {
 
              <Card>
                 <CardContent className="p-2">
-                    <ProfileLink href="/feedback" icon={MessageSquareQuote} title="Complaint &amp; Feedback" description="Submit your queries or suggestions" />
                     <ProfileLink href="/about" icon={Users} title="About Us" description="Learn more about our school" />
-                    <ProfileLink href="/help" icon={Info} title="Help &amp; FAQ" description="Find answers to common questions" />
+                    <ProfileLink href="/feedback" icon={MessageSquareQuote} title="Complaint & Feedback" description="Submit your queries or suggestions" />
+                    <ProfileLink href="/help" icon={Info} title="Help & FAQ" description="Find answers to common questions" />
                 </CardContent>
             </Card>
 
              <Card>
                 <CardContent className="p-2">
-                    <ProfileLink href="/terms" icon={FileText} title="Terms &amp; Conditions" description="Our school's usage policies" />
+                    <ProfileLink href="/terms" icon={FileText} title="Terms & Conditions" description="Our school's usage policies" />
                     <ProfileLink href="/privacy" icon={Shield} title="Privacy Policy" description="How we handle your data" />
+                    <ProfileLink href="/refund-policy" icon={Receipt} title="Refund Policy" description="Information on fee refunds" />
                 </CardContent>
             </Card>
 
