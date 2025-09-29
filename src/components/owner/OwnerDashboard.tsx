@@ -7,16 +7,24 @@ import Header from "@/components/dashboard/Header";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "../ui/skeleton";
-import { ArrowLeft, UserPlus, Users, GraduationCap, DollarSign, Info, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle, Eye } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, GraduationCap, DollarSign, Info, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle, Eye, CheckCircle } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { addAdmin, getAdmins, removeAdmin, AdminUser } from "@/lib/supabase/admins";
+import { addAdmin, getAdmins, removeAdmin, AdminUser, resendAdminConfirmation } from "@/lib/supabase/admins";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AddAdminForm from "./AddAdminForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const SchoolInfoForm = dynamic(() => import('../principal/SchoolInfoForm'), {
     loading: () => <Skeleton className="h-80 w-full" />
@@ -48,11 +56,20 @@ const ManageAdminRoles = () => {
     const { toast } = useToast();
     const [manageAdminsTab, setManageAdminsTab] = useState("viewAdmins");
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
+    const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
+    const [isResending, setIsResending] = useState(false);
+
 
     const fetchAdmins = async () => {
         setIsLoading(true);
-        const admins = await getAdmins();
-        setAdminUsers(admins);
+        try {
+            const admins = await getAdmins();
+            setAdminUsers(admins);
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch administrator list.'});
+        }
         setIsLoading(false);
     };
 
@@ -80,10 +97,31 @@ const ManageAdminRoles = () => {
         fetchAdmins();
         setManageAdminsTab("viewAdmins");
     }
+    
+    const openResendDialog = (admin: AdminUser) => {
+        setSelectedAdmin(admin);
+        setIsKeyDialogOpen(true);
+    }
+    
+    const handleResendConfirmation = async () => {
+        if (!selectedAdmin) return;
+        setIsResending(true);
+        try {
+            await resendAdminConfirmation(selectedAdmin.email);
+            toast({ title: "Email Sent", description: `A new confirmation and password reset email has been sent to ${selectedAdmin.email}.` });
+            setIsKeyDialogOpen(false);
+        } catch (error) {
+             toast({ variant: "destructive", title: "Error", description: "Failed to send email." });
+        } finally {
+            setIsResending(false);
+        }
+    }
+
 
     if (isLoading) return <Skeleton className="h-64 w-full" />;
 
     return (
+        <>
         <Tabs value={manageAdminsTab} onValueChange={setManageAdminsTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="viewAdmins">View Admins</TabsTrigger>
@@ -102,9 +140,14 @@ const ManageAdminRoles = () => {
                                         <p className="font-semibold">{p.name}</p>
                                         <p className="text-sm text-muted-foreground">{p.email}</p>
                                     </div>
-                                    <Button size="icon" variant="ghost" onClick={() => handleRemove(p)} disabled={!!isDeleting}>
-                                        {isDeleting === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
-                                    </Button>
+                                    <div>
+                                        <Button size="icon" variant="ghost" onClick={() => openResendDialog(p)}>
+                                            <KeyRound className="h-4 w-4 text-blue-600" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" onClick={() => handleRemove(p)} disabled={isDeleting === p.uid}>
+                                            {isDeleting === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
+                                        </Button>
+                                    </div>
                                 </div>
                             )) : <p className="text-sm text-muted-foreground text-center py-4">No principals assigned.</p>}
                         </CardContent>
@@ -120,9 +163,14 @@ const ManageAdminRoles = () => {
                                         <p className="font-semibold">{a.name}</p>
                                         <p className="text-sm text-muted-foreground">{a.email}</p>
                                     </div>
-                                     <Button size="icon" variant="ghost" onClick={() => handleRemove(a)} disabled={!!isDeleting}>
-                                        {isDeleting === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
-                                    </Button>
+                                     <div>
+                                        <Button size="icon" variant="ghost" onClick={() => openResendDialog(a)}>
+                                            <KeyRound className="h-4 w-4 text-blue-600" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" onClick={() => handleRemove(a)} disabled={isDeleting === a.uid}>
+                                            {isDeleting === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
+                                        </Button>
+                                    </div>
                                 </div>
                             )) : <p className="text-sm text-muted-foreground text-center py-4">No accountants assigned.</p>}
                         </CardContent>
@@ -143,6 +191,24 @@ const ManageAdminRoles = () => {
                 </Card>
             </TabsContent>
         </Tabs>
+         <Dialog open={isKeyDialogOpen} onOpenChange={setIsKeyDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Resend Confirmation Email</DialogTitle>
+                    <DialogDescription>
+                        This will send a new password reset link to <span className="font-semibold">{selectedAdmin?.email}</span>. Clicking this link will also confirm their email address.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => setIsKeyDialogOpen(false)} disabled={isResending}>Cancel</Button>
+                    <Button onClick={handleResendConfirmation} disabled={isResending}>
+                        {isResending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Send Email
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 };
 
@@ -257,5 +323,3 @@ export default function OwnerDashboard() {
     </div>
   );
 }
-
-    

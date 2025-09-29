@@ -80,7 +80,9 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
         throw dbError;
     }
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+    });
     if (resetError) {
         console.warn("Admin user created, but failed to send password reset email.", resetError);
     }
@@ -110,5 +112,15 @@ export const removeAdmin = async (uid: string) => {
     if (funcError) {
         console.error("DB record deleted, but failed to delete auth user:", funcError);
         throw new Error("DB record deleted, but auth user cleanup failed.");
+    }
+};
+
+export const resendAdminConfirmation = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+    });
+    if (error) {
+        console.error("Error resending confirmation/password reset:", error);
+        throw error;
     }
 };

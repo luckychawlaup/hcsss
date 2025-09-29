@@ -72,21 +72,18 @@ export default function LoginForm({ role }: LoginFormProps) {
            return;
       }
       
-      if (actualRole === 'student' || actualRole === 'teacher') {
-        const { data: { user: updatedUser } } = await supabase.auth.getUser();
-        if (!updatedUser?.email_confirmed_at) {
-          setError(
-            "Your email is not verified. Please check your inbox for the verification link."
-          );
-          toast({
-            title: "Email Verification Required",
-            description: "Please check your inbox to verify your email address before logging in.",
-            variant: "destructive",
-          });
-          // Do not sign out. Let the user stay in a partial auth state.
-          setIsLoading(false);
-          return;
-        }
+      if (actualRole !== 'owner' && !user.email_confirmed_at) {
+        setError(
+          "Your email is not verified. Please check your inbox for the verification link. If you are an admin, ask the owner to resend it."
+        );
+        toast({
+          title: "Email Verification Required",
+          description: "Please check your inbox to verify your email address before logging in.",
+          variant: "destructive",
+        });
+        // Do not sign out. Let the user stay in a partial auth state.
+        setIsLoading(false);
+        return;
       }
       
       toast({
