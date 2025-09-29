@@ -6,7 +6,7 @@ import Header from "@/components/dashboard/Header";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { getTeacherByAuthId, Teacher } from "@/lib/supabase/teachers";
-import { Announcement, addAnnouncement, updateAnnouncement, deleteAnnouncement, getAnnouncementsForClass } from "@/lib/supabase/announcements";
+import { Announcement, addAnnouncement, updateAnnouncement, deleteAnnouncement, getAnnouncementsForClass, getAnnouncementsForTeachers } from "@/lib/supabase/announcements";
 import ClassChatGroup from "@/components/teacher/ClassChatGroup";
 import AnnouncementChat from "@/components/teacher/AnnouncementChat";
 import { useToast } from "@/hooks/use-toast";
@@ -21,15 +21,16 @@ const supabase = createClient();
 export default function TeacherAnnouncementsPage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [user, setUser] = useState<User | null>(null);
 
-  const assignedClasses = useMemo(() => {
+  const announcementGroups = useMemo(() => {
     if (!teacher) return [];
     const classes = new Set<string>();
+    classes.add("All Teachers"); // Add static group for all teachers
     if (teacher.class_teacher_of) classes.add(teacher.class_teacher_of);
     if (teacher.classes_taught) teacher.classes_taught.forEach(c => classes.add(c));
     return Array.from(classes).sort();
@@ -54,8 +55,13 @@ export default function TeacherAnnouncementsPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedClass) {
-      const unsubscribe = getAnnouncementsForClass(selectedClass, setAnnouncements);
+    if (selectedGroup) {
+        let unsubscribe: any;
+        if (selectedGroup === 'All Teachers') {
+            unsubscribe = getAnnouncementsForTeachers(setAnnouncements);
+        } else {
+            unsubscribe = getAnnouncementsForClass(selectedGroup, setAnnouncements);
+        }
       return () => {
           if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
               unsubscribe.unsubscribe();
@@ -64,15 +70,15 @@ export default function TeacherAnnouncementsPage() {
     } else {
       setAnnouncements([]);
     }
-  }, [selectedClass]);
+  }, [selectedGroup]);
   
-  const handleSelectClass = (classSection: string) => {
-      setSelectedClass(classSection);
+  const handleSelectGroup = (group: string) => {
+      setSelectedGroup(group);
   }
 
   const handleSendMessage = async (content: string, category: string, file?: File) => {
-    if (!teacher || !selectedClass) {
-        toast({ variant: "destructive", title: "Error", description: "Cannot send message. Teacher or class not selected." });
+    if (!teacher || !selectedGroup) {
+        toast({ variant: "destructive", title: "Error", description: "Cannot send message. Teacher or group not selected." });
         return;
     }
 
@@ -80,21 +86,24 @@ export default function TeacherAnnouncementsPage() {
         title: "Announcement",
         content,
         category,
-        target: "students",
-        target_audience: {
-            type: "class",
-            value: selectedClass,
-        },
         created_by: teacher?.id,
         creator_name: teacher?.name,
         creator_role: teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher',
     };
+
+    if (selectedGroup === 'All Teachers') {
+        announcementData.target = 'teachers';
+        announcementData.target_audience = undefined;
+    } else {
+        announcementData.target = 'students';
+        announcementData.target_audience = { type: 'class', value: selectedGroup };
+    }
     
      try {
       await addAnnouncement(announcementData as Omit<Announcement, "id" | "created_at">, file);
       toast({
         title: "Announcement Sent!",
-        description: `Your message has been sent to ${selectedClass}.`,
+        description: `Your message has been sent to ${selectedGroup}.`,
       });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: "Could not send announcement." });
@@ -120,52 +129,54 @@ export default function TeacherAnnouncementsPage() {
   }
   
   const chatHeader = (
-    <div className="p-4 border-b flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setSelectedClass(null)}>
+    <div className="p-4 border-b flex items-center gap-4 absolute top-0 w-full bg-background z-10">
+        <Button variant="ghost" size="icon" onClick={() => setSelectedGroup(null)}>
             <ArrowLeft/>
         </Button>
-        <h2 className="text-lg font-semibold">{selectedClass}</h2>
+        <h2 className="text-lg font-semibold">{selectedGroup}</h2>
     </div>
   );
 
   const mainContent = isMobile ? (
-    <div className="w-full h-full">
-      {!selectedClass ? (
+    <div className="w-full h-full relative">
+      {!selectedGroup ? (
         <ClassChatGroup
-          assignedClasses={assignedClasses}
-          onSelectClass={handleSelectClass}
-          selectedClass={selectedClass}
+          assignedClasses={announcementGroups}
+          onSelectClass={handleSelectGroup}
+          selectedClass={selectedGroup}
           isLoading={isLoading}
         />
       ) : (
-        <AnnouncementChat
-          announcements={announcements}
-          chatTitle={selectedClass}
-          onSendMessage={handleSendMessage}
-          onUpdateMessage={handleUpdateMessage}
-          onDeleteMessage={handleDeleteMessage}
-          senderName={teacher?.name || "Teacher"}
-          senderRole={
-            teacher?.role === "classTeacher" ? "Class Teacher" : "Subject Teacher"
-          }
-          headerContent={chatHeader}
-        />
+        <div className="h-full pt-20">
+            <AnnouncementChat
+            announcements={announcements}
+            chatTitle={selectedGroup}
+            onSendMessage={handleSendMessage}
+            onUpdateMessage={handleUpdateMessage}
+            onDeleteMessage={handleDeleteMessage}
+            senderName={teacher?.name || "Teacher"}
+            senderRole={
+                teacher?.role === "classTeacher" ? "Class Teacher" : "Subject Teacher"
+            }
+            headerContent={chatHeader}
+            />
+        </div>
       )}
     </div>
   ) : (
     <div className="flex h-full">
       <div className="w-[300px] border-r">
         <ClassChatGroup
-          assignedClasses={assignedClasses}
-          onSelectClass={handleSelectClass}
-          selectedClass={selectedClass}
+          assignedClasses={announcementGroups}
+          onSelectClass={handleSelectGroup}
+          selectedClass={selectedGroup}
           isLoading={isLoading}
         />
       </div>
       <div className="flex-1">
         <AnnouncementChat
           announcements={announcements}
-          chatTitle={selectedClass}
+          chatTitle={selectedGroup}
           onSendMessage={handleSendMessage}
           onUpdateMessage={handleUpdateMessage}
           onDeleteMessage={handleDeleteMessage}
@@ -182,17 +193,11 @@ export default function TeacherAnnouncementsPage() {
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       <Header title="Announcements" showAvatar={true} />
-      <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 overflow-hidden p-0 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-6xl h-full flex flex-col">
             <Card className="flex-1 overflow-hidden">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Megaphone/> Announcements</CardTitle>
-                    <CardDescription>Select a class to view or send announcements.</CardDescription>
-                </CardHeader>
-                 <CardContent className="p-0 h-[calc(100%-110px)]">
-                    <div className="border-t h-full">
-                        {mainContent}
-                    </div>
+                 <CardContent className="p-0 h-full">
+                    {mainContent}
                 </CardContent>
             </Card>
         </div>

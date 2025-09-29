@@ -212,7 +212,7 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
           ))
         )}
       </div>
-      <div className="p-4 border-t bg-background">
+      <div className="p-4 border-t bg-background absolute bottom-0 w-full">
         {attachment && !editingMessage && (
             <div className="flex items-center gap-2 p-2 mb-2 bg-secondary rounded-md text-sm">
                 <Paperclip className="h-4 w-4" />
