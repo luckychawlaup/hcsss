@@ -7,19 +7,22 @@ import SchoolStatus from "@/components/dashboard/SchoolStatus";
 import Attendance from "@/components/dashboard/Attendance";
 import TodayHomework from "@/components/dashboard/TodayHomework";
 import ReportCardComponent from "@/components/dashboard/ReportCard";
-import StudentNav from "@/components/dashboard/StudentNav";
 import { Suspense } from "react";
 import { Skeleton } from "../ui/skeleton";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
+import { Book } from "lucide-react";
+import Link from "next/link";
 
 function DashboardLoadingSkeleton() {
     return (
         <div className="space-y-6">
             <Skeleton className="h-16 w-full" />
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
                 <Skeleton className="h-48 w-full" />
-                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-96 w-full" />
+                 <Skeleton className="h-48 w-full" />
+                 <Skeleton className="h-48 w-full" />
             </div>
-            <Skeleton className="h-64 w-full" />
         </div>
     )
 }
@@ -36,14 +39,29 @@ export default function DashboardPage() {
                     <SchoolStatus />
                     <div className="grid gap-6 md:grid-cols-2">
                         <TodayHomework />
+                        <Attendance />
                         <ReportCardComponent />
+                        <Link href="https://ncert.nic.in/textbook.php" target="_blank" rel="noopener noreferrer">
+                             <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer h-full">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-primary">
+                                        <Book className="h-6 w-6" />
+                                        Online Textbooks
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-muted-foreground">
+                                        Access NCERT textbooks and other educational resources directly from the official source.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     </div>
-                    <Attendance />
                 </div>
             </Suspense>
         </main>
       </div>
-      <StudentNav />
+      <BottomNav />
     </div>
   );
 }
