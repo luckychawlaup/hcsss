@@ -9,17 +9,8 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const next = requestUrl.searchParams.get('next')
-  const error = requestUrl.searchParams.get('error')
-  const errorDescription = requestUrl.searchParams.get('error_description')
   const type = requestUrl.searchParams.get('type');
 
-  // If Supabase redirects with an error, show it
-  if (error) {
-    return NextResponse.redirect(
-      `${requestUrl.origin}/auth/confirm?error=${error}&error_description=${errorDescription}`
-    )
-  }
-  
   if (code) {
     const cookieStore = cookies()
     const supabase = createServerClient(
@@ -40,33 +31,18 @@ export async function GET(request: Request) {
       }
     )
     
-    const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (exchangeError) {
-      return NextResponse.redirect(
-        `${requestUrl.origin}/auth/confirm?error=exchange_failed&error_description=${exchangeError.message}`
-      )
-    }
-
-    // This is a password recovery flow.
-    // The user has clicked a link in their email. Supabase has verified it and sent us here with a session.
-    // We now redirect to the update-password page where the user can enter their new password.
-    if (type === 'recovery' && session) {
+    if (!error && session) {
+      // For password recovery, redirect to the update password page
+      if (type === 'recovery') {
         return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
-    }
-    
-    if (session) {
-      // Determine where to redirect next for other flows
-      if (next) {
-        // Regular login flow (e.g., student, teacher)
-        return NextResponse.redirect(`${requestUrl.origin}${next}`)
-      } else {
-        // Email confirmation flow (for new sign-ups)
-        return NextResponse.redirect(`${requestUrl.origin}/auth/confirm`)
       }
+      // For other flows (login, email confirmation), redirect to the intended page or dashboard
+      return NextResponse.redirect(`${requestUrl.origin}${next || '/'}`)
     }
   }
 
-  // Fallback for cases without a code, like initial password recovery click
+  // Fallback redirect
   return NextResponse.redirect(`${requestUrl.origin}/login`)
 }

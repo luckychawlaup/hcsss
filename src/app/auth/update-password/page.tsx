@@ -10,7 +10,6 @@ import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Label } from "@/components/ui/label";
 
 function UpdatePasswordContent() {
@@ -22,7 +21,6 @@ function UpdatePasswordContent() {
   const [isReady, setIsReady] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
-  const router = useRouter();
 
   useEffect(() => {
     // This effect will run on the client side to check if there is an active session
