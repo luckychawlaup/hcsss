@@ -28,7 +28,7 @@ const addAdminSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   dob: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in DD/MM/YYYY format."),
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
-  address: z.string().min(10, "Address is too short."),
+  address: z.string().optional(),
   role: z.enum(["principal", "accountant"], { required_error: "You must select a role."}),
 });
 
@@ -60,6 +60,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
     try {
       await addAdmin({
           ...values,
+          address: values.address || '',
       });
       
       toast({
@@ -147,7 +148,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                     name="address"
                     render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                        <FormLabel>Address</FormLabel>
+                        <FormLabel>Address (Optional)</FormLabel>
                         <FormControl>
                         <Textarea placeholder="Enter full address" {...field} />
                         </FormControl>
