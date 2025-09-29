@@ -8,7 +8,7 @@ export interface Announcement {
   title: string;
   content: string;
   category: string;
-  target: "students" | "teachers" | "both";
+  target: "students" | "teachers" | "both" | "admins";
   target_audience?: {
     type: "class" | "student";
     value: string; // class-section string or studentId
@@ -139,7 +139,7 @@ export const getAnnouncementsForTeachers = (
     callback: (announcements: Announcement[]) => void
 ) => {
     const fetchAndCallback = async () => {
-        const orQuery = 'target.eq.teachers,target.eq.both';
+        const orQuery = 'target.eq.teachers,target.eq.both,target.eq.admins';
         const { data, error } = await supabase.from('announcements').select('*').or(orQuery).is('target_audience', null).order('created_at', { ascending: true });
         if (data) callback(data);
         if (error) console.error(error);
@@ -147,7 +147,7 @@ export const getAnnouncementsForTeachers = (
 
      const channel = supabase
         .channel('announcements-teachers')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("teachers","both")`}, (payload) => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("teachers","both","admins")`}, (payload) => {
             fetchAndCallback();
         })
         .subscribe((status) => {
@@ -183,6 +183,44 @@ export const getAnnouncementsForAllStudents = (
     return channel;
 }
 
+// For Owner: get announcements based on selected group
+export const getAnnouncementsForOwner = (
+    group: string,
+    callback: (announcements: Announcement[]) => void
+) => {
+    const fetchAndCallback = async () => {
+        let query = supabase.from('announcements').select('*').order('created_at', { ascending: true });
+
+        if (group === 'All Students') {
+            query = query.or('target.eq.students,target.eq.both').is('target_audience', null);
+        } else if (group === 'All Teachers' || group === 'All Admins') {
+            query = query.or('target.eq.teachers,target.eq.both,target.eq.admins').is('target_audience', null);
+        } else {
+            // This is for a specific class section
+            query = query.eq('target_audience->>value', group);
+        }
+
+        const { data, error } = await query;
+        if (data) callback(data);
+        if (error) console.error(error);
+    };
+
+    // A unique channel name is crucial for real-time updates to work correctly.
+    const channelName = `announcements-owner-${group.replace(/\s+/g, '-')}`;
+    const channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (payload) => {
+            fetchAndCallback();
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                fetchAndCallback();
+            }
+        });
+
+    return channel;
+};
+
 
 // Get all announcements, intended for principal/admin views
 export const getAllAnnouncements = (callback: (announcements: Announcement[]) => void) => {
@@ -216,3 +254,4 @@ export const deleteAnnouncement = async (announcementId: string) => {
   const { error } = await supabase.from('announcements').delete().eq('id', announcementId);
   if (error) throw error;
 };
+

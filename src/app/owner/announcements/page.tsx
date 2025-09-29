@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/dashboard/Header";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { Announcement, addAnnouncement, updateAnnouncement, deleteAnnouncement, getAnnouncementsForAllStudents, getAnnouncementsForTeachers } from "@/lib/supabase/announcements";
+import { Announcement, addAnnouncement, updateAnnouncement, deleteAnnouncement, getAnnouncementsForOwner } from "@/lib/supabase/announcements";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ArrowLeft, Megaphone } from "lucide-react";
@@ -16,6 +16,11 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 
 const supabase = createClient();
 
+const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
+const sections = ["A", "B", "C", "D"];
+const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
+
+
 export default function OwnerAnnouncementsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
@@ -23,7 +28,7 @@ export default function OwnerAnnouncementsPage() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  const announcementGroups = useMemo(() => ["All Users", "Teachers Only", "Students Only"], []);
+  const announcementGroups = useMemo(() => ["All Students", "All Teachers", "All Admins", ...allClassSections], []);
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -39,12 +44,7 @@ export default function OwnerAnnouncementsPage() {
       return;
     }
 
-    let unsubscribe: any;
-    if (selectedGroup === 'Teachers Only') {
-      unsubscribe = getAnnouncementsForTeachers(setAnnouncements);
-    } else { // "All Users" and "Students Only" can be handled similarly here for simplicity
-      unsubscribe = getAnnouncementsForAllStudents(setAnnouncements);
-    }
+    let unsubscribe = getAnnouncementsForOwner(selectedGroup, setAnnouncements);
     
     return () => {
       if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
@@ -59,15 +59,6 @@ export default function OwnerAnnouncementsPage() {
         return;
     }
 
-    let target: "both" | "teachers" | "students";
-    if (selectedGroup === 'Teachers Only') {
-        target = 'teachers';
-    } else if (selectedGroup === 'Students Only') {
-        target = 'students';
-    } else {
-        target = 'both';
-    }
-
     const announcementData: Partial<Announcement> = {
         title: "Announcement from Owner",
         content,
@@ -75,8 +66,20 @@ export default function OwnerAnnouncementsPage() {
         created_by: user.id,
         creator_name: "Owner",
         creator_role: "Owner",
-        target,
     };
+
+    if (selectedGroup === 'All Teachers') {
+        announcementData.target = 'teachers';
+    } else if (selectedGroup === 'All Students') {
+        announcementData.target = 'students';
+    } else if (selectedGroup === 'All Admins') {
+        announcementData.target = 'admins';
+    } else if (allClassSections.includes(selectedGroup)) {
+        announcementData.target = 'students';
+        announcementData.target_audience = { type: 'class', value: selectedGroup };
+    } else {
+        announcementData.target = 'both'; // Fallback for groups like "All Users" if added
+    }
     
     try {
       await addAnnouncement(announcementData as Omit<Announcement, "id" | "created_at">, file);
@@ -125,7 +128,7 @@ export default function OwnerAnnouncementsPage() {
         <div className="mx-auto w-full max-w-6xl h-full flex flex-col">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Megaphone/> Send Announcement</CardTitle>
-                <CardDescription>Send high-priority announcements to all users, or specific groups.</CardDescription>
+                <CardDescription>Send high-priority announcements to any group in the school.</CardDescription>
             </CardHeader>
             <div className="flex-1 overflow-hidden border rounded-lg">
                 {isMobile ? (
@@ -179,3 +182,4 @@ export default function OwnerAnnouncementsPage() {
     </div>
   );
 }
+
