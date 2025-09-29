@@ -45,6 +45,8 @@ export default function Home() {
               router.replace('/principal');
             } else if (userRole === 'accountant') {
               router.replace('/accountant');
+            } else if (userRole === 'owner') {
+              router.replace('/owner');
             } else {
               setIsCheckingRole(false);
             }

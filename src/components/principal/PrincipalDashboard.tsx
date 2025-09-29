@@ -40,16 +40,10 @@ const StudentList = dynamic(() => import('./StudentList'), {
 const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
     loading: () => <Skeleton className="h-48 w-full" />,
 });
-const GenerateSalary = dynamic(() => import('./GenerateSalary'), {
-    loading: () => <Skeleton className="h-80 w-full" />
-});
-const SchoolInfoForm = dynamic(() => import('./SchoolInfoForm'), {
-    loading: () => <Skeleton className="h-80 w-full" />
-});
 
 type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "makeAnnouncement" | "managePayroll" | "schoolInfo" | "manageHolidays" | "reviewLeaves";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "makeAnnouncement" | "manageHolidays" | "reviewLeaves";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -452,49 +446,8 @@ export default function PrincipalDashboard() {
                         <AnnouncementView user={user} />
                     </Card>
               );
-          case 'managePayroll':
-              return (
-                    <Card>
-                        <CardHeader>
-                             <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Dashboard
-                            </Button>
-                            <CardTitle className="flex items-center gap-2">
-                                <DollarSign />
-                                Manage Payroll
-                            </CardTitle>
-                            <CardDescription>
-                                Generate and manage salary slips for teachers.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <GenerateSalary teachers={allTeachers.filter(t => t.status === 'Registered') as Teacher[]} isLoading={isLoading} />
-                        </CardContent>
-                    </Card>
-              );
-          case 'schoolInfo':
-              return (
-                  <Card>
-                      <CardHeader>
-                           <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
-                              <ArrowLeft className="mr-2 h-4 w-4" />
-                              Back to Dashboard
-                          </Button>
-                          <CardTitle className="flex items-center gap-2">
-                              <Info />
-                              School Information
-                          </CardTitle>
-                          <CardDescription>
-                              Manage the school's public contact information.
-                          </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                          <SchoolInfoForm />
-                      </CardContent>
-                  </Card>
-              );
-            case 'manageHolidays':
+          
+          case 'manageHolidays':
               return (
                   <Card>
                       <CardHeader>
@@ -528,12 +481,10 @@ export default function PrincipalDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <NavCard title="Manage Teachers" description="Add, view, and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
                         <NavCard title="Manage Students" description="Admit, view, and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
-                        <NavCard title="Manage Payroll" description="Generate salary slips for teachers" icon={DollarSign} onClick={() => setActiveView("managePayroll")} />
                         <NavCard title="Review Feedback" description="Review submissions and complaints" icon={ClipboardCheck} onClick={() => setActiveView("viewFeedback")} />
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
                         <NavCard title="Manage Holidays" description="Declare school holidays" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
-                        <NavCard title="School Information" description="Update school contact details" icon={Info} onClick={() => setActiveView("schoolInfo")} />
                     </div>
                 </div>
               );

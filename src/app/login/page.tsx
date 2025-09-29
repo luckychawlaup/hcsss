@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { User, Briefcase, School, Calculator, ClipboardSignature, FilePenLine } from "lucide-react";
+import { User, Briefcase, School, Calculator, ClipboardSignature, FilePenLine, KeyRound } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +49,7 @@ export default function RoleSelectionPage() {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="flex w-full max-w-md flex-1 flex-col justify-center">
+      <div className="flex w-full max-w-lg flex-1 flex-col justify-center">
         <div className="mb-8 flex flex-col items-center justify-center">
           <Image src="/hcsss.png" alt="School Logo" width={90} height={90} className="mb-4 rounded-full" priority />
            <div className="flex items-center gap-2">
@@ -63,11 +63,12 @@ export default function RoleSelectionPage() {
         
         <Card className="shadow-lg">
           <CardContent className="p-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <RoleCard href="/auth/student/login" icon={User} title="Student" description="Student Portal" />
                 <RoleCard href="/auth/teacher/login" icon={Briefcase} title="Teacher" description="Teacher Portal" />
                 <RoleCard href="/auth/principal/login" icon={School} title="Principal" description="Admin Dashboard" />
                 <RoleCard href="/auth/accountant/login" icon={Calculator} title="Accountant" description="Accounts Dept." />
+                <RoleCard href="/owner" icon={KeyRound} title="Owner" description="Owner's Portal" />
             </div>
           </CardContent>
         </Card>

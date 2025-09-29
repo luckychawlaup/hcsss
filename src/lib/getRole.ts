@@ -4,11 +4,14 @@ import { createClient } from "./supabase/client";
 
 const principalUID = "6cc51c80-e098-4d6d-8450-5ff5931b7391";
 const accountantUID = "cf210695-e635-4363-aea5-740f2707a6d7";
+const ownerUID = "946ba406-1ba6-49cf-ab78-f611d1350f33";
 
-export const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'accountant' | 'principal' | null> => {
+
+export const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'accountant' | 'principal' | 'owner' | null> => {
     if (!user) return null;
     
     // Check for hardcoded admin UIDs first
+    if (user.id === ownerUID) return 'owner';
     if (user.id === principalUID) return 'principal';
     if (user.id === accountantUID) return 'accountant';
     
@@ -21,8 +24,8 @@ export const getRole = async (user: User | null): Promise<'teacher' | 'student' 
     // Fallback: If role is not in metadata, query the teachers table.
     // This is less efficient and should ideally be phased out by ensuring
     // user metadata is always set on registration.
-    const supabase = createClient();
     try {
+        const supabase = createClient();
         const { data: teacher, error } = await supabase
             .from('teachers')
             .select('id')
@@ -35,7 +38,6 @@ export const getRole = async (user: User | null): Promise<'teacher' | 'student' 
         }
 
         if (teacher) return 'teacher';
-
     } catch (e) {
        // This can happen due to RLS for non-teacher roles. It's safe to ignore.
     }

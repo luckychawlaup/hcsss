@@ -5,10 +5,9 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getRole } from "@/lib/getRole";
-import PrincipalDashboard from "@/components/principal/PrincipalDashboard";
+import OwnerDashboard from "@/components/owner/OwnerDashboard";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
-
 
 function Preloader() {
     return (
@@ -28,7 +27,7 @@ function Preloader() {
     );
 }
 
-export default function PrincipalPage() {
+export default function OwnerPage() {
     const [role, setRole] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
@@ -41,14 +40,11 @@ export default function PrincipalPage() {
                 try {
                     const userRole = await getRole(user);
                     setRole(userRole);
-                    if (userRole === 'student') {
-                        router.replace('/');
-                    } else if (userRole === 'teacher') {
-                        router.replace('/teacher');
-                    } else if (userRole === 'owner') {
-                        router.replace('/owner');
-                    }
-                     else {
+                    if (userRole !== 'owner') {
+                        // If not owner, sign out and redirect to login
+                        await supabase.auth.signOut();
+                        router.replace('/login');
+                    } else {
                         setLoading(false);
                     }
                 } catch(e) {
@@ -63,11 +59,11 @@ export default function PrincipalPage() {
         checkUserRole();
     }, [supabase, router]);
 
-    if (loading || (role !== 'principal' && role !== 'accountant')) {
+    if (loading || role !== 'owner') {
         return <Preloader />;
     }
 
     return (
-        <PrincipalDashboard />
+        <OwnerDashboard />
     );
 }
