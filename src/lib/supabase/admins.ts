@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -12,8 +13,9 @@ export interface AdminUser {
 }
 
 export const ADMINS_TABLE_SETUP_SQL = `
--- Create a new table to store admin role UIDs and their details
-CREATE TABLE IF NOT EXISTS public.admin_roles (
+-- Recreate the admin_roles table with all necessary columns
+DROP TABLE IF EXISTS public.admin_roles;
+CREATE TABLE public.admin_roles (
     uid UUID PRIMARY KEY,
     role TEXT NOT NULL CHECK (role IN ('principal', 'accountant')),
     name TEXT NOT NULL,
@@ -37,7 +39,7 @@ ON public.admin_roles FOR ALL
 USING (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
 WITH CHECK (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050');
 
--- Policy: Allow any authenticated user to read from this table (necessary for getRole check).
+-- Policy: Allow any authenticated user to read from this table.
 CREATE POLICY "Allow authenticated users to read roles"
 ON public.admin_roles FOR SELECT
 USING (auth.role() = 'authenticated');
@@ -45,13 +47,24 @@ USING (auth.role() = 'authenticated');
 
 
 export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string, phone_number: string, address: string }) => {
+    // This function must be called from a client where the owner is logged in.
+    // It can't use `auth.admin.createUser` directly without a service role key.
+    // The current approach of using signUp and then a password reset is a viable workaround
+    // for client-side operations. The issue is the user experience on confirmation.
+
+    // Let's refine the signUp + reset flow.
+    // The problem is that signUp sends a verification email by default.
+    // We want to control the flow and only send a password reset.
+
+    // Step 1: Create the user, but tell them not to use the first email.
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email: adminData.email,
-        password: Math.random().toString(36).slice(-8), // Temporary password
+        // Using a long, random password that won't be used.
+        password: `temp-password-${Date.now()}-${Math.random()}`,
         options: {
             data: {
                 full_name: adminData.name,
-                role: adminData.role
+                role: adminData.role,
             }
         }
     });
@@ -62,6 +75,7 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
     }
     if (!authData.user) throw new Error(`Could not create user for ${adminData.role}.`);
 
+    // Step 2: Immediately insert into our admin_roles table.
     const finalAdminData = {
         uid: authData.user.id,
         role: adminData.role,
@@ -76,15 +90,20 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
 
     if (dbError) {
         console.error("DB insert failed, attempting to clean up auth user:", authData.user.id);
-        // await supabase.auth.admin.deleteUser(authData.user.id); // This requires service_role key
+        // This requires admin privileges not available on the client.
+        // The owner might need a way to clean up failed registrations.
         throw dbError;
     }
 
+    // Step 3: Immediately trigger a password reset email. This is the link they SHOULD use.
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email, {
         redirectTo: `${window.location.origin}/auth/update-password`,
     });
+
     if (resetError) {
-        console.warn("Admin user created, but failed to send password reset email.", resetError);
+        // This is a critical failure. The user is created but can't set a password.
+        console.error("Admin user created, but failed to send password reset email.", resetError);
+        throw new Error("User was created in the system, but the password reset email could not be sent. Please contact support.");
     }
     
     return finalAdminData;
@@ -106,12 +125,15 @@ export const removeAdmin = async (uid: string) => {
         throw dbError;
     }
     
+    // The edge function handles deleting the auth user.
     const { error: funcError } = await supabase.functions.invoke('delete-user', {
         body: { uid: uid },
     });
     if (funcError) {
         console.error("DB record deleted, but failed to delete auth user:", funcError);
-        throw new Error("DB record deleted, but auth user cleanup failed.");
+        // Even if auth user deletion fails, the main goal of removing their role is complete.
+        // We can throw a more informative error.
+        throw new Error("Admin role removed, but failed to delete their login account. Manual cleanup may be required.");
     }
 };
 
