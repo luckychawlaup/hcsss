@@ -1,8 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
-import { v4 } from "https://deno.land/std@0.168.0/uuid/mod.ts";
-import { SmtpClient } from "https://deno.land/x/denomailer@1.0.0/mod.ts";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,9 +23,9 @@ async function sendResetEmail(recipientEmail: string, resetLink: string) {
   }
 
   try {
-    await client.connectTLS({
-      hostname: "smtp.zoho.in", // Zoho SMTP server for .in domain
-      port: 587, // Standard port for TLS
+    await client.connect({
+      hostname: "smtp.zoho.com",
+      port: 465,
       username: ZOHO_EMAIL,
       password: ZOHO_APP_PASSWORD,
     });
@@ -91,7 +90,7 @@ serve(async (req) => {
       
       await supabaseAdmin.from('admin_roles').upsert([{ uid: userId, ...adminData }], { onConflict: 'uid' });
 
-      const resetToken = v4.generate();
+      const resetToken = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       await supabaseAdmin.from("password_resets").insert([{ user_id: userId, token: resetToken, expires_at: expiresAt, used: false }]);
       
@@ -112,7 +111,7 @@ serve(async (req) => {
       const user = users.find((u) => u.email === email);
       if (!user) throw new Error("User not found");
 
-      const resetToken = v4.generate();
+      const resetToken = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       await supabaseAdmin.from("password_resets").insert([{ user_id: user.id, token: resetToken, expires_at: expiresAt, used: false }]);
 
