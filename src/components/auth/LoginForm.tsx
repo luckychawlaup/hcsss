@@ -174,18 +174,6 @@ export default function LoginForm({ role }: LoginFormProps) {
           </Button>
         </form>
       </Form>
-       {(role === "student" || role === "teacher") && (
-        <div className="mt-4 text-center text-sm">
-          <a href="/forgot-password" className="text-primary hover:underline">
-            Forgot Password?
-          </a>
-        </div>
-      )}
-      {(role === "principal" || role === "accountant") && (
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          <p>To reset your password, please contact the owner.</p>
-        </div>
-      )}
     </>
   );
 }
