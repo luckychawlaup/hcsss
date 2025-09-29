@@ -68,7 +68,7 @@ function UpdatePasswordContent() {
       
     setIsSuccess(true);
     toast({
-        title: "Password Updated",
+        title: "Password Set Successfully",
         description: "Your password has been changed successfully. You can now log in.",
     });
     
@@ -84,7 +84,7 @@ function UpdatePasswordContent() {
           <CheckCircle className="h-4 w-4 text-primary" />
           <AlertTitle className="text-primary">Password Updated!</AlertTitle>
           <AlertDescription className="space-y-4">
-            Your password has been reset successfully.
+            Your password has been set successfully.
             <div className="pt-2">
               <Button asChild>
                 <Link href="/login">Proceed to Login</Link>
@@ -115,7 +115,7 @@ function UpdatePasswordContent() {
                </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Update Password
+                Set New Password
               </Button>
             </form>
         </>
@@ -127,9 +127,9 @@ function UpdatePasswordContent() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
             <Image src={"/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
-            <h1 className="text-2xl font-bold text-primary">Reset Your Password</h1>
+            <h1 className="text-2xl font-bold text-primary">Set Your Password</h1>
             <p className="text-muted-foreground">
-              Enter and confirm your new password below.
+              Welcome! Please enter and confirm your new password below to secure your account.
             </p>
         </div>
         
