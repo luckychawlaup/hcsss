@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { requestPasswordReset } from "@/lib/supabase/admins";
+import { createClient } from "@/lib/supabase/client";
 
 
 export default function ForgotPasswordForm() {
@@ -20,6 +20,7 @@ export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const { toast } = useToast();
   const router = useRouter();
+  const supabase = createClient();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -28,7 +29,10 @@ export default function ForgotPasswordForm() {
     setIsSuccess(false);
 
     try {
-        await requestPasswordReset(email);
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/auth/update-password`
+        });
+        if (error) throw error;
         setIsSuccess(true);
     } catch (e: any) {
         setError(e.message || "An unexpected error occurred.");

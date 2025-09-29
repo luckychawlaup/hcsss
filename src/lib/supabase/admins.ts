@@ -1,5 +1,4 @@
 
-
 import { createClient } from "@/lib/supabase/client";
 import { getRedirectUrl } from "./auth";
 const supabase = createClient();
@@ -48,18 +47,38 @@ export interface AdminUser {
 
 // --- Add an admin and trigger password reset request ---
 export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string; phone_number: string; address?: string }) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Not authenticated");
-
-    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
-        body: { mode: 'create_and_request_reset', adminData },
-        headers: { Authorization: `Bearer ${session.access_token}` }
-    });
     
-    if (error) throw new Error(error.message || 'Edge function error.');
-    if (data?.error) throw new Error(data.error);
+    // Use the admin client to create the user. This must be done in an Edge Function for security.
+    const { data: { user }, error: createError } = await supabase.auth.admin.createUser({
+        email: adminData.email,
+        password: crypto.randomUUID(), // A secure, random password
+        email_confirm: true, // The user will be marked as confirmed
+        user_metadata: { full_name: adminData.name, role: adminData.role }
+    });
 
-    return data as { message: string, token: string };
+    if (createError) {
+        console.error("Error creating admin user:", createError);
+        throw new Error(createError.message);
+    }
+     if (!user) throw new Error("User not created");
+
+    // Add user to the admin_roles table
+    const { error: roleError } = await supabase.from('admin_roles').insert([{ uid: user.id, ...adminData }]);
+    if (roleError) {
+        console.error("Error setting admin role:", roleError);
+        // If this fails, we should probably delete the user we just created to keep things clean.
+        await supabase.auth.admin.deleteUser(user.id);
+        throw new Error(roleError.message);
+    }
+
+    // Trigger Supabase's built-in password reset email
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email, {
+        redirectTo: `${getRedirectUrl().replace('/callback', '/update-password')}`
+    });
+    if (resetError) {
+        console.error("User created, but password reset email failed:", resetError);
+        throw new Error(resetError.message);
+    }
 };
 
 
@@ -93,40 +112,26 @@ export const removeAdmin = async (uid: string) => {
     }
 };
 
-// --- Request a password reset token from the custom function ---
+// --- Request a password reset using Supabase's built-in functionality ---
 export const requestPasswordReset = async (email: string) => {
-    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
-        body: { mode: 'request', email },
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getRedirectUrl()
     });
-
     if (error) {
-        throw new Error(error.message || 'Function invocation failed');
+        console.error("Error requesting password reset:", error);
+        throw error;
     }
-    if (data?.error) {
-        throw new Error(data.error);
-    }
-    
-    return data as { message: string, token: string };
 };
 
 
 // --- Resend password reset/confirmation for admin user ---
 export const resendAdminConfirmation = async (email: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Not authenticated");
-
-    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
-        body: { mode: 'request', email },
-        headers: { Authorization: `Bearer ${session.access_token}` }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+       redirectTo: `${getRedirectUrl().replace('/callback', '/update-password')}`
     });
-    
+
     if (error) {
         console.error("Error resending confirmation/password reset:", error);
         throw error;
     }
-    if (data.error) {
-        throw new Error(data.error);
-    }
-    
-    return data;
 };
