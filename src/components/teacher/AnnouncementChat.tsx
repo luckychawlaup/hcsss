@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Info, Megaphone, Paperclip, X, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Send, Info, Megaphone, Paperclip, X, MoreVertical, Edit, Trash2, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -40,10 +40,24 @@ function AttachmentPreview({ url }: { url: string }) {
     return (
         <div className="mt-2">
             {isImage ? (
-                <Image src={url} alt="Attachment" width={200} height={200} className="rounded-md object-cover" />
+                <div className="relative rounded-lg overflow-hidden bg-black/5">
+                  <Image 
+                    src={url} 
+                    alt="Attachment" 
+                    width={200} 
+                    height={200} 
+                    className="rounded-lg object-cover max-w-full h-auto" 
+                  />
+                </div>
             ) : (
-                <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 underline flex items-center gap-2">
-                    <Paperclip className="h-4 w-4" /> View Attachment
+                <a 
+                  href={url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center gap-2 p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                    <FileText className="h-4 w-4" />
+                    <span className="text-xs font-medium">View Attachment</span>
                 </a>
             )}
         </div>
@@ -52,38 +66,78 @@ function AttachmentPreview({ url }: { url: string }) {
 
 function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: AnnouncementBubbleProps) {
   const createdAt = notice.created_at ? new Date(notice.created_at) : new Date();
-  const isRecent = (Date.now() - createdAt.getTime()) < 15 * 60 * 1000; // 15 minutes
+  const isRecent = (Date.now() - createdAt.getTime()) < 15 * 60 * 1000;
 
   return (
-    <div className={cn("flex items-end gap-2.5 group", isSender ? "justify-end" : "justify-start")}>
+    <div className={cn("flex items-start gap-2 group animate-in fade-in-0 slide-in-from-bottom-2", isSender ? "justify-end" : "justify-start")}>
       {!isSender && (
-        <Avatar className="h-8 w-8">
-          <AvatarFallback>{notice.creator_name?.charAt(0)}</AvatarFallback>
+        <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-background">
+          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold">
+            {notice.creator_name?.charAt(0)}
+          </AvatarFallback>
         </Avatar>
       )}
-      <div className={cn("flex flex-col gap-1 w-full max-w-xs md:max-w-md")}>
-        <div className="flex items-center space-x-2 rtl:space-x-reverse">
-          {!isSender && <span className="text-xs font-semibold text-foreground">{notice.creator_name}</span>}
-          <span className="text-xs font-normal text-muted-foreground">
-            {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
-        <div className={cn("relative p-3 rounded-lg shadow-sm", isSender ? "bg-primary text-primary-foreground rounded-ee-none" : "bg-secondary rounded-es-none")}>
-          {notice.title && <p className="text-sm font-semibold pb-1">{notice.title}</p>}
-          <p className="text-sm font-normal whitespace-pre-wrap">{notice.content}</p>
+      
+      <div className={cn("flex flex-col gap-1 max-w-[85%] sm:max-w-[75%] md:max-w-md")}>
+        {!isSender && (
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-xs font-semibold text-foreground">{notice.creator_name}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        )}
+        
+        <div className={cn(
+          "relative px-3 py-2.5 rounded-2xl shadow-sm transition-all",
+          isSender 
+            ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm" 
+            : "bg-secondary/80 backdrop-blur-sm rounded-tl-sm"
+        )}>
+          {notice.title && (
+            <p className="text-sm font-semibold pb-1 border-b border-white/10 mb-2">
+              {notice.title}
+            </p>
+          )}
+          <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+            {notice.content}
+          </p>
           {notice.attachment_url && <AttachmentPreview url={notice.attachment_url} />}
-          {notice.edited_at && <span className="text-xs text-white/70 pl-2">(edited)</span>}
+          {notice.edited_at && (
+            <span className={cn("text-[10px] italic mt-1 block", isSender ? "text-white/70" : "text-muted-foreground")}>
+              edited
+            </span>
+          )}
         </div>
-        <span className="text-xs font-normal text-muted-foreground">{notice.creator_role} ({notice.category})</span>
+        
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-[10px] text-muted-foreground">
+            {notice.creator_role}
+          </span>
+          <span className="text-[10px] text-muted-foreground">•</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+            {notice.category}
+          </span>
+          {isSender && (
+            <span className="text-[10px] text-muted-foreground ml-auto">
+              {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
       </div>
+      
       {isSender && isRecent && (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
                     <MoreVertical className="h-4 w-4"/>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onEdit(notice)}>
                     <Edit className="mr-2 h-4 w-4"/> Edit
                 </DropdownMenuItem>
@@ -108,15 +162,26 @@ interface AnnouncementChatProps {
   headerContent?: React.ReactNode;
 }
 
-export default function AnnouncementChat({ announcements, chatTitle, onSendMessage, onUpdateMessage, onDeleteMessage, senderName, senderRole, headerContent }: AnnouncementChatProps) {
+export default function AnnouncementChat({ 
+  announcements, 
+  chatTitle, 
+  onSendMessage, 
+  onUpdateMessage, 
+  onDeleteMessage, 
+  senderName, 
+  senderRole, 
+  headerContent 
+}: AnnouncementChatProps) {
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState("General");
   const [attachment, setAttachment] = useState<File | null>(null);
   const [editingMessage, setEditingMessage] = useState<Announcement | null>(null);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [showCategoryInput, setShowCategoryInput] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -125,7 +190,6 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
   }, [announcements]);
 
   useEffect(() => {
-    // When switching chats, cancel any ongoing edits
     cancelEdit();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatTitle]);
@@ -134,24 +198,28 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
     if (!message.trim() && !attachment) return;
     setIsSending(true);
 
-    if(editingMessage) {
-        await onUpdateMessage(editingMessage.id, message);
-        setEditingMessage(null);
-    } else {
-        await onSendMessage(message, category, attachment || undefined);
-    }
+    try {
+      if(editingMessage) {
+          await onUpdateMessage(editingMessage.id, message);
+          setEditingMessage(null);
+      } else {
+          await onSendMessage(message, category, attachment || undefined);
+      }
 
-    setMessage("");
-    setAttachment(null);
-    setCategory("General");
-    if(fileInputRef.current) fileInputRef.current.value = "";
-    setIsSending(false);
+      setMessage("");
+      setAttachment(null);
+      setCategory("General");
+      setShowCategoryInput(false);
+      if(fileInputRef.current) fileInputRef.current.value = "";
+    } finally {
+      setIsSending(false);
+    }
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      if (file.size > 2 * 1024 * 1024) {
         alert("File size cannot exceed 2MB.");
         return;
       }
@@ -163,12 +231,16 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
     setEditingMessage(notice);
     setMessage(notice.content);
     setCategory(notice.category);
+    messageInputRef.current?.focus();
   }
 
   const cancelEdit = () => {
     setEditingMessage(null);
     setMessage("");
     setCategory("General");
+    setAttachment(null);
+    setShowCategoryInput(false);
+    if(fileInputRef.current) fileInputRef.current.value = "";
   }
   
   const confirmDelete = async () => {
@@ -178,27 +250,44 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
       }
   }
 
-
   if (!chatTitle) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-        <Megaphone className="h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">Select a Group</h3>
-        <p className="text-muted-foreground mt-2">Choose a class or group from the list to view announcements or send a new one.</p>
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-4">
+          <Megaphone className="h-8 w-8 text-white" />
+        </div>
+        <h3 className="text-xl font-semibold mb-2">Select a Group</h3>
+        <p className="text-muted-foreground text-sm max-w-sm">
+          Choose a class or group from the list to view announcements or send a new one.
+        </p>
       </div>
     );
   }
 
   return (
     <>
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-gradient-to-b from-background to-secondary/20">
       {headerContent}
-      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+      
+      {/* Messages area with custom background pattern */}
+      <div 
+        ref={scrollAreaRef} 
+        className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 space-y-4"
+        style={{ 
+          paddingBottom: '9rem',
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgb(0 0 0 / 0.05) 1px, transparent 0)',
+          backgroundSize: '24px 24px'
+        }}
+      >
         {announcements.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center h-full">
-            <Info className="h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No Announcements Yet</h3>
-            <p className="text-muted-foreground mt-2">Be the first to send an announcement to {chatTitle}.</p>
+          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center min-h-[300px] bg-background/50 backdrop-blur-sm">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-600/20 flex items-center justify-center mb-3">
+              <Info className="h-7 w-7 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No Announcements Yet</h3>
+            <p className="text-muted-foreground text-sm">
+              Be the first to send an announcement to <span className="font-semibold">{chatTitle}</span>
+            </p>
           </div>
         ) : (
           announcements.map(notice => (
@@ -212,62 +301,157 @@ export default function AnnouncementChat({ announcements, chatTitle, onSendMessa
           ))
         )}
       </div>
-      <div className="p-4 border-t bg-background absolute bottom-0 w-full">
+      
+      {/* Enhanced Input area */}
+      <div className="border-t bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 p-3 sm:p-4 pb-safe shadow-lg">
+        {editingMessage && (
+          <div className="mb-3 px-3 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between animate-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                <Edit className="h-4 w-4 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">Editing message</span>
+                <span className="text-xs text-blue-700 dark:text-blue-300">Tap cancel to discard changes</span>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={cancelEdit} className="h-8 px-2 hover:bg-blue-100 dark:hover:bg-blue-900">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        
         {attachment && !editingMessage && (
-            <div className="flex items-center gap-2 p-2 mb-2 bg-secondary rounded-md text-sm">
-                <Paperclip className="h-4 w-4" />
-                <span>{attachment.name}</span>
-                <button onClick={() => { setAttachment(null); if(fileInputRef.current) fileInputRef.current.value = ""; }} className="ml-auto">
+            <div className="flex items-center gap-2 p-2.5 mb-3 bg-gradient-to-r from-secondary to-secondary/50 rounded-xl text-sm border animate-in slide-in-from-bottom-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  {attachment.type.startsWith('image/') ? (
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                  ) : (
+                    <FileText className="h-4 w-4 text-primary" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate font-medium text-xs">{attachment.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {(attachment.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => { 
+                    setAttachment(null); 
+                    if(fileInputRef.current) fileInputRef.current.value = ""; 
+                  }} 
+                  className="flex-shrink-0 h-8 w-8 hover:bg-destructive/10"
+                >
                     <X className="h-4 w-4" />
-                </button>
+                </Button>
             </div>
         )}
-        <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isSending || !!editingMessage}>
-                <Paperclip/>
+        
+        {showCategoryInput && !editingMessage && (
+          <div className="mb-2 animate-in slide-in-from-bottom-2">
+            <Input
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                placeholder="Enter category (e.g., Homework, Event)"
+                disabled={isSending}
+                className="w-full rounded-xl border-2"
+                onBlur={() => !category && setShowCategoryInput(false)}
+            />
+          </div>
+        )}
+        
+        <div className="flex items-end gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => fileInputRef.current?.click()} 
+              disabled={isSending || !!editingMessage}
+              className="flex-shrink-0 h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+            >
+                <Paperclip className="h-5 w-5" />
             </Button>
-             <Input
+            
+            <Input
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
                 onChange={handleFileChange}
                 accept="image/*,application/pdf"
             />
-            <Input
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                placeholder={editingMessage ? "Editing message..." : `Message ${chatTitle}...`}
-                onKeyDown={e => e.key === 'Enter' && handleSend()}
-                disabled={isSending}
-                className="flex-1"
-            />
-             <Input
-                value={category}
-                onChange={e => setCategory(e.target.value)}
-                placeholder="Category"
-                disabled={isSending || !!editingMessage}
-                className="w-28"
-            />
-            <Button onClick={handleSend} disabled={isSending || (!message.trim() && !attachment)}>
-                <Send />
+            
+            <div className="flex-1 relative">
+              <Input
+                  ref={messageInputRef}
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  placeholder={editingMessage ? "Edit your message..." : `Message to ${chatTitle}...`}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  disabled={isSending}
+                  className="pr-12 rounded-xl border-2 focus:ring-2 focus:ring-primary/20 h-10"
+              />
+              {!editingMessage && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowCategoryInput(!showCategoryInput)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg"
+                  title="Add category"
+                >
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {category !== 'General' ? '✓' : '#'}
+                  </span>
+                </Button>
+              )}
+            </div>
+            
+            <Button 
+              onClick={handleSend} 
+              disabled={isSending || (!message.trim() && !attachment)}
+              size="icon"
+              className="flex-shrink-0 h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+                {isSending ? (
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
             </Button>
-            {editingMessage && (
-                <Button variant="ghost" onClick={cancelEdit}>Cancel</Button>
-            )}
         </div>
+        
+        {!editingMessage && category !== 'General' && (
+          <div className="mt-2 px-1">
+            <span className="text-xs text-muted-foreground">
+              Category: <span className="font-semibold text-foreground">{category}</span>
+            </span>
+          </div>
+        )}
       </div>
     </div>
+    
     <AlertDialog open={!!deletingMessageId} onOpenChange={() => setDeletingMessageId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:rounded-2xl">
             <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>Delete Announcement?</AlertDialogTitle>
                 <AlertDialogDescription>
                     This will permanently delete this announcement for everyone. This action cannot be undone.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={confirmDelete} 
+                  className="bg-destructive hover:bg-destructive/90 rounded-xl"
+                >
+                  Delete
+                </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>

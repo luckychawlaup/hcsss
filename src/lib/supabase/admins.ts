@@ -45,58 +45,27 @@ USING (auth.role() = 'authenticated');
 
 
 export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string, phone_number: string, address: string }) => {
-    // This function must be called from a client where the owner is logged in.
+    // This function can now be safely called from the client-side, as it delegates
+    // the sensitive operations to a secure edge function.
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || user.id !== '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') {
         throw new Error("Only the owner can add new administrators.");
     }
     
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: adminData.email,
-        email_confirm: true, // Auto-confirm the email since owner is creating it.
-        user_metadata: {
-            full_name: adminData.name,
-            role: adminData.role,
-        }
+    // Invoke the secure edge function to create the user
+    const { data, error } = await supabase.functions.invoke('create-admin-user', {
+        body: { adminData },
     });
 
-    if (authError) {
-        console.error(`Error creating auth user for ${adminData.role}:`, authError);
-        throw authError;
-    }
-    if (!authData.user) throw new Error(`Could not create user for ${adminData.role}.`);
-
-    // Step 2: Immediately insert into our admin_roles table.
-    const finalAdminData = {
-        uid: authData.user.id,
-        role: adminData.role,
-        name: adminData.name,
-        email: adminData.email,
-        dob: adminData.dob.split('/').reverse().join('-'), // Convert DD/MM/YYYY to YYYY-MM-DD for DATE type
-        phone_number: adminData.phone_number,
-        address: adminData.address,
-    };
-
-    const { error: dbError } = await supabase.from(ADMIN_ROLES_TABLE).insert([finalAdminData]);
-
-    if (dbError) {
-        console.error("DB insert failed, attempting to clean up auth user:", authData.user.id);
-        // If DB insert fails, we must delete the auth user to avoid orphans.
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        throw dbError;
-    }
-
-    // Step 3: Immediately trigger a password reset email. This is the link they SHOULD use.
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
-    });
-
-    if (resetError) {
-        console.error("Admin user created, but failed to send password reset email.", resetError);
-        throw new Error("User was created in the system, but the password reset email could not be sent. Please contact support.");
+    if (error) {
+        throw new Error(error.message || 'An unexpected error occurred in the edge function.');
     }
     
-    return finalAdminData;
+    if (data.error) {
+         throw new Error(data.error);
+    }
+    
+    return data;
 }
 
 export const getAdmins = async (): Promise<AdminUser[]> => {
