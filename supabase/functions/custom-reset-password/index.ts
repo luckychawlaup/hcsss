@@ -9,10 +9,6 @@ const corsHeaders = {
   "Access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function generateToken() {
-  return uuidv4.generate();
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -63,7 +59,7 @@ serve(async (req) => {
              throw new Error(`DB role assignment failed: ${roleError.message}`);
         }
 
-        const resetToken = generateToken();
+        const resetToken = uuidv4.generate();
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         await supabaseAdmin.from("password_resets").insert({ user_id: userId, token: resetToken, expires_at: expiresAt.toISOString(), used: false });
         
@@ -80,7 +76,7 @@ serve(async (req) => {
       const user = users.find((u) => u.email === email);
       if (!user) throw new Error("User not found");
 
-      const resetToken = generateToken();
+      const resetToken = uuidv4.generate();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
 
       await supabaseAdmin.from("password_resets").insert([
