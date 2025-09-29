@@ -11,12 +11,13 @@ import type { Teacher } from "@/lib/supabase/teachers";
 import { ProfileSkeleton, StudentProfile, TeacherProfile, StudentProfileDetails, TeacherProfileDetails } from "./ProfileDetails";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
-import { LogOut, ChevronRight, MessageSquareQuote, Shield, FileText, Info, Users, Eye, Receipt } from "lucide-react";
+import { LogOut, ChevronRight, MessageSquareQuote, Shield, FileText, Info, Users, Eye, Receipt, Mail } from "lucide-react";
 import BottomNav from "../dashboard/BottomNav";
 import TeacherNav from "../teacher/TeacherNav";
 import Link from "next/link";
 import { getRole } from "@/lib/getRole";
-import { Card, CardContent } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { UpdateEmailForm } from "./UpdateEmailForm";
 
 const ProfileLink = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string; }) => (
     <Link href={href} className="block w-full text-left">
@@ -40,11 +41,13 @@ export default function ProfilePageContent() {
   const [showDetails, setShowDetails] = useState(false);
   const supabase = createClient();
   const router = useRouter();
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
       setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
 
       if (user) {
         const userRole = await getRole(user);
@@ -116,6 +119,19 @@ export default function ProfilePageContent() {
         
         <div className="p-4 sm:p-6 lg:p-8 space-y-4">
              {showDetails && profileDetails}
+            
+            {role === 'student' && user && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Mail /> Change Login Email
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <UpdateEmailForm currentEmail={user.email!} />
+                </CardContent>
+              </Card>
+            )}
 
              <Card>
                 <CardContent className="p-2">

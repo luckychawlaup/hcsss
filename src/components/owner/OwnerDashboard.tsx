@@ -6,7 +6,7 @@ import Header from "@/components/dashboard/Header";
 import { User, onAuthStateChanged } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "../ui/skeleton";
-import { ArrowLeft, UserPlus, Users, GraduationCap, Megaphone, CalendarCheck, DollarSign, Info, CalendarOff, KeyRound, Calculator, School } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, GraduationCap, Megaphone, CalendarCheck, DollarSign, Info, CalendarOff, KeyRound, Calculator, School, User as UserIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
@@ -60,6 +60,7 @@ export default function OwnerDashboard() {
   const [activeView, setActiveView] = useState<OwnerView>("dashboard");
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -145,6 +146,7 @@ export default function OwnerDashboard() {
               return (
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <NavCard title="My Profile" description="Manage your account settings" icon={UserIcon} onClick={() => router.push('/owner/profile')} />
                         <NavCard title="Manage Admins" description="View Principal and Accountant assignments" icon={KeyRound} onClick={() => setActiveView("manageAdmins")} />
                         <NavCard title="Manage Payroll" description="Generate and oversee staff salary" icon={DollarSign} onClick={() => setActiveView("managePayroll")} />
                         <NavCard title="School Information" description="Update public school details" icon={Info} onClick={() => setActiveView("schoolInfo")} />
