@@ -8,8 +8,8 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next')
-  const type = requestUrl.searchParams.get('type');
+  const type = requestUrl.searchParams.get('type')
+  const next = requestUrl.searchParams.get('next') ?? '/'
 
   if (code) {
     const cookieStore = cookies()
@@ -22,29 +22,36 @@ export async function GET(request: Request) {
             return cookieStore.get(name)?.value
           },
           set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
+            try {
+              cookieStore.set({ name, value, ...options })
+            } catch (error) {
+              // Handle cases where cookies can't be set
+              console.error('Error setting cookie in callback route:', error)
+            }
           },
           remove(name: string, options: CookieOptions) {
-            cookieStore.delete({ name, ...options })
+            try {
+              cookieStore.delete({ name, ...options })
+            } catch (error) {
+              console.error('Error removing cookie in callback route:', error)
+            }
           },
         },
       }
     )
-    
-    // This is the crucial step: exchange the code for a session
-    const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error && session) {
-      // For password recovery, redirect to the update password page
+    if (!error) {
       if (type === 'recovery') {
-        return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
+        // This is the correct flow for password reset
+        return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`)
       }
-      // For other flows (login, email confirmation), redirect to the intended page or dashboard
-      return NextResponse.redirect(`${requestUrl.origin}${next || '/'}`)
+      // For other auth flows like email confirmation
+      return NextResponse.redirect(`${requestUrl.origin}${next}`)
     }
   }
 
-  // Fallback redirect if there's an error or no code
-  console.error("Password reset callback error or no code provided.");
-  return NextResponse.redirect(`${requestUrl.origin}/login`)
+  // return the user to an error page with instructions
+  console.error('No code or error exchanging code in auth callback')
+  return NextResponse.redirect(`${requestUrl.origin}/login?error=invalid_link`)
 }

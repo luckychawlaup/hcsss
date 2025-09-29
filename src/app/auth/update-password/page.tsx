@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import Link from "next/link";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
 
 function UpdatePasswordContent() {
   const [isLoading, setIsLoading] = useState(false);
@@ -21,10 +22,11 @@ function UpdatePasswordContent() {
   const [isReady, setIsReady] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
-    // This effect will run on the client side to check if there is an active session
-    // This is necessary because the redirect from the email link sets a session
+    // This effect runs on the client to check for an active session
+    // established by the callback route.
     const checkSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
@@ -66,7 +68,7 @@ function UpdatePasswordContent() {
             description: "Your password has been changed. You can now log in.",
         });
         
-        // Log the user out after a successful password change
+        // Log the user out after a successful password change for security
         await supabase.auth.signOut();
         
     } catch(e: any) {
@@ -126,9 +128,9 @@ function UpdatePasswordContent() {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
             <Image src={"/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
-            <h1 className="text-2xl font-bold text-primary">Set Your Password</h1>
+            <h1 className="text-2xl font-bold text-primary">Set Your New Password</h1>
             <p className="text-muted-foreground">
-              {isReady ? "Please enter and confirm your new password below to secure your account." : "Verifying your session..."}
+              {isReady ? "Please enter and confirm your new password." : "Verifying your session..."}
             </p>
         </div>
         
