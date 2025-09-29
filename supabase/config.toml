@@ -1,0 +1,39 @@
+# supabase/config.toml
+
+# The project ID of your Supabase project. This can be found in the URL of your Supabase project dashboard: https://supabase.com/dashboard/project/<project-id>
+project_id = "ougpdhfuwsnvsaolpohc"
+
+[api]
+# The port to use for the API proxy.
+port = 54321
+# A list of paths that should be excluded from JWT validation.
+# For example, if you want to allow anonymous access to a specific path, you can add it here.
+# Paths are interpreted as regular expressions.
+# excluded_paths = []
+
+[db]
+# The port to use for the local database.
+port = 54322
+
+[studio]
+# The port to use for Supabase Studio.
+port = 54323
+
+[realtime]
+# A list of tables that should be enabled for realtime.
+# For example, if you want to enable realtime for the "users" and "posts" tables, you can add them here.
+# enabled_tables = ["users", "posts"]
+enabled = true
+
+[auth]
+# A list of external providers that should be enabled for the local development environment.
+# For example, if you want to enable Google and GitHub providers, you can add them here.
+# enabled_external_providers = ["google", "github"]
+# The callback URL for the local development environment.
+# redirect_urls = ["http://localhost:3000/auth/callback"]
+
+[functions]
+# The directory where your edge functions are stored.
+# path = "supabase/functions"
+# Set to true to verify JWT in edge functions.
+# verify_jwt = true
