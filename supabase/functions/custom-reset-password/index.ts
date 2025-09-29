@@ -1,12 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
-import { generate as uuidGenerate } from "https://deno.land/std@0.168.0/uuid/v4.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*", // Set to your frontend domain for prod!
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Max-Age": "86400"
 };
 
 serve(async (req) => {
@@ -24,7 +22,7 @@ serve(async (req) => {
 
     // 1. Admin creation + password reset request
     if (mode === "create_and_request_reset") {
-      if (!adminData?.email) throw new Error("adminData.email required");
+      if (!adminData?.email) throw new Error("adminData.email is required");
       const userEmail = adminData.email;
       const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
       if (listError) throw listError;
@@ -37,7 +35,7 @@ serve(async (req) => {
         // Create new admin user with random password
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: userEmail,
-          password: uuidGenerate(),
+          password: crypto.randomUUID(),
           email_confirm: true,
           user_metadata: {
             full_name: adminData.name,
@@ -58,7 +56,7 @@ serve(async (req) => {
       }
 
       // Generate password reset token
-      const resetToken = uuidGenerate();
+      const resetToken = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
       const { error: prError } = await supabaseAdmin.from("password_resets").insert([
         { user_id: userId, token: resetToken, expires_at: expiresAt, used: false }
@@ -79,7 +77,7 @@ serve(async (req) => {
       const user = users.find(u => u.email === email);
       if (!user) throw new Error("User not found");
 
-      const resetToken = uuidGenerate();
+      const resetToken = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
       const { error: prError } = await supabaseAdmin.from("password_resets").insert([
