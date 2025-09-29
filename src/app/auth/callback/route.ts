@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const next = requestUrl.searchParams.get('next')
   const error = requestUrl.searchParams.get('error')
   const errorDescription = requestUrl.searchParams.get('error_description')
+  const type = requestUrl.searchParams.get('type');
 
   console.log('=== AUTH CALLBACK DEBUG ===')
   console.log('Full URL:', request.url)
@@ -18,6 +19,13 @@ export async function GET(request: Request) {
   console.log('Next param:', next)
   console.log('Error param:', error)
   console.log('Error description:', errorDescription)
+  console.log('Type param:', type);
+
+  // If this is a password recovery link, redirect directly to update-password page
+  if (type === 'recovery') {
+    console.log('Password recovery flow detected. Redirecting to update password page.');
+    return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
+  }
 
   // If there's already an error from Supabase, redirect immediately
   if (error) {
