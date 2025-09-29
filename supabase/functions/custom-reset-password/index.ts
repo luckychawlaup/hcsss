@@ -26,12 +26,14 @@ serve(async (req) => {
     const { mode, email, token, new_password, options, adminData } = await req.json();
 
     if (mode === "create_and_request_reset") {
-        if (!email || !adminData) throw new Error("Email and adminData required for creation.");
+        if (!adminData || !adminData.email) throw new Error("adminData with an email property is required for creation.");
+        
+        const userEmail = adminData.email;
 
         // Check if user already exists
         const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
         if (listError) throw listError;
-        const existingUser = existingUsers.users.find(u => u.email === email);
+        const existingUser = existingUsers.users.find(u => u.email === userEmail);
         
         let userId;
 
@@ -41,10 +43,13 @@ serve(async (req) => {
         } else {
           // Create a new user if they don't exist
           const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-            email: email,
+            email: userEmail,
             password: Math.random().toString(36).slice(-12), // Secure temporary password
             email_confirm: true, // Mark as confirmed since only owner can create
-            user_metadata: options?.data || {}
+            user_metadata: {
+                full_name: adminData.name,
+                role: adminData.role
+            }
           });
           if (createError) throw new Error(`User creation failed: ${createError.message}`);
           userId = newUser.user.id;
@@ -132,4 +137,3 @@ serve(async (req) => {
     });
   }
 });
-
