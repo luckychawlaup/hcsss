@@ -59,15 +59,9 @@ USING (auth.uid() = user_id);
 CREATE POLICY "Allow admins and teachers to manage feedback"
 ON public.feedback FOR ALL
 USING (
-  auth.uid() IN (
-    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
-    'cf210695-e635-4363-aea5-740f2707a6d7'  -- Accountant UID
-  )
+  (SELECT auth.uid() from public.teachers where auth_uid = auth.uid()) IS NOT NULL
   OR
-  EXISTS (
-    SELECT 1 FROM public.teachers
-    WHERE auth_uid = auth.uid()
-  )
+  (SELECT auth.uid() from public.admin_roles where uid = auth.uid()) IS NOT NULL
 );
 `;
 

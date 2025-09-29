@@ -63,13 +63,6 @@ export default function TeacherNav({ activeView, setActiveView, teacherRole }: T
       return activeView === item.view && pathname === '/teacher';
   }
   
-  const filteredMainNavItems = mainNavItems.filter(item => {
-    if (item.classTeacherOnly) {
-      return teacherRole === 'classTeacher';
-    }
-    return true;
-  });
-
   const filteredMobileNavItems = mobileNavItems.filter(item => {
     if (item.classTeacherOnly) {
       return teacherRole === 'classTeacher';
@@ -77,7 +70,7 @@ export default function TeacherNav({ activeView, setActiveView, teacherRole }: T
     return true;
   });
   
-  const navItemsToRender = isMobile ? filteredMobileNavItems : filteredMainNavItems;
+  const navItemsToRender = isMobile ? filteredMobileNavItems : filteredMobileNavItems; // Use the same for now, but can be different
 
   if (isMobile) {
     return (

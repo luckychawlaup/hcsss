@@ -79,9 +79,9 @@ USING (auth.uid() = user_id);
 CREATE POLICY "Allow teachers/admins to manage all leave requests"
 ON public.leaves FOR ALL
 USING (
-  (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
+  (SELECT auth.uid() from public.teachers where auth_uid = auth.uid()) IS NOT NULL
   OR
-  auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7')
+  (SELECT auth.uid() from public.admin_roles where uid = auth.uid()) IS NOT NULL
 );
 `;
 
@@ -132,7 +132,7 @@ export const getLeaveRequestsForUser = (userId: string, callback: (leaves: Leave
     };
     
     channel
-        .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: `user_id=eq.${userId}` }, 
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'leaves', filter: `user_id=eq.${userId}` }, 
         (payload) => {
             fetchLeaves(); // Re-fetch on change
         })
@@ -166,7 +166,7 @@ export const getLeaveRequestsForTeachers = (callback: (leaves: LeaveRequest[]) =
     };
 
     const channel = supabase.channel('teacher-leaves')
-        .on<LeaveRequest>('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION, filter: 'userRole=eq.Teacher' }, 
+        .on('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION, filter: 'userRole=eq.Teacher' }, 
         (payload) => {
             fetchTeacherLeaves();
         })
@@ -221,7 +221,7 @@ export const getLeaveRequestsForClassTeacher = (classSection: string, callback: 
     };
 
     const channel = supabase.channel(`leaves-class-${classSection}`)
-        .on<LeaveRequest>(
+        .on(
             'postgres_changes', 
             { 
                 event: '*', 

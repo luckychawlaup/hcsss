@@ -24,7 +24,7 @@ export default function LoginPage() {
     return <div>Invalid role specified.</div>;
   }
   
-  const isAdminRole = role === "principal" || role === "accountant";
+  const isNonAdminRole = role === "student" || role === "teacher";
   
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
@@ -53,12 +53,12 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center text-sm text-muted-foreground">
-          {isAdminRole ? (
-            <p>To reset your password, please contact the owner.</p>
-          ) : (
+          {isNonAdminRole ? (
             <Link href="/forgot-password" passHref>
                  <span className="font-medium text-primary hover:underline cursor-pointer">Forgot Password?</span>
             </Link>
+          ) : (
+            <p>To reset your password, please contact the owner.</p>
           )}
         </div>
       </div>

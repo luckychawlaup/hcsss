@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { Book } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
+import BottomNav from "./BottomNav";
 
 function DashboardLoadingSkeleton() {
     return (
@@ -64,6 +65,7 @@ export default function DashboardPage() {
             </Suspense>
         </main>
       </div>
+       <BottomNav />
     </div>
   );
 }
