@@ -65,9 +65,8 @@ serve(async (req) => {
     }
     
      // 5. Send a password reset email so they can set their password.
-    const { data: resetLink, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: adminData.email,
+    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(adminData.email, {
+        redirectTo: `${Deno.env.get("NEXT_PUBLIC_SITE_URL")}/auth/update-password`
     });
     
     if (resetError) {
