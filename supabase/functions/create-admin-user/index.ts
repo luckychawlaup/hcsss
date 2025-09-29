@@ -10,6 +10,7 @@ const corsHeaders = {
 const OWNER_UID = "6bed2c29-8ac9-4e2b-b9ef-26877d42f050";
 
 serve(async (req) => {
+  // This is needed to handle CORS preflight requests.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
