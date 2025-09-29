@@ -13,77 +13,59 @@ export async function GET(request: Request) {
   const errorDescription = requestUrl.searchParams.get('error_description')
   const type = requestUrl.searchParams.get('type');
 
-  console.log('=== AUTH CALLBACK DEBUG ===')
-  console.log('Full URL:', request.url)
-  console.log('Code present:', !!code)
-  console.log('Next param:', next)
-  console.log('Error param:', error)
-  console.log('Error description:', errorDescription)
-  console.log('Type param:', type);
-
-  // If this is a password recovery link, redirect directly to update-password page
-  if (type === 'recovery') {
-    console.log('Password recovery flow detected. Redirecting to update password page.');
-    return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
-  }
-
-  // If there's already an error from Supabase, redirect immediately
+  // If Supabase redirects with an error, show it
   if (error) {
-    console.log('ERROR: Supabase returned error before code exchange')
     return NextResponse.redirect(
       `${requestUrl.origin}/auth/confirm?error=${error}&error_description=${errorDescription}`
     )
   }
 
-
-  if (code) {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.delete({ name, ...options })
-          },
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
         },
-      }
-    )
-    
-    console.log('Attempting to exchange code for session...')
-    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.delete({ name, ...options })
+        },
+      },
+    }
+  )
 
-    console.log('Exchange result - Success:', !!data.session)
-    console.log('Exchange result - Error:', exchangeError?.message)
-    console.log('Exchange result - User:', data.user?.email)
+  // This is a password recovery flow. The user has a recovery token in the URL.
+  // Supabase JS will handle this token and create a session for password update.
+  if (type === 'recovery') {
+      // The user is coming from an email link. The URL has a token that the client-side
+      // Supabase library needs to read to establish a "PASSWORD_RECOVERY" session.
+      // Redirecting to the update-password page allows the client-side code there to
+      // pick up the session change.
+      return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
+  }
 
+  // This is a regular login or email confirmation flow
+  if (code) {
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {
-      console.log('ERROR during code exchange:', exchangeError)
       return NextResponse.redirect(
         `${requestUrl.origin}/auth/confirm?error=exchange_failed&error_description=${exchangeError.message}`
       )
     }
-
-    // Determine if this is an email confirmation or regular login
-    const isEmailConfirmation = !requestUrl.searchParams.has('next')
-
-    if (isEmailConfirmation) {
-        console.log('Email confirmation flow - redirecting to /auth/confirm')
-        return NextResponse.redirect(`${requestUrl.origin}/auth/confirm`)
-    } else {
-        console.log('Regular login/redirect flow - redirecting to:', next)
-        return NextResponse.redirect(`${requestUrl.origin}${next}`)
-    }
   }
 
-  // Fallback redirect
-  console.log('No code found, redirecting to login with an error.')
-  return NextResponse.redirect(`${requestUrl.origin}/auth/auth-code-error`);
+  // Determine where to redirect next
+  const isEmailConfirmation = !requestUrl.searchParams.has('next')
+  if (isEmailConfirmation) {
+    return NextResponse.redirect(`${requestUrl.origin}/auth/confirm`)
+  } else {
+    // Regular login flow (e.g., student, teacher)
+    return NextResponse.redirect(`${requestUrl.origin}${next}`)
+  }
 }
