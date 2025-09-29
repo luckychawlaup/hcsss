@@ -52,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${poppins.variable}`} suppressHydrationWarning>
       <head/>
-      <body className="antialiased bg-background">
+      <body>
             <Suspense fallback={<Loading />}>
               {children}
             </Suspense>
