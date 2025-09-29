@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
-import { v4 as uuidv4 } from "https://deno.land/std@0.168.0/uuid/mod.ts"
+import { v4 } from "https://deno.land/std@0.168.0/uuid/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,7 +59,7 @@ serve(async (req) => {
              throw new Error(`DB role assignment failed: ${roleError.message}`);
         }
 
-        const resetToken = uuidv4();
+        const resetToken = v4();
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         await supabaseAdmin.from("password_resets").insert({ user_id: userId, token: resetToken, expires_at: expiresAt.toISOString(), used: false });
         
@@ -76,7 +76,7 @@ serve(async (req) => {
       const user = users.find((u) => u.email === email);
       if (!user) throw new Error("User not found");
 
-      const resetToken = uuidv4();
+      const resetToken = v4();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
 
       await supabaseAdmin.from("password_resets").insert([
@@ -128,4 +128,3 @@ serve(async (req) => {
     });
   }
 });
-
