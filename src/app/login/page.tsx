@@ -27,6 +27,10 @@ export default function RoleSelectionPage() {
     const newCount = logoClickCount + 1;
     setLogoClickCount(newCount);
     if (newCount >= 5) {
+      toast({
+        title: "Redirecting to Owner Portal",
+        description: "You have discovered the hidden owner login.",
+      });
       router.push('/auth/owner/login');
     }
   };
