@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -44,7 +45,7 @@ USING (auth.role() = 'authenticated');
 `;
 
 
-export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string, phone_number: string, address: string }) => {
+export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string, phone_number: string, address?: string }) => {
     // This function can now be safely called from the client-side, as it delegates
     // the sensitive operations to a secure edge function.
     const { data: { user } } = await supabase.auth.getUser();
@@ -52,9 +53,10 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
         throw new Error("Only the owner can add new administrators.");
     }
     
-    // Invoke the secure edge function to create the user
+    // Invoke the secure edge function to create the user.
+    // The `body` here will be directly sent as the request payload.
     const { data, error } = await supabase.functions.invoke('create-admin-user', {
-        body: { adminData },
+        body: { adminData: adminData },
     });
 
     if (error) {
@@ -105,3 +107,4 @@ export const resendAdminConfirmation = async (email: string) => {
         throw error;
     }
 };
+
