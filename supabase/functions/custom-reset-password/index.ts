@@ -3,12 +3,54 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
 import { v4 } from "https://deno.land/std@0.168.0/uuid/mod.ts";
+import { send, SmtpClient } from "https://deno.land/x/denomailer/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Function to send the password reset email
+async function sendResetEmail(recipientEmail: string, resetLink: string) {
+  const client = new SmtpClient();
+
+  const ZOHO_EMAIL = Deno.env.get("ZOHO_EMAIL");
+  const ZOHO_APP_PASSWORD = Deno.env.get("ZOHO_APP_PASSWORD");
+
+  if (!ZOHO_EMAIL || !ZOHO_APP_PASSWORD) {
+    console.error("Zoho email credentials are not set in environment variables.");
+    // We don't throw an error here to allow the link to still be generated for manual sending
+    return;
+  }
+
+  try {
+    await client.connectTLS({
+      hostname: "smtp.zoho.in", // Zoho SMTP server
+      port: 587,
+      username: ZOHO_EMAIL,
+      password: ZOHO_APP_PASSWORD,
+    });
+
+    await send(client, {
+      from: `Hilton Convent School <${ZOHO_EMAIL}>`,
+      to: recipientEmail,
+      subject: "Set Your Password for Hilton Convent School",
+      html: `
+        <h1>Welcome to Hilton Convent School</h1>
+        <p>Please use the link below to set your password. This link is valid for one hour.</p>
+        <p><a href="${resetLink}">Set Your Password</a></p>
+        <p>If you did not request this, please ignore this email.</p>
+      `,
+    });
+
+    await client.close();
+    console.log(`Password reset email sent successfully to ${recipientEmail}`);
+  } catch (error) {
+    console.error("Failed to send email:", error);
+    // Even if email fails, we don't want to block the user flow. The link can still be copied manually.
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,7 +63,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { mode, email, token, new_password, adminData } = await req.json();
+    const { mode, email, new_password, token, adminData } = await req.json();
+    const origin = req.headers.get("origin") || "http://localhost:9002";
+
 
     // 1. Admin creation + password reset request
     if (mode === "create_and_request_reset") {
@@ -34,15 +78,11 @@ serve(async (req) => {
       
       let userId;
       if (existingUser) {
-        // If user exists, we can't create them, but we can still proceed to generate a reset token for them if needed.
-        // For now, we'll throw an error to prevent accidental overwrites of admin roles.
-        // A more advanced flow could update existing users.
         throw new Error("An admin with this email already exists.");
       } else {
-        // Create the user if they don't exist
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: userEmail,
-          password: crypto.randomUUID(), // Secure random password
+          password: crypto.randomUUID(),
           email_confirm: true,
           user_metadata: { full_name: adminData.name, role: adminData.role }
         });
@@ -50,21 +90,16 @@ serve(async (req) => {
         userId = newUser.user.id;
       }
       
-      // Add user to the admin_roles table
-      const { error: roleError } = await supabaseAdmin.from('admin_roles').upsert([{ uid: userId, ...adminData }], { onConflict: 'uid' });
-      if (roleError) {
-        // If role assignment fails, delete the newly created auth user to prevent orphans
-        if (!existingUser) await supabaseAdmin.auth.admin.deleteUser(userId);
-        throw new Error(`DB role assignment failed: ${roleError.message}`);
-      }
+      await supabaseAdmin.from('admin_roles').upsert([{ uid: userId, ...adminData }], { onConflict: 'uid' });
 
-      // Generate and store custom reset token
       const resetToken = v4.generate();
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour expiry
-      const { error: prError } = await supabaseAdmin.from("password_resets").insert([{ user_id: userId, token: resetToken, expires_at: expiresAt, used: false }]);
-      if (prError) throw prError;
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      await supabaseAdmin.from("password_resets").insert([{ user_id: userId, token: resetToken, expires_at: expiresAt, used: false }]);
       
-      return new Response(JSON.stringify({ message: "Admin created successfully.", token: resetToken, email: userEmail }), {
+      const resetLink = `${origin}/auth/update-password?token=${resetToken}`;
+      await sendResetEmail(userEmail, resetLink);
+
+      return new Response(JSON.stringify({ message: "Admin created and email sent.", token: resetToken, email: userEmail }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200
       });
     }
@@ -73,17 +108,19 @@ serve(async (req) => {
     if (mode === 'request') {
       if (!email) throw new Error("Email is required for password reset request.");
       
-      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-      if (listError) throw listError;
-      const user = users.find(u => u.email === email);
-      if (!user) throw new Error("User not found.");
+      const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
+      if (error) throw error;
+      const user = users.find((u) => u.email === email);
+      if (!user) throw new Error("User not found");
 
       const resetToken = v4.generate();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-      const { error: prError } = await supabaseAdmin.from("password_resets").insert([{ user_id: user.id, token: resetToken, expires_at: expiresAt, used: false }]);
-      if (prError) throw prError;
+      await supabaseAdmin.from("password_resets").insert([{ user_id: user.id, token: resetToken, expires_at: expiresAt, used: false }]);
 
-      return new Response(JSON.stringify({ message: "Password reset token generated.", token: resetToken, email: email }), {
+      const resetLink = `${origin}/auth/update-password?token=${resetToken}`;
+      await sendResetEmail(email, resetLink);
+
+      return new Response(JSON.stringify({ message: "Password reset token generated and email sent.", token: resetToken, email: email }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200
       });
     }

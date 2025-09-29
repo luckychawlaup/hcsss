@@ -1,0 +1,6 @@
+
+{
+  "imports": {
+    "deno-mailer": "https://deno.land/x/denomailer@1.0.0/mod.ts"
+  }
+}
