@@ -3,13 +3,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
 
 serve(async (req: Request) => {
-  // This is needed if you're planning to invoke your function from a browser.
   const corsHeaders = {
     'Access-Control-Allow-Origin': req.headers.get('Origin') || '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   };
 
-  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }

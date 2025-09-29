@@ -5,13 +5,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
 const OWNER_UID = "6bed2c29-8ac9-4e2b-b9ef-26877d42f050";
 
 serve(async (req) => {
-  // This is needed if you're planning to invoke your function from a browser.
   const corsHeaders = {
     'Access-Control-Allow-Origin': req.headers.get('Origin') || '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   };
 
-  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
