@@ -54,14 +54,16 @@ export async function GET(request: Request) {
     if (type === 'recovery' && session) {
         return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
     }
-
-    // Determine where to redirect next for other flows
-    const isEmailConfirmation = !requestUrl.searchParams.has('next')
-    if (isEmailConfirmation) {
-      return NextResponse.redirect(`${requestUrl.origin}/auth/confirm`)
-    } else {
-      // Regular login flow (e.g., student, teacher)
-      return NextResponse.redirect(`${requestUrl.origin}${next}`)
+    
+    if (session) {
+      // Determine where to redirect next for other flows
+      if (next) {
+        // Regular login flow (e.g., student, teacher)
+        return NextResponse.redirect(`${requestUrl.origin}${next}`)
+      } else {
+        // Email confirmation flow (for new sign-ups)
+        return NextResponse.redirect(`${requestUrl.origin}/auth/confirm`)
+      }
     }
   }
 
