@@ -102,7 +102,8 @@ export default function LoginForm({ role }: LoginFormProps) {
           targetPath = '/owner';
       }
       
-      router.push(targetPath);
+      // Use window.location.href for a hard redirect
+      window.location.href = targetPath;
 
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
@@ -113,6 +114,7 @@ export default function LoginForm({ role }: LoginFormProps) {
       }
       setError(errorMessage);
     } finally {
+        // This may not be reached if redirect happens, which is fine
         setIsLoading(false);
     }
   }
@@ -172,6 +174,18 @@ export default function LoginForm({ role }: LoginFormProps) {
           </Button>
         </form>
       </Form>
+       {(role === "student" || role === "teacher") && (
+        <div className="mt-4 text-center text-sm">
+          <a href="/forgot-password" className="text-primary hover:underline">
+            Forgot Password?
+          </a>
+        </div>
+      )}
+      {(role === "principal" || role === "accountant") && (
+        <div className="mt-4 text-center text-sm text-muted-foreground">
+          <p>To reset your password, please contact the owner.</p>
+        </div>
+      )}
     </>
   );
 }
