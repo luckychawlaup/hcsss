@@ -12,7 +12,7 @@ import { ArrowLeft, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ClassChatGroup from "@/components/teacher/ClassChatGroup";
 import AnnouncementChat from "@/components/teacher/AnnouncementChat";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 const supabase = createClient();
 
@@ -70,13 +70,16 @@ export default function OwnerAnnouncementsPage() {
 
     if (selectedGroup === 'All Teachers') {
         announcementData.target = 'both'; // Targets teachers and admins
+        announcementData.target_audience = undefined;
     } else if (selectedGroup === 'All Students') {
         announcementData.target = 'students';
+        announcementData.target_audience = undefined;
     } else if (allClassSections.includes(selectedGroup)) {
         announcementData.target = 'students';
         announcementData.target_audience = { type: 'class', value: selectedGroup };
     } else {
-        announcementData.target = 'both'; // Fallback
+        announcementData.target = 'both'; // Fallback for other potential groups
+        announcementData.target_audience = undefined;
     }
     
     try {
@@ -110,71 +113,75 @@ export default function OwnerAnnouncementsPage() {
   
   const chatHeader = (
     <div className="p-4 border-b flex items-center gap-4">
-        {isMobile && (
-            <Button variant="ghost" size="icon" onClick={() => setSelectedGroup(null)}>
-                <ArrowLeft/>
-            </Button>
-        )}
+        <Button variant="ghost" size="icon" onClick={() => setSelectedGroup(null)}>
+            <ArrowLeft/>
+        </Button>
         <h2 className="text-lg font-semibold">{selectedGroup}</h2>
+    </div>
+  );
+
+  const mainContent = isMobile ? (
+    <div className="w-full h-full">
+      {!selectedGroup ? (
+        <ClassChatGroup
+          assignedClasses={announcementGroups}
+          onSelectClass={setSelectedGroup}
+          selectedClass={selectedGroup}
+          isLoading={false}
+        />
+      ) : (
+        <AnnouncementChat
+          announcements={announcements}
+          chatTitle={selectedGroup}
+          onSendMessage={handleSendMessage}
+          onUpdateMessage={handleUpdateMessage}
+          onDeleteMessage={handleDeleteMessage}
+          senderName={"Owner"}
+          senderRole={"Owner"}
+          headerContent={chatHeader}
+        />
+      )}
+    </div>
+  ) : (
+    <div className="flex h-full">
+      <div className="w-[300px] border-r">
+        <ClassChatGroup
+          assignedClasses={announcementGroups}
+          onSelectClass={setSelectedGroup}
+          selectedClass={selectedGroup}
+          isLoading={false}
+        />
+      </div>
+      <div className="flex-1">
+        <AnnouncementChat
+          announcements={announcements}
+          chatTitle={selectedGroup}
+          onSendMessage={handleSendMessage}
+          onUpdateMessage={handleUpdateMessage}
+          onDeleteMessage={handleDeleteMessage}
+          senderName={"Owner"}
+          senderRole={"Owner"}
+        />
+      </div>
     </div>
   );
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       <Header title="Owner Announcements" showAvatar={false} />
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-6xl h-full flex flex-col">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Megaphone/> Send Announcement</CardTitle>
-                <CardDescription>Send high-priority announcements to any group in the school.</CardDescription>
-            </CardHeader>
-            <div className="flex-1 overflow-hidden border rounded-lg">
-                {isMobile ? (
-                <div className="w-full h-full">
-                    {!selectedGroup ? (
-                    <ClassChatGroup 
-                        assignedClasses={announcementGroups}
-                        onSelectClass={setSelectedGroup}
-                        selectedClass={selectedGroup}
-                        isLoading={false}
-                    />
-                    ) : (
-                    <AnnouncementChat 
-                        announcements={announcements}
-                        chatTitle={selectedGroup}
-                        onSendMessage={handleSendMessage}
-                        onUpdateMessage={handleUpdateMessage}
-                        onDeleteMessage={handleDeleteMessage}
-                        senderName={"Owner"}
-                        senderRole={"Owner"}
-                        headerContent={chatHeader}
-                    />
-                    )}
-                </div>
-                ) : (
-                <div className="flex h-full">
-                    <div className="w-[300px] border-r">
-                        <ClassChatGroup 
-                            assignedClasses={announcementGroups}
-                            onSelectClass={setSelectedGroup}
-                            selectedClass={selectedGroup}
-                            isLoading={false}
-                        />
+            <Card className="flex-1 overflow-hidden">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Megaphone/> Send Announcement</CardTitle>
+                    <CardDescription>Send high-priority announcements to any group in the school.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 h-[calc(100%-110px)]">
+                    <div className="border-t h-full">
+                        {mainContent}
                     </div>
-                    <div className="flex-1">
-                        <AnnouncementChat 
-                            announcements={announcements}
-                            chatTitle={selectedGroup}
-                            onSendMessage={handleSendMessage}
-                            onUpdateMessage={handleUpdateMessage}
-                            onDeleteMessage={handleDeleteMessage}
-                            senderName={"Owner"}
-                            senderRole={"Owner"}
-                        />
-                    </div>
-                </div>
-                )}
-            </div>
+                </CardContent>
+            </Card>
         </div>
       </main>
     </div>

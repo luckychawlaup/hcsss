@@ -6,13 +6,13 @@ import Header from "@/components/dashboard/Header";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Announcement, addAnnouncement, updateAnnouncement, deleteAnnouncement, getAnnouncementsForClass, getAnnouncementsForAllStudents, getAnnouncementsForTeachers } from "@/lib/supabase/announcements";
-import { Skeleton } from "@/components/ui/skeleton";
 import ClassChatGroup from "@/components/teacher/ClassChatGroup";
 import AnnouncementChat from "@/components/teacher/AnnouncementChat";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ArrowLeft, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 const supabase = createClient();
 
@@ -117,48 +117,75 @@ export default function PrincipalAnnouncementsPage() {
   
   const chatHeader = (
     <div className="p-4 border-b flex items-center gap-4">
-        {isMobile && (
-            <Button variant="ghost" size="icon" onClick={() => setSelectedGroup(null)}>
-                <ArrowLeft/>
-            </Button>
-        )}
+        <Button variant="ghost" size="icon" onClick={() => setSelectedGroup(null)}>
+            <ArrowLeft/>
+        </Button>
         <h2 className="text-lg font-semibold">{selectedGroup}</h2>
+    </div>
+  );
+
+  const mainContent = isMobile ? (
+    <div className="w-full h-full">
+      {!selectedGroup ? (
+        <ClassChatGroup
+          assignedClasses={announcementGroups}
+          onSelectClass={setSelectedGroup}
+          selectedClass={selectedGroup}
+          isLoading={!user}
+        />
+      ) : (
+        <AnnouncementChat
+          announcements={announcements}
+          chatTitle={selectedGroup}
+          onSendMessage={handleSendMessage}
+          onUpdateMessage={handleUpdateMessage}
+          onDeleteMessage={handleDeleteMessage}
+          senderName={"Principal"}
+          senderRole={"Principal"}
+          headerContent={chatHeader}
+        />
+      )}
+    </div>
+  ) : (
+    <div className="flex h-full">
+      <div className="w-[300px] border-r">
+        <ClassChatGroup
+          assignedClasses={announcementGroups}
+          onSelectClass={setSelectedGroup}
+          selectedClass={selectedGroup}
+          isLoading={!user}
+        />
+      </div>
+      <div className="flex-1">
+        <AnnouncementChat
+          announcements={announcements}
+          chatTitle={selectedGroup}
+          onSendMessage={handleSendMessage}
+          onUpdateMessage={handleUpdateMessage}
+          onDeleteMessage={handleDeleteMessage}
+          senderName={"Principal"}
+          senderRole={"Principal"}
+        />
+      </div>
     </div>
   );
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       <Header title="Make Announcement" showAvatar={false} />
-      <main className="flex-1 overflow-hidden md:grid md:grid-cols-[300px_1fr]">
-        <div className="border-b md:border-b-0 md:border-r h-full">
-            {isMobile && selectedGroup ? null : (
-                <ClassChatGroup 
-                    assignedClasses={announcementGroups}
-                    onSelectClass={setSelectedGroup}
-                    selectedClass={selectedGroup}
-                    isLoading={!user}
-                />
-            )}
-        </div>
-        <div className="flex flex-col h-full">
-             {isMobile && !selectedGroup ? (
-                 <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                    <Megaphone className="h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">Select a Group</h3>
-                    <p className="text-muted-foreground mt-2">Choose a group to start sending announcements.</p>
+      <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto w-full max-w-6xl h-full flex flex-col">
+          <Card className="flex-1 overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Megaphone /> Make Announcement</CardTitle>
+              <CardDescription>Select a group to send an announcement to.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 h-[calc(100%-110px)]">
+                <div className="border-t h-full">
+                    {mainContent}
                 </div>
-             ) : (
-                <AnnouncementChat 
-                    announcements={announcements}
-                    chatTitle={selectedGroup}
-                    onSendMessage={handleSendMessage}
-                    onUpdateMessage={handleUpdateMessage}
-                    onDeleteMessage={handleDeleteMessage}
-                    senderName={"Principal"}
-                    senderRole={"Principal"}
-                    headerContent={isMobile ? chatHeader : undefined}
-                />
-             )}
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
