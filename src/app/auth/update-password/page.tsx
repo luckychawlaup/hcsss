@@ -33,16 +33,18 @@ function UpdatePasswordContent() {
 
     // Handle case where user lands here without a valid session
     const timer = setTimeout(() => {
-        if (!hasSession) {
-            setError("No password recovery session found. The link may be invalid or expired. Please request a new one.");
-        }
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) {
+                 setError("No password recovery session found. The link may be invalid or expired. Please request a new one.");
+            }
+        });
     }, 2000);
 
     return () => {
         subscription.unsubscribe();
         clearTimeout(timer);
     }
-  }, [supabase, hasSession]);
+  }, [supabase]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -129,7 +131,7 @@ function UpdatePasswordContent() {
             <Image src={"/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
             <h1 className="text-2xl font-bold text-primary">Set Your Password</h1>
             <p className="text-muted-foreground">
-              Please enter and confirm your new password below to secure your account.
+              {hasSession ? "Please enter and confirm your new password below to secure your account." : "Verifying your session..."}
             </p>
         </div>
         
