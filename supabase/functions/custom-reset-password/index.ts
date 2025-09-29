@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
 import { v4 } from "https://deno.land/std@0.168.0/uuid/mod.ts";
-import { send, SmtpClient } from "https://deno.land/x/denomailer/mod.ts";
+import { SmtpClient } from "https://deno.land/x/denomailer@1.0.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,13 +25,13 @@ async function sendResetEmail(recipientEmail: string, resetLink: string) {
 
   try {
     await client.connectTLS({
-      hostname: "smtp.zoho.in", // Zoho SMTP server
-      port: 587,
+      hostname: "smtp.zoho.in", // Zoho SMTP server for .in domain
+      port: 587, // Standard port for TLS
       username: ZOHO_EMAIL,
       password: ZOHO_APP_PASSWORD,
     });
 
-    await send(client, {
+    await client.send({
       from: `Hilton Convent School <${ZOHO_EMAIL}>`,
       to: recipientEmail,
       subject: "Set Your Password for Hilton Convent School",
