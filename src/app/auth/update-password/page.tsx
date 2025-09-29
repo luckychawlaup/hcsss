@@ -10,9 +10,8 @@ import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
-
 
 function UpdatePasswordContent() {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,24 +19,33 @@ function UpdatePasswordContent() {
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [hasSession, setHasSession] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const router = useRouter();
 
   useEffect(() => {
-    if (!token) {
-      setError("No password reset token found in the URL. Please request a new link.");
-    }
-  }, [token]);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setHasSession(true);
+      }
+    });
 
+    // Handle case where user lands here without a valid session
+    const timer = setTimeout(() => {
+        if (!hasSession) {
+            setError("No password recovery session found. The link may be invalid or expired. Please request a new one.");
+        }
+    }, 2000);
+
+    return () => {
+        subscription.unsubscribe();
+        clearTimeout(timer);
+    }
+  }, [supabase, hasSession]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!token) {
-        setError("Invalid or missing reset token.");
-        return;
-    }
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -50,28 +58,22 @@ function UpdatePasswordContent() {
     setIsLoading(true);
     setError(null);
     
-    try {
-        const { data, error: functionError } = await supabase.functions.invoke('custom-reset-password', {
-            body: {
-                mode: 'reset',
-                token: token,
-                new_password: password
-            }
-        });
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: password,
+    });
 
-        if (functionError) throw new Error(functionError.message);
-        if (data.error) throw new Error(data.error);
+    setIsLoading(false);
 
+    if (updateError) {
+        setError(updateError.message);
+    } else {
         setIsSuccess(true);
         toast({
             title: "Password Set Successfully",
-            description: "Your password has been changed successfully. You can now log in.",
+            description: "Your password has been changed. You can now log in.",
         });
-
-    } catch (e: any) {
-        setError(e.message || "Your password reset link may be invalid or has expired. Please request a new one.");
-    } finally {
-        setIsLoading(false);
+        // Sign out to force re-login with the new password
+        await supabase.auth.signOut();
     }
   }
 
@@ -105,13 +107,13 @@ function UpdatePasswordContent() {
               )}
                <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={!token}/>
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={!hasSession}/>
                </div>
                <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={!token}/>
+                <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={!hasSession}/>
                </div>
-              <Button type="submit" className="w-full" disabled={isLoading || !token}>
+              <Button type="submit" className="w-full" disabled={isLoading || !hasSession}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Set New Password
               </Button>

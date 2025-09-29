@@ -19,14 +19,15 @@ export async function GET(request: Request) {
       `${requestUrl.origin}/auth/confirm?error=${error}&error_description=${errorDescription}`
     )
   }
-
-  // This is a password recovery flow. The user has a recovery token in the URL.
+  
+  // This is a password recovery flow.
+  // The user has clicked a link in their email and has a recovery token in the URL.
   // We need to redirect them to the password update page so the client can handle it.
   if (type === 'recovery') {
       // The user is coming from an email link. The URL has a token that the client-side
       // Supabase library needs to read to establish a "PASSWORD_RECOVERY" session.
       // Redirecting to the update-password page allows the client-side code there to
-      // pick up the session change.
+      // pick up the session change and call `updateUser`.
       return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
   }
 

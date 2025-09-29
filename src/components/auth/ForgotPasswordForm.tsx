@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
+import { getRedirectUrl } from "@/lib/supabase/auth";
+
 
 interface ForgotPasswordFormProps {
     role: "student" | "teacher" | "principal" | "accountant" | "owner";
@@ -22,7 +23,6 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
   const [email, setEmail] = useState("");
   const { toast } = useToast();
   const supabase = createClient();
-  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,36 +30,26 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
     setError(null);
     setIsSuccess(false);
 
-    try {
-      const { data, error: functionError } = await supabase.functions.invoke('custom-reset-password', {
-        body: {
-          mode: 'request',
-          email: email
-        }
-      });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getRedirectUrl(),
+    });
 
-      if (functionError) throw new Error(functionError.message);
-      if (data.error) throw new Error(data.error);
+    setIsLoading(false);
 
-      // In a real app, you would not redirect with the token. You'd email it.
-      // For this app, we redirect to the update page with the token.
-      router.push(`/auth/update-password?token=${data.token}`);
-      
-    } catch (error: any) {
-      setError(error.message || "An unknown error occurred. Please try again later.");
-    } finally {
-      setIsLoading(false);
+    if (error) {
+        setError(error.message);
+    } else {
+        setIsSuccess(true);
     }
   }
   
-  // The success message is no longer needed as we redirect immediately.
   if (isSuccess) {
     return (
         <Alert variant="default" className="bg-primary/10 border-primary/20">
             <CheckCircle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-primary">Check your email!</AlertTitle>
             <AlertDescription>
-                If an account exists, a password reset link has been sent.
+                If an account exists for {email}, a password reset link has been sent.
             </AlertDescription>
         </Alert>
     )
@@ -92,4 +82,3 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
     </>
   );
 }
-

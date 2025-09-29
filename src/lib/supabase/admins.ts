@@ -1,18 +1,11 @@
 
 import { createClient } from "@/lib/supabase/client";
-
+import { getRedirectUrl } from "./auth";
 const supabase = createClient();
 const ADMIN_ROLES_TABLE = 'admin_roles';
 
-export interface AdminUser {
-    uid: string;
-    role: 'principal' | 'accountant';
-    name: string;
-    email: string;
-}
-
+// --- SQL table setup ---
 export const ADMINS_TABLE_SETUP_SQL = `
--- Recreate the admin_roles table with all necessary columns
 DROP TABLE IF EXISTS public.admin_roles;
 CREATE TABLE public.admin_roles (
     uid UUID PRIMARY KEY,
@@ -25,53 +18,62 @@ CREATE TABLE public.admin_roles (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable RLS
 ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies to avoid conflicts
 DROP POLICY IF EXISTS "Allow owner to manage admin roles" ON public.admin_roles;
 DROP POLICY IF EXISTS "Allow authenticated users to read roles" ON public.admin_roles;
 
--- Policy: Allow the Owner to perform all operations on this table.
 CREATE POLICY "Allow owner to manage admin roles"
 ON public.admin_roles FOR ALL
-USING (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
+USING (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050')
 WITH CHECK (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050');
 
--- Policy: Allow any authenticated user to read from this table.
 CREATE POLICY "Allow authenticated users to read roles"
 ON public.admin_roles FOR SELECT
 USING (auth.role() = 'authenticated');
 `;
 
+// --- TypeScript interface ---
+export interface AdminUser {
+    uid: string;
+    role: 'principal' | 'accountant';
+    name: string;
+    email: string;
+    phone_number?: string;
+    address?: string;
+    dob?: string;
+    created_at?: string;
+}
 
-export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string, phone_number: string, address?: string }) => {
+// --- Add an admin and trigger password reset ---
+export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string; phone_number: string; address?: string }) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Not authenticated");
 
-    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
-        body: { 
-            mode: 'create_and_request_reset',
-            adminData: adminData
-        },
-        headers: {
-            Authorization: `Bearer ${session.access_token}`,
-        }
+    const { data, error } = await supabase.functions.invoke('create-admin-user', {
+        body: { adminData }
     });
 
-    if (error) {
-        throw new Error(error.message || 'An unexpected error occurred in the edge function.');
-    }
-    
-    if (data.error) {
-         throw new Error(data.error);
-    }
-    
-    return data;
-}
+    if (error) throw new Error(error.message || 'Edge function error.');
+    if (data?.error) throw new Error(data.error);
 
+    // After creating user, send a password reset email
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email, {
+        redirectTo: getRedirectUrl(),
+    });
+
+    if (resetError) {
+        // Log the error but don't throw, as the user was still created.
+        console.warn(`Admin user ${adminData.email} created, but password reset email failed to send:`, resetError.message);
+    }
+    
+    return { message: "Admin user created successfully." };
+};
+
+
+// --- List all admins ---
 export const getAdmins = async (): Promise<AdminUser[]> => {
-    const { data, error } = await supabase.from(ADMIN_ROLES_TABLE).select('uid, role, name, email');
+    const { data, error } = await supabase.from(ADMIN_ROLES_TABLE).select('uid, role, name, email, phone_number, address, dob, created_at');
     if (error) {
         console.error("Error fetching admin roles:", error);
         throw error;
@@ -79,40 +81,36 @@ export const getAdmins = async (): Promise<AdminUser[]> => {
     return data as AdminUser[];
 };
 
+// --- Remove admin both from DB and Auth ---
 export const removeAdmin = async (uid: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
     const { error: dbError } = await supabase.from(ADMIN_ROLES_TABLE).delete().eq('uid', uid);
     if (dbError) {
         console.error("Error removing admin role from DB:", dbError);
         throw dbError;
     }
-    
-    const { error: funcError } = await supabase.functions.invoke('delete-user', {
-        body: { uid: uid },
+    const { data, error: funcError } = await supabase.functions.invoke('delete-user', {
+        body: { uid },
+        headers: { Authorization: `Bearer ${session.access_token}` }
     });
     if (funcError) {
         console.error("DB record deleted, but failed to delete auth user:", funcError);
-        throw new Error("Admin role removed, but failed to delete their login account. Manual cleanup may be required.");
+        throw new Error("Admin role removed, but failed to delete their login account.");
     }
 };
 
+// --- Resend password reset/confirmation for admin user ---
 export const resendAdminConfirmation = async (email: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Not authenticated");
-
-    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
-        body: {
-            mode: 'request',
-            email: email
-        },
-        headers: {
-            Authorization: `Bearer ${session.access_token}`,
-        }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getRedirectUrl(),
     });
 
-    if (error || data.error) {
-        console.error("Error resending confirmation/password reset:", error || data.error);
-        throw new Error(error?.message || data.error);
+    if (error) {
+        console.error("Error resending confirmation/password reset:", error);
+        throw new Error(error.message || "Failed to send email.");
     }
 
-    return data;
+    return { message: "Password reset email sent successfully." };
 };
