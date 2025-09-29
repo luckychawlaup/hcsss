@@ -24,6 +24,8 @@ export default function LoginPage() {
     return <div>Invalid role specified.</div>;
   }
   
+  const isAdminRole = role === "principal" || role === "accountant";
+  
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
        <Button variant="ghost" onClick={() => router.push('/login')} className="absolute top-4 left-4">
@@ -51,9 +53,13 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center text-sm text-muted-foreground">
+          {isAdminRole ? (
+            <p>To reset your password, please contact the owner.</p>
+          ) : (
             <Link href="/forgot-password" passHref>
                  <span className="font-medium text-primary hover:underline cursor-pointer">Forgot Password?</span>
             </Link>
+          )}
         </div>
       </div>
     </div>
