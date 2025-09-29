@@ -2,7 +2,6 @@
 "use client";
 
 import Header from "@/components/dashboard/Header";
-import BottomNav from "@/components/dashboard/BottomNav";
 import SchoolStatus from "@/components/dashboard/SchoolStatus";
 import Attendance from "@/components/dashboard/Attendance";
 import TodayHomework from "@/components/dashboard/TodayHomework";
@@ -12,6 +11,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { Book } from "lucide-react";
 import Link from "next/link";
+import { Button } from "../ui/button";
 
 function DashboardLoadingSkeleton() {
     return (
@@ -41,27 +41,29 @@ export default function DashboardPage() {
                         <TodayHomework />
                         <Attendance />
                         <ReportCardComponent />
-                        <Link href="https://ncert.nic.in/textbook.php" target="_blank" rel="noopener noreferrer">
-                             <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer h-full">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-primary">
-                                        <Book className="h-6 w-6" />
-                                        Online Textbooks
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground">
-                                        Access NCERT textbooks and other educational resources directly from the official source.
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </Link>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-primary">
+                                    <Book className="h-6 w-6" />
+                                    Online Textbooks
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-muted-foreground mb-4">
+                                    Access NCERT textbooks and other educational resources directly from the official source.
+                                </p>
+                                <Button asChild className="w-full">
+                                    <Link href="https://ncert.nic.in/textbook.php" target="_blank" rel="noopener noreferrer">
+                                        Download Textbooks
+                                    </Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </Suspense>
         </main>
       </div>
-      <BottomNav />
     </div>
   );
 }
