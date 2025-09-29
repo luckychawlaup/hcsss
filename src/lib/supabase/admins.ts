@@ -1,6 +1,5 @@
 
 import { createClient } from "@/lib/supabase/client";
-import { getRedirectUrl } from "./auth";
 const supabase = createClient();
 const ADMIN_ROLES_TABLE = 'admin_roles';
 
@@ -47,38 +46,23 @@ export interface AdminUser {
 
 // --- Add an admin and trigger password reset request ---
 export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string; phone_number: string; address?: string }) => {
+    // Invoke the Edge Function to create user and get a reset token
+    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
+        body: {
+            mode: 'create_and_request_reset',
+            adminData: adminData
+        }
+    });
+
+    if (error) {
+        console.error("Error invoking custom-reset-password function:", error);
+        // Attempt to parse a more specific error message if available
+        const errorBody = error.context?.json?.();
+        const errorMessage = errorBody?.error || error.message;
+        throw new Error(errorMessage);
+    }
     
-    // Use the admin client to create the user. This must be done in an Edge Function for security.
-    const { data: { user }, error: createError } = await supabase.auth.admin.createUser({
-        email: adminData.email,
-        password: crypto.randomUUID(), // A secure, random password
-        email_confirm: true, // The user will be marked as confirmed
-        user_metadata: { full_name: adminData.name, role: adminData.role }
-    });
-
-    if (createError) {
-        console.error("Error creating admin user:", createError);
-        throw new Error(createError.message);
-    }
-     if (!user) throw new Error("User not created");
-
-    // Add user to the admin_roles table
-    const { error: roleError } = await supabase.from('admin_roles').insert([{ uid: user.id, ...adminData }]);
-    if (roleError) {
-        console.error("Error setting admin role:", roleError);
-        // If this fails, we should probably delete the user we just created to keep things clean.
-        await supabase.auth.admin.deleteUser(user.id);
-        throw new Error(roleError.message);
-    }
-
-    // Trigger Supabase's built-in password reset email
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email, {
-        redirectTo: `${getRedirectUrl().replace('/callback', '/update-password')}`
-    });
-    if (resetError) {
-        console.error("User created, but password reset email failed:", resetError);
-        throw new Error(resetError.message);
-    }
+    return data;
 };
 
 
@@ -109,29 +93,5 @@ export const removeAdmin = async (uid: string) => {
     if (funcError) {
         console.error("DB record deleted, but failed to delete auth user:", funcError);
         throw new Error("Admin role removed, but failed to delete their login account.");
-    }
-};
-
-// --- Request a password reset using Supabase's built-in functionality ---
-export const requestPasswordReset = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getRedirectUrl()
-    });
-    if (error) {
-        console.error("Error requesting password reset:", error);
-        throw error;
-    }
-};
-
-
-// --- Resend password reset/confirmation for admin user ---
-export const resendAdminConfirmation = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-       redirectTo: `${getRedirectUrl().replace('/callback', '/update-password')}`
-    });
-
-    if (error) {
-        console.error("Error resending confirmation/password reset:", error);
-        throw error;
     }
 };

@@ -62,7 +62,9 @@ function UpdatePasswordContent() {
         });
 
         if (functionError) {
-            throw new Error(functionError.message);
+             const errorBody = functionError.context?.json?.();
+             const errorMessage = errorBody?.error || functionError.message;
+             throw new Error(errorMessage);
         }
 
         setIsSuccess(true);
