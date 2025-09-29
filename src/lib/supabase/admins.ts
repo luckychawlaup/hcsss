@@ -67,7 +67,7 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
         role: adminData.role,
         name: adminData.name,
         email: adminData.email,
-        dob: adminData.dob,
+        dob: adminData.dob.split('/').reverse().join('-'), // Convert DD/MM/YYYY to YYYY-MM-DD for DATE type
         phone_number: adminData.phone_number,
         address: adminData.address,
     };
