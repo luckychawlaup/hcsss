@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 
 interface ForgotPasswordFormProps {
-    role: "student" | "teacher";
+    role: "student" | "teacher" | "principal" | "accountant" | "owner";
 }
 
 export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {

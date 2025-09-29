@@ -20,6 +20,16 @@ export async function GET(request: Request) {
     )
   }
 
+  // This is a password recovery flow. The user has a recovery token in the URL.
+  // We need to redirect them to the password update page so the client can handle it.
+  if (type === 'recovery') {
+      // The user is coming from an email link. The URL has a token that the client-side
+      // Supabase library needs to read to establish a "PASSWORD_RECOVERY" session.
+      // Redirecting to the update-password page allows the client-side code there to
+      // pick up the session change.
+      return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
+  }
+
   const cookieStore = cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,16 +48,6 @@ export async function GET(request: Request) {
       },
     }
   )
-
-  // This is a password recovery flow. The user has a recovery token in the URL.
-  // Supabase JS will handle this token and create a session for password update.
-  if (type === 'recovery') {
-      // The user is coming from an email link. The URL has a token that the client-side
-      // Supabase library needs to read to establish a "PASSWORD_RECOVERY" session.
-      // Redirecting to the update-password page allows the client-side code there to
-      // pick up the session change.
-      return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
-  }
 
   // This is a regular login or email confirmation flow
   if (code) {

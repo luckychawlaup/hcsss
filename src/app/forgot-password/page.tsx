@@ -11,9 +11,9 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md space-y-6">
          <div className="text-center">
             <Image src={"/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
-            <h1 className="text-2xl font-bold text-primary">HCSSS</h1>
+            <h1 className="text-2xl font-bold text-primary">Reset Password</h1>
             <p className="text-muted-foreground">
-              Enter your email to reset your account password.
+              Enter your account's email address and we will send you a link to reset your password.
             </p>
         </div>
 
