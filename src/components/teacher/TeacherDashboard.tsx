@@ -18,7 +18,7 @@ import { getStudentsForTeacher, CombinedStudent, updateStudent, Student } from "
 import { getFeedbackForClassTeacher, Feedback } from "@/lib/supabase/feedback";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/supabase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon, Book } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import TeacherNav from "./TeacherNav";
 import { Button } from "../ui/button";
@@ -30,23 +30,32 @@ import AddHomeworkForm from './AddHomeworkForm';
 import Gradebook from './Gradebook';
 import MarkAttendance from './MarkAttendance';
 import { useIsMobile } from "@/hooks/use-mobile";
+import Link from "next/link";
 
 
 export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves";
 
-const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, description: string, icon: React.ElementType, onClick: () => void }) => (
-    <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
-        <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Icon className="h-6 w-6" />
-            </div>
-            <div>
-                <h3 className="font-semibold text-base">{title}</h3>
-                <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
-        </CardHeader>
-    </Card>
-);
+const NavCard = ({ title, description, icon: Icon, onClick, asLink, href }: { title: string, description: string, icon: React.ElementType, onClick?: () => void, asLink?: boolean, href?: string }) => {
+    const content = (
+         <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-6 w-6" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-base">{title}</h3>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                </div>
+            </CardHeader>
+        </Card>
+    );
+
+    if (asLink && href) {
+        return <Link href={href} target="_blank" rel="noopener noreferrer" className="block h-full">{content}</Link>
+    }
+
+    return <div onClick={onClick} className="h-full">{content}</div>
+};
 
 export default function TeacherDashboard() {
   const [activeView, setActiveView] = useState<TeacherView>("dashboard");
@@ -309,6 +318,7 @@ export default function TeacherDashboard() {
                            {!isMobile && <NavCard title="Announcements" description="Send announcements to classes" icon={Megaphone} onClick={() => router.push('/teacher/announcements')} />}
                            <NavCard title="Assign Homework" description="Create and manage homework" icon={BookUp} onClick={() => setActiveView("addHomework")} />
                            <NavCard title="My Leave" description="Apply for your own leave" icon={CalendarPlus} onClick={() => setActiveView("teacherLeave")} />
+                           <NavCard title="Online Textbooks" description="Access NCERT textbooks" icon={Book} asLink={true} href="https://ncert.nic.in/textbook.php" />
                            {teacher?.role === 'classTeacher' && (
                                 <>
                                     <NavCard title="Review Feedback" description="Manage student feedback" icon={ClipboardCheck} onClick={() => setActiveView("approveFeedback")} />

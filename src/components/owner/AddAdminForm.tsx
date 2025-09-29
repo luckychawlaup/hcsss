@@ -49,6 +49,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
       dob: "",
       phone_number: "",
       address: "",
+      role: "principal",
     },
   });
 
