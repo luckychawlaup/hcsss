@@ -31,6 +31,7 @@ export async function GET(request: Request) {
       }
     )
     
+    // This is the crucial step: exchange the code for a session
     const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && session) {
@@ -43,6 +44,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // Fallback redirect
+  // Fallback redirect if there's an error or no code
+  console.error("Password reset callback error or no code provided.");
   return NextResponse.redirect(`${requestUrl.origin}/login`)
 }
