@@ -56,7 +56,7 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
     // Invoke the secure edge function to create the user.
     // The `body` here will be directly sent as the request payload.
     const { data, error } = await supabase.functions.invoke('create-admin-user', {
-        body: { adminData: adminData },
+        body: { adminData },
     });
 
     if (error) {
