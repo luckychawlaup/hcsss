@@ -1,4 +1,3 @@
-
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { type CookieOptions, createServerClient } from '@supabase/ssr'
@@ -8,8 +7,9 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // if "next" is in param, use it as the redirect URL
-  const next = searchParams.get('next') ?? '/'
+  // The 'next' param is used for redirects after login.
+  // For email confirmations, we want to go to our confirmation page.
+  const next = searchParams.get('next')
 
   if (code) {
     const cookieStore = cookies()
@@ -30,29 +30,20 @@ export async function GET(request: Request) {
         },
       }
     )
-    const { error, data } = await supabase.auth.exchangeCodeForSession(code)
-    
-    // Check if the session is for a new user who just confirmed their email
-    // The user object will exist, but the session might be null initially
-    // or they might have an "aal" (Authenticator Assurance Level) of 1.
-    // A more reliable way is to check if there was a previous session.
-    // However, for admin creation, they are immediately sent a password reset.
-    // The intended flow is they click the password reset, not the initial confirm.
-    // But if they click the confirm, we should guide them.
-    // A new user confirming their email will trigger a "SIGNED_IN" event, but will still need to set a password.
-    // The most reliable redirect after any code exchange is to where they can take the next action.
-    
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+
     if (!error) {
-       // If the user is confirming their email for the first time as an admin,
-       // they still need to set their password. Redirect them to the update-password page.
-       // The session from the code exchange will authorize them to perform this action.
-      if (next === '/') { // Default case, likely an email confirmation
-        return NextResponse.redirect(`${origin}/auth/update-password`)
+      // If 'next' is present, it's a login redirect.
+      if (next) {
+        return NextResponse.redirect(`${origin}${next}`)
       }
-      return NextResponse.redirect(`${origin}${next}`)
+      
+      // If 'next' is NOT present, it's an email confirmation (signup, email change, etc.)
+      // Redirect to the dedicated confirmation page.
+      return NextResponse.redirect(`${origin}/auth/confirm`)
     }
   }
 
-  // return the user to an error page with instructions
+  // If there's an error or no code, redirect to an error page.
   return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }

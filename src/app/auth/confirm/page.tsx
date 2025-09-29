@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -32,10 +31,18 @@ function AuthConfirmationContent() {
     // If no errors in URL, listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // A SIGNED_IN event is fired on successful email verification for a new user
         if (event === "SIGNED_IN") {
           setStatus("success");
           setTitle("Email Verified!");
-          setMessage("Your account has been successfully verified. You can now log in.");
+          setMessage("Your account has been successfully verified. You will be redirected to set your password if required, or you can now log in.");
+           // Special case for new admins who need to set a password
+          if (session?.user?.app_metadata.role !== 'student') {
+              setTimeout(() => {
+                  window.location.href = '/auth/update-password';
+              }, 2000);
+          }
+
         } else if (event === "USER_UPDATED") {
           setStatus("success");
           setTitle("Email Updated!");
@@ -44,12 +51,12 @@ function AuthConfirmationContent() {
       }
     );
 
-    // Set a timeout to handle cases where no event is fired (e.g., expired link)
+    // Set a timeout to handle cases where no event is fired (e.g., expired link from another session)
     const timer = setTimeout(() => {
         if (status === 'loading') {
              setStatus("error");
              setTitle("Confirmation Failed");
-             setMessage("The confirmation could not be completed. The link may be invalid or has expired. Please request a new one.");
+             setMessage("The confirmation could not be completed. The link may be invalid, has expired, or was already used. Please request a new one if needed.");
         }
     }, 10000); // 10 seconds timeout
 
