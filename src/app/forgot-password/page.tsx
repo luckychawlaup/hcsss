@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import ForgotPasswordForm from "@/components/auth/ForgotPasswordForm";
@@ -18,7 +19,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div>
-          <ForgotPasswordForm role="student" />
+          <ForgotPasswordForm />
         </div>
         
         <div className="text-center">

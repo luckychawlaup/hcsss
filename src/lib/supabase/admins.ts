@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 import { getRedirectUrl } from "./auth";
 const supabase = createClient();
@@ -45,29 +46,20 @@ export interface AdminUser {
     created_at?: string;
 }
 
-// --- Add an admin and trigger password reset ---
+// --- Add an admin and trigger password reset request ---
 export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string; phone_number: string; address?: string }) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Not authenticated");
 
-    const { data, error } = await supabase.functions.invoke('create-admin-user', {
-        body: { adminData }
+    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
+        body: { mode: 'create_and_request_reset', adminData },
+        headers: { Authorization: `Bearer ${session.access_token}` }
     });
-
+    
     if (error) throw new Error(error.message || 'Edge function error.');
     if (data?.error) throw new Error(data.error);
 
-    // After creating user, send a password reset email
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email, {
-        redirectTo: getRedirectUrl(),
-    });
-
-    if (resetError) {
-        // Log the error but don't throw, as the user was still created.
-        console.warn(`Admin user ${adminData.email} created, but password reset email failed to send:`, resetError.message);
-    }
-    
-    return { message: "Admin user created successfully." };
+    return data as { message: string, token: string };
 };
 
 
@@ -101,16 +93,40 @@ export const removeAdmin = async (uid: string) => {
     }
 };
 
-// --- Resend password reset/confirmation for admin user ---
-export const resendAdminConfirmation = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getRedirectUrl(),
+// --- Request a password reset token from the custom function ---
+export const requestPasswordReset = async (email: string) => {
+    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
+        body: { mode: 'request', email },
     });
 
     if (error) {
-        console.error("Error resending confirmation/password reset:", error);
-        throw new Error(error.message || "Failed to send email.");
+        throw new Error(error.message || 'Function invocation failed');
     }
+    if (data?.error) {
+        throw new Error(data.error);
+    }
+    
+    return data as { message: string, token: string };
+};
 
-    return { message: "Password reset email sent successfully." };
+
+// --- Resend password reset/confirmation for admin user ---
+export const resendAdminConfirmation = async (email: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
+        body: { mode: 'request', email },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+    });
+    
+    if (error) {
+        console.error("Error resending confirmation/password reset:", error);
+        throw error;
+    }
+    if (data.error) {
+        throw new Error(data.error);
+    }
+    
+    return data;
 };

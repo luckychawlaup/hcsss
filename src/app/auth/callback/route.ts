@@ -24,11 +24,9 @@ export async function GET(request: Request) {
   // The user has clicked a link in their email and has a recovery token in the URL.
   // We need to redirect them to the password update page so the client can handle it.
   if (type === 'recovery') {
-      // The user is coming from an email link. The URL has a token that the client-side
-      // Supabase library needs to read to establish a "PASSWORD_RECOVERY" session.
-      // Redirecting to the update-password page allows the client-side code there to
-      // pick up the session change and call `updateUser`.
-      return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`);
+      const token = requestUrl.searchParams.get('token');
+      // Redirect to our custom update-password page with the token
+      return NextResponse.redirect(`${requestUrl.origin}/auth/update-password?token=${token}`);
   }
 
   const cookieStore = cookies()

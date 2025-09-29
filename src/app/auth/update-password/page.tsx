@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -10,7 +11,7 @@ import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Label } from "@/components/ui/label";
 
 function UpdatePasswordContent() {
@@ -19,35 +20,26 @@ function UpdatePasswordContent() {
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [hasSession, setHasSession] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setHasSession(true);
-      }
-    });
-
-    // Handle case where user lands here without a valid session
-    const timer = setTimeout(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-                 setError("No password recovery session found. The link may be invalid or expired. Please request a new one.");
-            }
-        });
-    }, 2000);
-
-    return () => {
-        subscription.unsubscribe();
-        clearTimeout(timer);
+    if (!token) {
+      setError("No password reset token found in URL. Please use the link from your email.");
     }
-  }, [supabase]);
+  }, [token]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!token) {
+      setError("Cannot reset password without a valid token.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -60,22 +52,29 @@ function UpdatePasswordContent() {
     setIsLoading(true);
     setError(null);
     
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: password,
-    });
+    try {
+        const { error: functionError } = await supabase.functions.invoke('custom-reset-password', {
+            body: {
+                mode: 'reset',
+                token: token,
+                new_password: password
+            }
+        });
 
-    setIsLoading(false);
+        if (functionError) {
+            throw new Error(functionError.message);
+        }
 
-    if (updateError) {
-        setError(updateError.message);
-    } else {
         setIsSuccess(true);
         toast({
             title: "Password Set Successfully",
             description: "Your password has been changed. You can now log in.",
         });
-        // Sign out to force re-login with the new password
-        await supabase.auth.signOut();
+        
+    } catch(e: any) {
+        setError(e.message || "An unknown error occurred.");
+    } finally {
+        setIsLoading(false);
     }
   }
 
@@ -109,13 +108,13 @@ function UpdatePasswordContent() {
               )}
                <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={!hasSession}/>
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={!token}/>
                </div>
                <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={!hasSession}/>
+                <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={!token}/>
                </div>
-              <Button type="submit" className="w-full" disabled={isLoading || !hasSession}>
+              <Button type="submit" className="w-full" disabled={isLoading || !token}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Set New Password
               </Button>
@@ -131,7 +130,7 @@ function UpdatePasswordContent() {
             <Image src={"/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
             <h1 className="text-2xl font-bold text-primary">Set Your Password</h1>
             <p className="text-muted-foreground">
-              {hasSession ? "Please enter and confirm your new password below to secure your account." : "Verifying your session..."}
+              {token ? "Please enter and confirm your new password below to secure your account." : "Verifying your session..."}
             </p>
         </div>
         

@@ -1,28 +1,25 @@
 
+
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { getRedirectUrl } from "@/lib/supabase/auth";
+import { requestPasswordReset } from "@/lib/supabase/admins";
 
 
-interface ForgotPasswordFormProps {
-    role: "student" | "teacher" | "principal" | "accountant" | "owner";
-}
-
-export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
+export default function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const { toast } = useToast();
-  const supabase = createClient();
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,16 +27,13 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
     setError(null);
     setIsSuccess(false);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getRedirectUrl(),
-    });
-
-    setIsLoading(false);
-
-    if (error) {
-        setError(error.message);
-    } else {
+    try {
+        await requestPasswordReset(email);
         setIsSuccess(true);
+    } catch (e: any) {
+        setError(e.message || "An unexpected error occurred.");
+    } finally {
+        setIsLoading(false);
     }
   }
   
@@ -49,7 +43,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
             <CheckCircle className="h-4 w-4 text-primary" />
             <AlertTitle className="text-primary">Check your email!</AlertTitle>
             <AlertDescription>
-                If an account exists for {email}, a password reset link has been sent.
+                If an account exists for {email}, a password reset link has been sent. Please check your inbox (and spam folder).
             </AlertDescription>
         </Alert>
     )
@@ -69,7 +63,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
             <Label>Registered Email Address</Label>
             <Input
                 type="email"
-                placeholder={`${role}@example.com`}
+                placeholder="user@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
             />
