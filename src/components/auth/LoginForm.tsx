@@ -83,7 +83,7 @@ export default function LoginForm({ role }: LoginFormProps) {
             description: "Please check your inbox to verify your email address before logging in.",
             variant: "destructive",
           });
-          await supabase.auth.signOut();
+          // Do not sign out. Let the user stay in a partial auth state.
           setIsLoading(false);
           return;
         }
