@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format as formatDate } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,8 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Loader2, CalendarIcon, AlertCircle } from "lucide-react";
@@ -29,7 +26,7 @@ import { addAdmin } from "@/lib/supabase/admins";
 const addAdminSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
-  dob: z.date({ required_error: "Date of birth is required." }),
+  dob: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in DD/MM/YYYY format."),
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
   address: z.string().min(10, "Address is too short."),
   role: z.enum(["principal", "accountant"], { required_error: "You must select a role."}),
@@ -49,6 +46,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
     defaultValues: {
       name: "",
       email: "",
+      dob: "",
       phone_number: "",
       address: "",
     },
@@ -61,7 +59,6 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
     try {
       await addAdmin({
           ...values,
-          dob: formatDate(values.dob, "yyyy-MM-dd"),
       });
       
       toast({
@@ -119,45 +116,17 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                     )}
                 />
                 <FormField
-                    control={form.control}
-                    name="dob"
-                    render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                        <FormLabel>Date of Birth</FormLabel>
-                        <Popover>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? (
-                                formatDate(field.value, "PPP")
-                                ) : (
-                                <span>Pick a date</span>
-                                )}
-                            </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                                date > new Date() || date < new Date("1950-01-01")
-                            }
-                            initialFocus
-                            />
-                        </PopoverContent>
-                        </Popover>
-                        <FormMessage />
+                  control={form.control}
+                  name="dob"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
+                      <FormControl>
+                        <Input placeholder="DD/MM/YYYY" {...field} />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
                 <FormField
                     control={form.control}
@@ -227,5 +196,3 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
     </>
   );
 }
-
-    

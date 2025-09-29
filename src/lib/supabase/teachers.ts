@@ -9,7 +9,7 @@ export interface Teacher {
     name: string;
     email: string;
     photo_url: string;
-    dob: string; // YYYY-MM-DD
+    dob: string; // DD/MM/YYYY
     father_name: string;
     mother_name: string;
     phone_number: string;

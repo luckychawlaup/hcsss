@@ -69,6 +69,10 @@ export function ProfileSkeleton() {
 
 function formatDate(dateString?: string | number): string {
     if(!dateString) return 'N/A';
+    // If it's a string from the text input
+    if (typeof dateString === 'string' && dateString.includes('/')) {
+        return dateString;
+    }
     // Check if it's a timestamp (number) or a date string
     const date = typeof dateString === 'number' ? new Date(dateString) : new Date(dateString);
     if (isNaN(date.getTime())) return 'Invalid Date';

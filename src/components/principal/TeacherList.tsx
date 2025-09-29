@@ -59,7 +59,7 @@ const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 const editTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
-  dob: z.string().min(1, "Date of birth is required."),
+  dob: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in DD/MM/YYYY format."),
   father_name: z.string().min(2, "Father's name is required."),
   mother_name: z.string().min(2, "Mother's name is required."),
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
@@ -136,7 +136,6 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     setSelectedTeacher(teacher as CombinedTeacher);
     reset({
         ...teacher,
-        dob: teacher.dob,
         qualifications: teacher.qualifications || [],
         classes_taught: teacher.classes_taught || [],
         bank_account: teacher.bank_account || { accountHolderName: "", accountNumber: "", ifscCode: "", bankName: "" },

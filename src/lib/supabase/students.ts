@@ -18,7 +18,7 @@ export interface Student {
     class: string;
     section: string;
     admission_date: number;
-    date_of_birth: string; // YYYY-MM-DD
+    date_of_birth: string; // DD/MM/YYYY
     aadhar_number?: string;
     aadhar_url?: string;
     opted_subjects?: string[];

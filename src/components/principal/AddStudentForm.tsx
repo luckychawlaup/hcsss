@@ -45,7 +45,7 @@ const addStudentSchema = z.object({
     email: z.string().email("A valid email is required for the student's account."),
     father_name: z.string().min(2, "Father's name is required."),
     mother_name: z.string().min(2, "Mother's name is required."),
-    date_of_birth: z.date({ required_error: "Date of birth is required."}),
+    date_of_birth: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in DD/MM/YYYY format."),
     admission_date: z.date({ required_error: "Admission date is required."}),
     address: z.string().min(10, "A valid address is required."),
     class: z.string({ required_error: "Class is required."}),
@@ -93,6 +93,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
       father_name: "",
       mother_name: "",
       address: "",
+      date_of_birth: "",
       opted_subjects: [],
     },
   });
@@ -197,46 +198,18 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 </FormItem>
               )}
             />
-              <FormField
-                control={control}
-                name="date_of_birth"
-                render={({ field }) => (
-                <FormItem className="flex flex-col">
-                    <FormLabel>Date of Birth</FormLabel>
-                    <Popover>
-                    <PopoverTrigger asChild>
-                        <FormControl>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? (
-                            formatDate(field.value, "PPP")
-                            ) : (
-                            <span>Pick a date</span>
-                            )}
-                        </Button>
-                        </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                            date > new Date() || date < new Date("1990-01-01")
-                        }
-                        initialFocus
-                        />
-                    </PopoverContent>
-                    </Popover>
-                    <FormMessage />
+            <FormField
+              control={control}
+              name="date_of_birth"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date of Birth</FormLabel>
+                  <FormControl>
+                    <Input placeholder="DD/MM/YYYY" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
-                )}
+              )}
             />
              <FormField
                 control={control}
