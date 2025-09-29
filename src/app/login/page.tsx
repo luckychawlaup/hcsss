@@ -4,16 +4,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { User, Briefcase, School, Calculator, ClipboardSignature, FilePenLine, KeyRound } from "lucide-react";
+import { User, Briefcase, School, Calculator, ClipboardSignature, FilePenLine } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export default function RoleSelectionPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [logoClickCount, setLogoClickCount] = useState(0);
-  const [showOwnerLogin, setShowOwnerLogin] = useState(false);
   
   const handleFeatureComingSoon = () => {
     toast({
@@ -26,7 +27,7 @@ export default function RoleSelectionPage() {
     const newCount = logoClickCount + 1;
     setLogoClickCount(newCount);
     if (newCount >= 5) {
-      setShowOwnerLogin(true);
+      router.push('/auth/owner/login');
     }
   };
 
@@ -76,20 +77,16 @@ export default function RoleSelectionPage() {
         
         <Card className="shadow-lg">
           <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <RoleCard href="/auth/student/login" icon={User} title="Student" description="Student Portal" />
                 <RoleCard href="/auth/teacher/login" icon={Briefcase} title="Teacher" description="Teacher Portal" />
                 <RoleCard href="/auth/principal/login" icon={School} title="Principal" description="Admin Dashboard" />
                 <RoleCard href="/auth/accountant/login" icon={Calculator} title="Accountant" description="Accounts Dept." />
-                {showOwnerLogin && (
-                    <RoleCard href="/owner" icon={KeyRound} title="Owner" description="Owner's Portal" />
-                )}
             </div>
           </CardContent>
         </Card>
         
         <div className="my-6 flex items-center">
-            <Separator className="flex-1" />
             <span className="px-4 text-sm text-muted-foreground">OR</span>
             <Separator className="flex-1" />
         </div>

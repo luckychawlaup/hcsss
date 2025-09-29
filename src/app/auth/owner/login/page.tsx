@@ -4,25 +4,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import LoginForm from "@/components/auth/LoginForm";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-function capitalize(s: string) {
-  if (typeof s !== 'string' || s.length === 0) return ''
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
-export default function LoginPage() {
-  const params = useParams();
+export default function OwnerLoginPage() {
   const router = useRouter();
-  
-  const role = Array.isArray(params.role) ? params.role[0] : params.role;
-
-  if (!role || !["student", "teacher", "principal", "accountant", "owner"].includes(role)) {
-    // Or redirect to a generic login/error page
-    return <div>Invalid role specified.</div>;
-  }
   
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
@@ -40,14 +27,14 @@ export default function LoginPage() {
             className="mb-4 rounded-full mx-auto"
             priority
           />
-          <h1 className="text-2xl font-bold text-primary">{capitalize(role)} Sign In</h1>
+          <h1 className="text-2xl font-bold text-primary">Owner Sign In</h1>
           <p className="text-muted-foreground">
-            Welcome back! Please enter your credentials.
+            Please enter your administrative credentials.
           </p>
         </div>
 
         <div>
-          <LoginForm role={role as "student" | "teacher" | "principal" | "accountant" | "owner"} />
+          <LoginForm role="owner" />
         </div>
 
         <div className="text-center text-sm text-muted-foreground">

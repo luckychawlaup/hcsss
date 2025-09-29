@@ -27,8 +27,10 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required."),
 });
 
+type Role = "student" | "teacher" | "principal" | "accountant" | "owner";
+
 interface LoginFormProps {
-  role: "student" | "teacher" | "principal" | "accountant";
+  role: Role;
 }
 
 export default function LoginForm({ role }: LoginFormProps) {
@@ -64,15 +66,13 @@ export default function LoginForm({ role }: LoginFormProps) {
       const actualRole = await getRole(user);
       
       if (role !== actualRole) {
-           setError("Invalid credentials for this role.");
+           setError("Invalid credentials for this role. You are not authorized to access this portal.");
            await supabase.auth.signOut();
            setIsLoading(false);
            return;
       }
       
       if (actualRole === 'student' || actualRole === 'teacher') {
-        // Teacher accounts created by principal are auto-confirmed. 
-        // This check is mainly for students if self-registration is enabled.
         const { data: { user: updatedUser } } = await supabase.auth.getUser();
         if (!updatedUser?.email_confirmed_at) {
           setError(
@@ -101,6 +101,8 @@ export default function LoginForm({ role }: LoginFormProps) {
           targetPath = '/accountant';
       } else if (actualRole === 'teacher') {
           targetPath = '/teacher';
+      } else if (actualRole === 'owner') {
+          targetPath = '/owner';
       }
       
       router.push(targetPath);
@@ -139,8 +141,8 @@ export default function LoginForm({ role }: LoginFormProps) {
                   <Input
                     type="email"
                     placeholder={
-                      role === "principal" || role === "accountant"
-                      ? ""
+                      role === "principal" || role === "accountant" || role === "owner"
+                      ? "admin@example.com"
                       : `${role}@example.com`
                     }
                     {...field}
@@ -159,7 +161,7 @@ export default function LoginForm({ role }: LoginFormProps) {
                 <FormControl>
                   <Input 
                     type="password"
-                    placeholder={role === 'principal' || role === 'accountant' ? '' : '••••••••'}
+                    placeholder={'••••••••'}
                     {...field}
                   />
                 </FormControl>
