@@ -193,7 +193,8 @@ export const getAnnouncementsForOwner = (
 
         if (group === 'All Students') {
             query = query.or('target.eq.students,target.eq.both').is('target_audience', null);
-        } else if (group === 'All Teachers' || group === 'All Admins') {
+        } else if (group === 'All Teachers') {
+            // "All Teachers" for owner now includes all staff
             query = query.or('target.eq.teachers,target.eq.both,target.eq.admins').is('target_audience', null);
         } else {
             // This is for a specific class section
@@ -254,4 +255,3 @@ export const deleteAnnouncement = async (announcementId: string) => {
   const { error } = await supabase.from('announcements').delete().eq('id', announcementId);
   if (error) throw error;
 };
-

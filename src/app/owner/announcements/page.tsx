@@ -28,7 +28,7 @@ export default function OwnerAnnouncementsPage() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  const announcementGroups = useMemo(() => ["All Students", "All Teachers", "All Admins", ...allClassSections], []);
+  const announcementGroups = useMemo(() => ["All Students", "All Teachers", ...allClassSections], []);
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -69,16 +69,14 @@ export default function OwnerAnnouncementsPage() {
     };
 
     if (selectedGroup === 'All Teachers') {
-        announcementData.target = 'teachers';
+        announcementData.target = 'both'; // Targets teachers and admins
     } else if (selectedGroup === 'All Students') {
         announcementData.target = 'students';
-    } else if (selectedGroup === 'All Admins') {
-        announcementData.target = 'admins';
     } else if (allClassSections.includes(selectedGroup)) {
         announcementData.target = 'students';
         announcementData.target_audience = { type: 'class', value: selectedGroup };
     } else {
-        announcementData.target = 'both'; // Fallback for groups like "All Users" if added
+        announcementData.target = 'both'; // Fallback
     }
     
     try {
@@ -182,4 +180,3 @@ export default function OwnerAnnouncementsPage() {
     </div>
   );
 }
-
