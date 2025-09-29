@@ -1,8 +1,10 @@
 
 "use client";
 
+import { useState } from 'react';
 import type { Student } from "@/lib/supabase/students";
 import type { Teacher } from "@/lib/supabase/teachers";
+import type { User as AuthUser } from '@supabase/supabase-js';
 import {
   Card,
   CardHeader,
@@ -21,13 +23,17 @@ import {
   Briefcase,
   BookOpen,
   Users,
-  GraduationCap
+  GraduationCap,
+  Edit
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
+import { UpdateEmailForm } from './UpdateEmailForm';
+import { Button } from '../ui/button';
 
-const DetailItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string | null | string[] }) => {
+const DetailItem = ({ icon, label, value, onEdit, isEditable }: { icon: React.ReactNode; label: string; value?: string | null | string[]; onEdit?: () => void; isEditable?: boolean; }) => {
     if (!value) return null;
     
     let displayValue: React.ReactNode = value;
@@ -43,14 +49,19 @@ const DetailItem = ({ icon, label, value }: { icon: React.ReactNode; label: stri
     }
 
     return (
-        <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+        <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-secondary/50 transition-colors group">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             {icon}
             </div>
-            <div>
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <div className="font-semibold text-sm">{displayValue}</div>
+            <div className="flex-1">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <div className="font-semibold text-sm">{displayValue}</div>
             </div>
+            {isEditable && onEdit && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+                    <Edit className="h-4 w-4" />
+                </Button>
+            )}
         </div>
     );
 };
@@ -96,24 +107,41 @@ export function StudentProfile({ student }: { student: Student }) {
 }
 
 
-export function StudentProfileDetails({ student }: { student: Student }) {
+export function StudentProfileDetails({ student, user }: { student: Student, user: AuthUser | null }) {
+    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-lg">Personal Information</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <DetailItem icon={<User />} label="Father's Name" value={student.father_name} />
-                <DetailItem icon={<User />} label="Mother's Name" value={student.mother_name} />
-                <DetailItem icon={<Mail />} label="Email Address" value={student.email} />
-                <DetailItem icon={<Phone />} label="Father's Contact" value={student.father_phone} />
-                <DetailItem icon={<Phone />} label="Mother's Contact" value={student.mother_phone} />
-                <DetailItem icon={<Phone />} label="Student's Contact" value={student.student_phone} />
-                <DetailItem icon={<Calendar />} label="Date of Birth" value={formatDate(student.date_of_birth)} />
-                <DetailItem icon={<Calendar />} label="Admission Date" value={formatDate(student.admission_date)} />
-                <DetailItem icon={<Home />} label="Address" value={student.address} />
-            </CardContent>
-        </Card>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Personal Information</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <DetailItem icon={<User />} label="Father's Name" value={student.father_name} />
+                    <DetailItem icon={<User />} label="Mother's Name" value={student.mother_name} />
+                    <DetailItem icon={<Mail />} label="Email Address" value={student.email} isEditable={true} onEdit={() => setIsEmailDialogOpen(true)} />
+                    <DetailItem icon={<Phone />} label="Father's Contact" value={student.father_phone} />
+                    <DetailItem icon={<Phone />} label="Mother's Contact" value={student.mother_phone} />
+                    <DetailItem icon={<Phone />} label="Student's Contact" value={student.student_phone} />
+                    <DetailItem icon={<Calendar />} label="Date of Birth" value={formatDate(student.date_of_birth)} />
+                    <DetailItem icon={<Calendar />} label="Admission Date" value={formatDate(student.admission_date)} />
+                    <DetailItem icon={<Home />} label="Address" value={student.address} />
+                </CardContent>
+            </Card>
+            {user && (
+                 <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                        <DialogTitle>Change Login Email</DialogTitle>
+                        <DialogDescription>
+                            A confirmation link will be sent to both your old and new email addresses.
+                        </DialogDescription>
+                        </DialogHeader>
+                        <UpdateEmailForm currentEmail={user.email!} />
+                    </DialogContent>
+                </Dialog>
+            )}
+        </>
     )
 }
 
@@ -134,33 +162,48 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
 }
 
 
-export function TeacherProfileDetails({ teacher }: { teacher: Teacher }) {
+export function TeacherProfileDetails({ teacher, user }: { teacher: Teacher, user: AuthUser | null }) {
     const classAssignment = teacher.role === 'classTeacher' ? teacher.class_teacher_of : teacher.classes_taught?.join(', ');
     const roleLabel = teacher.role === 'classTeacher' ? 'Class Teacher Of' : 'Teaches Classes';
+    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
     return (
         <>
-        <Card>
-            <CardHeader><CardTitle className="text-lg">Professional Information</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <DetailItem icon={<Briefcase />} label="Role" value={teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'} />
-                <DetailItem icon={<BookOpen />} label="Primary Subject" value={teacher.subject} />
-                <DetailItem icon={<Users />} label={roleLabel} value={classAssignment} />
-                <DetailItem icon={<GraduationCap />} label="Qualifications" value={teacher.qualifications} />
-                <DetailItem icon={<Calendar />} label="Joining Date" value={formatDate(teacher.joining_date)} />
-            </CardContent>
-        </Card>
-        
-        <Card className="mt-4">
-             <CardHeader><CardTitle className="text-lg">Personal Information</CardTitle></CardHeader>
-             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                 <DetailItem icon={<User />} label="Father's Name" value={teacher.father_name} />
-                 <DetailItem icon={<User />} label="Mother's Name" value={teacher.mother_name} />
-                 <DetailItem icon={<Phone />} label="Phone Number" value={teacher.phone_number} />
-                 <DetailItem icon={<Calendar />} label="Date of Birth" value={formatDate(teacher.dob)} />
-                 <DetailItem icon={<Home />} label="Address" value={teacher.address} />
-             </CardContent>
-        </Card>
+            <Card>
+                <CardHeader><CardTitle className="text-lg">Professional Information</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <DetailItem icon={<Briefcase />} label="Role" value={teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher'} />
+                    <DetailItem icon={<BookOpen />} label="Primary Subject" value={teacher.subject} />
+                    <DetailItem icon={<Users />} label={roleLabel} value={classAssignment} />
+                    <DetailItem icon={<GraduationCap />} label="Qualifications" value={teacher.qualifications} />
+                    <DetailItem icon={<Calendar />} label="Joining Date" value={formatDate(teacher.joining_date)} />
+                </CardContent>
+            </Card>
+            
+            <Card className="mt-4">
+                 <CardHeader><CardTitle className="text-lg">Personal Information</CardTitle></CardHeader>
+                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                     <DetailItem icon={<User />} label="Father's Name" value={teacher.father_name} />
+                     <DetailItem icon={<User />} label="Mother's Name" value={teacher.mother_name} />
+                     <DetailItem icon={<Mail />} label="Email Address" value={teacher.email} isEditable={true} onEdit={() => setIsEmailDialogOpen(true)} />
+                     <DetailItem icon={<Phone />} label="Phone Number" value={teacher.phone_number} />
+                     <DetailItem icon={<Calendar />} label="Date of Birth" value={formatDate(teacher.dob)} />
+                     <DetailItem icon={<Home />} label="Address" value={teacher.address} />
+                 </CardContent>
+            </Card>
+            {user && (
+                 <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                        <DialogTitle>Change Login Email</DialogTitle>
+                        <DialogDescription>
+                            A confirmation link will be sent to both your old and new email addresses.
+                        </DialogDescription>
+                        </DialogHeader>
+                        <UpdateEmailForm currentEmail={user.email!} />
+                    </DialogContent>
+                </Dialog>
+            )}
         </>
     )
 }

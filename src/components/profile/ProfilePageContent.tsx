@@ -107,8 +107,8 @@ export default function ProfilePageContent() {
     : <StudentProfile student={profile as Student} />;
     
   const profileDetails = role === "teacher" 
-    ? <TeacherProfileDetails teacher={profile as Teacher} />
-    : <StudentProfileDetails student={profile as Student} />;
+    ? <TeacherProfileDetails teacher={profile as Teacher} user={user} />
+    : <StudentProfileDetails student={profile as Student} user={user} />;
 
   return (
     <>
@@ -119,19 +119,6 @@ export default function ProfilePageContent() {
         
         <div className="p-4 sm:p-6 lg:p-8 space-y-4">
              {showDetails && profileDetails}
-            
-            {role === 'student' && user && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Mail /> Change Login Email
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <UpdateEmailForm currentEmail={user.email!} />
-                </CardContent>
-              </Card>
-            )}
 
              <Card>
                 <CardContent className="p-2">

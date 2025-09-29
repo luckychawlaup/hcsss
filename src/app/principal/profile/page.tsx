@@ -7,14 +7,16 @@ import { User as AuthUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { KeyRound, Mail, User } from "lucide-react";
+import { Mail, User, Edit } from "lucide-react";
 import { UpdateEmailForm } from "@/components/profile/UpdateEmailForm";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export default function PrincipalProfilePage() {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
     const supabase = createClient();
     const router = useRouter();
 
@@ -42,22 +44,13 @@ export default function PrincipalProfilePage() {
                             {isLoading ? (
                                 <Skeleton className="h-6 w-1/2" />
                             ) : (
-                                <p className="text-muted-foreground">{user?.email}</p>
+                                <div className="flex items-center justify-between group">
+                                    <p className="text-muted-foreground">{user?.email}</p>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => setIsEmailDialogOpen(true)}>
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             )}
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Mail /> Change Login Email
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             {isLoading ? (
-                                <Skeleton className="h-40 w-full" />
-                             ) : user?.email ? (
-                                <UpdateEmailForm currentEmail={user.email} />
-                             ) : <p className="text-muted-foreground">Could not load email information.</p>}
                         </CardContent>
                     </Card>
                      <Button variant="outline" onClick={() => router.push('/principal')}>
@@ -65,6 +58,19 @@ export default function PrincipalProfilePage() {
                     </Button>
                 </div>
             </main>
+            {user && (
+                <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Change Login Email</DialogTitle>
+                            <DialogDescription>
+                                A confirmation link will be sent to both your old and new email addresses.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <UpdateEmailForm currentEmail={user.email!} />
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 }
