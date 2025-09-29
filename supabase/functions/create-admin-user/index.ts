@@ -65,14 +65,11 @@ serve(async (req) => {
     }
     
      // 5. Send a password reset email so they can set their password.
-    const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+    const { data: resetLink, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'recovery',
         email: adminData.email,
-        options: {
-            redirectTo: `${Deno.env.get("NEXT_PUBLIC_SITE_URL")}/auth/update-password`
-        }
     });
-
+    
     if (resetError) {
         console.warn("User created, but password reset email failed to send.", resetError);
         // Don't throw an error, as the user is already created. They can use "forgot password".
