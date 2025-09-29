@@ -7,22 +7,15 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// This function can only be called by the Owner.
 const OWNER_UID = "6bed2c29-8ac9-4e2b-b9ef-26877d42f050";
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders, status: 200 });
-  }
-
+async function handler(req: Request) {
   try {
     const supabaseAdmin = createClient(
       Deno.env.get("NEXT_PUBLIC_SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // 1. Check if the caller is the owner
     const authHeader = req.headers.get("Authorization")!;
     const { data: { user: callingUser } } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
 
@@ -30,13 +23,11 @@ serve(async (req) => {
         throw new Error("Only the owner can create new administrators.");
     }
     
-    // 2. Get the new admin's data from the request body
     const { adminData } = await req.json();
 
-    // 3. Create the new user in Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: adminData.email,
-        email_confirm: true, // Auto-confirm the email
+        email_confirm: true,
         user_metadata: {
             full_name: adminData.name,
             role: adminData.role,
@@ -46,43 +37,51 @@ serve(async (req) => {
     if (authError) throw authError;
     if (!authData.user) throw new Error("Could not create user.");
 
-    // 4. Insert the user details into the public.admin_roles table
     const finalAdminData = {
         uid: authData.user.id,
         role: adminData.role,
         name: adminData.name,
         email: adminData.email,
-        dob: adminData.dob.split('/').reverse().join('-'), // Convert DD/MM/YYYY to YYYY-MM-DD
+        dob: adminData.dob.split('/').reverse().join('-'),
         phone_number: adminData.phone_number,
-        address: adminData.address,
+        address: adminData.address || null,
     };
     
     const { error: dbError } = await supabaseAdmin.from('admin_roles').insert([finalAdminData]);
 
     if (dbError) {
-        // If the DB insert fails, we must roll back by deleting the created auth user.
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
         throw dbError;
     }
     
-     // 5. Send a password reset email so they can set their password.
     const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(adminData.email, {
         redirectTo: `${Deno.env.get("NEXT_PUBLIC_SITE_URL")}/auth/update-password`
     });
     
     if (resetError) {
         console.warn("User created, but password reset email failed to send.", resetError);
-        // Don't throw an error, as the user is already created. They can use "forgot password".
     }
 
     return new Response(JSON.stringify({ user: authData.user }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       status: 400,
     });
   }
+}
+
+serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders, status: 200 })
+  }
+  
+  const response = await handler(req);
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    response.headers.set(key, value);
+  }
+  return response;
 });
