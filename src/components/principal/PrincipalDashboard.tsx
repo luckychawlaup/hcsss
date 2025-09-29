@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -25,14 +26,8 @@ import { useToast } from "@/hooks/use-toast";
 import ClassChatGroup from "../teacher/ClassChatGroup";
 import ManageHolidays from "./ManageHolidays";
 
-const AddTeacherForm = dynamic(() => import('./AddTeacherForm'), {
-    loading: () => <Skeleton className="h-96 w-full" />
-});
 const TeacherList = dynamic(() => import('./TeacherList'), {
     loading: () => <Skeleton className="h-64 w-full" />
-});
-const AddStudentForm = dynamic(() => import('./AddStudentForm'), {
-    loading: () => <Skeleton className="h-96 w-full" />
 });
 const StudentList = dynamic(() => import('./StudentList'), {
     loading: () => <Skeleton className="h-64 w-full" />
@@ -179,8 +174,8 @@ const AnnouncementView = ({ user }: { user: User | null }) => {
 
 export default function PrincipalDashboard() {
   const [activeView, setActiveView] = useState<PrincipalView>("dashboard");
-  const [manageTeachersTab, setManageTeachersTab] = useState("addTeacher");
-  const [manageStudentsTab, setManageStudentsTab] = useState("addStudent");
+  const [manageTeachersTab, setManageTeachersTab] = useState("viewTeachers");
+  const [manageStudentsTab, setManageStudentsTab] = useState("viewStudents");
   const router = useRouter();
   const supabase = createClient();
 
@@ -284,45 +279,12 @@ export default function PrincipalDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Tabs value={manageTeachersTab} onValueChange={setManageTeachersTab} className="w-full">
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="addTeacher">Add Teacher</TabsTrigger>
-                                    <TabsTrigger value="viewTeachers">View Teachers</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="addTeacher">
-                                    <CardHeader className="px-1 pt-6">
-                                        <CardTitle className="flex items-center gap-2 text-xl">
-                                            <UserPlus />
-                                            Register New Teacher
-                                        </CardTitle>
-                                        <CardDescription>
-                                        Fill out the form below to register a new teacher. An email with instructions to set their password will be sent to them.
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="px-1">
-                                        <AddTeacherForm onTeacherAdded={handleTeacherAdded} />
-                                    </CardContent>
-                                </TabsContent>
-                                <TabsContent value="viewTeachers">
-                                    <CardHeader className="px-1 pt-6">
-                                        <CardTitle className="flex items-center gap-2 text-xl">
-                                            <Eye />
-                                            View All Teachers
-                                        </CardTitle>
-                                        <CardDescription>
-                                            Here is a list of all teachers currently in the system.
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="px-1">
-                                        <TeacherList 
-                                            teachers={allTeachers} 
-                                            isLoading={isLoading}
-                                            onUpdateTeacher={handleTeacherUpdated}
-                                            onDeleteTeacher={handleTeacherDeleted}
-                                        />
-                                    </CardContent>
-                                </TabsContent>
-                            </Tabs>
+                           <TeacherList 
+                                teachers={allTeachers} 
+                                isLoading={isLoading}
+                                onUpdateTeacher={handleTeacherUpdated}
+                                onDeleteTeacher={handleTeacherDeleted}
+                            />
                         </CardContent>
                     </Card>
               );
@@ -343,45 +305,12 @@ export default function PrincipalDashboard() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Tabs value={manageStudentsTab} onValueChange={setManageStudentsTab} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="addStudent">Add Student</TabsTrigger>
-                                <TabsTrigger value="viewStudents">View Students</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="addStudent">
-                                <CardHeader className="px-1 pt-6">
-                                    <CardTitle className="flex items-center gap-2 text-xl">
-                                        <UserPlus />
-                                        Add New Student
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Fill out the form to admit a new student. A student account will be created, and they must use the 'Forgot Password' link on the login page to set their password.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="px-1">
-                                    <AddStudentForm onStudentAdded={handleStudentAdded} />
-                                </CardContent>
-                            </TabsContent>
-                            <TabsContent value="viewStudents">
-                                <CardHeader className="px-1 pt-6">
-                                    <CardTitle className="flex items-center gap-2 text-xl">
-                                        <Eye />
-                                        View All Students
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Here is a list of all students currently enrolled.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="px-1">
-                                <StudentList
-                                        students={allStudents}
-                                        isLoading={isLoading}
-                                        onUpdateStudent={handleStudentUpdated}
-                                        onDeleteStudent={handleStudentDeleted}
-                                    />
-                                </CardContent>
-                            </TabsContent>
-                    </Tabs>
+                       <StudentList
+                            students={allStudents}
+                            isLoading={isLoading}
+                            onUpdateStudent={handleStudentUpdated}
+                            onDeleteStudent={handleStudentDeleted}
+                        />
                     </CardContent>
                 </Card>
               );
@@ -480,8 +409,8 @@ export default function PrincipalDashboard() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <NavCard title="My Profile" description="View and manage your profile" icon={UserIcon} onClick={() => router.push('/principal/profile')} />
-                        <NavCard title="Manage Teachers" description="Add, view, and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
-                        <NavCard title="Manage Students" description="Admit, view, and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
+                        <NavCard title="Manage Teachers" description="View and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
+                        <NavCard title="Manage Students" description="View and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
                         <NavCard title="Review Feedback" description="Review submissions and complaints" icon={ClipboardCheck} onClick={() => setActiveView("viewFeedback")} />
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
@@ -504,3 +433,5 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
+
+    

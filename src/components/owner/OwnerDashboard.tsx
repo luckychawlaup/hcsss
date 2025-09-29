@@ -1,63 +1,30 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
 import Header from "@/components/dashboard/Header";
-import { User, onAuthStateChanged } from "@supabase/supabase-js";
+import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "../ui/skeleton";
-import { ArrowLeft, UserPlus, Users, GraduationCap, Megaphone, CalendarCheck, DollarSign, Info, CalendarOff, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, GraduationCap, DollarSign, Info, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle, Eye } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Alert, AlertDescription } from "../ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { addAdmin, getAdmins, removeAdmin, AdminUser } from "@/lib/supabase/admins";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import AddAdminForm from "./AddAdminForm";
 
 const SchoolInfoForm = dynamic(() => import('../principal/SchoolInfoForm'), {
     loading: () => <Skeleton className="h-80 w-full" />
 });
 
 const GenerateSalary = dynamic(() => import('../principal/GenerateSalary'), {
-    loading: () => <Skeleton className="h-80 w-full" />
+    loading: () => <Skeleton className="h-80 w_full" />
 });
-
-type AdminRole = 'principal' | 'accountant';
-interface AdminUser {
-    uid: string;
-    role: AdminRole;
-}
-
-const supabase = createClient();
-
-const getAdminRoles = async (): Promise<AdminUser[]> => {
-    const { data, error } = await supabase.from('admin_roles').select('uid, role');
-    if (error) {
-        console.error("Error fetching admin roles:", error);
-        return [];
-    }
-    return data as AdminUser[];
-};
-
-const addAdminRole = async (uid: string, role: AdminRole): Promise<AdminUser | null> => {
-    const { data, error } = await supabase.from('admin_roles').insert({ uid, role }).select().single();
-    if (error) {
-        console.error(`Error adding ${role}:`, error);
-        throw error;
-    }
-    return data;
-};
-
-const removeAdminRole = async (uid: string): Promise<void> => {
-    const { error } = await supabase.from('admin_roles').delete().eq('uid', uid);
-    if (error) {
-        console.error("Error removing admin role:", error);
-        throw error;
-    }
-};
-
 
 type OwnerView = "dashboard" | "managePayroll" | "schoolInfo" | "manageAdmins";
 
@@ -78,114 +45,104 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title: string, d
 const ManageAdminRoles = () => {
     const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [newPrincipalId, setNewPrincipalId] = useState("");
-    const [newAccountantId, setNewAccountantId] = useState("");
     const { toast } = useToast();
+    const [manageAdminsTab, setManageAdminsTab] = useState("viewAdmins");
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+    const fetchAdmins = async () => {
+        setIsLoading(true);
+        const admins = await getAdmins();
+        setAdminUsers(admins);
+        setIsLoading(false);
+    };
 
     useEffect(() => {
-        const fetchAdmins = async () => {
-            setIsLoading(true);
-            const admins = await getAdminRoles();
-            setAdminUsers(admins);
-            setIsLoading(false);
-        };
         fetchAdmins();
     }, []);
 
     const principals = adminUsers.filter(u => u.role === 'principal');
     const accountants = adminUsers.filter(u => u.role === 'accountant');
 
-    const handleAdd = async (role: AdminRole) => {
-        const uid = role === 'principal' ? newPrincipalId : newAccountantId;
-        if (!uid.trim()) {
-            toast({ variant: "destructive", title: "UID cannot be empty." });
-            return;
-        }
-
+    const handleRemove = async (user: AdminUser) => {
+        setIsDeleting(user.uid);
         try {
-            const newUser = await addAdminRole(uid, role);
-            if (newUser) {
-                setAdminUsers(prev => [...prev, newUser]);
-                toast({ title: `${role.charAt(0).toUpperCase() + role.slice(1)} added successfully.` });
-                if (role === 'principal') setNewPrincipalId("");
-                else setNewAccountantId("");
-            }
-        } catch (error: any) {
-            let message = "Failed to add user.";
-            if (error.code === '23505') message = "This UID is already assigned a role.";
-            toast({ variant: "destructive", title: "Error", description: message });
-        }
-    };
-
-    const handleRemove = async (uid: string) => {
-        try {
-            await removeAdminRole(uid);
-            setAdminUsers(prev => prev.filter(u => u.uid !== uid));
-            toast({ title: "User role removed." });
+            await removeAdmin(user.uid);
+            setAdminUsers(prev => prev.filter(u => u.uid !== user.uid));
+            toast({ title: "Admin Role Removed", description: `${user.name}'s access has been revoked.` });
         } catch (error) {
             toast({ variant: "destructive", title: "Error", description: "Failed to remove user role." });
+        } finally {
+            setIsDeleting(null);
         }
     };
+    
+    const handleAdminAdded = () => {
+        fetchAdmins();
+        setManageAdminsTab("viewAdmins");
+    }
 
     if (isLoading) return <Skeleton className="h-64 w-full" />;
 
     return (
-        <div className="space-y-6">
-            {/* Principals */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2"><School /> Principals ({principals.length}/5)</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        {principals.map(p => (
-                            <div key={p.uid} className="flex items-center justify-between rounded-md border p-2 bg-secondary/50">
-                                <span className="font-mono text-xs break-all px-2">{p.uid}</span>
-                                <Button size="icon" variant="ghost" onClick={() => handleRemove(p.uid)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                            </div>
-                        ))}
-                         {principals.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No principals assigned.</p>}
-                    </div>
-                   
-                    {principals.length < 5 && (
-                        <div className="flex gap-2">
-                            <Input value={newPrincipalId} onChange={e => setNewPrincipalId(e.target.value)} placeholder="Enter new Principal User ID" />
-                            <Button onClick={() => handleAdd('principal')}>Add</Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Accountants */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2"><Calculator /> Accountants ({accountants.length}/10)</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        {accountants.map(a => (
-                            <div key={a.uid} className="flex items-center justify-between rounded-md border p-2 bg-secondary/50">
-                                <span className="font-mono text-xs break-all px-2">{a.uid}</span>
-                                <Button size="icon" variant="ghost" onClick={() => handleRemove(a.uid)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                            </div>
-                        ))}
-                         {accountants.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No accountants assigned.</p>}
-                    </div>
-                     {accountants.length < 10 && (
-                        <div className="flex gap-2">
-                            <Input value={newAccountantId} onChange={e => setNewAccountantId(e.target.value)} placeholder="Enter new Accountant User ID" />
-                            <Button onClick={() => handleAdd('accountant')}>Add</Button>
-                        </div>
-                     )}
-                </CardContent>
-            </Card>
-             <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                    You can find the User ID (UID) for any registered user in the Supabase 'auth.users' table.
-                </AlertDescription>
-            </Alert>
-        </div>
+        <Tabs value={manageAdminsTab} onValueChange={setManageAdminsTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="viewAdmins">View Admins</TabsTrigger>
+                <TabsTrigger value="addAdmin">Add Admin</TabsTrigger>
+            </TabsList>
+            <TabsContent value="viewAdmins">
+                <div className="space-y-6 mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2"><School /> Principals ({principals.length}/5)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                             {principals.length > 0 ? principals.map(p => (
+                                <div key={p.uid} className="flex items-center justify-between rounded-md border p-3 bg-secondary/50">
+                                    <div>
+                                        <p className="font-semibold">{p.name}</p>
+                                        <p className="text-sm text-muted-foreground">{p.email}</p>
+                                    </div>
+                                    <Button size="icon" variant="ghost" onClick={() => handleRemove(p)} disabled={!!isDeleting}>
+                                        {isDeleting === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
+                                    </Button>
+                                </div>
+                            )) : <p className="text-sm text-muted-foreground text-center py-4">No principals assigned.</p>}
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2"><Calculator /> Accountants ({accountants.length}/10)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            {accountants.length > 0 ? accountants.map(a => (
+                                <div key={a.uid} className="flex items-center justify-between rounded-md border p-3 bg-secondary/50">
+                                    <div>
+                                        <p className="font-semibold">{a.name}</p>
+                                        <p className="text-sm text-muted-foreground">{a.email}</p>
+                                    </div>
+                                     <Button size="icon" variant="ghost" onClick={() => handleRemove(a)} disabled={!!isDeleting}>
+                                        {isDeleting === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
+                                    </Button>
+                                </div>
+                            )) : <p className="text-sm text-muted-foreground text-center py-4">No accountants assigned.</p>}
+                        </CardContent>
+                    </Card>
+                </div>
+            </TabsContent>
+            <TabsContent value="addAdmin">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-xl"><UserPlus />Register New Administrator</CardTitle>
+                        <CardDescription>
+                            Create an account for a new Principal or Accountant. They will receive an email to set their password.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <AddAdminForm onAdminAdded={handleAdminAdded} />
+                    </CardContent>
+                </Card>
+            </TabsContent>
+        </Tabs>
     );
 };
 
@@ -266,7 +223,7 @@ export default function OwnerDashboard() {
                                 Manage Admins
                             </CardTitle>
                             <CardDescription>
-                                Add or remove User IDs for Principal and Accountant roles. Changes take effect immediately.
+                                Add or remove Principal and Accountant roles. Changes take effect immediately.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -300,3 +257,5 @@ export default function OwnerDashboard() {
     </div>
   );
 }
+
+    
