@@ -51,8 +51,19 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
         throw new Error("Only the owner can add new administrators.");
     }
     
-    const { data, error } = await supabase.functions.invoke('create-admin-user', {
-        body: { adminData: adminData },
+    // This now directly calls a function that both creates the user and the reset token.
+    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
+        body: { 
+            mode: 'create_and_request_reset',
+            email: adminData.email,
+            options: {
+                data: {
+                    full_name: adminData.name,
+                    role: adminData.role
+                }
+            },
+            adminData: adminData
+         },
     });
 
     if (error) {
@@ -92,11 +103,18 @@ export const removeAdmin = async (uid: string) => {
 };
 
 export const resendAdminConfirmation = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
+    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
+        body: {
+            mode: 'request',
+            email: email
+        }
     });
-    if (error) {
-        console.error("Error resending confirmation/password reset:", error);
-        throw error;
+
+    if (error || data.error) {
+        console.error("Error resending confirmation/password reset:", error || data.error);
+        throw new Error(error?.message || data.error);
     }
+
+    return data;
 };
+

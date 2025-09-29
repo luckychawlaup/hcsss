@@ -23,25 +23,72 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { mode, email, token, new_password } = await req.json();
+    const { mode, email, token, new_password, options, adminData } = await req.json();
+
+    if (mode === "create_and_request_reset") {
+        if (!email || !adminData) throw new Error("Email and adminData required for creation.");
+
+        // Check if user already exists
+        const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+        if (listError) throw listError;
+        const existingUser = existingUsers.users.find(u => u.email === email);
+        
+        let userId;
+
+        if(existingUser) {
+          // If user exists, but maybe not in admin_roles, just use their ID
+          userId = existingUser.id;
+        } else {
+          // Create a new user if they don't exist
+          const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email: email,
+            password: Math.random().toString(36).slice(-12), // Secure temporary password
+            email_confirm: true, // Mark as confirmed since only owner can create
+            user_metadata: options?.data || {}
+          });
+          if (createError) throw new Error(`User creation failed: ${createError.message}`);
+          userId = newUser.user.id;
+        }
+        
+        // Add to admin_roles table
+        const { error: roleError } = await supabaseAdmin.from('admin_roles').upsert({
+            uid: userId,
+            ...adminData
+        }, { onConflict: 'uid' });
+        
+        if (roleError) {
+             // If role insert fails, delete the created auth user for cleanup
+             if (!existingUser) await supabaseAdmin.auth.admin.deleteUser(userId);
+             throw new Error(`DB role assignment failed: ${roleError.message}`);
+        }
+
+        // Generate and store password reset token
+        const resetToken = generateToken();
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await supabaseAdmin.from("password_resets").insert({ user_id: userId, token: resetToken, expires_at: expiresAt.toISOString(), used: false });
+        
+        return new Response(JSON.stringify({ message: "Admin created, reset token generated.", token: resetToken }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200
+        });
+    }
 
     if (mode === "request") {
       if (!email) throw new Error("Email required");
       
-      const { data: user, error: userError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-      if (userError || !user) throw new Error("User not found");
+      const { data: { users }, error: userError } = await supabaseAdmin.auth.admin.listUsers();
+      if (userError) throw userError;
+      const user = users.find((u) => u.email === email);
+      if (!user) throw new Error("User not found");
 
       const resetToken = generateToken();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
 
       await supabaseAdmin.from("password_resets").insert([
-        { user_id: user.user.id, token: resetToken, expires_at: expiresAt.toISOString(), used: false }
+        { user_id: user.id, token: resetToken, expires_at: expiresAt.toISOString(), used: false }
       ]);
       
-      // In a real app, you'd send an email here.
-      // For this app, we return the token directly so the user can be redirected.
       return new Response(JSON.stringify({ 
-        message: "Reset token generated. In a real app, an email would be sent.", 
+        message: "Reset token generated.", 
         token: resetToken 
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200
@@ -78,10 +125,11 @@ serve(async (req) => {
       });
     }
 
-    throw new Error("Invalid mode specified. Must be 'request' or 'reset'.");
+    throw new Error("Invalid mode specified.");
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400
     });
   }
 });
+

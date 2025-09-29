@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -7,7 +6,7 @@ import Header from "@/components/dashboard/Header";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "../ui/skeleton";
-import { ArrowLeft, UserPlus, Users, GraduationCap, DollarSign, Info, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle, Eye, CheckCircle, Megaphone } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, GraduationCap, DollarSign, Info, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle, Eye, CheckCircle, Megaphone, Copy } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
@@ -59,6 +58,7 @@ const ManageAdminRoles = () => {
     const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
     const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
     const [isResending, setIsResending] = useState(false);
+    const [resetToken, setResetToken] = useState<string | null>(null);
 
 
     const fetchAdmins = async () => {
@@ -93,9 +93,13 @@ const ManageAdminRoles = () => {
         }
     };
     
-    const handleAdminAdded = () => {
+    const handleAdminAdded = (token?: string) => {
         fetchAdmins();
-        setManageAdminsTab("viewAdmins");
+        if (token) {
+            setResetToken(token);
+        } else {
+            setManageAdminsTab("viewAdmins");
+        }
     }
     
     const openResendDialog = (admin: AdminUser) => {
@@ -107,14 +111,39 @@ const ManageAdminRoles = () => {
         if (!selectedAdmin) return;
         setIsResending(true);
         try {
-            await resendAdminConfirmation(selectedAdmin.email);
-            toast({ title: "Email Sent", description: `A new confirmation and password reset email has been sent to ${selectedAdmin.email}.` });
+            const result = await resendAdminConfirmation(selectedAdmin.email);
+            setResetToken(result.token);
             setIsKeyDialogOpen(false);
         } catch (error) {
              toast({ variant: "destructive", title: "Error", description: "Failed to send email." });
         } finally {
             setIsResending(false);
         }
+    }
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: "Copied to clipboard!" });
+    };
+
+    if (resetToken) {
+        const resetLink = `${window.location.origin}/auth/update-password?token=${resetToken}`;
+        return (
+            <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertTitle>Admin Account Ready!</AlertTitle>
+                <AlertDescription>
+                    <p>Provide this one-time link to the new admin to set their password:</p>
+                    <div className="flex items-center space-x-2 my-2 p-2 bg-muted rounded-md">
+                        <Input type="text" readOnly value={resetLink} className="flex-1" />
+                        <Button variant="outline" size="icon" onClick={() => copyToClipboard(resetLink)}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <Button onClick={() => setResetToken(null)}>Done</Button>
+                </AlertDescription>
+            </Alert>
+        )
     }
 
 
@@ -194,16 +223,16 @@ const ManageAdminRoles = () => {
          <Dialog open={isKeyDialogOpen} onOpenChange={setIsKeyDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Resend Confirmation Email</DialogTitle>
+                    <DialogTitle>Resend Setup Link</DialogTitle>
                     <DialogDescription>
-                        This will send a new password reset link to <span className="font-semibold">{selectedAdmin?.email}</span>. Clicking this link will also confirm their email address.
+                        This will generate a new one-time password setup link for <span className="font-semibold">{selectedAdmin?.email}</span>.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => setIsKeyDialogOpen(false)} disabled={isResending}>Cancel</Button>
                     <Button onClick={handleResendConfirmation} disabled={isResending}>
                         {isResending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Send Email
+                        Generate New Link
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -324,3 +353,4 @@ export default function OwnerDashboard() {
     </div>
   );
 }
+
