@@ -6,7 +6,7 @@ import Header from "@/components/dashboard/Header";
 import { User, onAuthStateChanged } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "../ui/skeleton";
-import { ArrowLeft, UserPlus, Users, GraduationCap, Megaphone, CalendarCheck, DollarSign, Info, CalendarOff, KeyRound, Calculator } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, GraduationCap, Megaphone, CalendarCheck, DollarSign, Info, CalendarOff, KeyRound, Calculator, School } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
