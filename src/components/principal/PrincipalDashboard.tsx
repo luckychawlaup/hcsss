@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -20,10 +19,7 @@ import { StatCard } from "./StatCard";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { addAnnouncement, getAnnouncementsForClass, getAnnouncementsForTeachers, getAnnouncementsForAllStudents, updateAnnouncement, deleteAnnouncement, Announcement } from "@/lib/supabase/announcements";
-import AnnouncementChat from "../teacher/AnnouncementChat";
 import { useToast } from "@/hooks/use-toast";
-import ClassChatGroup from "../teacher/ClassChatGroup";
 import ManageHolidays from "./ManageHolidays";
 
 const TeacherList = dynamic(() => import('./TeacherList'), {
@@ -44,7 +40,7 @@ const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
 
 type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "makeAnnouncement" | "manageHolidays" | "reviewLeaves";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "manageHolidays" | "reviewLeaves";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title:string, description:string, icon:React.ElementType, onClick:() => void }) => (
     <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
@@ -63,120 +59,6 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title:string, de
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
-
-
-const AnnouncementView = ({ user }: { user: User | null }) => {
-    const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-    const { toast } = useToast();
-
-    const announcementGroups = useMemo(() => ["Teachers", "All Students", ...allClassSections], []);
-
-    useEffect(() => {
-        if (!selectedGroup) {
-            setAnnouncements([]);
-            return;
-        };
-
-        let unsubscribe: any;
-        if (selectedGroup === 'Teachers') {
-            unsubscribe = getAnnouncementsForTeachers(setAnnouncements);
-        } else if (selectedGroup === 'All Students') {
-            unsubscribe = getAnnouncementsForAllStudents(setAnnouncements);
-        } else {
-            unsubscribe = getAnnouncementsForClass(selectedGroup, setAnnouncements);
-        }
-        
-        return () => {
-            if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
-                unsubscribe.unsubscribe();
-            }
-        };
-    }, [selectedGroup]);
-
-
-    const handleSendMessage = async (content: string, category: string, file?: File) => {
-        if (!user || !selectedGroup) {
-            toast({ variant: 'destructive', title: 'Error', description: "No group selected." });
-            return;
-        }
-
-        const announcementData: Partial<Announcement> = {
-            title: "Announcement",
-            content,
-            category,
-            created_by: user.id,
-            creator_name: "Principal",
-            creator_role: "Principal",
-        };
-
-        if (selectedGroup === 'Teachers') {
-            announcementData.target = 'teachers';
-        } else if (selectedGroup === 'All Students') {
-             announcementData.target = 'students';
-             announcementData.target_audience = undefined;
-        } else {
-            announcementData.target = 'students';
-            announcementData.target_audience = {
-                type: 'class',
-                value: selectedGroup
-            };
-        }
-
-        try {
-            await addAnnouncement(announcementData as Omit<Announcement, "id" | "created_at">, file);
-            toast({
-                title: "Announcement Published!",
-                description: `Your announcement has been sent to ${selectedGroup}.`,
-            });
-        } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Error', description: "Failed to send announcement." });
-        }
-    };
-
-    const handleUpdateMessage = async (id: string, content: string) => {
-      try {
-        await updateAnnouncement(id, content);
-        toast({ title: "Announcement Updated" });
-      } catch (e: any) {
-        toast({ variant: "destructive", title: "Error", description: "Could not update announcement." });
-      }
-    }
-
-    const handleDeleteMessage = async (id: string) => {
-        try {
-            await deleteAnnouncement(id);
-            toast({ title: "Announcement Deleted" });
-        } catch (e: any) {
-            toast({ variant: "destructive", title: "Error", description: "Could not delete announcement." });
-        }
-    }
-    
-    return (
-        <div className="flex flex-1 md:grid md:grid-cols-[300px_1fr] md:border-t">
-            <div className="border-b md:border-b-0 md:border-r">
-                <ClassChatGroup 
-                    assignedClasses={announcementGroups}
-                    onSelectClass={setSelectedGroup}
-                    selectedClass={selectedGroup}
-                    isLoading={false}
-                />
-            </div>
-            <div className="flex flex-col">
-                <AnnouncementChat
-                    announcements={announcements}
-                    chatTitle={selectedGroup}
-                    onSendMessage={handleSendMessage}
-                    onUpdateMessage={handleUpdateMessage}
-                    onDeleteMessage={handleDeleteMessage}
-                    senderName={"Principal"}
-                    senderRole={"Principal"}
-                />
-            </div>
-        </div>
-    )
-}
-
 
 export default function PrincipalDashboard() {
   const [activeView, setActiveView] = useState<PrincipalView>("dashboard");
@@ -404,26 +286,6 @@ export default function PrincipalDashboard() {
                         </CardContent>
                     </Card>
                );
-          case 'makeAnnouncement':
-              return (
-                    <Card className="flex flex-col h-full">
-                        <CardHeader>
-                             <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Dashboard
-                            </Button>
-                             <CardTitle className="flex items-center gap-2">
-                                <Megaphone />
-                                Make Announcement
-                            </CardTitle>
-                             <CardDescription>
-                                Publish notices to all teachers or specific class groups.
-                            </CardDescription>
-                        </CardHeader>
-                        <AnnouncementView user={user} />
-                    </Card>
-              );
-          
           case 'manageHolidays':
               return (
                   <Card>
@@ -461,7 +323,7 @@ export default function PrincipalDashboard() {
                         <NavCard title="Manage Students" description="Add, view, and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
                         <NavCard title="Review Feedback" description="Review submissions and complaints" icon={ClipboardCheck} onClick={() => setActiveView("viewFeedback")} />
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
-                        <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
+                        <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => router.push('/principal/announcements')} />
                         <NavCard title="Manage Holidays" description="Declare school holidays" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
                     </div>
                 </div>
