@@ -24,6 +24,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "../ui/input";
 
 const SchoolInfoForm = dynamic(() => import('../principal/SchoolInfoForm'), {
     loading: () => <Skeleton className="h-80 w-full" />
@@ -353,4 +354,3 @@ export default function OwnerDashboard() {
     </div>
   );
 }
-
