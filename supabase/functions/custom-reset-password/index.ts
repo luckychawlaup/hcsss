@@ -17,6 +17,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+  
   try {
     const supabaseAdmin = createClient(
       Deno.env.get("NEXT_PUBLIC_SUPABASE_URL") ?? "",
