@@ -7,7 +7,7 @@ import Header from "@/components/dashboard/Header";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "../ui/skeleton";
-import { ArrowLeft, UserPlus, Users, GraduationCap, DollarSign, Info, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle, Eye, CheckCircle } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, GraduationCap, DollarSign, Info, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle, Eye, CheckCircle, Megaphone } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
@@ -303,6 +303,7 @@ export default function OwnerDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <NavCard title="My Profile" description="Manage your account settings" icon={UserIcon} onClick={() => router.push('/owner/profile')} />
                         <NavCard title="Manage Admins" description="Add or remove principals & accountants" icon={KeyRound} onClick={() => setActiveView("manageAdmins")} />
+                        <NavCard title="Send Announcements" description="Broadcast messages to any group" icon={Megaphone} onClick={() => router.push('/owner/announcements')} />
                         <NavCard title="Manage Payroll" description="Generate and oversee staff salary" icon={DollarSign} onClick={() => setActiveView("managePayroll")} />
                         <NavCard title="School Information" description="Update public school details" icon={Info} onClick={() => setActiveView("schoolInfo")} />
                     </div>
