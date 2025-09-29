@@ -92,7 +92,7 @@ export const getAdmins = async (): Promise<AdminUser[]> => {
     const { data, error } = await supabase.from(ADMIN_ROLES_TABLE).select('uid, role, name, email');
     if (error) {
         console.error("Error fetching admin roles:", error);
-        return [];
+        throw error;
     }
     return data as AdminUser[];
 };
@@ -112,5 +112,3 @@ export const removeAdmin = async (uid: string) => {
         throw new Error("DB record deleted, but auth user cleanup failed.");
     }
 };
-
-    

@@ -32,6 +32,12 @@ const TeacherList = dynamic(() => import('./TeacherList'), {
 const StudentList = dynamic(() => import('./StudentList'), {
     loading: () => <Skeleton className="h-64 w-full" />
 });
+const AddTeacherForm = dynamic(() => import('./AddTeacherForm'), {
+    loading: () => <Skeleton className="h-96 w-full" />
+});
+const AddStudentForm = dynamic(() => import('./AddStudentForm'), {
+    loading: () => <Skeleton className="h-96 w-full" />
+});
 const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
     loading: () => <Skeleton className="h-48 w-full" />,
 });
@@ -279,12 +285,33 @@ export default function PrincipalDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <TeacherList 
-                                teachers={allTeachers} 
-                                isLoading={isLoading}
-                                onUpdateTeacher={handleTeacherUpdated}
-                                onDeleteTeacher={handleTeacherDeleted}
-                            />
+                             <Tabs value={manageTeachersTab} onValueChange={setManageTeachersTab} className="w-full">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="viewTeachers">View Teachers</TabsTrigger>
+                                    <TabsTrigger value="addTeacher">Add Teacher</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="viewTeachers">
+                                    <TeacherList 
+                                        teachers={allTeachers} 
+                                        isLoading={isLoading}
+                                        onUpdateTeacher={handleTeacherUpdated}
+                                        onDeleteTeacher={handleTeacherDeleted}
+                                    />
+                                </TabsContent>
+                                <TabsContent value="addTeacher">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2 text-xl"><UserPlus />Register New Teacher</CardTitle>
+                                            <CardDescription>
+                                                Add a new teacher to the system. They will receive an email with a temporary password and instructions to complete their registration.
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <AddTeacherForm onTeacherAdded={handleTeacherAdded} />
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+                            </Tabs>
                         </CardContent>
                     </Card>
               );
@@ -305,12 +332,33 @@ export default function PrincipalDashboard() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <StudentList
-                            students={allStudents}
-                            isLoading={isLoading}
-                            onUpdateStudent={handleStudentUpdated}
-                            onDeleteStudent={handleStudentDeleted}
-                        />
+                        <Tabs value={manageStudentsTab} onValueChange={setManageStudentsTab} className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="viewStudents">View Students</TabsTrigger>
+                                <TabsTrigger value="addStudent">Add Student</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="viewStudents">
+                                <StudentList
+                                    students={allStudents}
+                                    isLoading={isLoading}
+                                    onUpdateStudent={handleStudentUpdated}
+                                    onDeleteStudent={handleStudentDeleted}
+                                />
+                            </TabsContent>
+                            <TabsContent value="addStudent">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2 text-xl"><UserPlus />Admit New Student</CardTitle>
+                                        <CardDescription>
+                                            Add a new student to the school records. An account will be created, and an email will be sent with login instructions.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <AddStudentForm onStudentAdded={handleStudentAdded} />
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+                        </Tabs>
                     </CardContent>
                 </Card>
               );
@@ -409,8 +457,8 @@ export default function PrincipalDashboard() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <NavCard title="My Profile" description="View and manage your profile" icon={UserIcon} onClick={() => router.push('/principal/profile')} />
-                        <NavCard title="Manage Teachers" description="View and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
-                        <NavCard title="Manage Students" description="View and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
+                        <NavCard title="Manage Teachers" description="Add, view, and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
+                        <NavCard title="Manage Students" description="Add, view, and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
                         <NavCard title="Review Feedback" description="Review submissions and complaints" icon={ClipboardCheck} onClick={() => setActiveView("viewFeedback")} />
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => setActiveView("makeAnnouncement")} />
@@ -433,5 +481,3 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
-
-    
