@@ -6,6 +6,8 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Suspense } from "react";
+import Loading from "./loading";
+
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -51,7 +53,7 @@ export default function RootLayout({
     <html lang="en" className={`${poppins.variable}`} suppressHydrationWarning>
       <head/>
       <body className="antialiased bg-background">
-            <Suspense>
+            <Suspense fallback={<Loading />}>
               {children}
             </Suspense>
             <Toaster />

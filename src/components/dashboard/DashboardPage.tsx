@@ -53,9 +53,9 @@ export default function DashboardPage() {
                                     Access NCERT textbooks and other educational resources directly from the official source.
                                 </p>
                                 <Button asChild className="w-full">
-                                    <Link href="https://ncert.nic.in/textbook.php" target="_blank" rel="noopener noreferrer">
+                                    <a href="https://ncert.nic.in/textbook.php" target="_blank" rel="noopener noreferrer">
                                         Download Textbooks
-                                    </Link>
+                                    </a>
                                 </Button>
                             </CardContent>
                         </Card>

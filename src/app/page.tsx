@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getRole } from "@/lib/getRole";
 import DashboardPage from "@/components/dashboard/DashboardPage";
 import Image from "next/image";
+import Loading from "./loading";
 
 function Preloader() {
     return (
@@ -67,6 +68,8 @@ export default function Home() {
   }
 
   return (
-      <DashboardPage />
+      <Suspense fallback={<Loading />}>
+        <DashboardPage />
+      </Suspense>
   );
 }
