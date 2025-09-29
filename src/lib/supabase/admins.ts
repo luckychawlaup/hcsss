@@ -46,24 +46,17 @@ USING (auth.role() = 'authenticated');
 
 
 export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string, phone_number: string, address?: string }) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.id !== '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') {
-        throw new Error("Only the owner can add new administrators.");
-    }
-    
-    // This now directly calls a function that both creates the user and the reset token.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
     const { data, error } = await supabase.functions.invoke('custom-reset-password', {
         body: { 
             mode: 'create_and_request_reset',
-            email: adminData.email,
-            options: {
-                data: {
-                    full_name: adminData.name,
-                    role: adminData.role
-                }
-            },
             adminData: adminData
-         },
+        },
+        headers: {
+            Authorization: `Bearer ${session.access_token}`,
+        }
     });
 
     if (error) {
@@ -103,10 +96,16 @@ export const removeAdmin = async (uid: string) => {
 };
 
 export const resendAdminConfirmation = async (email: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
     const { data, error } = await supabase.functions.invoke('custom-reset-password', {
         body: {
             mode: 'request',
             email: email
+        },
+        headers: {
+            Authorization: `Bearer ${session.access_token}`,
         }
     });
 
@@ -117,4 +116,3 @@ export const resendAdminConfirmation = async (email: string) => {
 
     return data;
 };
-

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.0.0";
 import { v4 } from "https://deno.land/std@0.168.0/uuid/mod.ts";
@@ -38,7 +37,7 @@ serve(async (req) => {
         } else {
           const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email: userEmail,
-            password: Math.random().toString(36).slice(-12),
+            password: v4.generate(), // Use a random password
             email_confirm: true,
             user_metadata: {
                 full_name: adminData.name,
@@ -59,7 +58,7 @@ serve(async (req) => {
              throw new Error(`DB role assignment failed: ${roleError.message}`);
         }
 
-        const resetToken = v4();
+        const resetToken = v4.generate();
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         await supabaseAdmin.from("password_resets").insert({ user_id: userId, token: resetToken, expires_at: expiresAt.toISOString(), used: false });
         
@@ -76,7 +75,7 @@ serve(async (req) => {
       const user = users.find((u) => u.email === email);
       if (!user) throw new Error("User not found");
 
-      const resetToken = v4();
+      const resetToken = v4.generate();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
 
       await supabaseAdmin.from("password_resets").insert([
