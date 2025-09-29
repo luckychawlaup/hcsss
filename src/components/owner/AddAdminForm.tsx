@@ -33,7 +33,7 @@ const addAdminSchema = z.object({
 });
 
 interface AddAdminFormProps {
-    onAdminAdded: (token?: string) => void;
+    onAdminAdded: () => void;
 }
 
 export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
@@ -58,17 +58,17 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
     setError(null);
 
     try {
-      const result = await addAdmin({
+      await addAdmin({
           ...values,
           address: values.address || '',
       });
       
       toast({
         title: "Administrator Added!",
-        description: `An account for ${values.name} (${values.role}) has been created.`,
+        description: `An account for ${values.name} (${values.role}) has been created and an email has been sent to them to set their password.`,
       });
       form.reset();
-      onAdminAdded(result.token);
+      onAdminAdded();
     } catch (e: any) {
         let errorMessage = `An unexpected error occurred: ${e.message}`;
         if (e.message.includes('User already registered')) {
@@ -198,4 +198,3 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
     </>
   );
 }
-

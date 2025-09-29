@@ -59,7 +59,6 @@ const ManageAdminRoles = () => {
     const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
     const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
     const [isResending, setIsResending] = useState(false);
-    const [resetToken, setResetToken] = useState<string | null>(null);
 
 
     const fetchAdmins = async () => {
@@ -94,13 +93,9 @@ const ManageAdminRoles = () => {
         }
     };
     
-    const handleAdminAdded = (token?: string) => {
+    const handleAdminAdded = () => {
         fetchAdmins();
-        if (token) {
-            setResetToken(token);
-        } else {
-            setManageAdminsTab("viewAdmins");
-        }
+        setManageAdminsTab("viewAdmins");
     }
     
     const openResendDialog = (admin: AdminUser) => {
@@ -112,8 +107,8 @@ const ManageAdminRoles = () => {
         if (!selectedAdmin) return;
         setIsResending(true);
         try {
-            const result = await resendAdminConfirmation(selectedAdmin.email);
-            setResetToken(result.token);
+            await resendAdminConfirmation(selectedAdmin.email);
+            toast({ title: "Email Sent!", description: `A new password setup link has been sent to ${selectedAdmin.email}.` });
             setIsKeyDialogOpen(false);
         } catch (error) {
              toast({ variant: "destructive", title: "Error", description: "Failed to send email." });
@@ -121,32 +116,6 @@ const ManageAdminRoles = () => {
             setIsResending(false);
         }
     }
-
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast({ title: "Copied to clipboard!" });
-    };
-
-    if (resetToken) {
-        const resetLink = `${window.location.origin}/auth/update-password?token=${resetToken}`;
-        return (
-            <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertTitle>Admin Account Ready!</AlertTitle>
-                <AlertDescription>
-                    <p>Provide this one-time link to the new admin to set their password:</p>
-                    <div className="flex items-center space-x-2 my-2 p-2 bg-muted rounded-md">
-                        <Input type="text" readOnly value={resetLink} className="flex-1" />
-                        <Button variant="outline" size="icon" onClick={() => copyToClipboard(resetLink)}>
-                            <Copy className="h-4 w-4" />
-                        </Button>
-                    </div>
-                    <Button onClick={() => setResetToken(null)}>Done</Button>
-                </AlertDescription>
-            </Alert>
-        )
-    }
-
 
     if (isLoading) return <Skeleton className="h-64 w-full" />;
 
@@ -224,16 +193,16 @@ const ManageAdminRoles = () => {
          <Dialog open={isKeyDialogOpen} onOpenChange={setIsKeyDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Resend Setup Link</DialogTitle>
+                    <DialogTitle>Resend Setup Email</DialogTitle>
                     <DialogDescription>
-                        This will generate a new one-time password setup link for <span className="font-semibold">{selectedAdmin?.email}</span>.
+                        This will send a new one-time password setup link to <span className="font-semibold">{selectedAdmin?.email}</span>. Are you sure?
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => setIsKeyDialogOpen(false)} disabled={isResending}>Cancel</Button>
                     <Button onClick={handleResendConfirmation} disabled={isResending}>
                         {isResending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Generate New Link
+                        Send New Link
                     </Button>
                 </DialogFooter>
             </DialogContent>
