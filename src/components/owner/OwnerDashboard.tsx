@@ -86,8 +86,8 @@ const ManageAdminRoles = () => {
             await removeAdmin(user.uid);
             setAdminUsers(prev => prev.filter(u => u.uid !== user.uid));
             toast({ title: "Admin Role Removed", description: `${user.name}'s access has been revoked.` });
-        } catch (error) {
-            toast({ variant: "destructive", title: "Error", description: "Failed to remove user role." });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Error", description: `Failed to remove user role: ${error.message}` });
         } finally {
             setIsDeleting(null);
         }
@@ -141,8 +141,8 @@ const ManageAdminRoles = () => {
                                         <p className="text-sm text-muted-foreground">{p.email}</p>
                                     </div>
                                     <div>
-                                        <Button size="icon" variant="ghost" onClick={() => openResendDialog(p)}>
-                                            <KeyRound className="h-4 w-4 text-blue-600" />
+                                        <Button size="icon" variant="ghost" onClick={() => openResendDialog(p)} disabled={isResending}>
+                                             {isResending && selectedAdmin?.uid === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <KeyRound className="h-4 w-4 text-blue-600" />}
                                         </Button>
                                         <Button size="icon" variant="ghost" onClick={() => handleRemove(p)} disabled={isDeleting === p.uid}>
                                             {isDeleting === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
@@ -164,8 +164,8 @@ const ManageAdminRoles = () => {
                                         <p className="text-sm text-muted-foreground">{a.email}</p>
                                     </div>
                                      <div>
-                                        <Button size="icon" variant="ghost" onClick={() => openResendDialog(a)}>
-                                            <KeyRound className="h-4 w-4 text-blue-600" />
+                                        <Button size="icon" variant="ghost" onClick={() => openResendDialog(a)} disabled={isResending}>
+                                            {isResending && selectedAdmin?.uid === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <KeyRound className="h-4 w-4 text-blue-600" />}
                                         </Button>
                                         <Button size="icon" variant="ghost" onClick={() => handleRemove(a)} disabled={isDeleting === a.uid}>
                                             {isDeleting === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
