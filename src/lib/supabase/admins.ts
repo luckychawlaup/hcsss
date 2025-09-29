@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 const ADMIN_ROLES_TABLE = 'admin_roles';
@@ -20,16 +21,16 @@ CREATE TABLE public.admin_roles (
 ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow owner to manage admin roles" ON public.admin_roles;
-DROP POLICY IF EXISTS "Allow authenticated users to read roles" ON public.admin_roles;
+DROP POLICY IF EXISTS "Allow admins to view their own role" ON public.admin_roles;
 
 CREATE POLICY "Allow owner to manage admin roles"
 ON public.admin_roles FOR ALL
 USING (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050')
 WITH CHECK (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050');
 
-CREATE POLICY "Allow authenticated users to read roles"
+CREATE POLICY "Allow admins to view their own role"
 ON public.admin_roles FOR SELECT
-USING (auth.role() = 'authenticated');
+USING (auth.uid() = uid);
 `;
 
 // --- TypeScript interface ---

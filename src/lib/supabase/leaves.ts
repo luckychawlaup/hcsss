@@ -92,9 +92,17 @@ export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveR
             document_url = await uploadFileToSupabase(document);
         }
 
-        const finalRequestData: any = {
-            ...leaveRequest,
+        const finalRequestData = {
             user_id: authUid,
+            userName: leaveRequest.userName,
+            userRole: leaveRequest.userRole,
+            class: leaveRequest.class,
+            teacherId: leaveRequest.teacherId,
+            startDate: leaveRequest.startDate,
+            endDate: leaveRequest.endDate,
+            reason: leaveRequest.reason,
+            status: 'Pending',
+            appliedAt: leaveRequest.appliedAt,
             document_url,
         };
         
