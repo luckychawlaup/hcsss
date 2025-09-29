@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -45,72 +45,78 @@ export default function Homework() {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  useEffect(() => {
-    let channel: any;
-    
-    const fetchHomework = async () => {
-      setIsLoading(true);
-      try {
-        console.log('Homework: Starting to fetch user data...');
-        
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) {
-          console.error('Homework: Auth error:', authError);
-          setError('Authentication error');
-          setIsLoading(false);
-          return;
-        }
-        
-        if (!user) {
-          console.log('Homework: No user found');
-          // This might not be an error if the user is simply not logged in.
-          // The page should redirect, but we'll stop loading here.
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('Homework: User found, getting student profile...');
-        
-        const studentProfile = await getStudentByAuthId(user.id);
-        
-        if (!studentProfile) {
-          console.error('Homework: No student profile found for user:', user.id);
-          setError('Student profile not found');
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('Homework: Student profile found:', studentProfile);
-        
-        const classSection = `${studentProfile.class}-${studentProfile.section}`;
-        console.log('Homework: Using class section:', classSection);
-        
-        // Set up homework subscription for last 7 days
-        channel = getHomeworks(classSection, (newHomeworks) => {
-          console.log('Homework: Received homework data:', newHomeworks);
-          setHomeworks(newHomeworks);
-          setIsLoading(false); // Set loading to false once data is received.
-          setError(null);
-        }, { dateFilter: 7 });
-        
-      } catch (err) {
-        console.error('Homework: Error in fetchHomework:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        setIsLoading(false);
+  const fetchHomework = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      console.log('Homework: Starting to fetch user data...');
+      
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('Homework: Auth error:', authError);
+        throw new Error('Authentication error');
       }
-    };
+      
+      if (!user) {
+        console.log('Homework: No user found');
+        // This might not be an error if the user is simply not logged in.
+        // The page should redirect, but we'll stop loading here.
+        setIsLoading(false);
+        return () => {}; // Return an empty cleanup function
+      }
+      
+      console.log('Homework: User found, getting student profile...');
+      
+      const studentProfile = await getStudentByAuthId(user.id);
+      
+      if (!studentProfile) {
+        console.error('Homework: No student profile found for user:', user.id);
+        throw new Error('Student profile not found');
+      }
+      
+      console.log('Homework: Student profile found:', studentProfile);
+      
+      const classSection = `${studentProfile.class}-${studentProfile.section}`;
+      console.log('Homework: Using class section:', classSection);
+      
+      // Set up homework subscription for last 7 days
+      const channel = getHomeworks(classSection, (newHomeworks) => {
+        console.log('Homework: Received homework data:', newHomeworks);
+        setHomeworks(newHomeworks);
+        setIsLoading(false); // Set loading to false once data is received.
+        setError(null);
+      }, { dateFilter: 7 });
 
-    fetchHomework();
+      // Return cleanup function for the channel
+      return () => {
+        if (channel) {
+          console.log('Homework: Cleaning up channel...');
+          supabase.removeChannel(channel);
+        }
+      };
+      
+    } catch (err) {
+      console.error('Homework: Error in fetchHomework:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setIsLoading(false);
+      return () => {}; // Return an empty cleanup function
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    
+    fetchHomework().then(cleanupFn => {
+      cleanup = cleanupFn;
+    });
     
     return () => {
-      if (channel) {
-        console.log('Homework: Cleaning up channel...');
-        supabase.removeChannel(channel);
+      if (cleanup) {
+        cleanup();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchHomework]);
 
   const groupedHomework = useMemo(() => {
     if (!homeworks.length) return {};
