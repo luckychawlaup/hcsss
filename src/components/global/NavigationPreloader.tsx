@@ -11,18 +11,18 @@ export default function NavigationPreloader() {
   const previousPath = useRef(pathname);
 
   useEffect(() => {
-    // Only show preloader for actual page navigations, not initial load or simple query changes.
+    // This is a workaround to show a loader on route changes.
+    // A better implementation would use Next.js's new loading.tsx file
+    // or a more sophisticated state management approach.
     if (previousPath.current !== pathname) {
       setLoading(true);
+      const timer = setTimeout(() => setLoading(false), 1000); // Failsafe timeout
+      return () => clearTimeout(timer);
     }
-    // Update previousPath to the new pathname for the next comparison.
-    previousPath.current = pathname;
   }, [pathname]);
 
   useEffect(() => {
     // This effect runs when the component using the Suspense boundary has loaded.
-    // We can then safely turn off the loading indicator.
-    // This relies on Next.js Suspense behavior.
     setLoading(false);
   }, [pathname]);
 

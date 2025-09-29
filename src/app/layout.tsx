@@ -6,7 +6,6 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Suspense } from "react";
-import NavigationPreloader from "@/components/global/NavigationPreloader";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -53,7 +52,6 @@ export default function RootLayout({
       <head/>
       <body className="antialiased bg-background">
             <Suspense>
-              <NavigationPreloader />
               {children}
             </Suspense>
             <Toaster />
