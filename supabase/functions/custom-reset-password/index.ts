@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "https://deno.land/std@0.168.0/uuid/mod.ts"
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
 };
 
 function generateToken() {
@@ -23,7 +23,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { mode, email, token, new_password, options, adminData } = await req.json();
+    const { mode, email, token, new_password, adminData } = await req.json();
 
     if (mode === "create_and_request_reset") {
         if (!adminData || !adminData.email) throw new Error("adminData with an email property is required for creation.");
@@ -31,9 +31,9 @@ serve(async (req) => {
         const userEmail = adminData.email;
 
         // Check if user already exists
-        const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
         if (listError) throw listError;
-        const existingUser = existingUsers.users.find(u => u.email === userEmail);
+        const existingUser = users.find(u => u.email === userEmail);
         
         let userId;
 
