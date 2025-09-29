@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -13,7 +14,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { addAdmin, getAdmins, removeAdmin, AdminUser } from "@/lib/supabase/admins";
+import { addAdmin, getAdmins, removeAdmin, AdminUser, requestPasswordResetForAdmin } from "@/lib/supabase/admins";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AddAdminForm from "./AddAdminForm";
 import {
@@ -58,6 +59,7 @@ const ManageAdminRoles = () => {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
     const [newAdminInfo, setNewAdminInfo] = useState<{ email: string; token: string } | null>(null);
+    const [isResettingPassword, setIsResettingPassword] = useState<string | null>(null);
 
 
     const fetchAdmins = async () => {
@@ -98,6 +100,20 @@ const ManageAdminRoles = () => {
         setIsKeyDialogOpen(true);
         setManageAdminsTab("viewAdmins");
     }
+
+    const handlePasswordReset = async (user: AdminUser) => {
+        setIsResettingPassword(user.uid);
+        try {
+            const result = await requestPasswordResetForAdmin(user.email);
+            setNewAdminInfo({ email: result.email, token: result.token });
+            setIsKeyDialogOpen(true);
+            toast({ title: "Reset Link Generated", description: `A new one-time link has been created for ${user.name}.` });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Error", description: `Failed to generate reset link: ${error.message}` });
+        } finally {
+            setIsResettingPassword(null);
+        }
+    }
     
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -129,6 +145,9 @@ const ManageAdminRoles = () => {
                                         <p className="text-sm text-muted-foreground">{p.email}</p>
                                     </div>
                                     <div>
+                                        <Button size="icon" variant="ghost" onClick={() => handlePasswordReset(p)} disabled={isResettingPassword === p.uid}>
+                                             {isResettingPassword === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <KeyRound className="h-4 w-4" />}
+                                        </Button>
                                         <Button size="icon" variant="ghost" onClick={() => handleRemove(p)} disabled={isDeleting === p.uid}>
                                             {isDeleting === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
                                         </Button>
@@ -149,6 +168,9 @@ const ManageAdminRoles = () => {
                                         <p className="text-sm text-muted-foreground">{a.email}</p>
                                     </div>
                                      <div>
+                                        <Button size="icon" variant="ghost" onClick={() => handlePasswordReset(a)} disabled={isResettingPassword === a.uid}>
+                                             {isResettingPassword === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <KeyRound className="h-4 w-4" />}
+                                        </Button>
                                         <Button size="icon" variant="ghost" onClick={() => handleRemove(a)} disabled={isDeleting === a.uid}>
                                             {isDeleting === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
                                         </Button>
@@ -176,7 +198,7 @@ const ManageAdminRoles = () => {
          <Dialog open={isKeyDialogOpen} onOpenChange={setIsKeyDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Admin Account Created!</DialogTitle>
+                    <DialogTitle>Admin Account Action</DialogTitle>
                     <DialogDescription>
                         Share the following one-time link with <span className="font-bold">{newAdminInfo?.email}</span> for them to set their password. This link will expire in 1 hour.
                     </DialogDescription>

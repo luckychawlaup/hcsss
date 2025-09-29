@@ -47,11 +47,15 @@ export interface AdminUser {
 // --- Add an admin and trigger password reset request ---
 export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string; phone_number: string; address?: string }) => {
     // Invoke the Edge Function to create user and get a reset token
+    const { data: { session } } = await supabase.auth.getSession();
+     if (!session) throw new Error("Not authenticated");
+
     const { data, error } = await supabase.functions.invoke('custom-reset-password', {
         body: {
             mode: 'create_and_request_reset',
             adminData: adminData
-        }
+        },
+        headers: { Authorization: `Bearer ${session.access_token}` }
     });
 
     if (error) {
@@ -62,6 +66,27 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
         throw new Error(errorMessage);
     }
     
+    return data;
+};
+
+// New function to request a password reset for an existing admin
+export const requestPasswordResetForAdmin = async (email: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
+        body: {
+            mode: 'request',
+            email: email,
+        },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+    });
+     if (error) {
+        console.error("Error invoking custom-reset-password for reset request:", error);
+        const errorBody = error.context?.json?.();
+        const errorMessage = errorBody?.error || error.message;
+        throw new Error(errorMessage);
+    }
     return data;
 };
 
