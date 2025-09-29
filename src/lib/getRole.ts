@@ -2,30 +2,42 @@
 import { User } from "@supabase/supabase-js";
 import { createClient } from "./supabase/client";
 
-const principalUID = "6cc51c80-e098-4d6d-8450-5ff5931b7391";
-const accountantUID = "cf210695-e635-4363-aea5-740f2707a6d7";
 const ownerUID = "6bed2c29-8ac9-4e2b-b9ef-26877d42f050";
-
 
 export const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'accountant' | 'principal' | 'owner' | null> => {
     if (!user) return null;
     
-    // Check for hardcoded admin UIDs first
+    // Check for hardcoded owner UID first
     if (user.id === ownerUID) return 'owner';
-    if (user.id === principalUID) return 'principal';
-    if (user.id === accountantUID) return 'accountant';
     
+    const supabase = createClient();
+    
+    // Check the admin_roles table for principal or accountant
+    try {
+        const { data: adminRole, error: adminError } = await supabase
+            .from('admin_roles')
+            .select('role')
+            .eq('uid', user.id)
+            .single();
+
+        if (adminRole) {
+            return adminRole.role as 'principal' | 'accountant';
+        }
+        if (adminError && adminError.code !== 'PGRST116') { // 'PGRST116' is "No rows found"
+            console.error("Error checking admin_roles:", adminError);
+        }
+    } catch(e) {
+        // This might fail if the table doesn't exist yet, which is okay during initial setup.
+    }
+
+
     // Check the user's app_metadata for the role
-    // This is more efficient than querying tables.
     if (user.app_metadata.role) {
         return user.app_metadata.role;
     }
 
     // Fallback: If role is not in metadata, query the teachers table.
-    // This is less efficient and should ideally be phased out by ensuring
-    // user metadata is always set on registration.
     try {
-        const supabase = createClient();
         const { data: teacher, error } = await supabase
             .from('teachers')
             .select('id')
@@ -33,7 +45,6 @@ export const getRole = async (user: User | null): Promise<'teacher' | 'student' 
             .single();
 
         if (error && error.code !== 'PGRST116') {
-            // An actual error occurred, not just 'no rows found'
             console.error("Error checking for teacher role:", error);
         }
 

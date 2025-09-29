@@ -8,6 +8,7 @@ import { getRole } from "@/lib/getRole";
 import PrincipalDashboard from "@/components/principal/PrincipalDashboard";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
+import AccountantDashboard from "@/components/accountant/AccountantDashboard";
 
 
 function Preloader() {
@@ -47,8 +48,7 @@ export default function PrincipalPage() {
                         router.replace('/teacher');
                     } else if (userRole === 'owner') {
                         router.replace('/owner');
-                    }
-                     else {
+                    } else {
                         setLoading(false);
                     }
                 } catch(e) {
@@ -65,6 +65,10 @@ export default function PrincipalPage() {
 
     if (loading || (role !== 'principal' && role !== 'accountant')) {
         return <Preloader />;
+    }
+
+    if (role === 'accountant') {
+        return <AccountantDashboard />;
     }
 
     return (
