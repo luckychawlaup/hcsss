@@ -49,49 +49,30 @@ export default function Homework() {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('Homework: Starting to fetch user data...');
-      
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error('Homework: Auth error:', authError);
-        throw new Error('Authentication error');
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('Homework: No user found');
-        // This might not be an error if the user is simply not logged in.
-        // The page should redirect, but we'll stop loading here.
         setIsLoading(false);
         return () => {}; // Return an empty cleanup function
       }
       
-      console.log('Homework: User found, getting student profile...');
-      
       const studentProfile = await getStudentByAuthId(user.id);
       
       if (!studentProfile) {
-        console.error('Homework: No student profile found for user:', user.id);
-        throw new Error('Student profile not found');
+        setError('Student profile not found');
+        setIsLoading(false);
+        return () => {};
       }
       
-      console.log('Homework: Student profile found:', studentProfile);
-      
       const classSection = `${studentProfile.class}-${studentProfile.section}`;
-      console.log('Homework: Using class section:', classSection);
       
-      // Set up homework subscription for last 7 days
       const channel = getHomeworks(classSection, (newHomeworks) => {
-        console.log('Homework: Received homework data:', newHomeworks);
         setHomeworks(newHomeworks);
-        setIsLoading(false); // Set loading to false once data is received.
+        setIsLoading(false);
         setError(null);
       }, { dateFilter: 7 });
 
-      // Return cleanup function for the channel
       return () => {
         if (channel) {
-          console.log('Homework: Cleaning up channel...');
           supabase.removeChannel(channel);
         }
       };
@@ -100,7 +81,7 @@ export default function Homework() {
       console.error('Homework: Error in fetchHomework:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsLoading(false);
-      return () => {}; // Return an empty cleanup function
+      return () => {};
     }
   }, [supabase]);
 
