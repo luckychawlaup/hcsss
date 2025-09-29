@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { User, Briefcase, School, Calculator, ClipboardSignature, FilePenLine, KeyRound } from "lucide-react";
@@ -11,12 +12,22 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function RoleSelectionPage() {
   const { toast } = useToast();
+  const [logoClickCount, setLogoClickCount] = useState(0);
+  const [showOwnerLogin, setShowOwnerLogin] = useState(false);
   
   const handleFeatureComingSoon = () => {
     toast({
       title: "Feature Not Available",
       description: "This feature is not live yet but will be in a future update.",
     });
+  };
+
+  const handleLogoClick = () => {
+    const newCount = logoClickCount + 1;
+    setLogoClickCount(newCount);
+    if (newCount >= 5) {
+      setShowOwnerLogin(true);
+    }
   };
 
   const RoleCard = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string }) => (
@@ -51,8 +62,10 @@ export default function RoleSelectionPage() {
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
       <div className="flex w-full max-w-lg flex-1 flex-col justify-center">
         <div className="mb-8 flex flex-col items-center justify-center">
-          <Image src="/hcsss.png" alt="School Logo" width={90} height={90} className="mb-4 rounded-full" priority />
-           <div className="flex items-center gap-2">
+          <button onClick={handleLogoClick} className="cursor-pointer rounded-full">
+            <Image src="/hcsss.png" alt="School Logo" width={90} height={90} className="rounded-full" priority />
+          </button>
+           <div className="flex items-center gap-2 mt-4">
             <h1 className="text-center text-3xl font-bold text-primary">HCSSS</h1>
             <Badge variant="outline" className="border-primary/50 text-primary">Beta</Badge>
           </div>
@@ -68,7 +81,9 @@ export default function RoleSelectionPage() {
                 <RoleCard href="/auth/teacher/login" icon={Briefcase} title="Teacher" description="Teacher Portal" />
                 <RoleCard href="/auth/principal/login" icon={School} title="Principal" description="Admin Dashboard" />
                 <RoleCard href="/auth/accountant/login" icon={Calculator} title="Accountant" description="Accounts Dept." />
-                <RoleCard href="/owner" icon={KeyRound} title="Owner" description="Owner's Portal" />
+                {showOwnerLogin && (
+                    <RoleCard href="/owner" icon={KeyRound} title="Owner" description="Owner's Portal" />
+                )}
             </div>
           </CardContent>
         </Card>
