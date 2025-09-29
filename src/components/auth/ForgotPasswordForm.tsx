@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState } from "react";
@@ -30,7 +29,7 @@ export default function ForgotPasswordForm() {
 
     try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/auth/update-password`
+            redirectTo: `${window.location.origin}/auth/callback?type=recovery`
         });
         if (error) throw error;
         setIsSuccess(true);

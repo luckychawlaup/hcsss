@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
@@ -20,23 +19,30 @@ function UpdatePasswordContent() {
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isReady, setIsReady] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
 
   useEffect(() => {
-    if (!token) {
-      setError("No password reset token found in URL. Please use the link from your email.");
-    }
-  }, [token]);
+    // This effect will run on the client side to check if there is an active session
+    // This is necessary because the redirect from the email link sets a session
+    const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            setIsReady(true);
+        } else {
+            setError("No active password reset session. The link may have expired or been used. Please request a new one.");
+        }
+    };
+    checkSession();
+  }, [supabase]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!token) {
-      setError("Cannot reset password without a valid token.");
+    if (!isReady) {
+      setError("Cannot reset password without a valid session.");
       return;
     }
 
@@ -53,25 +59,17 @@ function UpdatePasswordContent() {
     setError(null);
     
     try {
-        const { error: functionError } = await supabase.functions.invoke('custom-reset-password', {
-            body: {
-                mode: 'reset',
-                token: token,
-                new_password: password
-            }
-        });
-
-        if (functionError) {
-             const errorBody = functionError.context?.json?.();
-             const errorMessage = errorBody?.error || functionError.message;
-             throw new Error(errorMessage);
-        }
-
+        const { error: updateError } = await supabase.auth.updateUser({ password: password });
+        if (updateError) throw updateError;
+        
         setIsSuccess(true);
         toast({
             title: "Password Set Successfully",
             description: "Your password has been changed. You can now log in.",
         });
+        
+        // Log the user out after a successful password change
+        await supabase.auth.signOut();
         
     } catch(e: any) {
         setError(e.message || "An unknown error occurred.");
@@ -110,13 +108,13 @@ function UpdatePasswordContent() {
               )}
                <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={!token}/>
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={!isReady}/>
                </div>
                <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={!token}/>
+                <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={!isReady}/>
                </div>
-              <Button type="submit" className="w-full" disabled={isLoading || !token}>
+              <Button type="submit" className="w-full" disabled={isLoading || !isReady}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Set New Password
               </Button>
@@ -132,7 +130,7 @@ function UpdatePasswordContent() {
             <Image src={"/hcsss.png"} alt="School Logo" width={80} height={80} className="mb-4 rounded-full mx-auto" priority />
             <h1 className="text-2xl font-bold text-primary">Set Your Password</h1>
             <p className="text-muted-foreground">
-              {token ? "Please enter and confirm your new password below to secure your account." : "Verifying your session..."}
+              {isReady ? "Please enter and confirm your new password below to secure your account." : "Verifying your session..."}
             </p>
         </div>
         
