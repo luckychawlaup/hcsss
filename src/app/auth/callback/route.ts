@@ -1,3 +1,4 @@
+
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { type CookieOptions, createServerClient } from '@supabase/ssr'
@@ -5,11 +6,27 @@ import { type CookieOptions, createServerClient } from '@supabase/ssr'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  // The 'next' param is used for redirects after login.
-  // For email confirmations, we want to go to our confirmation page.
-  const next = searchParams.get('next')
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next')
+  const error = requestUrl.searchParams.get('error')
+  const errorDescription = requestUrl.searchParams.get('error_description')
+
+  console.log('=== AUTH CALLBACK DEBUG ===')
+  console.log('Full URL:', request.url)
+  console.log('Code present:', !!code)
+  console.log('Next param:', next)
+  console.log('Error param:', error)
+  console.log('Error description:', errorDescription)
+
+  // If there's already an error from Supabase, redirect immediately
+  if (error) {
+    console.log('ERROR: Supabase returned error before code exchange')
+    return NextResponse.redirect(
+      `${requestUrl.origin}/auth/confirm?error=${error}&error_description=${errorDescription}`
+    )
+  }
+
 
   if (code) {
     const cookieStore = cookies()
@@ -30,20 +47,35 @@ export async function GET(request: Request) {
         },
       }
     )
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    console.log('Attempting to exchange code for session...')
+    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error) {
-      // If 'next' is present, it's a login redirect.
-      if (next) {
-        return NextResponse.redirect(`${origin}${next}`)
-      }
-      
-      // If 'next' is NOT present, it's an email confirmation (signup, email change, etc.)
-      // Redirect to the dedicated confirmation page.
-      return NextResponse.redirect(`${origin}/auth/confirm`)
+    console.log('Exchange result - Success:', !!data.session)
+    console.log('Exchange result - Error:', exchangeError?.message)
+    console.log('Exchange result - User:', data.user?.email)
+
+
+    if (exchangeError) {
+      console.log('ERROR during code exchange:', exchangeError)
+      return NextResponse.redirect(
+        `${requestUrl.origin}/auth/confirm?error=exchange_failed&error_description=${exchangeError.message}`
+      )
+    }
+
+    // Determine if this is an email confirmation or regular login
+    const isEmailConfirmation = !requestUrl.searchParams.has('next')
+
+    if (isEmailConfirmation) {
+        console.log('Email confirmation flow - redirecting to /auth/confirm')
+        return NextResponse.redirect(`${requestUrl.origin}/auth/confirm`)
+    } else {
+        console.log('Regular login/redirect flow - redirecting to:', next)
+        return NextResponse.redirect(`${requestUrl.origin}${next}`)
     }
   }
 
-  // If there's an error or no code, redirect to an error page.
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  // Fallback redirect
+  console.log('No code found, redirecting to login with an error.')
+  return NextResponse.redirect(`${requestUrl.origin}/auth/auth-code-error`);
 }
