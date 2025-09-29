@@ -30,7 +30,6 @@ serve(async (req) => {
         
         const userEmail = adminData.email;
 
-        // Check if user already exists
         const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
         if (listError) throw listError;
         const existingUser = users.find(u => u.email === userEmail);
@@ -38,14 +37,12 @@ serve(async (req) => {
         let userId;
 
         if(existingUser) {
-          // If user exists, but maybe not in admin_roles, just use their ID
           userId = existingUser.id;
         } else {
-          // Create a new user if they don't exist
           const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email: userEmail,
-            password: Math.random().toString(36).slice(-12), // Secure temporary password
-            email_confirm: true, // Mark as confirmed since only owner can create
+            password: Math.random().toString(36).slice(-12),
+            email_confirm: true,
             user_metadata: {
                 full_name: adminData.name,
                 role: adminData.role
@@ -55,19 +52,16 @@ serve(async (req) => {
           userId = newUser.user.id;
         }
         
-        // Add to admin_roles table
         const { error: roleError } = await supabaseAdmin.from('admin_roles').upsert({
             uid: userId,
             ...adminData
         }, { onConflict: 'uid' });
         
         if (roleError) {
-             // If role insert fails, delete the created auth user for cleanup
              if (!existingUser) await supabaseAdmin.auth.admin.deleteUser(userId);
              throw new Error(`DB role assignment failed: ${roleError.message}`);
         }
 
-        // Generate and store password reset token
         const resetToken = generateToken();
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         await supabaseAdmin.from("password_resets").insert({ user_id: userId, token: resetToken, expires_at: expiresAt.toISOString(), used: false });
