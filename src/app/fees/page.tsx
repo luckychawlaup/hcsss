@@ -2,7 +2,6 @@
 import Header from "@/components/dashboard/Header";
 import BottomNav from "@/components/dashboard/BottomNav";
 import FeeStatus from "@/components/fees/FeeStatus";
-import StudentNav from "@/components/dashboard/StudentNav";
 
 export default function FeesPage() {
   return (
@@ -15,7 +14,7 @@ export default function FeesPage() {
                 </div>
             </main>
         </div>
-        <StudentNav />
+        <BottomNav />
     </div>
   );
 }
