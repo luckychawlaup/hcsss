@@ -67,7 +67,7 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'photo_url'> &
                 role: adminData.role,
                 full_name: adminData.name,
             },
-            emailRedirectTo: 'https://9000-firebase-studio-1757343757356.cluster-52r6vzs3ujeoctkkxpjif3x34a.cloudworkstations.dev/auth/callback',
+            emailRedirectTo: 'https://9000-firebase-studio-1757343757356.cluster-52r6vzs3ujeoctkkxpjif3x34a.cloudworkstations.dev/login',
         }
     });
 
@@ -84,7 +84,7 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'photo_url'> &
     try {
         // 2. Upload photo to ImageKit
         const fileBuffer = Buffer.from(await adminData.photo.arrayBuffer());
-        const photoUrl = await uploadImage(fileBuffer, adminData.photo.name, 'admin_profiles');
+        const photoUrl = await uploadImage(fileBuffer, adminData.photo.name, 'staff_profiles');
 
         // 3. Insert profile into admin_roles table
         const { error: dbError } = await supabase

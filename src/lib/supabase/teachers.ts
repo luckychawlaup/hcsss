@@ -58,7 +58,7 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
 
     try {
         const fileBuffer = Buffer.from(await teacherData.photo.arrayBuffer());
-        const photoUrl = await uploadImage(fileBuffer, teacherData.photo.name, 'teacher_profiles');
+        const photoUrl = await uploadImage(fileBuffer, teacherData.photo.name, 'staff_profiles');
 
         const { photo, ...restOfTeacherData } = teacherData;
 

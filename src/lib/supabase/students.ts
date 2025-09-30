@@ -1,5 +1,5 @@
 
-'use server'
+'use client'
 
 import { createClient } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/imagekit";
