@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getRole } from "@/lib/getRole";
 
@@ -174,6 +174,10 @@ export default function LoginForm({ role }: LoginFormProps) {
           </Button>
         </form>
       </Form>
+       <div className="mt-4 flex items-center justify-center">
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+            <p className="ml-2 text-xs text-muted-foreground">Secured by TLS Encryption</p>
+        </div>
     </>
   );
 }
