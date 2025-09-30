@@ -32,6 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -52,7 +53,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
     const [exams, setExams] = useState<Exam[]>([]);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-    const [marks, setMarks] = useState<Record<string, { marks?: number, max_marks?: number, subject: string }>>({});
+    const [marks, setMarks] = useState<Record<string, { marks?: number, max_marks?: number, subject: string, exam_date?: Date }>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFetchingMarks, setIsFetchingMarks] = useState(false);
     const [isCreateExamOpen, setIsCreateExamOpen] = useState(false);
@@ -84,15 +85,20 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
     useEffect(() => {
         if (selectedStudent && selectedExam) {
             setIsFetchingMarks(true);
-            getStudentMarksForExam(selectedStudent.auth_uid, selectedExam.id).then(existingMarks => {
-                const marksMap: Record<string, { marks?: number, max_marks?: number, subject: string }> = {};
+            getStudentMarksForExam(selectedStudent.id, selectedExam.id).then(existingMarks => {
+                const marksMap: Record<string, { marks?: number, max_marks?: number, subject: string, exam_date?: Date }> = {};
                 existingMarks.forEach(mark => {
-                    marksMap[mark.subject] = { marks: mark.marks, max_marks: mark.max_marks, subject: mark.subject };
+                    marksMap[mark.subject] = { 
+                        marks: mark.marks, 
+                        max_marks: mark.max_marks, 
+                        subject: mark.subject,
+                        exam_date: mark.exam_date ? new Date(mark.exam_date) : undefined
+                    };
                 });
-                // Also prepopulate with student's opted subjects
+                
                 (selectedStudent.opted_subjects || []).forEach(subject => {
                     if (!marksMap[subject]) {
-                        marksMap[subject] = { marks: undefined, max_marks: 100, subject: subject };
+                        marksMap[subject] = { marks: undefined, max_marks: 100, subject: subject, exam_date: undefined };
                     }
                 })
 
@@ -106,7 +112,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
         const newSubjectName = `Subject${Object.keys(marks).length + 1}`;
         setMarks(prev => ({
             ...prev,
-            [newSubjectName]: { marks: undefined, max_marks: 100, subject: newSubjectName }
+            [newSubjectName]: { marks: undefined, max_marks: 100, subject: newSubjectName, exam_date: undefined }
         }));
     };
     
@@ -150,6 +156,13 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
         }
         setMarks(newMarks);
     };
+    
+    const handleDateChange = (subject: string, date: Date | undefined) => {
+        setMarks(prev => ({
+            ...prev,
+            [subject]: { ...prev[subject], exam_date: date }
+        }));
+    };
 
     const handleSubmit = async () => {
         if (!selectedStudent || !selectedExam || Object.keys(marks).length === 0) {
@@ -168,7 +181,8 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
             const marksData = validMarks.map(m => ({
                 subject: m.subject,
                 marks: m.marks || 0,
-                max_marks: m.max_marks || 100
+                max_marks: m.max_marks || 100,
+                exam_date: m.exam_date
             }));
             await setMarksForStudent(selectedStudent.id, selectedExam.id, marksData);
             toast({ title: "Marks Saved!", description: `Marks for ${selectedStudent.name} have been successfully saved.` });
@@ -265,8 +279,8 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                     <CardHeader>
                         <div className="flex justify-between items-start">
                             <div>
-                                <CardTitle className="flex items-center gap-2"><FileSignature />Enter Marks</CardTitle>
-                                <CardDescription>Entering marks for <span className="font-semibold text-primary">{selectedStudent.name}</span> for the <span className="font-semibold text-primary">{selectedExam.name}</span>.</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><FileSignature />Enter Marks & Schedule</CardTitle>
+                                <CardDescription>Entering grades and exam dates for <span className="font-semibold text-primary">{selectedStudent.name}</span> in the <span className="font-semibold text-primary">{selectedExam.name}</span>.</CardDescription>
                             </div>
                              <Button asChild variant="outline" size="sm">
                                 <Link href={`/report-card/${selectedExam.id}`} target="_blank">View Report Card</Link>
@@ -274,10 +288,10 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
                             {Object.entries(marks).map(([key, value]) => (
-                                <div key={key} className="flex items-end gap-2">
-                                    <div className="flex-1">
+                                <div key={key} className="flex flex-col sm:flex-row items-start sm:items-end gap-2 p-3 border rounded-lg">
+                                    <div className="flex-1 w-full sm:w-auto">
                                         <Label htmlFor={`subject-${key}`}>Subject</Label>
                                         <Input
                                           id={`subject-${key}`}
@@ -286,7 +300,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                                           placeholder="Subject Name"
                                         />
                                     </div>
-                                     <div className="w-24">
+                                    <div className="w-full sm:w-24">
                                         <Label htmlFor={`marks-${key}`}>Marks</Label>
                                         <Input 
                                             id={`marks-${key}`}
@@ -298,7 +312,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                                             min={0}
                                         />
                                     </div>
-                                    <div className="w-24">
+                                    <div className="w-full sm:w-24">
                                         <Label htmlFor={`max-marks-${key}`}>Max Marks</Label>
                                         <Input 
                                             id={`max-marks-${key}`}
@@ -308,6 +322,20 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                                             onChange={(e) => handleMaxMarksChange(key, e.target.value)}
                                             min={0}
                                         />
+                                    </div>
+                                     <div className="w-full sm:w-auto">
+                                        <Label>Exam Date</Label>
+                                        <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !value.exam_date && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {value.exam_date ? formatDate(value.exam_date, "PPP") : <span>Pick date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <Calendar mode="single" selected={value.exam_date} onSelect={(date) => handleDateChange(key, date)} initialFocus />
+                                        </PopoverContent>
+                                        </Popover>
                                     </div>
                                     <Button variant="ghost" size="icon" onClick={() => handleRemoveSubject(key)}><Trash2 className="text-destructive"/></Button>
                                 </div>
@@ -335,7 +363,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                     <FormProvider {...createExamForm}>
                         <form onSubmit={createExamForm.handleSubmit(handleCreateExam)} className="space-y-4">
                             
-                             <div className="space-y-2">
+                            <div className="space-y-2">
                                 <Label htmlFor="name">Exam Name</Label>
                                 <Input 
                                     id="name" 
