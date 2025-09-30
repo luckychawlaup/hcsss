@@ -176,7 +176,7 @@ export default function LoginForm({ role }: LoginFormProps) {
       </Form>
        <div className="mt-4 flex items-center justify-center">
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-            <p className="ml-2 text-xs text-muted-foreground">Secured by TLS Encryption</p>
+            <p className="ml-2 text-xs text-muted-foreground">Secured by Transport Layer Security (TLS 1.3)</p>
         </div>
     </>
   );
