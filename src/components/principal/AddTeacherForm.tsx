@@ -35,11 +35,11 @@ import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
 import { addTeacher } from "@/lib/supabase/teachers";
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
-const PHOTO_FILE_TYPES = ["image/jpeg", "image/png"];
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+const PHOTO_FILE_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-const sections = ["A", "B"];
+const sections = ["A", "B", "C", "D"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
 
@@ -59,10 +59,10 @@ const addTeacherSchema = z.object({
   joining_date: z.date({ required_error: "Joining date is required."}),
   photo: z.any()
     .refine((files) => files?.length == 1, "Teacher photo is required.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max photo size is 2MB.`)
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max photo size is 1MB.`)
     .refine(
       (files) => PHOTO_FILE_TYPES.includes(files?.[0]?.type),
-      "Only .jpg and .png formats are supported for photos."
+      "Only .jpg, and .png formats are supported for photos."
     ),
 }).refine(data => {
     if (data.role === 'classTeacher') return !!data.class_teacher_of;
@@ -127,13 +127,11 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
     setIsLoading(true);
     setError(null);
     try {
-        const teacherDataForDb = {
+        await addTeacher({
             ...values,
             joining_date: values.joining_date.getTime(),
             photo: values.photo[0]
-        };
-
-        await addTeacher(teacherDataForDb);
+        });
       
         toast({
             title: "Teacher Added!",
@@ -438,8 +436,9 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
                         <FormItem>
                         <FormLabel>Teacher's Photo</FormLabel>
                         <FormControl>
-                            <Input type="file" accept="image/png, image/jpeg" {...form.register("photo")} />
+                            <Input type="file" accept="image/png, image/jpeg, image/jpg" {...form.register("photo")} />
                         </FormControl>
+                        <p className="text-xs text-muted-foreground">PNG, JPG up to 1MB. Recommended 500x500.</p>
                         <FormMessage />
                         </FormItem>
                     )}

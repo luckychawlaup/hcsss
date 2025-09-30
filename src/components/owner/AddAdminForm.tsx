@@ -23,6 +23,9 @@ import { Textarea } from "../ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { addAdmin } from "@/lib/supabase/admins";
 
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+const PHOTO_FILE_TYPES = ["image/jpeg", "image/png", "image/jpg"];
+
 const addAdminSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
@@ -30,10 +33,17 @@ const addAdminSchema = z.object({
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
   address: z.string().optional(),
   role: z.enum(["principal", "accountant"], { required_error: "You must select a role."}),
+  photo: z.any()
+    .refine((files) => files?.length == 1, "Profile photo is required.")
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max photo size is 1MB.`)
+    .refine(
+      (files) => PHOTO_FILE_TYPES.includes(files?.[0]?.type),
+      "Only .jpg, .png formats are supported for photos."
+    ),
 });
 
 interface AddAdminFormProps {
-    onAdminAdded: (info: { email: string, token: string }) => void;
+    onAdminAdded: () => void;
 }
 
 export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
@@ -58,9 +68,10 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
     setError(null);
 
     try {
-      const result = await addAdmin({
+      await addAdmin({
           ...values,
           address: values.address || '',
+          photo: values.photo[0]
       });
       
       toast({
@@ -68,7 +79,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
         description: `An account for ${values.name} (${values.role}) has been created.`,
       });
       form.reset();
-      onAdminAdded({ email: result.email, token: result.token });
+      onAdminAdded();
     } catch (e: any) {
         let errorMessage = `An unexpected error occurred: ${e.message}`;
         if (e.message.includes('User already registered')) {
@@ -143,11 +154,25 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                     </FormItem>
                     )}
                 />
+                <FormField
+                    control={form.control}
+                    name="photo"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Admin Photo</FormLabel>
+                        <FormControl>
+                            <Input type="file" accept="image/png, image/jpeg, image/jpg" {...form.register("photo")} />
+                        </FormControl>
+                         <p className="text-xs text-muted-foreground">PNG, JPG up to 1MB. Recommended 500x500.</p>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
                  <FormField
                     control={form.control}
                     name="address"
                     render={({ field }) => (
-                    <FormItem className="md:col-span-2">
+                    <FormItem>
                         <FormLabel>Address (Optional)</FormLabel>
                         <FormControl>
                         <Textarea placeholder="Enter full address" {...field} />

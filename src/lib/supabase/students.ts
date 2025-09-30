@@ -1,8 +1,10 @@
 
+'use server'
 
 import { createClient } from "@/lib/supabase/client";
-const supabase = createClient();
+import { uploadImage } from "@/lib/imagekit";
 
+const supabase = createClient();
 const STUDENTS_COLLECTION = 'students';
 
 export interface Student {
@@ -27,56 +29,77 @@ export interface Student {
     student_phone?: string;
 }
 
-const uploadFileToSupabase = async (file: File, bucket: string, folder: string): Promise<string> => {
-    const filePath = `${folder}/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from(bucket).upload(filePath, file);
-    if (error) {
-        console.error('Error uploading to Supabase Storage:', error);
-        throw error;
-    }
-
-    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    if (!data.publicUrl) {
-        throw new Error('Could not get public URL for uploaded file.');
-    }
-    return data.publicUrl;
-};
-
-
 export type CombinedStudent = (Student & { status: 'Registered' });
 
-export const addStudent = async (authUid: string, studentData: Omit<Student, 'id' | 'auth_uid' | 'srn' | 'photo_url' | 'aadhar_url'> & { photo?: File, aadharCard?: File}) => {
-    const { data: countData, error: countError } = await supabase.rpc('get_student_count');
-    if (countError) throw countError;
-    const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
+export const addStudent = async (studentData: Omit<Student, 'id' | 'auth_uid' | 'srn' | 'photo_url' | 'aadhar_url'> & { photo: File, aadharCard?: File}) => {
+    // 1. Sign up the user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: studentData.email,
+        password: Math.random().toString(36).slice(-8), // Temporary password
+        options: {
+            data: {
+                full_name: studentData.name,
+                role: 'student'
+            }
+        }
+    });
+
+    if (authError) {
+        console.error("Error creating auth user for student:", authError);
+        throw authError;
+    }
     
-    let photoUrl: string | undefined;
-    if (studentData.photo) {
-        photoUrl = await uploadFileToSupabase(studentData.photo, 'students', 'photos');
+    const user = authData.user;
+    if (!user) {
+        throw new Error("Could not create auth user for student.");
     }
 
-    let aadharUrl: string | undefined;
-    if (studentData.aadharCard) {
-        aadharUrl = await uploadFileToSupabase(studentData.aadharCard, 'documents', 'students');
-    }
+    try {
+        // 2. Generate SRN
+        const { data: countData, error: countError } = await supabase.rpc('get_student_count');
+        if (countError) throw countError;
+        const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
+        
+        // 3. Upload images to ImageKit
+        const fileBuffer = Buffer.from(await studentData.photo.arrayBuffer());
+        const photoUrl = await uploadImage(fileBuffer, studentData.photo.name, 'student_profiles');
 
-    const finalStudentData = { 
-        ...studentData,
-        auth_uid: authUid,
-        srn,
-        photo_url: photoUrl,
-        aadhar_url: aadharUrl,
-    };
+        let aadharUrl: string | undefined;
+        if (studentData.aadharCard) {
+            const aadharFileBuffer = Buffer.from(await studentData.aadharCard.arrayBuffer());
+            aadharUrl = await uploadImage(aadharFileBuffer, studentData.aadharCard.name, 'student_documents');
+        }
 
-    // Remove form-specific fields that don't exist in the DB table
-    delete finalStudentData.photo;
-    delete finalStudentData.aadharCard;
+        // 4. Prepare data for DB insert
+        const { photo, aadharCard, ...restOfStudentData } = studentData;
+        const finalStudentData = { 
+            ...restOfStudentData,
+            auth_uid: user.id,
+            srn,
+            photo_url: photoUrl,
+            aadhar_url: aadharUrl,
+        };
 
-    const { error } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
+        // 5. Insert student record into the database
+        const { error: dbError } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
 
-    if (error) {
-        console.error("Error adding student:", error.message);
-        throw new Error(`Failed to add student. Original error: ${error.message}`);
+        if (dbError) {
+            console.error("Error adding student to DB:", dbError.message);
+            // If DB insert fails, delete the created auth user
+            await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
+            throw new Error(`Failed to add student. Original error: ${dbError.message}`);
+        }
+
+        // 6. Send password reset email for initial password setup
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(studentData.email);
+        if (resetError) {
+            console.warn("Student created, but failed to send password reset email.", resetError);
+        }
+
+    } catch (e: any) {
+        // Cleanup auth user if any step fails after its creation
+        await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
+        throw e;
     }
 };
 
