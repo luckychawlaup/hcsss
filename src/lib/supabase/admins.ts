@@ -57,7 +57,6 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
 
     const { data, error: signUpError } = await supabase.auth.signUp({
         email: adminData.email,
-        // A secure temporary password is required but the user will set their own
         password: crypto.randomUUID(), 
         options: {
             data: {
@@ -73,14 +72,12 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
     }
     
     if (!signUpError && data.user) {
-        // Now insert into the admin_roles table
         const { error: dbError } = await supabase
             .from(ADMIN_ROLES_TABLE)
             .insert({ ...adminData, uid: data.user.id });
 
         if (dbError) {
             console.error("Error inserting into admin_roles:", dbError);
-            // Attempt to clean up the auth user if the DB insert fails
             await supabase.functions.invoke('delete-user', { body: { uid: data.user.id } });
             throw new Error(`Failed to create admin profile: ${dbError.message}`);
         }
@@ -88,21 +85,6 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
     
     return { message: "Admin account created. They will receive an email to set their password." };
 };
-
-
-// New function to request a password reset for an existing admin
-export const requestPasswordResetForAdmin = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback`
-    });
-
-    if (error) {
-        throw new Error(error.message);
-    }
-    
-    return { message: `Password reset email sent to ${email}.` };
-};
-
 
 // --- List all admins ---
 export const getAdmins = async (): Promise<AdminUser[]> => {

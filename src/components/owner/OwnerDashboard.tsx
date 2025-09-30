@@ -14,7 +14,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { addAdmin, getAdmins, removeAdmin, AdminUser, requestPasswordResetForAdmin } from "@/lib/supabase/admins";
+import { getAdmins, removeAdmin, AdminUser } from "@/lib/supabase/admins";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AddAdminForm from "./AddAdminForm";
 import {
@@ -57,7 +57,6 @@ const ManageAdminRoles = () => {
     const { toast } = useToast();
     const [manageAdminsTab, setManageAdminsTab] = useState("viewAdmins");
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
-    const [isResettingPassword, setIsResettingPassword] = useState<string | null>(null);
 
 
     const fetchAdmins = async () => {
@@ -97,18 +96,6 @@ const ManageAdminRoles = () => {
         setManageAdminsTab("viewAdmins");
     }
 
-    const handlePasswordReset = async (user: AdminUser) => {
-        setIsResettingPassword(user.uid);
-        try {
-            await requestPasswordResetForAdmin(user.email);
-            toast({ title: "Reset Link Sent", description: `A password reset email has been sent to ${user.name}.` });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: `Failed to send reset link: ${error.message}` });
-        } finally {
-            setIsResettingPassword(null);
-        }
-    }
-
     if (isLoading) return <Skeleton className="h-64 w-full" />;
 
     return (
@@ -132,9 +119,6 @@ const ManageAdminRoles = () => {
                                         <p className="text-sm text-muted-foreground">{p.email}</p>
                                     </div>
                                     <div>
-                                        <Button size="icon" variant="ghost" onClick={() => handlePasswordReset(p)} disabled={isResettingPassword === p.uid}>
-                                             {isResettingPassword === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <KeyRound className="h-4 w-4" />}
-                                        </Button>
                                         <Button size="icon" variant="ghost" onClick={() => handleRemove(p)} disabled={isDeleting === p.uid}>
                                             {isDeleting === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
                                         </Button>
@@ -155,9 +139,6 @@ const ManageAdminRoles = () => {
                                         <p className="text-sm text-muted-foreground">{a.email}</p>
                                     </div>
                                      <div>
-                                        <Button size="icon" variant="ghost" onClick={() => handlePasswordReset(a)} disabled={isResettingPassword === a.uid}>
-                                             {isResettingPassword === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <KeyRound className="h-4 w-4" />}
-                                        </Button>
                                         <Button size="icon" variant="ghost" onClick={() => handleRemove(a)} disabled={isDeleting === a.uid}>
                                             {isDeleting === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
                                         </Button>

@@ -53,13 +53,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center text-sm text-muted-foreground">
-          {isNonAdminRole ? (
-            <Link href="/forgot-password" passHref>
-                 <span className="font-medium text-primary hover:underline cursor-pointer">Forgot Password?</span>
-            </Link>
-          ) : (
-            <p>To reset your password, please contact the owner.</p>
-          )}
+           <p>To reset your password, please contact the owner.</p>
         </div>
       </div>
     </div>

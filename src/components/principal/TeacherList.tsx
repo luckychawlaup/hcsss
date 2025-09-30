@@ -99,8 +99,6 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   const [selectedTeacher, setSelectedTeacher] = useState<CombinedTeacher | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [qualificationInput, setQualificationInput] = useState("");
-  const [passwordResetEmailSent, setPasswordResetEmailSent] = useState<string | null>(null);
-  const [isGeneratingPassword, setIsGeneratingPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -188,34 +186,6 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
     XLSX.writeFile(workbook, `Teachers_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
   
-  const handleRegeneratePassword = async (teacher: Teacher) => {
-      setSelectedTeacher(teacher as CombinedTeacher);
-      setIsGeneratingPassword(true);
-      setPasswordResetEmailSent(null);
-      try {
-          const { error } = await supabase.auth.resetPasswordForEmail(teacher.email);
-          if (error) throw error;
-          setPasswordResetEmailSent(teacher.email);
-          toast({
-              title: "Password Reset Triggered",
-              description: `A password reset email has been sent to ${teacher.name}.`
-          });
-      } catch (error) {
-          toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Could not trigger the password reset. Please try again."
-          })
-      } finally {
-        setIsGeneratingPassword(false);
-      }
-  }
-
-  const closePasswordDialog = () => {
-      setPasswordResetEmailSent(null);
-      setSelectedTeacher(null);
-  }
-
 
   if (isLoading) {
     return (
@@ -310,14 +280,6 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
                 <TableCell className="text-right">
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleRegeneratePassword(teacher as Teacher)} disabled={isGeneratingPassword && selectedTeacher?.id === teacher.id}>
-                                {isGeneratingPassword && selectedTeacher?.id === teacher.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Force Password Reset</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" onClick={() => handlePrintLetter(teacher.auth_uid)}>
                                 <Printer className="h-4 w-4" />
                             </Button>
@@ -365,20 +327,6 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      <Dialog open={!!passwordResetEmailSent} onOpenChange={closePasswordDialog}>
-        <DialogContent>
-            <DialogHeader>
-                 <DialogTitle className="flex items-center gap-2"><CheckCircle className="text-primary"/>Password Reset Initiated</DialogTitle>
-                <DialogDescription>
-                    A password reset email has been sent to <strong>{passwordResetEmailSent}</strong>. The teacher must use the link in the email to set their new password.
-                </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-                <Button onClick={closePasswordDialog}>Done</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[800px]">
