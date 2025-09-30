@@ -57,8 +57,6 @@ const ManageAdminRoles = () => {
     const { toast } = useToast();
     const [manageAdminsTab, setManageAdminsTab] = useState("viewAdmins");
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
-    const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
-    const [newAdminInfo, setNewAdminInfo] = useState<{ email: string; token: string } | null>(null);
     const [isResettingPassword, setIsResettingPassword] = useState<string | null>(null);
 
 
@@ -94,33 +92,22 @@ const ManageAdminRoles = () => {
         }
     };
     
-    const handleAdminAdded = (info: { email: string, token: string }) => {
+    const handleAdminAdded = () => {
         fetchAdmins();
-        setNewAdminInfo(info);
-        setIsKeyDialogOpen(true);
         setManageAdminsTab("viewAdmins");
     }
 
     const handlePasswordReset = async (user: AdminUser) => {
         setIsResettingPassword(user.uid);
         try {
-            const result = await requestPasswordResetForAdmin(user.email);
-            setNewAdminInfo({ email: result.email, token: result.token });
-            setIsKeyDialogOpen(true);
-            toast({ title: "Reset Link Generated", description: `A new one-time link has been created for ${user.name}.` });
+            await requestPasswordResetForAdmin(user.email);
+            toast({ title: "Reset Link Sent", description: `A password reset email has been sent to ${user.name}.` });
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: `Failed to generate reset link: ${error.message}` });
+            toast({ variant: "destructive", title: "Error", description: `Failed to send reset link: ${error.message}` });
         } finally {
             setIsResettingPassword(null);
         }
     }
-    
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast({
-            title: "Copied to clipboard!",
-        });
-    };
 
     if (isLoading) return <Skeleton className="h-64 w-full" />;
 
@@ -186,7 +173,7 @@ const ManageAdminRoles = () => {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-xl"><UserPlus />Register New Administrator</CardTitle>
                         <CardDescription>
-                           Create an account for a new Principal or Accountant. You will receive a one-time password reset link to share with them.
+                           Create an account for a new Principal or Accountant. They will receive an email to set their password.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -195,29 +182,6 @@ const ManageAdminRoles = () => {
                 </Card>
             </TabsContent>
         </Tabs>
-         <Dialog open={isKeyDialogOpen} onOpenChange={setIsKeyDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Admin Account Action</DialogTitle>
-                    <DialogDescription>
-                        Share the following one-time link with <span className="font-bold">{newAdminInfo?.email}</span> for them to set their password. This link will expire in 1 hour.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="flex items-center space-x-2">
-                    <Input
-                        id="reset-link"
-                        readOnly
-                        value={`${window.location.origin}/auth/update-password?token=${newAdminInfo?.token}`}
-                    />
-                    <Button type="button" size="sm" onClick={() => copyToClipboard(`${window.location.origin}/auth/update-password?token=${newAdminInfo?.token}`)}>
-                        <Copy className="h-4 w-4" />
-                    </Button>
-                </div>
-                <DialogFooter>
-                    <Button onClick={() => setIsKeyDialogOpen(false)}>Close</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
         </>
     );
 };

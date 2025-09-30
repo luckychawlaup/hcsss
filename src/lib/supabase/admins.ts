@@ -22,6 +22,7 @@ ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow owner to manage admin roles" ON public.admin_roles;
 DROP POLICY IF EXISTS "Allow admins to view their own role" ON public.admin_roles;
+DROP POLICY IF EXISTS "Allow owner to read admin roles" ON public.admin_roles;
 
 CREATE POLICY "Allow owner to manage admin roles"
 ON public.admin_roles FOR ALL
@@ -31,6 +32,10 @@ WITH CHECK (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050');
 CREATE POLICY "Allow admins to view their own role"
 ON public.admin_roles FOR SELECT
 USING (auth.uid() = uid);
+
+CREATE POLICY "Allow owner to read admin roles"
+ON public.admin_roles FOR SELECT
+USING (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050');
 `;
 
 // --- TypeScript interface ---
@@ -45,50 +50,57 @@ export interface AdminUser {
     created_at?: string;
 }
 
-// --- Add an admin and trigger password reset request ---
+// Add an admin using the standard Supabase Auth flow
 export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string; phone_number: string; address?: string }) => {
-    // Invoke the Edge Function to create user and get a reset token
-    const { data: { session } } = await supabase.auth.getSession();
-     if (!session) throw new Error("Not authenticated");
-
-    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
-        body: {
-            mode: 'create_and_request_reset',
-            adminData: adminData
-        },
-        headers: { Authorization: `Bearer ${session.access_token}` }
-    });
-
-    if (error) {
-        console.error("Error invoking custom-reset-password function:", error);
-        // Attempt to parse a more specific error message if available
-        const errorBody = error.context?.json?.();
-        const errorMessage = errorBody?.error || error.message;
-        throw new Error(errorMessage);
-    }
-    
-    return data;
-};
-
-// New function to request a password reset for an existing admin
-export const requestPasswordResetForAdmin = async (email: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Not authenticated");
 
-    const { data, error } = await supabase.functions.invoke('custom-reset-password', {
-        body: {
-            mode: 'request',
-            email: email,
-        },
-        headers: { Authorization: `Bearer ${session.access_token}` }
+    const { data, error: signUpError } = await supabase.auth.signUp({
+        email: adminData.email,
+        // A secure temporary password is required but the user will set their own
+        password: crypto.randomUUID(), 
+        options: {
+            data: {
+                role: adminData.role,
+                full_name: adminData.name,
+            }
+        }
     });
-     if (error) {
-        console.error("Error invoking custom-reset-password for reset request:", error);
-        const errorBody = error.context?.json?.();
-        const errorMessage = errorBody?.error || error.message;
-        throw new Error(errorMessage);
+
+    if (signUpError) {
+        console.error("Error creating admin auth user:", signUpError);
+        throw new Error(signUpError.message);
     }
-    return data;
+    
+    if (!signUpError && data.user) {
+        // Now insert into the admin_roles table
+        const { error: dbError } = await supabase
+            .from(ADMIN_ROLES_TABLE)
+            .insert({ ...adminData, uid: data.user.id });
+
+        if (dbError) {
+            console.error("Error inserting into admin_roles:", dbError);
+            // Attempt to clean up the auth user if the DB insert fails
+            await supabase.functions.invoke('delete-user', { body: { uid: data.user.id } });
+            throw new Error(`Failed to create admin profile: ${dbError.message}`);
+        }
+    }
+    
+    return { message: "Admin account created. They will receive an email to set their password." };
+};
+
+
+// New function to request a password reset for an existing admin
+export const requestPasswordResetForAdmin = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback`
+    });
+
+    if (error) {
+        throw new Error(error.message);
+    }
+    
+    return { message: `Password reset email sent to ${email}.` };
 };
 
 
