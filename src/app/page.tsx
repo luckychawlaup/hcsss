@@ -40,8 +40,6 @@ export default function Home() {
       if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
           setIsCheckingRole(false); 
           // Let the dedicated callback/update-password pages handle it.
-          // We might even want to redirect to the callback page if we land here.
-          // For now, just stopping the redirect logic is enough.
           return;
       }
       

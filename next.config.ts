@@ -3,6 +3,7 @@ import type {NextConfig} from 'next';
 
 const cspHeader = `
     default-src 'self';
+    connect-src 'self' https://ougpdhfuwsnvsaolpohc.supabase.co;
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https://picsum.photos https://hiltonconventschool.edu.in https://cnvwsxlwpvyjxemgpdks.supabase.co https://ik.imagekit.io https://ougpdhfuwsnvsaolpohc.supabase.co https://api.dicebear.com;
@@ -69,7 +70,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https' ,
+        protocol: 'https',
         hostname: 'api.dicebear.com',
         port: '',
         pathname: '/**',
