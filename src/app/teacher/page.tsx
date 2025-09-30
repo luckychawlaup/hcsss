@@ -41,19 +41,19 @@ export default function TeacherPage() {
                     const userRole = await getRole(user);
                     setRole(userRole);
                     if (userRole === 'student') {
-                        router.replace('/');
+                        window.location.href = '/';
                     } else if (userRole === 'principal' || userRole === 'accountant') {
-                        router.replace('/principal');
+                        window.location.href = '/principal';
                     } else {
                         setLoading(false);
                     }
                 } catch(e) {
                     console.error("Error getting user role:", e);
                     await supabase.auth.signOut();
-                    router.replace('/login');
+                    window.location.href = '/login';
                 }
             } else {
-                router.replace('/login');
+                window.location.href = '/login';
             }
         };
         checkUserRole();

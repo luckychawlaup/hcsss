@@ -43,17 +43,17 @@ export default function OwnerPage() {
                     if (userRole !== 'owner') {
                         // If not owner, sign out and redirect to login
                         await supabase.auth.signOut();
-                        router.replace('/login');
+                        window.location.href = '/login';
                     } else {
                         setLoading(false);
                     }
                 } catch(e) {
                     console.error("Error getting user role:", e);
                     await supabase.auth.signOut();
-                    router.replace('/login');
+                    window.location.href = '/login';
                 }
             } else {
-                router.replace('/login');
+                window.location.href = '/login';
             }
         };
         checkUserRole();

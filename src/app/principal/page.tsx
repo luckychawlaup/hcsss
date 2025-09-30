@@ -43,21 +43,21 @@ export default function PrincipalPage() {
                     const userRole = await getRole(user);
                     setRole(userRole);
                     if (userRole === 'student') {
-                        router.replace('/');
+                        window.location.href = '/';
                     } else if (userRole === 'teacher') {
-                        router.replace('/teacher');
+                        window.location.href = '/teacher';
                     } else if (userRole === 'owner') {
-                        router.replace('/owner');
+                        window.location.href = '/owner';
                     } else {
                         setLoading(false);
                     }
                 } catch(e) {
                     console.error("Error getting user role:", e);
                     await supabase.auth.signOut();
-                    router.replace('/login');
+                    window.location.href = '/login';
                 }
             } else {
-                router.replace('/login');
+                window.location.href = '/login';
             }
         };
         checkUserRole();
