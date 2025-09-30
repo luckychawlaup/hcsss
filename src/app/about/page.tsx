@@ -35,13 +35,13 @@ export default function AboutUsPage() {
       <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
         <div className="mx-auto w-full max-w-4xl">
           <Card className="overflow-hidden">
-            <div className="relative h-48 w-full">
+            <div className="relative h-64 w-full">
               <Image
-                src="https://picsum.photos/seed/school/1200/400"
+                src="https://hiltonconventschool.edu.in/Gallery/IMG-20240403-WA0050.jpg"
                 alt="School building"
                 layout="fill"
                 objectFit="cover"
-                data-ai-hint="school building"
+                data-ai-hint="school building students"
               />
             </div>
             <CardHeader className="text-center pt-6">
