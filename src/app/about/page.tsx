@@ -9,9 +9,9 @@ import { useSchoolInfo } from "@/hooks/use-school-info";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AboutUsPage() {
-  const { schoolInfo, isLoading } = useSchoolInfo();
+  const { schoolInfo } = useSchoolInfo();
 
-  if (isLoading || !schoolInfo) {
+  if (!schoolInfo) {
     return (
         <div className="flex min-h-screen w-full flex-col bg-background">
             <Header title="About Us" />
