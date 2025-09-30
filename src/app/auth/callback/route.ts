@@ -46,9 +46,12 @@ export async function GET(request: Request) {
     // Supabase password recovery uses exchangeCodeForSession with the token_hash
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // On success, redirect to the update-password page.
+      // The session is now stored in the cookies.
       return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`)
     } else {
         console.error("Error exchanging code for session:", error.message);
+        // This is the error the user is seeing.
         return NextResponse.redirect(`${requestUrl.origin}/login?error=Invalid or expired recovery link.`);
     }
   }

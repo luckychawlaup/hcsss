@@ -41,12 +41,16 @@ export default function UpdatePasswordPage() {
   const supabase = createClient();
 
   useEffect(() => {
+    // This effect now only checks if there's a valid session from the callback.
+    // It no longer blocks rendering if there isn't one initially.
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
         setIsReady(true);
       } else {
-        setError("No active password reset session. The link may have expired or been used. Please request a new one.");
+        // This is expected if the user navigates here directly.
+        setError("No active password reset session. Please request a new password reset link if you haven't already.");
+        setIsReady(false); // Explicitly set to false.
       }
     };
     checkSession();
@@ -60,6 +64,15 @@ export default function UpdatePasswordPage() {
   async function onSubmit(values: z.infer<typeof updatePasswordSchema>) {
     setIsLoading(true);
     setError(null);
+
+    // Re-check session right before submission for security.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        setError("Your password reset session has expired. Please request a new link.");
+        setIsLoading(false);
+        return;
+    }
+
     try {
       const { error: updateError } = await supabase.auth.updateUser({
         password: values.password,
@@ -98,54 +111,49 @@ export default function UpdatePasswordPage() {
           <h1 className="text-2xl font-bold text-primary">Set Your New Password</h1>
         </div>
 
-        {error ? (
+        {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-        ) : !isReady ? (
-           <div className="flex items-center justify-center p-8">
-             <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-             <p>Verifying reset link...</p>
-           </div>
-        ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm New Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <KeyRound className="mr-2 h-4 w-4" />
-                Set New Password
-              </Button>
-            </form>
-          </Form>
         )}
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>New Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} disabled={!isReady || isLoading} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm New Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} disabled={!isReady || isLoading} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full" disabled={!isReady || isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <KeyRound className="mr-2 h-4 w-4" />
+              Set New Password
+            </Button>
+          </form>
+        </Form>
       </div>
     </div>
   );
