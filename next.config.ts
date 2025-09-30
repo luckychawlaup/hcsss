@@ -1,6 +1,20 @@
 
 import type {NextConfig} from 'next';
 
+const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data: https://picsum.photos https://hiltonconventschool.edu.in https://cnvwsxlwpvyjxemgpdks.supabase.co https://ik.imagekit.io https://ougpdhfuwsnvsaolpohc.supabase.co https://api.dicebear.com;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+`;
+
+
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
@@ -8,6 +22,19 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
+  },
+   async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: cspHeader.replace(/\s{2,}/g, ' ').trim(),
+          },
+        ],
+      },
+    ]
   },
   images: {
     remotePatterns: [

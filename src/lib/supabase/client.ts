@@ -7,6 +7,16 @@ export const createClient = () =>
     {
       auth: {
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
-      }
+        storageKey: 'supabase.auth.token',
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+      },
+      cookieOptions: {
+        path: '/',
+        secure: true,
+        sameSite: 'lax',
+      },
     }
   )

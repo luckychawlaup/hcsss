@@ -7,6 +7,59 @@ import { addTeacher as addTeacherWithUpload } from './teachers.server';
 const supabase = createClient();
 const TEACHERS_COLLECTION = 'teachers';
 
+export const TEACHERS_TABLE_SETUP_SQL = `
+-- Create teachers table to store staff information
+CREATE TABLE IF NOT EXISTS public.teachers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_uid UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    photo_url TEXT,
+    dob TEXT NOT NULL,
+    father_name TEXT,
+    mother_name TEXT,
+    phone_number TEXT,
+    address TEXT,
+    role TEXT NOT NULL,
+    subject TEXT,
+    qualifications TEXT[],
+    class_teacher_of TEXT,
+    classes_taught TEXT[],
+    joining_date BIGINT NOT NULL,
+    bank_account JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for the teachers table
+ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to prevent conflicts
+DROP POLICY IF EXISTS "Allow principal to manage teachers" ON public.teachers;
+DROP POLICY IF EXISTS "Allow teachers to view and update their own profiles" ON public.teachers;
+
+-- Policy: Allow Principal/Owner to manage all teacher records
+CREATE POLICY "Allow principal to manage teachers"
+ON public.teachers FOR ALL
+USING (
+  auth.uid() IN (
+    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
+    '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
+  )
+);
+
+-- Policy: Allow teachers to view their own profile and securely update only their bank details
+CREATE POLICY "Allow teachers to view and update their own profiles"
+ON public.teachers FOR ALL
+USING (auth_uid = auth.uid())
+WITH CHECK (
+  auth_uid = auth.uid() AND
+  -- Teachers can ONLY update their own bank_account field. All other fields are read-only for them.
+  (pg_has_role(auth.uid()::text, 'authenticated', 'member'))
+);
+`;
+
+
 export interface Teacher {
     id: string;
     auth_uid: string;
