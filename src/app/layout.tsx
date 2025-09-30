@@ -7,6 +7,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Suspense } from "react";
 import Loading from "./loading";
+import Footer from "@/components/dashboard/Footer";
 
 
 const poppins = Poppins({
@@ -54,7 +55,10 @@ export default function RootLayout({
       <head/>
       <body>
             <Suspense fallback={<Loading />}>
-              {children}
+              <div className="flex flex-col min-h-screen">
+                <main className="flex-grow">{children}</main>
+                <Footer />
+              </div>
             </Suspense>
             <Toaster />
       </body>
