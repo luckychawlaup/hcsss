@@ -6,6 +6,7 @@ import SchoolStatus from "@/components/dashboard/SchoolStatus";
 import Attendance from "@/components/dashboard/Attendance";
 import TodayHomework from "@/components/dashboard/TodayHomework";
 import ReportCardComponent from "@/components/dashboard/ReportCard";
+import ExamDatesheet from "@/components/dashboard/ExamDatesheet";
 import { Suspense } from "react";
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
@@ -39,7 +40,7 @@ export default function DashboardPage() {
                 <div className="space-y-6">
                     <SchoolStatus />
                     <div className="grid gap-6 md:grid-cols-2">
-                        <TodayHomework />
+                        <ExamDatesheet />
                         <Attendance />
                         <ReportCardComponent />
                         <Card>

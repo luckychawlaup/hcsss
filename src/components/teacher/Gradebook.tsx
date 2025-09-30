@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import type { Teacher } from "@/lib/supabase/teachers";
 import type { Student } from "@/lib/supabase/students";
-import { getExams, Exam, addExam } from "@/lib/supabase/exams";
+import { getExams, Exam, addExam, updateExam } from "@/lib/supabase/exams";
 import { setMarksForStudent, getStudentMarksForExam, Mark } from "@/lib/supabase/marks";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,15 +26,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "../ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Users, BookOpen, UserCheck, Search, FileSignature, PlusCircle, Trash2, X, UserX } from "lucide-react";
+import { Loader2, Save, Users, BookOpen, UserCheck, Search, FileSignature, PlusCircle, Trash2, X, UserX, Calendar as CalendarIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format as formatDate } from 'date-fns';
 
 const createExamSchema = z.object({
   name: z.string().min(3, "Exam name must be at least 3 characters."),
+  start_date: z.date().optional(),
+  end_date: z.date().optional(),
 });
 
 interface GradebookProps {
@@ -81,7 +87,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
             getStudentMarksForExam(selectedStudent.auth_uid, selectedExam.id).then(existingMarks => {
                 const marksMap: Record<string, { marks?: number, max_marks?: number, subject: string }> = {};
                 existingMarks.forEach(mark => {
-                    marksMap[mark.subject] = { marks: mark.marks, max_marks: mark.maxMarks, subject: mark.subject };
+                    marksMap[mark.subject] = { marks: mark.marks, max_marks: mark.max_marks, subject: mark.subject };
                 });
                 // Also prepopulate with student's opted subjects
                 (selectedStudent.opted_subjects || []).forEach(subject => {
@@ -164,7 +170,7 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                 marks: m.marks || 0,
                 max_marks: m.max_marks || 100
             }));
-            await setMarksForStudent(selectedStudent.auth_uid, selectedExam.id, marksData);
+            await setMarksForStudent(selectedStudent.id, selectedExam.id, marksData);
             toast({ title: "Marks Saved!", description: `Marks for ${selectedStudent.name} have been successfully saved.` });
         } catch (error) {
             console.error("Error setting marks:", error);
@@ -182,54 +188,32 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
     });
 
     const handleCreateExam = async (values: z.infer<typeof createExamSchema>) => {
-        console.log("🚀 Creating exam with values:", values);
-        
         setIsCreatingExam(true);
         try {
             const examData = {
                 name: values.name.trim(),
                 date: new Date().toISOString(),
+                start_date: values.start_date?.toISOString(),
+                end_date: values.end_date?.toISOString(),
             };
-            
-            console.log("📝 Exam data to be sent:", examData);
             
             const newExam = await addExam(examData);
             
             if (newExam) {
-                console.log("✅ Exam created successfully:", newExam);
                 toast({ 
                     title: "Exam Created Successfully", 
-                    description: `${newExam.name} has been added to your exam list.`
+                    description: `${newExam.name} has been added.`
                 });
                 setIsCreateExamOpen(false);
                 createExamForm.reset();
-                // The exam list will automatically update due to the real-time subscription
             } else {
                 throw new Error("Failed to create exam - no data returned");
             }
         } catch (error: any) {
-            console.error("❌ Error creating exam:", error);
-            
-            let errorMessage = "Could not create the exam. Please try again.";
-            
-            if (error?.message) {
-                if (error.message.includes('Authentication failed')) {
-                    errorMessage = "You need to be logged in to create exams.";
-                } else if (error.message.includes('Permission denied')) {
-                    errorMessage = "You don't have permission to create exams. Please contact your administrator.";
-                } else if (error.message.includes('table doesn\'t exist')) {
-                    errorMessage = "Database setup required. Please contact your administrator.";
-                } else if (error.message.includes('already exists')) {
-                    errorMessage = "An exam with this name already exists.";
-                } else {
-                    errorMessage = error.message;
-                }
-            }
-            
             toast({ 
                 variant: "destructive", 
                 title: "Failed to Create Exam", 
-                description: errorMessage
+                description: error.message || "An unknown error occurred."
             });
         } finally {
             setIsCreatingExam(false);
@@ -346,16 +330,17 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Create New Exam</DialogTitle>
-                        <DialogDescription>Define a new exam for which you can record marks.</DialogDescription>
+                        <DialogDescription>Define a new exam for which you can record marks. You can optionally add a start and end date for the exam period.</DialogDescription>
                     </DialogHeader>
                     <FormProvider {...createExamForm}>
                         <form onSubmit={createExamForm.handleSubmit(handleCreateExam)} className="space-y-4">
-                            <div className="space-y-2">
+                            
+                             <div className="space-y-2">
                                 <Label htmlFor="name">Exam Name</Label>
                                 <Input 
                                     id="name" 
                                     {...createExamForm.register("name")} 
-                                    placeholder="Enter exam name (e.g., Mid-term Exam 2024)"
+                                    placeholder="e.g., Mid-term Exam 2024"
                                     disabled={isCreatingExam}
                                 />
                                 {createExamForm.formState.errors.name && (
@@ -364,6 +349,50 @@ export default function Gradebook({ teacher, students }: GradebookProps) {
                                     </p>
                                 )}
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={createExamForm.control}
+                                    name="start_date"
+                                    render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <Label>Start Date (Optional)</Label>
+                                        <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                        </PopoverContent>
+                                        </Popover>
+                                    </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={createExamForm.control}
+                                    name="end_date"
+                                    render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <Label>End Date (Optional)</Label>
+                                        <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? formatDate(field.value, "PPP") : <span>Pick a date</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                        </PopoverContent>
+                                        </Popover>
+                                    </FormItem>
+                                    )}
+                                />
+                            </div>
+                            
                             <DialogFooter>
                                 <Button 
                                     type="button" 

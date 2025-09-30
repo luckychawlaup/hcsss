@@ -1,0 +1,133 @@
+
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CalendarDays, AlertTriangle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { getStudentByAuthId, Student } from "@/lib/supabase/students";
+import { getExams, Exam } from "@/lib/supabase/exams";
+import { getStudentMarksForExam } from "@/lib/supabase/marks";
+import { isWithinInterval, startOfToday, parseISO } from 'date-fns';
+import TodayHomework from "./TodayHomework";
+
+type ExamWithSubjects = Exam & { subjects: { subject: string; date: string }[] };
+
+const supabase = createClient();
+
+export default function ExamDatesheet() {
+    const [student, setStudent] = useState<Student | null>(null);
+    const [upcomingExam, setUpcomingExam] = useState<ExamWithSubjects | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                setIsLoading(false);
+                return;
+            }
+
+            const studentProfile = await getStudentByAuthId(user.id);
+            setStudent(studentProfile);
+
+            if (studentProfile) {
+                const exams = await getExams((exams) => {
+                    const today = startOfToday();
+
+                    const relevantExams = exams.filter(e => e.start_date && e.end_date);
+                    const currentOrNextExam = relevantExams.find(exam => {
+                        const startDate = parseISO(exam.start_date!);
+                        const endDate = parseISO(exam.end_date!);
+                        return isWithinInterval(today, { start: startDate, end: endDate }) || today < startDate;
+                    });
+                    
+                    if (currentOrNextExam) {
+                        getStudentMarksForExam(studentProfile.id, currentOrNextExam.id).then(marks => {
+                            const examWithSubjects: ExamWithSubjects = {
+                                ...currentOrNextExam,
+                                subjects: marks.map(m => ({ subject: m.subject, date: m.created_at || currentOrNextExam.date }))
+                                            .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                            };
+                            setUpcomingExam(examWithSubjects);
+                        });
+                    } else {
+                        setUpcomingExam(null);
+                    }
+                });
+            }
+            setIsLoading(false);
+        };
+
+        fetchData();
+    }, []);
+
+    if (isLoading) {
+        return <Skeleton className="h-64 w-full" />;
+    }
+
+    if (!upcomingExam || !upcomingExam.start_date) {
+        return <TodayHomework />;
+    }
+
+    const today = startOfToday();
+    const startDate = parseISO(upcomingExam.start_date);
+    const inExamPeriod = today >= startDate;
+
+    if (inExamPeriod) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-primary">
+                        <CalendarDays className="h-6 w-6" />
+                        {upcomingExam.name} Schedule
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {upcomingExam.subjects.length > 0 ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Subject</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {upcomingExam.subjects.map((s, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell className="font-medium">{new Date(s.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</TableCell>
+                                        <TableCell>{s.subject}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="text-center text-muted-foreground p-4">
+                            The datesheet for this exam has not been published yet.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    } else {
+        // Exam is in the future
+        return (
+            <Card className="bg-yellow-50 border-yellow-200">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-yellow-800">
+                        <AlertTriangle className="h-6 w-6" />
+                        Exams Approaching!
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center text-yellow-700">
+                    <p className="font-semibold">Your {upcomingExam.name} will start on:</p>
+                    <p className="text-2xl font-bold mt-2">{new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    <p className="mt-4">Be prepared and study well!</p>
+                </CardContent>
+            </Card>
+        );
+    }
+}

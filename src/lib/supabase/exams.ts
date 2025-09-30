@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -7,6 +8,8 @@ export interface Exam {
     id: string;
     name: string;
     date: string;
+    start_date?: string;
+    end_date?: string;
     created_at?: string;
 }
 
@@ -17,6 +20,8 @@ CREATE TABLE IF NOT EXISTS public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     date TIMESTAMPTZ NOT NULL,
+    start_date TIMESTAMPTZ,
+    end_date TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -40,6 +45,18 @@ BEGIN
         ALTER TABLE public.exams DROP COLUMN max_marks;
     END IF;
 END $;
+
+-- Add start_date and end_date columns if they don't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='exams' AND column_name='start_date') THEN
+        ALTER TABLE public.exams ADD COLUMN start_date TIMESTAMPTZ;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='exams' AND column_name='end_date') THEN
+        ALTER TABLE public.exams ADD COLUMN end_date TIMESTAMPTZ;
+    END IF;
+END;
+$$;
 `;
 
 // Helper function to check if tables exist
@@ -205,7 +222,9 @@ export const addExam = async (exam: Omit<Exam, 'id' | 'created_at'>): Promise<Ex
             .from(EXAMS_COLLECTION)
             .insert([{
                 name: exam.name.trim(),
-                date: exam.date
+                date: exam.date,
+                start_date: exam.start_date,
+                end_date: exam.end_date,
             }])
             .select()
             .single();
@@ -316,4 +335,33 @@ export const initializeDatabase = async (): Promise<boolean> => {
     
     console.log("✅ All tables exist, proceeding with prepopulation...");
     return await prepopulateExams();
+};
+
+export const getStudentExams = async (studentId: string): Promise<Exam[]> => {
+    try {
+        const { data: studentData, error: studentError } = await supabase
+            .from('students')
+            .select('class, section')
+            .eq('id', studentId)
+            .single();
+
+        if (studentError || !studentData) {
+            console.error("Could not get student class for exams:", studentError);
+            return [];
+        }
+
+        const { data, error } = await supabase
+            .from('exams')
+            .select('*');
+
+        if (error) {
+            console.error("Error fetching exams for student:", error);
+            return [];
+        }
+        
+        return data || [];
+    } catch (error) {
+        console.error("Error in getStudentExams:", error);
+        return [];
+    }
 };
