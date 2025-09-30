@@ -1,3 +1,4 @@
+
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { type CookieOptions, createServerClient } from '@supabase/ssr'
@@ -19,13 +20,15 @@ export async function GET(request: Request) {
   })
 
   // For password recovery with token_hash, redirect to a client-side page
-  // that will handle the full URL including hash
+  // Pass the parameters via hash fragment to preserve them
   if (token_hash && type === 'recovery') {
-    console.log('Password recovery detected - redirecting for client-side verification')
+    console.log('Password recovery detected - redirecting with hash fragment')
     
-    // Redirect to update-password and let it handle the verification
-    // by reading from window.location (which preserves the original URL structure)
-    return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`)
+    // Use hash fragment to pass the token and type to the client
+    const redirectUrl = `${requestUrl.origin}/auth/update-password#token_hash=${token_hash}&type=${type}`
+    console.log('Redirecting to:', redirectUrl)
+    
+    return NextResponse.redirect(redirectUrl)
   }
 
   // Handle email confirmation or other auth callbacks with code

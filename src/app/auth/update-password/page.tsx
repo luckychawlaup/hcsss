@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -43,10 +44,58 @@ export default function UpdatePasswordPage() {
     let mounted = true;
     
     const handlePasswordRecovery = async () => {
-      console.log('Checking for password recovery session...');
+      console.log('Starting password recovery check...');
+      console.log('Current URL:', window.location.href);
+      console.log('Hash fragment:', window.location.hash);
       
-      // Supabase automatically handles the hash fragment and sets up the session
-      // We just need to listen for the auth state change
+      // Check if we have token_hash in the URL hash
+      if (window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const token_hash = hashParams.get('token_hash');
+        const type = hashParams.get('type');
+        
+        console.log('Hash params:', { token_hash: !!token_hash, type });
+        
+        if (token_hash && type === 'recovery') {
+          console.log('Found recovery token in hash, verifying...');
+          
+          try {
+            const { data, error: verifyError } = await supabase.auth.verifyOtp({
+              token_hash,
+              type: 'recovery',
+            });
+            
+            if (verifyError) {
+              console.error('Verify OTP error:', verifyError);
+              if (mounted) {
+                setError(verifyError.message || "Invalid or expired recovery link. Please request a new one.");
+                setIsReady(false);
+              }
+              return;
+            }
+            
+            console.log('Recovery token verified successfully, session:', !!data.session);
+            
+            if (mounted) {
+              setIsReady(true);
+              setError(null);
+              // Clear the hash from URL for security
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+            return;
+          } catch (err: any) {
+            console.error('Error verifying recovery token:', err);
+            if (mounted) {
+              setError(err.message || "Failed to verify recovery token. Please request a new link.");
+              setIsReady(false);
+            }
+            return;
+          }
+        }
+      }
+      
+      // No hash params, check if there's already a session
+      console.log('No hash params, checking existing session...');
       const { data: { session } } = await supabase.auth.getSession();
       
       console.log('Initial session check:', !!session);
@@ -56,9 +105,8 @@ export default function UpdatePasswordPage() {
         setIsReady(true);
         setError(null);
       } else if (mounted) {
-        // If no session yet, set a message but don't mark as error yet
-        // The auth state listener will handle it
-        console.log('No immediate session, waiting for auth state change...');
+        console.log('No session found, will wait for auth state change...');
+        // Don't show error immediately, wait for auth state listener
       }
     };
 
