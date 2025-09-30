@@ -53,9 +53,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center text-sm text-muted-foreground">
-           <Link href="/forgot-password" passHref>
-             <Button variant="link">Forgot Password?</Button>
-           </Link>
+           <p>Forgot your password? Ask the owner to reset it for you.</p>
         </div>
       </div>
     </div>
