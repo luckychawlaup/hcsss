@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { User, Briefcase, School, Calculator, ClipboardSignature, FilePenLine } from "lucide-react";
@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useRipple } from "@/hooks/useRipple";
+import { cn } from "@/lib/utils";
 
 export default function RoleSelectionPage() {
   const { toast } = useToast();
@@ -35,9 +37,14 @@ export default function RoleSelectionPage() {
     }
   };
 
-  const RoleCard = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string }) => (
+  const RoleCard = ({ href, icon: Icon, title, description }: { href: string; icon: React.ElementType; title: string; description: string }) => {
+    const rippleRef = useRipple<HTMLDivElement>();
+    return (
     <Link href={href} className="block">
-      <div className="flex flex-col items-center justify-center text-center gap-2 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50 h-full">
+      <div 
+        ref={rippleRef}
+        className="flex flex-col items-center justify-center text-center gap-2 rounded-lg border p-4 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50 h-full relative overflow-hidden"
+      >
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Icon className="h-6 w-6" />
         </div>
@@ -47,11 +54,13 @@ export default function RoleSelectionPage() {
         </div>
       </div>
     </Link>
-  );
+  )};
 
-  const ActionCard = ({ icon: Icon, title, description, onClick }: { icon: React.ElementType; title: string; description: string, onClick?: () => void }) => (
-     <button onClick={onClick} className="block w-full text-left">
-        <div className="flex items-center gap-4 rounded-lg border p-3 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50">
+  const ActionCard = ({ icon: Icon, title, description, onClick }: { icon: React.ElementType; title: string; description: string, onClick?: () => void }) => {
+    const rippleRef = useRipple<HTMLButtonElement>();
+    return (
+     <button onClick={onClick} className="block w-full text-left" ref={rippleRef}>
+        <div className="flex items-center gap-4 rounded-lg border p-3 transition-all duration-200 hover:border-primary/50 hover:bg-accent/50 relative overflow-hidden">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" />
             </div>
@@ -61,7 +70,7 @@ export default function RoleSelectionPage() {
             </div>
         </div>
     </button>
-  )
+  )}
 
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/40 p-4">
