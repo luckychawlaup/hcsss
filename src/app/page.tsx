@@ -35,6 +35,16 @@ export default function Home() {
 
   useEffect(() => {
     const checkUserRole = async () => {
+      // Do not run this check if we are in the middle of a password reset.
+      // Supabase adds #access_token=... to the URL for password recovery.
+      if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
+          setIsCheckingRole(false); 
+          // Let the dedicated callback/update-password pages handle it.
+          // We might even want to redirect to the callback page if we land here.
+          // For now, just stopping the redirect logic is enough.
+          return;
+      }
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         try {

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,8 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const [isHandling, setIsHandling] = useState(true);
-
+  
   useEffect(() => {
     const supabase = createClient();
     
