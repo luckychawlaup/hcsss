@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -41,19 +40,66 @@ export default function UpdatePasswordPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    // This effect now only checks if there's a valid session from the callback.
-    // It no longer blocks rendering if there isn't one initially.
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
+    let mounted = true;
+    
+    const handlePasswordRecovery = async () => {
+      console.log('Checking for password recovery session...');
+      
+      // Supabase automatically handles the hash fragment and sets up the session
+      // We just need to listen for the auth state change
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      console.log('Initial session check:', !!session);
+      
+      if (session && mounted) {
+        console.log('Session found immediately');
         setIsReady(true);
-      } else {
-        // This is expected if the user navigates here directly.
-        setError("No active password reset session. Please request a new password reset link if you haven't already.");
-        setIsReady(false); // Explicitly set to false.
+        setError(null);
+      } else if (mounted) {
+        // If no session yet, set a message but don't mark as error yet
+        // The auth state listener will handle it
+        console.log('No immediate session, waiting for auth state change...');
       }
     };
-    checkSession();
+
+    handlePasswordRecovery();
+    
+    // Listen for auth state changes - this is triggered when Supabase processes the hash
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, 'has session:', !!session);
+      
+      if (!mounted) return;
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('PASSWORD_RECOVERY event detected');
+        setIsReady(true);
+        setError(null);
+      } else if (event === 'SIGNED_IN' && session) {
+        console.log('SIGNED_IN event with session');
+        setIsReady(true);
+        setError(null);
+      } else if (event === 'USER_UPDATED') {
+        console.log('USER_UPDATED event');
+      }
+      
+      // After waiting a bit, if still no session, show error
+      if (!session && event !== 'PASSWORD_RECOVERY') {
+        setTimeout(async () => {
+          if (mounted) {
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            if (!currentSession && mounted) {
+              setError("No active password reset session. Please request a new password reset link if you haven't already.");
+              setIsReady(false);
+            }
+          }
+        }, 1000);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [supabase]);
 
   const form = useForm<z.infer<typeof updatePasswordSchema>>({

@@ -1,5 +1,4 @@
 
-
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 const ADMIN_ROLES_TABLE = 'admin_roles';
@@ -59,6 +58,7 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
         email: adminData.email,
         password: crypto.randomUUID(), 
         options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: {
                 role: adminData.role,
                 full_name: adminData.name,
@@ -80,6 +80,17 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string
             console.error("Error inserting into admin_roles:", dbError);
             await supabase.functions.invoke('delete-user', { body: { uid: data.user.id } });
             throw new Error(`Failed to create admin profile: ${dbError.message}`);
+        }
+        
+        // Immediately send a password reset email so they can set their password
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email, {
+            redirectTo: `${window.location.origin}/auth/callback`,
+        });
+
+        if (resetError) {
+            // This is not a fatal error, the account is created.
+            console.warn("Admin account created, but failed to send password set email:", resetError.message);
+            throw new Error("Admin account was created, but the password setup email could not be sent. Please try a manual password reset.");
         }
     }
     

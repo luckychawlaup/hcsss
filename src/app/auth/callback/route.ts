@@ -1,4 +1,3 @@
-
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { type CookieOptions, createServerClient } from '@supabase/ssr'
@@ -7,11 +6,32 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get('token_hash')
-  const type = requestUrl.searchParams.get('type');
+  const token_hash = requestUrl.searchParams.get('token_hash')
+  const type = requestUrl.searchParams.get('type')
+  const code = requestUrl.searchParams.get('code')
   const next = requestUrl.searchParams.get('next') ?? '/'
 
-  if (code && type === 'recovery') {
+  console.log('Auth callback params:', { 
+    token_hash: !!token_hash, 
+    code: !!code,
+    type, 
+    url: requestUrl.toString() 
+  })
+
+  // For password recovery with token_hash, redirect to a client-side page
+  // that will handle the full URL including hash
+  if (token_hash && type === 'recovery') {
+    console.log('Password recovery detected - redirecting for client-side verification')
+    
+    // Redirect to update-password and let it handle the verification
+    // by reading from window.location (which preserves the original URL structure)
+    return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`)
+  }
+
+  // Handle email confirmation or other auth callbacks with code
+  if (code) {
+    console.log('Code-based auth detected')
+    
     const cookieStore = cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,70 +45,34 @@ export async function GET(request: Request) {
             try {
               cookieStore.set({ name, value, ...options })
             } catch (error) {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
+              // Ignore
             }
           },
           remove(name: string, options: CookieOptions) {
             try {
               cookieStore.set({ name, value: '', ...options })
             } catch (error) {
-              // The `delete` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
+              // Ignore
             }
           },
         },
       }
     )
     
-    // Supabase password recovery uses exchangeCodeForSession with the token_hash
     const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
     if (!error) {
-      // On success, redirect to the update-password page.
-      // The session is now stored in the cookies.
-      return NextResponse.redirect(`${requestUrl.origin}/auth/update-password`)
-    } else {
-        console.error("Error exchanging code for session:", error.message);
-        // This is the error the user is seeing.
-        return NextResponse.redirect(`${requestUrl.origin}/login?error=Invalid or expired recovery link.`);
-    }
-  }
-
-  // Handle other auth callbacks like email confirmation if code is present but not for recovery
-  if (code) {
-       const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            try {
-              cookieStore.set({ name, value, ...options })
-            } catch (error) {
-            }
-          },
-          remove(name: string, options: CookieOptions) {
-            try {
-              cookieStore.set({ name, value: '', ...options })
-            } catch (error) {
-            }
-          },
-        },
-      }
-    )
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-     if (!error) {
+      console.log('Successfully exchanged code for session')
       return NextResponse.redirect(`${requestUrl.origin}${next}`)
+    } else {
+      console.error("Error exchanging code:", error.message)
+      return NextResponse.redirect(
+        `${requestUrl.origin}/login?error=${encodeURIComponent(error.message || 'Invalid link.')}`
+      )
     }
   }
 
-
-  // return the user to an error page with instructions
+  // No valid parameters found
+  console.error('No valid auth parameters found in callback URL')
   return NextResponse.redirect(`${requestUrl.origin}/login?error=Invalid link. Please try again.`)
 }
