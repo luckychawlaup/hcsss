@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, KeyRound, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, KeyRound, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from "next/image";
-import Link from "next/link";
+import { Card } from "@/components/ui/card";
 
 const updatePasswordSchema = z
   .object({
@@ -63,10 +63,10 @@ export default function UpdatePasswordPage() {
       });
 
       await supabase.auth.signOut();
-      router.push("/login");
+      router.replace("/login");
 
     } catch (error: any) {
-      setError(error.message || "Failed to update password. Your link may have expired.");
+      setError(error.message || "Failed to update password. Your session may have expired. Please request a new reset link.");
     } finally {
       setIsLoading(false);
     }

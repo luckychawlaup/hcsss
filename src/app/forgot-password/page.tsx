@@ -34,6 +34,7 @@ export default function ForgotPasswordPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -57,6 +58,10 @@ export default function ForgotPasswordPage() {
       setError(resetError.message);
     } else {
       setIsSubmitted(true);
+      toast({
+          title: "Check Your Email",
+          description: "If an account with that email exists, a password reset link has been sent.",
+      });
     }
   }
 
@@ -78,14 +83,14 @@ export default function ForgotPasswordPage() {
             className="mx-auto mb-4 rounded-full"
             priority
           />
-          <h1 className="text-2xl font-bold text-primary">Forgot Password</h1>
+          <h1 className="text-2xl font-bold text-primary">Forgot Your Password?</h1>
         </div>
 
         <Card className="p-6">
             {isSubmitted ? (
             <Alert variant="default" className="bg-green-50 border-green-200">
                 <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-800">Check Your Email</AlertTitle>
+                <AlertTitle className="text-green-800">Reset Link Sent!</AlertTitle>
                 <AlertDescription className="text-green-700">
                 If an account with that email exists, a password reset link has been sent. Please check your inbox and spam folder.
                 </AlertDescription>
@@ -93,7 +98,7 @@ export default function ForgotPasswordPage() {
             ) : (
             <>
                 <p className="text-center text-muted-foreground mb-6">
-                Enter your email address and we will send you a link to reset your password.
+                No worries! Enter your email and we'll send you a reset link.
                 </p>
 
                 {error && (

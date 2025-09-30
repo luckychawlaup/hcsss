@@ -52,8 +52,10 @@ export default function LoginPage() {
           <LoginForm role={role as "student" | "teacher" | "principal" | "accountant" | "owner"} />
         </div>
 
-        <div className="text-center text-sm text-muted-foreground">
-           <p>Forgot your password? Ask the owner to reset it for you.</p>
+        <div className="text-center text-sm">
+           <Link href="/forgot-password" className="text-muted-foreground hover:text-primary underline-offset-4 hover:underline">
+            Forgot your password?
+           </Link>
         </div>
       </div>
     </div>
