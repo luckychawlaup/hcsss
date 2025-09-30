@@ -2,7 +2,7 @@
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
-import { uploadImage } from "@/lib/imagekit";
+import { addStudent as addStudentWithUpload } from './students.server';
 
 const supabase = createClient();
 const STUDENTS_COLLECTION = 'students';
@@ -31,77 +31,28 @@ export interface Student {
 
 export type CombinedStudent = (Student & { status: 'Registered' });
 
+// This function is now a wrapper around the server action.
 export const addStudent = async (studentData: Omit<Student, 'id' | 'auth_uid' | 'srn' | 'photo_url' | 'aadhar_url'> & { photo: File, aadharCard?: File}) => {
-    // 1. Sign up the user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: studentData.email,
-        password: Math.random().toString(36).slice(-8), // Temporary password
-        options: {
-            data: {
-                full_name: studentData.name,
-                role: 'student'
-            }
+    // We create a FormData object to send the file to the server action.
+    const formData = new FormData();
+    Object.entries(studentData).forEach(([key, value]) => {
+        if (key === 'photo' || key === 'aadharCard') {
+            // handled below
+        } else if (value instanceof Date) {
+            formData.append(key, value.toISOString());
+        } else if (typeof value === 'object' && value !== null) {
+            formData.append(key, JSON.stringify(value));
+        } else if (value !== undefined && value !== null) {
+            formData.append(key, value.toString());
         }
     });
-
-    if (authError) {
-        console.error("Error creating auth user for student:", authError);
-        throw authError;
+    formData.append('photo', studentData.photo);
+    if (studentData.aadharCard) {
+        formData.append('aadharCard', studentData.aadharCard);
     }
-    
-    const user = authData.user;
-    if (!user) {
-        throw new Error("Could not create auth user for student.");
-    }
-
-    try {
-        // 2. Generate SRN
-        const { data: countData, error: countError } = await supabase.rpc('get_student_count');
-        if (countError) throw countError;
-        const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
-        
-        // 3. Upload images to ImageKit
-        const fileBuffer = Buffer.from(await studentData.photo.arrayBuffer());
-        const photoUrl = await uploadImage(fileBuffer, studentData.photo.name, 'student_profiles');
-
-        let aadharUrl: string | undefined;
-        if (studentData.aadharCard) {
-            const aadharFileBuffer = Buffer.from(await studentData.aadharCard.arrayBuffer());
-            aadharUrl = await uploadImage(aadharFileBuffer, studentData.aadharCard.name, 'student_documents');
-        }
-
-        // 4. Prepare data for DB insert
-        const { photo, aadharCard, ...restOfStudentData } = studentData;
-        const finalStudentData = { 
-            ...restOfStudentData,
-            auth_uid: user.id,
-            srn,
-            photo_url: photoUrl,
-            aadhar_url: aadharUrl,
-        };
-
-        // 5. Insert student record into the database
-        const { error: dbError } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
-
-        if (dbError) {
-            console.error("Error adding student to DB:", dbError.message);
-            // If DB insert fails, delete the created auth user
-            await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
-            throw new Error(`Failed to add student. Original error: ${dbError.message}`);
-        }
-
-        // 6. Send password reset email for initial password setup
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(studentData.email);
-        if (resetError) {
-            console.warn("Student created, but failed to send password reset email.", resetError);
-        }
-
-    } catch (e: any) {
-        // Cleanup auth user if any step fails after its creation
-        await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
-        throw e;
-    }
+    return addStudentWithUpload(formData);
 };
+
 
 export const getStudentsAndPending = (callback: (students: CombinedStudent[]) => void) => {
     const fetchAndCallback = async () => {
@@ -189,7 +140,7 @@ export const deleteStudent = async (studentId: string) => {
     }
 };
 
-export const getStudentsForTeacher = (teacher: Teacher | null, callback: (students: CombinedStudent[]) => void) => {
+export const getStudentsForTeacher = (teacher: any | null, callback: (students: CombinedStudent[]) => void) => {
     if (!teacher) {
         callback([]);
         return () => {};

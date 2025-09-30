@@ -1,8 +1,8 @@
 
-'use server'
+'use client'
 
 import { createClient } from "@/lib/supabase/client";
-import { uploadImage } from "@/lib/imagekit";
+import { addTeacher as addTeacherWithUpload } from './teachers.server';
 
 const supabase = createClient();
 const TEACHERS_COLLECTION = 'teachers';
@@ -34,57 +34,23 @@ export interface Teacher {
 
 export type CombinedTeacher = (Teacher & { status: 'Registered' });
 
+
 export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 'photo_url'> & { photo: File }) => {
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: teacherData.email,
-        password: Math.random().toString(36).slice(-8), // Temporary password
-        options: {
-            data: {
-                full_name: teacherData.name,
-                role: 'teacher'
-            }
+    const formData = new FormData();
+    Object.entries(teacherData).forEach(([key, value]) => {
+        if (key === 'photo') {
+            // handled below
+        } else if (value instanceof Date) {
+            formData.append(key, value.toISOString());
+        } else if (typeof value === 'object' && value !== null) {
+            formData.append(key, JSON.stringify(value));
+        } else if (value !== undefined && value !== null) {
+            formData.append(key, value.toString());
         }
     });
-
-    if (authError) {
-        console.error("Error creating auth user for teacher:", authError);
-        throw authError;
-    }
-
-    const user = authData.user;
-    if (!user) {
-        throw new Error("Could not create user for teacher.");
-    }
-
-    try {
-        const fileBuffer = Buffer.from(await teacherData.photo.arrayBuffer());
-        const photoUrl = await uploadImage(fileBuffer, teacherData.photo.name, 'staff_profiles');
-
-        const { photo, ...restOfTeacherData } = teacherData;
-
-        const finalTeacherData = {
-            ...restOfTeacherData,
-            auth_uid: user.id,
-            photo_url: photoUrl,
-        };
-
-        const { error: dbError } = await supabase.from(TEACHERS_COLLECTION).insert([finalTeacherData]);
-
-        if (dbError) {
-            console.error("Error saving teacher to DB:", dbError);
-            await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
-            throw dbError;
-        }
-
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(teacherData.email);
-        if(resetError) {
-            console.warn("Teacher created, but failed to send password reset email.", resetError);
-        }
-
-    } catch (e: any) {
-        await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
-        throw e;
-    }
+    formData.append('photo', teacherData.photo);
+    
+    return addTeacherWithUpload(formData);
 };
 
 export const getTeachersAndPending = (callback: (teachers: CombinedTeacher[]) => void) => {

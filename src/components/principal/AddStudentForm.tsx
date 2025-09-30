@@ -64,7 +64,7 @@ const addStudentSchema = z.object({
     aadhar_number: z.string().length(12, "Aadhar number must be 12 digits.").optional(),
     aadharCard: z.any()
         .optional()
-        .refine((files) => !files || files.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 2MB.`)
+        .refine((files) => !files || files.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 1MB.`)
         .refine(
         (files) => !files || files.length === 0 || AADHAR_FILE_TYPES.includes(files?.[0]?.type),
         "Only .jpg, .png, and .pdf formats are supported for Aadhar card."
@@ -122,7 +122,6 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     try {
         await addStudent({
             ...values,
-            admission_date: values.admission_date.getTime(),
             photo: values.photo[0],
             aadharCard: values.aadharCard?.[0]
         });

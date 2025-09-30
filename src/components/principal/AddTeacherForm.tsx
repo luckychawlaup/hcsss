@@ -129,7 +129,6 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
     try {
         await addTeacher({
             ...values,
-            joining_date: values.joining_date.getTime(),
             photo: values.photo[0]
         });
       
