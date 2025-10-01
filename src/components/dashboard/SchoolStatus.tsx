@@ -37,7 +37,7 @@ export default function SchoolStatus() {
 
   if (todayIsHoliday || isSunday) {
     return (
-      <Card className="bg-blue-500/10 border-blue-500/20 w-full">
+      <Card className="bg-blue-50 border-blue-200 w-full">
         <CardContent className="p-3 flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
             <PartyPopper className="h-5 w-5" />
@@ -54,7 +54,7 @@ export default function SchoolStatus() {
   }
 
   return (
-    <Card className="bg-green-500/10 border-green-500/20 w-full">
+    <Card className="bg-green-50 border-green-200 w-full">
       <CardContent className="p-3 flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
           <Building className="h-5 w-5" />
