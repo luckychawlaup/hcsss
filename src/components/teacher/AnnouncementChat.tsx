@@ -70,37 +70,34 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: Announcement
   const isRecent = (Date.now() - createdAt.getTime()) < 15 * 60 * 1000;
 
   return (
-    <div className={cn("flex items-start gap-2 group animate-in fade-in-0 slide-in-from-bottom-2", isSender ? "justify-end" : "justify-start")}>
+    <div className={cn("flex items-start gap-2.5 group animate-in fade-in-0 slide-in-from-bottom-2", isSender ? "justify-end" : "justify-start")}>
       {!isSender && (
-        <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-background">
-          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold">
+        <Avatar className="h-8 w-8 flex-shrink-0 ring-1 ring-background">
+          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs font-semibold">
             {notice.creator_name?.charAt(0)}
           </AvatarFallback>
         </Avatar>
       )}
       
-      <div className={cn("flex flex-col gap-1 max-w-[85%] sm:max-w-[75%] md:max-w-md")}>
+      <div className={cn("flex flex-col gap-0.5 max-w-[85%] sm:max-w-[75%] md:max-w-md")}>
         {!isSender && (
           <div className="flex items-center gap-2 px-1">
             <span className="text-xs font-semibold text-foreground">{notice.creator_name}</span>
-            <span className="text-[10px] text-muted-foreground">
-              {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-            </span>
           </div>
         )}
         
         <div className={cn(
-          "relative px-3 py-2 rounded-2xl shadow-sm transition-all",
+          "relative px-3 py-1.5 rounded-xl shadow-sm transition-all",
           isSender 
             ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm" 
             : "bg-secondary/80 backdrop-blur-sm rounded-tl-sm"
         )}>
           {notice.title && (
-            <p className="text-sm font-semibold pb-1 border-b border-white/10 mb-2">
+            <p className="text-sm font-semibold pb-1 border-b border-white/10 mb-1">
               {notice.title}
             </p>
           )}
-          <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
             {notice.content}
           </p>
           {notice.attachment_url && <AttachmentPreview url={notice.attachment_url} />}
@@ -113,17 +110,12 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: Announcement
         
         <div className="flex items-center gap-2 px-1">
           <span className="text-[10px] text-muted-foreground">
-            {notice.creator_role}
+            {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
           </span>
           <span className="text-[10px] text-muted-foreground">•</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
             {notice.category}
           </span>
-          {isSender && (
-            <span className="text-[10px] text-muted-foreground ml-auto">
-              {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          )}
         </div>
       </div>
       
