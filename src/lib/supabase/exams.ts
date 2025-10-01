@@ -15,8 +15,14 @@ export interface Exam {
 
 // Database setup SQL - you'll need to run this in your Supabase SQL editor
 export const SETUP_SQL = `
--- Create exams table
-CREATE TABLE IF NOT EXISTS public.exams (
+-- This script will drop and recreate your exams table to ensure it is correct.
+-- WARNING: This will delete any existing data in the 'exams' table.
+
+-- Drop the table if it exists
+DROP TABLE IF EXISTS public.exams;
+
+-- Create the table with the correct columns and foreign keys
+CREATE TABLE public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     date TIMESTAMPTZ NOT NULL,
@@ -29,7 +35,6 @@ CREATE TABLE IF NOT EXISTS public.exams (
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if they exist, then recreate them
-DROP POLICY IF EXISTS "Allow all operations on exams" ON public.exams;
 DROP POLICY IF EXISTS "Allow authenticated users to manage exams" ON public.exams;
 
 -- Create new policy that allows any authenticated user to manage exams
@@ -37,26 +42,6 @@ CREATE POLICY "Allow authenticated users to manage exams"
 ON public.exams FOR ALL
 USING (auth.role() = 'authenticated')
 WITH CHECK (auth.role() = 'authenticated');
-
--- If max_marks column exists, drop it since we don't need it at exam level
-DO $ 
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'exams' AND column_name = 'max_marks') THEN
-        ALTER TABLE public.exams DROP COLUMN max_marks;
-    END IF;
-END $;
-
--- Add start_date and end_date columns if they don't exist
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='exams' AND column_name='start_date') THEN
-        ALTER TABLE public.exams ADD COLUMN start_date TIMESTAMPTZ;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='exams' AND column_name='end_date') THEN
-        ALTER TABLE public.exams ADD COLUMN end_date TIMESTAMPTZ;
-    END IF;
-END;
-$$;
 `;
 
 // Helper function to check if tables exist
