@@ -136,33 +136,34 @@ export default function Attendance() {
     const renderCalendarDays = () => {
         const monthStart = startOfMonth(currentMonth);
         const daysInMonth = getDaysInMonth(currentMonth);
-        const firstDayOfWeek = monthStart.getDay(); 
+        const firstDayOfWeek = monthStart.getDay();
         const today = new Date();
         const studentClass = studentInfo ? `${studentInfo.class}-${studentInfo.section}` : null;
 
         const calendarDays = [];
-        
+
         const emptyDays = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
         for (let i = 0; i < emptyDays; i++) {
             calendarDays.push(<div key={`empty-${i}`} className="h-10"></div>);
         }
-        
+
         for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day, 12); // Use midday to avoid timezone issues
+            const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day, 12);
             const dayOfWeek = date.getDay();
             const formattedDate = format(date, 'yyyy-MM-dd');
-            
+
             const record = attendance.find(a => a.date === formattedDate);
+            
             const isHoliday = holidays.find(h => {
-                // Adjust for timezone differences by comparing start of day
-                const holidayDate = startOfDay(new Date(h.date));
+                // Corrected date comparison logic
+                const holidayDate = startOfDay(parseISO(h.date));
                 const calendarDate = startOfDay(date);
                 return isSameDay(holidayDate, calendarDate) && 
                        (!h.class_section || h.class_section === studentClass);
             });
 
             let status: DayStatus = 'unmarked';
-            
+
             if (isHoliday) {
                 status = 'holiday';
             } else if (dayOfWeek === 0) {
@@ -175,7 +176,7 @@ export default function Attendance() {
 
             calendarDays.push(<DayCell key={day} day={day} status={status} />);
         }
-        
+
         return calendarDays;
     };
 
