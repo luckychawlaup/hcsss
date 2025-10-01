@@ -34,6 +34,7 @@ interface AnnouncementBubbleProps {
   onEdit?: (notice: Announcement) => void;
   onDelete?: (noticeId: string) => void;
   readOnly?: boolean;
+  showCategory?: boolean;
 }
 
 function AttachmentPreview({ url }: { url: string }) {
@@ -66,7 +67,7 @@ function AttachmentPreview({ url }: { url: string }) {
     )
 }
 
-function AnnouncementBubble({ notice, isSender, onEdit, onDelete, readOnly }: AnnouncementBubbleProps) {
+function AnnouncementBubble({ notice, isSender, onEdit, onDelete, readOnly, showCategory = true }: AnnouncementBubbleProps) {
   const createdAt = notice.created_at ? new Date(notice.created_at) : new Date();
   const isRecent = (Date.now() - createdAt.getTime()) < 15 * 60 * 1000;
 
@@ -113,10 +114,14 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete, readOnly }: An
           <span className="text-[10px] text-muted-foreground">
             {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
           </span>
-          <span className="text-[10px] text-muted-foreground">•</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
-            {notice.category}
-          </span>
+          {showCategory && (
+            <>
+              <span className="text-[10px] text-muted-foreground">•</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                {notice.category}
+              </span>
+            </>
+          )}
         </div>
       </div>
       
@@ -293,6 +298,7 @@ export default function AnnouncementChat({
                 onEdit={!readOnly ? handleEdit : undefined}
                 onDelete={!readOnly ? setDeletingMessageId : undefined}
                 readOnly={readOnly}
+                showCategory={!readOnly}
             />
           ))
         )}
