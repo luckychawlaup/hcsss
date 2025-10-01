@@ -18,7 +18,7 @@ import { getStudentsForTeacher, CombinedStudent, updateStudent, Student } from "
 import { getFeedbackForClassTeacher, Feedback } from "@/lib/supabase/feedback";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/supabase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon, Book } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon, Book, CalendarDays } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import TeacherNav from "./TeacherNav";
 import { Button } from "../ui/button";
@@ -31,9 +31,10 @@ import Gradebook from './Gradebook';
 import MarkAttendance from './MarkAttendance';
 import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
+import DatesheetManager from "./DatesheetManager";
 
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves";
+export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves" | "manageDatesheet";
 
 const NavCard = ({ title, description, icon: Icon, onClick, asLink, href }: { title: string, description: string, icon: React.ElementType, onClick?: () => void, asLink?: boolean, href?: string }) => {
     const content = (
@@ -264,10 +265,10 @@ export default function TeacherDashboard() {
                             </Button>
                             <CardTitle className="flex items-center gap-2">
                                 <BookMarked />
-                                Gradebook & Assessments
+                                Gradebook
                             </CardTitle>
                             <CardDescription>
-                                Manage student grades, assessments, and performance.
+                                Enter student grades for different exams and assessments.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -293,6 +294,27 @@ export default function TeacherDashboard() {
                         </CardHeader>
                         <CardContent>
                            <MarkAttendance teacher={teacher} students={assignedStudents.filter(s => s.status === 'Registered') as Student[]} />
+                        </CardContent>
+                    </Card>
+                );
+            case 'manageDatesheet':
+                 return (
+                    <Card>
+                        <CardHeader>
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <CalendarDays />
+                                Manage Datesheet
+                            </CardTitle>
+                            <CardDescription>
+                                Create new exams and set the datesheet for your class.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <DatesheetManager teacher={teacher} />
                         </CardContent>
                     </Card>
                 );
@@ -324,7 +346,8 @@ export default function TeacherDashboard() {
                                     <NavCard title="Review Feedback" description="Manage student feedback" icon={ClipboardCheck} onClick={() => setActiveView("approveFeedback")} />
                                     <NavCard title="Review Leaves" description="Approve student leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                                     <NavCard title="Mark Attendance" description="Mark daily student attendance" icon={UserCheckIcon} onClick={() => setActiveView("markAttendance")} />
-                                    <NavCard title="Gradebook & Assessments" description="Manage student grades and performance" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
+                                    <NavCard title="Manage Datesheet" description="Create exams and set schedules" icon={CalendarDays} onClick={() => setActiveView("manageDatesheet")} />
+                                    <NavCard title="Gradebook" description="Manage student grades" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
                                 </>
                            )}
                         </div>
