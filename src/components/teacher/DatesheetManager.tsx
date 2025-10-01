@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import type { Teacher } from "@/lib/supabase/teachers";
-import { getExams, Exam, addExam } from "@/lib/supabase/exams";
+import { getExams, Exam, addExam, updateExam, deleteExam } from "@/lib/supabase/exams";
 import { setMarksForStudent, getStudentMarksForExam, Mark } from "@/lib/supabase/marks";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,11 +21,22 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "../ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, BookOpen, FileSignature, PlusCircle, Trash2, X, UserX, Calendar as CalendarIcon, Check } from "lucide-react";
+import { Loader2, Save, BookOpen, FileSignature, PlusCircle, Trash2, X, UserX, Calendar as CalendarIcon, Check, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -62,6 +73,9 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     const [isFetchingSubjects, setIsFetchingSubjects] = useState(false);
     const [isCreateExamOpen, setIsCreateExamOpen] = useState(false);
     const [isCreatingExam, setIsCreatingExam] = useState(false);
+    const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [examToEdit, setExamToEdit] = useState<Exam | null>(null);
     
     const { toast } = useToast();
     const classTeacherClass = teacher?.role === 'classTeacher' ? teacher.class_teacher_of : null;
@@ -169,38 +183,77 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
         defaultValues: { name: "" }
     });
 
-    const handleCreateExam = async (values: z.infer<typeof createExamSchema>) => {
+    useEffect(() => {
+        if (examToEdit) {
+            createExamForm.reset({
+                name: examToEdit.name,
+                start_date: examToEdit.start_date ? new Date(examToEdit.start_date) : undefined,
+                end_date: examToEdit.end_date ? new Date(examToEdit.end_date) : undefined,
+            });
+        } else {
+            createExamForm.reset({ name: "", start_date: undefined, end_date: undefined });
+        }
+    }, [examToEdit, createExamForm]);
+
+
+    const handleCreateOrUpdateExam = async (values: z.infer<typeof createExamSchema>) => {
         setIsCreatingExam(true);
         try {
-            const examData = {
-                name: values.name.trim(),
-                date: new Date().toISOString(),
-                start_date: values.start_date?.toISOString(),
-                end_date: values.end_date?.toISOString(),
-            };
-            
-            const newExam = await addExam(examData);
-            
-            if (newExam) {
-                toast({ 
-                    title: "Exam Created Successfully", 
-                    description: `${newExam.name} has been added.`
+            if (examToEdit) {
+                // Update existing exam
+                 await updateExam(examToEdit.id, {
+                    name: values.name.trim(),
+                    start_date: values.start_date?.toISOString(),
+                    end_date: values.end_date?.toISOString(),
                 });
-                setIsCreateExamOpen(false);
-                createExamForm.reset();
+                toast({ title: "Exam Updated Successfully"});
             } else {
-                throw new Error("Failed to create exam - no data returned");
+                // Create new exam
+                const examData = {
+                    name: values.name.trim(),
+                    date: new Date().toISOString(),
+                    start_date: values.start_date?.toISOString(),
+                    end_date: values.end_date?.toISOString(),
+                };
+                await addExam(examData);
+                toast({ title: "Exam Created Successfully"});
             }
+            
+            setIsCreateExamOpen(false);
+            setExamToEdit(null);
+            createExamForm.reset();
+
         } catch (error: any) {
             toast({ 
                 variant: "destructive", 
-                title: "Failed to Create Exam", 
+                title: "Operation Failed", 
                 description: error.message || "An unknown error occurred."
             });
         } finally {
             setIsCreatingExam(false);
         }
     };
+
+    const handleDeleteExam = async () => {
+        if (!examToDelete) return;
+        setIsDeleting(true);
+        try {
+            await deleteExam(examToDelete.id);
+            toast({ title: "Exam Deleted", description: `${examToDelete.name} has been removed.`});
+            setExamToDelete(null);
+            if (selectedExam?.id === examToDelete.id) {
+                setSelectedExam(null);
+            }
+        } catch (error: any) {
+             toast({ 
+                variant: "destructive", 
+                title: "Deletion Failed", 
+                description: error.message || "An unknown error occurred."
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    }
     
     if (teacher?.role !== 'classTeacher') {
         return (
@@ -217,18 +270,28 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                         <CardTitle className="flex items-center gap-2"><BookOpen />Select Exam</CardTitle>
-                         <Button variant="outline" onClick={() => setIsCreateExamOpen(true)}><PlusCircle className="mr-2"/>Create New Exam</Button>
+                         <CardTitle className="flex items-center gap-2"><BookOpen />Manage Exams</CardTitle>
+                         <Button variant="outline" onClick={() => { setExamToEdit(null); setIsCreateExamOpen(true); }}><PlusCircle className="mr-2"/>Create New Exam</Button>
                     </div>
-                    <CardDescription>Choose an exam to create or edit its datesheet for your class: <span className="font-semibold text-primary">{classTeacherClass}</span></CardDescription>
+                    <CardDescription>Create, edit, or delete exams. Select an exam to manage its datesheet for your class: <span className="font-semibold text-primary">{classTeacherClass}</span></CardDescription>
                 </CardHeader>
-                <CardContent>
-                     <Select onValueChange={(val) => setSelectedExam(exams.find(e => e.id === val) || null)}>
-                        <SelectTrigger><SelectValue placeholder="Select Exam" /></SelectTrigger>
-                        <SelectContent>
-                            {exams.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                <CardContent className="space-y-2">
+                    {exams.length > 0 ? exams.map(exam => (
+                         <div key={exam.id} className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
+                             <button className="flex-1 text-left" onClick={() => setSelectedExam(exam)}>
+                                 <p className={cn("font-medium", selectedExam?.id === exam.id && "text-primary")}>{exam.name}</p>
+                                 {exam.start_date && (
+                                     <p className="text-xs text-muted-foreground">
+                                         {formatDate(new Date(exam.start_date), 'MMM d')} - {exam.end_date ? formatDate(new Date(exam.end_date), 'MMM d, yyyy') : ''}
+                                     </p>
+                                 )}
+                             </button>
+                             <div>
+                                 <Button variant="ghost" size="icon" onClick={() => { setExamToEdit(exam); setIsCreateExamOpen(true); }}><Edit className="h-4 w-4"/></Button>
+                                 <Button variant="ghost" size="icon" onClick={() => setExamToDelete(exam)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                             </div>
+                         </div>
+                    )) : <p className="text-muted-foreground text-center p-4">No exams created yet.</p>}
                 </CardContent>
             </Card>
 
@@ -284,14 +347,14 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                     <p className="text-muted-foreground">Please select an exam to create its schedule.</p>
                 </div>
             )}
-             <Dialog open={isCreateExamOpen} onOpenChange={setIsCreateExamOpen}>
+             <Dialog open={isCreateExamOpen} onOpenChange={(isOpen) => { if (!isOpen) setExamToEdit(null); setIsCreateExamOpen(isOpen); }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Create New Exam</DialogTitle>
-                        <DialogDescription>Define a new exam for which you can record marks. You can optionally add a start and end date for the exam period.</DialogDescription>
+                        <DialogTitle>{examToEdit ? "Edit Exam" : "Create New Exam"}</DialogTitle>
+                        <DialogDescription>{examToEdit ? "Update the exam details." : "Define a new exam. You can optionally add a start and end date."}</DialogDescription>
                     </DialogHeader>
                     <FormProvider {...createExamForm}>
-                        <form onSubmit={createExamForm.handleSubmit(handleCreateExam)} className="space-y-4">
+                        <form onSubmit={createExamForm.handleSubmit(handleCreateOrUpdateExam)} className="space-y-4">
                             
                             <div className="space-y-2">
                                 <Label htmlFor="name">Exam Name</Label>
@@ -355,7 +418,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                                 <Button 
                                     type="button" 
                                     variant="outline" 
-                                    onClick={() => setIsCreateExamOpen(false)}
+                                    onClick={() => { setIsCreateExamOpen(false); setExamToEdit(null); }}
                                     disabled={isCreatingExam}
                                 >
                                     Cancel
@@ -364,12 +427,12 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                                     {isCreatingExam ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                            Creating...
+                                            Saving...
                                         </>
                                     ) : (
                                         <>
                                             <PlusCircle className="mr-2 h-4 w-4"/>
-                                            Create Exam
+                                            {examToEdit ? "Save Changes" : "Create Exam"}
                                         </>
                                     )}
                                 </Button>
@@ -378,6 +441,23 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                     </FormProvider>
                 </DialogContent>
             </Dialog>
+
+             <AlertDialog open={!!examToDelete} onOpenChange={(isOpen) => !isOpen && setExamToDelete(null)}>
+                <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                    This will permanently delete the "{examToDelete?.name}" exam and all associated marks. This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteExam} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                        {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete"}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
