@@ -1,4 +1,5 @@
 
+
 import { createClient } from "@/lib/supabase/client";
 import { getRole } from "../getRole";
 const supabase = createClient();
@@ -116,11 +117,6 @@ const getGrade = (marks: number, maxMarks: number): string => {
 
 export const setMarksForStudent = async (studentIdOrClassSection: string, examId: string, marksData: { subject: string; marks: number; max_marks: number, exam_date?: Date }[]) => {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const userRole = await getRole(user);
-        const isPrincipal = userRole === 'principal' || userRole === 'owner';
-
-
         const marksWithGrades = marksData.map(m => ({
             exam_id: examId,
             subject: m.subject,
@@ -131,13 +127,21 @@ export const setMarksForStudent = async (studentIdOrClassSection: string, examId
         }));
         
         let studentIds: string[] = [];
+        const isClassSection = studentIdOrClassSection.includes('-');
 
-        if (isPrincipal) {
-            // It's a class section string
+        if (isClassSection) {
+            // It's a class section string, e.g., "12th-A"
             const [classVal, sectionVal] = studentIdOrClassSection.split('-');
-            const { data, error } = await supabase.from('students').select('id').eq('class', classVal).eq('section', sectionVal);
-            if (error) throw error;
-            studentIds = data.map(s => s.id);
+            const { data: students, error: studentFetchError } = await supabase
+                .from('students')
+                .select('id')
+                .eq('class', classVal)
+                .eq('section', sectionVal);
+
+            if (studentFetchError) throw studentFetchError;
+
+            studentIds = students.map(s => s.id);
+            
             if(studentIds.length === 0) {
                  console.log("No students in class, but saving schedule for class", studentIdOrClassSection);
             }
@@ -145,6 +149,26 @@ export const setMarksForStudent = async (studentIdOrClassSection: string, examId
             // It's a single student UUID
             studentIds = [studentIdOrClassSection];
         }
+
+        if (marksWithGrades.length === 0) {
+            console.warn("No valid marks data to save.");
+            return;
+        }
+
+        // If we are setting a schedule for a class with no students, we can't upsert.
+        // The schedule is implicitly saved when marks are entered for the first student.
+        // However, we can create empty mark entries for the subjects.
+        if (studentIds.length === 0 && isClassSection) {
+            // This is a special case for saving a datesheet for an empty class.
+            // We'll create "template" entries for each student added later.
+            // The current logic means we just need to ensure the subjects exist for the exam.
+            // We can do this by upserting for a placeholder student, but that is messy.
+            // For now, the best approach is to save for the students who ARE there.
+            // If none, we'll just log it. The schedule will be created when marks are entered.
+            console.log(`Datesheet for ${studentIdOrClassSection} and exam ${examId} noted. It will be fully created when marks are entered for students.`);
+            return;
+        }
+
 
         const upsertPayload = studentIds.flatMap(sId => 
             marksWithGrades.map(m => ({ ...m, student_id: sId }))
