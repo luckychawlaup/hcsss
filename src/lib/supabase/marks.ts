@@ -14,32 +14,45 @@ export interface Mark {
 }
 
 export const MARKS_TABLE_SETUP_SQL = `
--- This SQL script adds the 'exam_date' column to your 'marks' table.
--- You only need to run this once in your Supabase SQL Editor.
+-- This script will drop and recreate your marks table to ensure it is correct.
+-- WARNING: This will delete any existing data in the 'marks' table.
 
-ALTER TABLE public.marks
-ADD COLUMN IF NOT EXISTS exam_date TIMESTAMPTZ;
+-- Drop the table if it exists
+DROP TABLE IF EXISTS public.marks;
 
--- Re-create policies to ensure they are up-to-date and use dynamic role checking.
-DROP POLICY IF EXISTS "Allow teachers to manage marks" ON public.marks;
-DROP POLICY IF EXISTS "Allow students to view their own marks" ON public.marks;
-DROP POLICY IF EXISTS "Allow admins to manage all marks" ON public.marks;
+-- Create the table with the correct columns and foreign keys
+CREATE TABLE public.marks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL,
+    marks INTEGER NOT NULL DEFAULT 0,
+    max_marks INTEGER NOT NULL DEFAULT 100,
+    grade TEXT,
+    exam_date TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT marks_unique_student_exam_subject UNIQUE (student_id, exam_id, subject)
+);
 
--- Policy: Allows both Class Teachers and Subject Teachers to manage marks.
+-- Enable RLS
+ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Allow teachers to manage marks
 CREATE POLICY "Allow teachers to manage marks"
 ON public.marks FOR ALL
 USING (
   (SELECT auth.uid() FROM public.teachers WHERE auth_uid = auth.uid()) IS NOT NULL
 );
 
--- Policy: Allows a student to view only their own marks.
+-- Policy: Allow students to view their own marks
 CREATE POLICY "Allow students to view their own marks"
 ON public.marks FOR SELECT
 USING (
   student_id = (SELECT id FROM public.students WHERE auth_uid = auth.uid())
 );
 
--- Policy: Allows Principal and Owner to have full access based on their dynamic roles.
+-- Policy: Allow admins to manage all marks
 CREATE POLICY "Allow admins to manage all marks"
 ON public.marks FOR ALL
 USING (
