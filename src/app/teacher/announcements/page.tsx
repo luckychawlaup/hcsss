@@ -129,7 +129,7 @@ export default function TeacherAnnouncementsPage() {
   }
   
   const chatHeader = (
-    <div className="p-4 border-b flex items-center gap-4 absolute top-0 w-full bg-background z-10">
+    <div className="p-4 border-b flex items-center gap-4 bg-background z-10">
         <Button variant="ghost" size="icon" onClick={() => setSelectedGroup(null)}>
             <ArrowLeft/>
         </Button>
@@ -138,7 +138,7 @@ export default function TeacherAnnouncementsPage() {
   );
 
   const mainContent = isMobile ? (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full flex flex-col">
       {!selectedGroup ? (
         <ClassChatGroup
           assignedClasses={announcementGroups}
@@ -147,8 +147,7 @@ export default function TeacherAnnouncementsPage() {
           isLoading={isLoading}
         />
       ) : (
-        <div className="h-full pt-20">
-            <AnnouncementChat
+        <AnnouncementChat
             announcements={announcements}
             chatTitle={selectedGroup}
             onSendMessage={handleSendMessage}
@@ -159,8 +158,7 @@ export default function TeacherAnnouncementsPage() {
                 teacher?.role === "classTeacher" ? "Class Teacher" : "Subject Teacher"
             }
             headerContent={chatHeader}
-            />
-        </div>
+        />
       )}
     </div>
   ) : (

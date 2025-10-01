@@ -121,7 +121,7 @@ export default function OwnerAnnouncementsPage() {
   );
 
   const mainContent = isMobile ? (
-    <div className="w-full h-full">
+    <div className="w-full h-full flex flex-col">
       {!selectedGroup ? (
         <ClassChatGroup
           assignedClasses={announcementGroups}

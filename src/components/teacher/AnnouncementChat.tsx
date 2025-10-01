@@ -41,24 +41,24 @@ function AttachmentPreview({ url }: { url: string }) {
     return (
         <div className="mt-2">
             {isImage ? (
-                <div className="relative rounded-lg overflow-hidden bg-black/5">
+                <a href={url} target="_blank" rel="noopener noreferrer" className="relative rounded-lg overflow-hidden bg-black/5 block w-48 h-48">
                   <Image 
                     src={url} 
                     alt="Attachment" 
-                    width={200} 
-                    height={200} 
-                    className="rounded-lg object-cover max-w-full h-auto" 
+                    layout="fill"
+                    objectFit="cover"
+                    className="rounded-lg" 
                   />
-                </div>
+                </a>
             ) : (
                 <a 
                   href={url} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="flex items-center gap-2 p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+                  className="flex items-center gap-2 p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors max-w-xs"
                 >
                     <FileText className="h-4 w-4" />
-                    <span className="text-xs font-medium">View Attachment</span>
+                    <span className="text-xs font-medium truncate">View Attachment</span>
                 </a>
             )}
         </div>
@@ -89,7 +89,7 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: Announcement
         <div className={cn(
           "relative px-3 py-1.5 rounded-xl shadow-sm transition-all",
           isSender 
-            ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm" 
+            ? "bg-primary text-primary-foreground rounded-tr-sm" 
             : "bg-secondary/80 backdrop-blur-sm rounded-tl-sm"
         )}>
           {notice.title && (
@@ -102,7 +102,7 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: Announcement
           </p>
           {notice.attachment_url && <AttachmentPreview url={notice.attachment_url} />}
           {notice.edited_at && (
-            <span className={cn("text-[10px] italic mt-1 block", isSender ? "text-white/70" : "text-muted-foreground")}>
+            <span className={cn("text-[10px] italic mt-1 block", isSender ? "text-primary-foreground/70" : "text-muted-foreground")}>
               edited
             </span>
           )}
@@ -262,12 +262,10 @@ export default function AnnouncementChat({
     <div className="flex flex-col h-full bg-gradient-to-b from-background to-secondary/20">
       {headerContent}
       
-      {/* Messages area with custom background pattern */}
       <div 
         ref={scrollAreaRef} 
         className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 space-y-4"
         style={{ 
-          paddingBottom: '9rem',
           backgroundImage: 'radial-gradient(circle at 1px 1px, rgb(0 0 0 / 0.05) 1px, transparent 0)',
           backgroundSize: '24px 24px'
         }}
@@ -295,27 +293,26 @@ export default function AnnouncementChat({
         )}
       </div>
       
-      {/* Enhanced Input area */}
       <div className="border-t bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 p-3 sm:p-4 pb-safe shadow-lg">
         {editingMessage && (
-          <div className="mb-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between animate-in slide-in-from-bottom-2">
+          <div className="mb-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between animate-in slide-in-from-bottom-2">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
                 <Edit className="h-4 w-4 text-white" />
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">Editing message</span>
-                <span className="text-xs text-blue-700 dark:text-blue-300">Tap cancel to discard changes</span>
+                <span className="text-xs text-blue-700 dark:text-blue-300 line-clamp-1">{editingMessage.content}</span>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={cancelEdit} className="h-8 px-2 hover:bg-blue-100 dark:hover:bg-blue-900">
+            <Button variant="ghost" size="icon" onClick={cancelEdit} className="h-8 w-8 hover:bg-blue-100 dark:hover:bg-blue-900 flex-shrink-0">
               <X className="h-4 w-4" />
             </Button>
           </div>
         )}
         
         {attachment && !editingMessage && (
-            <div className="flex items-center gap-2 p-2 mb-3 bg-gradient-to-r from-secondary to-secondary/50 rounded-xl text-sm border animate-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-2 p-2 mb-2 bg-gradient-to-r from-secondary to-secondary/50 rounded-xl text-sm border animate-in slide-in-from-bottom-2">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                   {attachment.type.startsWith('image/') ? (
                     <ImageIcon className="h-4 w-4 text-primary" />
@@ -409,7 +406,7 @@ export default function AnnouncementChat({
               onClick={handleSend} 
               disabled={isSending || (!message.trim() && !attachment)}
               size="icon"
-              className="flex-shrink-0 h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex-shrink-0 h-10 w-10 rounded-xl bg-primary shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
                 {isSending ? (
                   <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
