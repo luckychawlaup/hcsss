@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import * as XLSX from "xlsx";
 import type { Teacher } from "@/lib/supabase/teachers";
 import { useRouter } from "next/navigation";
 import {
@@ -164,26 +163,11 @@ export default function TeacherList({ teachers, isLoading, onUpdateTeacher, onDe
   }
 
   const handleExport = () => {
-    const dataToExport = teachers.map(teacher => ({
-        "Teacher ID": teacher.auth_uid,
-        "Name": teacher.name,
-        "Email": teacher.email,
-        "Status": teacher.status,
-        "Role": teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher',
-        "Assignment": teacher.role === 'classTeacher' ? teacher.class_teacher_of : teacher.classes_taught?.join(', '),
-        "Subject": teacher.subject,
-        "Phone Number": teacher.phone_number,
-        "DOB": teacher.dob,
-        "Qualifications": teacher.qualifications?.join(', '),
-        "Joining Date": new Date(teacher.joining_date).toLocaleDateString('en-GB'),
-        "Father's Name": teacher.father_name,
-        "Address": teacher.address,
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Teachers");
-    XLSX.writeFile(workbook, `Teachers_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast({
+        title: "Export Disabled",
+        description: "The library required for Excel export has been removed. Please ask to have it re-installed if needed.",
+        variant: "destructive"
+    });
   }
   
 

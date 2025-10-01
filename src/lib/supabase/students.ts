@@ -20,7 +20,7 @@ export interface Student {
     address: string;
     class: string;
     section: string;
-    admission_date: number;
+    admission_date: string; // ISO string
     date_of_birth: string; // DD/MM/YYYY
     aadhar_number?: string;
     aadhar_url?: string;
@@ -48,7 +48,7 @@ export const addStudent = async (studentData: Omit<Student, 'id' | 'auth_uid' | 
         }
     });
     formData.append('photo', studentData.photo);
-    if (studentData.aadharCard) {
+    if (studentData.aadharCard && studentData.aadharCard.size > 0) {
         formData.append('aadharCard', studentData.aadharCard);
     }
     return addStudentWithUpload(formData);

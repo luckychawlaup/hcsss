@@ -34,8 +34,8 @@ export const addTeacher = async (formData: FormData) => {
     }
 
     try {
-        const fileBuffer = Buffer.from(await photo.arrayBuffer());
-        const photoUrl = await uploadImage(fileBuffer, photo.name, 'staff_profiles');
+        const photoBuffer = Buffer.from(await photo.arrayBuffer());
+        const photoUrl = await uploadImage(photoBuffer, photo.name, 'staff_profiles');
 
         const finalTeacherData = {
             name: teacherData.name,
@@ -50,7 +50,7 @@ export const addTeacher = async (formData: FormData) => {
             qualifications: teacherData.qualifications ? JSON.parse(teacherData.qualifications as string) : [],
             class_teacher_of: teacherData.class_teacher_of,
             classes_taught: teacherData.classes_taught ? JSON.parse(teacherData.classes_taught as string) : [],
-            joining_date: new Date(teacherData.joining_date as string).getTime(),
+            joining_date: new Date(teacherData.joining_date as string).toISOString(),
             auth_uid: user.id,
             photo_url: photoUrl,
         };

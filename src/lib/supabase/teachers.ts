@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.teachers (
     qualifications TEXT[],
     class_teacher_of TEXT,
     classes_taught TEXT[],
-    joining_date BIGINT NOT NULL,
+    joining_date TEXT NOT NULL, -- Changed to TEXT to store ISO string
     bank_account JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -77,7 +77,7 @@ export interface Teacher {
     qualifications?: string[];
     class_teacher_of?: string; // e.g., "10-A"
     classes_taught?: string[];
-    joining_date: number; // timestamp
+    joining_date: string; // ISO string
     bank_account?: {
         accountHolderName?: string;
         accountNumber?: string;

@@ -42,11 +42,11 @@ export const addStudent = async (formData: FormData) => {
         const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
         
         // 3. Upload images to ImageKit
-        const fileBuffer = Buffer.from(await photo.arrayBuffer());
-        const photoUrl = await uploadImage(fileBuffer, photo.name, 'student_profiles');
+        const photoBuffer = Buffer.from(await photo.arrayBuffer());
+        const photoUrl = await uploadImage(photoBuffer, photo.name, 'student_profiles');
 
         let aadharUrl: string | undefined;
-        if (aadharCard) {
+        if (aadharCard && aadharCard.size > 0) {
             const aadharFileBuffer = Buffer.from(await aadharCard.arrayBuffer());
             aadharUrl = await uploadImage(aadharFileBuffer, aadharCard.name, 'student_documents');
         }
@@ -59,7 +59,7 @@ export const addStudent = async (formData: FormData) => {
             address: studentData.address,
             class: studentData.class,
             section: studentData.section,
-            admission_date: new Date(studentData.admission_date as string).getTime(),
+            admission_date: new Date(studentData.admission_date as string).toISOString(),
             date_of_birth: studentData.date_of_birth,
             opted_subjects: studentData.opted_subjects ? JSON.parse(studentData.opted_subjects as string) : [],
             father_phone: studentData.father_phone,
