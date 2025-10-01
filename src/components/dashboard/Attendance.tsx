@@ -166,7 +166,7 @@ export default function Attendance() {
     };
     
     const attendancePercentage = attendanceStats.total > 0 
-        ? Math.round((attendanceStats.present / attendanceStats.total) * 100) 
+        ? Math.round(((attendanceStats.present + attendanceStats.halfDay * 0.5) / attendanceStats.total) * 100) 
         : 0;
 
     return (
@@ -206,34 +206,6 @@ export default function Attendance() {
                 </div>
             </CardHeader>
             <CardContent>
-                {attendance.length > 0 && (
-                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mb-4 justify-center">
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-                            <span className="font-medium">Present: {attendanceStats.present}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
-                             <span className="font-medium">Absent: {attendanceStats.absent}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></div>
-                             <span className="font-medium">Half Day: {attendanceStats.halfDay}</span>
-                        </div>
-                        <div className="font-semibold text-primary">
-                            Attendance: {attendancePercentage}%
-                        </div>
-                    </div>
-                )}
-                <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground mb-2">
-                    <span>Mon</span>
-                    <span>Tue</span>
-                    <span>Wed</span>
-                    <span>Thu</span>
-                    <span>Fri</span>
-                    <span>Sat</span>
-                    <span>Sun</span>
-                </div>
                 {isLoading ? (
                     <div className="flex flex-col justify-center items-center h-48 gap-2">
                         <Loader2 className="h-8 w-8 animate-spin" />
@@ -241,6 +213,35 @@ export default function Attendance() {
                     </div>
                 ) : (
                     <>
+                         {attendance.length > 0 && (
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mb-4 justify-center">
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                                    <span className="font-medium">Present: {attendanceStats.present}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
+                                    <span className="font-medium">Absent: {attendanceStats.absent}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></div>
+                                    <span className="font-medium">Half Day: {attendanceStats.halfDay}</span>
+                                </div>
+                                <div className="font-semibold text-primary">
+                                    Attendance: {attendancePercentage}%
+                                </div>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground mb-2">
+                            <span>Mon</span>
+                            <span>Tue</span>
+                            <span>Wed</span>
+                            <span>Thu</span>
+                            <span>Fri</span>
+                            <span>Sat</span>
+                            <span>Sun</span>
+                        </div>
+                        
                         <div className="grid grid-cols-7 gap-2 mb-4">
                             {renderCalendarDays()}
                         </div>
@@ -270,4 +271,3 @@ export default function Attendance() {
     );
 }
 
-    

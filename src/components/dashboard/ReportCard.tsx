@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -24,82 +25,71 @@ export default function ReportCardComponent() {
   const supabase = createClient();
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
-        // Get authenticated user
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError) {
+        if (!isMounted) return;
+        if (authError || !user) {
           console.error("Authentication error:", authError);
-          setError("Authentication failed");
+          setError("You must be logged in to view report cards.");
+          setIsLoading(false);
           return;
         }
 
-        if (!user) {
-          setError("No authenticated user found");
-          return;
-        }
-
-        console.log("Authenticated user ID:", user.id);
-
-        // Get student profile
         const studentProfile = await getStudentByAuthId(user.id);
-
+        if (!isMounted) return;
         if (!studentProfile) {
-          console.error("Student profile not found for auth ID:", user.id);
-          setError("Student profile not found. Please contact your administrator.");
+          setError("Student profile not found. Please contact administration.");
+          setIsLoading(false);
           return;
         }
-
-        console.log("Student profile found:", { id: studentProfile.id, name: studentProfile.name });
-
-        // Fetch exams and marks concurrently
-        const [allExams, studentMarks] = await Promise.all([
-          new Promise<Exam[]>((resolve, reject) => {
-            try {
-              const unsubscribe = getExams((examsData) => {
-                console.log("Fetched exams:", examsData?.length || 0);
-                resolve(examsData || []);
-                // Clean up subscription
-                if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
-                  unsubscribe.unsubscribe();
+        
+        let examsUnsubscribe: any;
+        const examsPromise = new Promise<Exam[]>((resolve, reject) => {
+            examsUnsubscribe = getExams((examsData) => {
+                if (isMounted) {
+                  setExams(examsData || []);
+                  resolve(examsData || []);
                 }
-              });
-            } catch (err) {
-              console.error("Error fetching exams:", err);
-              reject(err);
-            }
-          }),
-          getMarksForStudent(studentProfile.id)
-        ]);
-        
-        console.log("Final data - Exams:", allExams?.length, "Marks groups:", Object.keys(studentMarks || {}).length);
-        
-        setExams(allExams || []);
-        setMarks(studentMarks || {});
+            });
+        });
 
-        // Debug: Check if we have matching exam IDs
-        if (allExams && studentMarks) {
-          const examIds = allExams.map(e => e.id);
-          const marksExamIds = Object.keys(studentMarks);
-          console.log("Exam IDs:", examIds);
-          console.log("Mark exam IDs:", marksExamIds);
-          console.log("Matching exams with marks:", examIds.filter(id => marksExamIds.includes(id)));
+        const [allExams, studentMarks] = await Promise.all([
+            examsPromise,
+            getMarksForStudent(studentProfile.id)
+        ]);
+
+        if (isMounted) {
+            setMarks(studentMarks || {});
+            setIsLoading(false);
         }
+        
+        return () => {
+            if(examsUnsubscribe && typeof examsUnsubscribe.unsubscribe === 'function') {
+                examsUnsubscribe.unsubscribe();
+            }
+        };
 
       } catch (error) {
-        console.error("Error fetching report card data:", error);
-        setError("Failed to load report cards");
-      } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          console.error("Error fetching report card data:", error);
+          setError("Failed to load report cards.");
+          setIsLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, [supabase.auth]);
+    
+    return () => {
+        isMounted = false;
+    }
+  }, [supabase]);
 
   // Filter exams that have marks available
   const availableReportCards = exams
@@ -126,7 +116,6 @@ export default function ReportCardComponent() {
             <div key={i} className="space-y-2">
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3 w-1/2" />
-              <Skeleton className="h-3 w-1/4" />
             </div>
           ))}
         </CardContent>

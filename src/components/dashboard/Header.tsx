@@ -28,6 +28,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   const supabase = createClient();
   const isTeacher = pathname.startsWith('/teacher');
   const isPrincipal = pathname.startsWith('/principal');
+  const isOwner = pathname.startsWith('/owner');
 
   // Determine notification link based on role
   const noticesLink = isTeacher ? "/teacher/notices" : "/notices";
@@ -39,15 +40,15 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
 
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 items-center justify-between gap-4 border-b bg-card/80 px-4 shadow-sm backdrop-blur-sm sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-card/80 px-4 shadow-sm backdrop-blur-sm sm:px-6">
       <Link href="/" className="flex items-center gap-3">
-        <Image src="/hcsss.png" alt="School Logo" width={56} height={56} />
-        <h1 className="text-xl font-bold text-foreground sm:text-2xl font-headline truncate">
+        <Image src="/hcsss.png" alt="School Logo" width={40} height={40} />
+        <h1 className="text-lg font-bold text-foreground sm:text-xl font-headline truncate">
           {title || "HCSSS"}
         </h1>
       </Link>
-      <div className="flex items-center gap-2">
-        {!isPrincipal && (
+      <div className="flex items-center gap-1">
+        {!isPrincipal && !isOwner && (
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
             <Link href={noticesLink}>
               <Bell className="h-5 w-5" />
@@ -55,17 +56,16 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
             </Link>
           </Button>
         )}
-        {showAvatar && !isPrincipal && (
+        {showAvatar && !isPrincipal && !isOwner && (
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button className="hidden items-center gap-3 focus:outline-none md:flex">
-                <Avatar className="h-12 w-12">
+                <button className="focus:outline-none">
+                <Avatar className="h-9 w-9">
                     <AvatarImage
-                    src="https://picsum.photos/100/100"
+                    src={`https://api.dicebear.com/8.x/initials/svg?seed=${title}`}
                     alt="User Avatar"
-                    data-ai-hint="teacher avatar"
                     />
-                    <AvatarFallback>SS</AvatarFallback>
+                    <AvatarFallback>U</AvatarFallback>
                 </Avatar>
                 </button>
             </DropdownMenuTrigger>
@@ -85,7 +85,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
             </DropdownMenuContent>
             </DropdownMenu>
         )}
-        {(isPrincipal) && (
+        {(isPrincipal || isOwner) && (
             <Button variant="outline" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
