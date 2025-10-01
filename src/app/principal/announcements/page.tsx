@@ -60,16 +60,14 @@ export default function PrincipalAnnouncementsPage() {
     };
   }, [selectedGroup]);
 
-  const handleSendMessage = async (content: string, category: string, file?: File) => {
+  const handleSendMessage = async (content: string, file?: File) => {
     if (!user || !selectedGroup) {
         toast({ variant: "destructive", title: "Error", description: "No group selected." });
         return;
     }
 
     const announcementData: Partial<Announcement> = {
-        title: "Announcement",
         content,
-        category,
         created_by: user.id,
         creator_name: "Principal",
         creator_role: "Principal",

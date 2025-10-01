@@ -76,16 +76,14 @@ export default function TeacherAnnouncementsPage() {
       setSelectedGroup(group);
   }
 
-  const handleSendMessage = async (content: string, category: string, file?: File) => {
+  const handleSendMessage = async (content: string, file?: File) => {
     if (!teacher || !selectedGroup) {
         toast({ variant: "destructive", title: "Error", description: "Cannot send message. Teacher or group not selected." });
         return;
     }
 
     const announcementData: Partial<Announcement> = {
-        title: "Announcement",
         content,
-        category,
         created_by: teacher?.id,
         creator_name: teacher?.name,
         creator_role: teacher.role === 'classTeacher' ? 'Class Teacher' : 'Subject Teacher',

@@ -67,7 +67,7 @@ function AttachmentPreview({ url }: { url: string }) {
     )
 }
 
-function AnnouncementBubble({ notice, isSender, onEdit, onDelete, readOnly, showCategory = true }: AnnouncementBubbleProps) {
+function AnnouncementBubble({ notice, isSender, onEdit, onDelete, readOnly }: AnnouncementBubbleProps) {
   const createdAt = notice.created_at ? new Date(notice.created_at) : new Date();
   const isRecent = (Date.now() - createdAt.getTime()) < 15 * 60 * 1000;
 
@@ -109,14 +109,6 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete, readOnly, show
           <span className="text-[10px] text-muted-foreground">
             {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
           </span>
-          {showCategory && (
-            <>
-              <span className="text-[10px] text-muted-foreground">•</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                {notice.category}
-              </span>
-            </>
-          )}
         </div>
       </div>
       
@@ -148,7 +140,7 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete, readOnly, show
 interface AnnouncementChatProps {
   announcements: Announcement[];
   chatTitle: string | null;
-  onSendMessage?: (content: string, category: string, file?: File) => Promise<void>;
+  onSendMessage?: (content: string, file?: File) => Promise<void>;
   onUpdateMessage?: (id: string, content: string) => Promise<void>;
   onDeleteMessage?: (id: string) => Promise<void>;
   senderName: string;
@@ -169,12 +161,10 @@ export default function AnnouncementChat({
   readOnly = false
 }: AnnouncementChatProps) {
   const [message, setMessage] = useState("");
-  const [category, setCategory] = useState("General");
   const [attachment, setAttachment] = useState<File | null>(null);
   const [editingMessage, setEditingMessage] = useState<Announcement | null>(null);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
-  const [showCategoryInput, setShowCategoryInput] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
@@ -199,13 +189,11 @@ export default function AnnouncementChat({
           await onUpdateMessage(editingMessage.id, message);
           setEditingMessage(null);
       } else if(onSendMessage) {
-          await onSendMessage(message, category, attachment || undefined);
+          await onSendMessage(message, attachment || undefined);
       }
 
       setMessage("");
       setAttachment(null);
-      setCategory("General");
-      setShowCategoryInput(false);
       if(fileInputRef.current) fileInputRef.current.value = "";
     } finally {
       setIsSending(false);
@@ -227,16 +215,13 @@ export default function AnnouncementChat({
     if (readOnly) return;
     setEditingMessage(notice);
     setMessage(notice.content);
-    setCategory(notice.category);
     messageInputRef.current?.focus();
   }
 
   const cancelEdit = () => {
     setEditingMessage(null);
     setMessage("");
-    setCategory("General");
     setAttachment(null);
-    setShowCategoryInput(false);
     if(fileInputRef.current) fileInputRef.current.value = "";
   }
   
@@ -293,7 +278,7 @@ export default function AnnouncementChat({
                 onEdit={!readOnly ? handleEdit : undefined}
                 onDelete={!readOnly ? setDeletingMessageId : undefined}
                 readOnly={readOnly}
-                showCategory={!readOnly}
+                showCategory={false}
             />
           ))
         )}
@@ -347,19 +332,6 @@ export default function AnnouncementChat({
               </div>
           )}
           
-          {showCategoryInput && !editingMessage && (
-            <div className="mb-2 animate-in slide-in-from-bottom-2">
-              <Input
-                  value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  placeholder="Enter category (e.g., Homework, Event)"
-                  disabled={isSending}
-                  className="w-full rounded-xl border-2"
-                  onBlur={() => !category && setShowCategoryInput(false)}
-              />
-            </div>
-          )}
-          
           <div className="flex items-end gap-2">
               <Button 
                 variant="outline" 
@@ -394,19 +366,6 @@ export default function AnnouncementChat({
                     disabled={isSending}
                     className="pr-12 rounded-xl border-2 focus:ring-2 focus:ring-primary/20 h-10"
                 />
-                {!editingMessage && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowCategoryInput(!showCategoryInput)}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg"
-                    title="Add category"
-                  >
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      {category !== 'General' ? '✓' : '#'}
-                    </span>
-                  </Button>
-                )}
               </div>
               
               <Button 
@@ -422,14 +381,6 @@ export default function AnnouncementChat({
                   )}
               </Button>
           </div>
-          
-          {!editingMessage && category !== 'General' && (
-            <div className="mt-2 px-1">
-              <span className="text-xs text-muted-foreground">
-                Category: <span className="font-semibold text-foreground">{category}</span>
-              </span>
-            </div>
-          )}
         </div>
       )}
     </div>

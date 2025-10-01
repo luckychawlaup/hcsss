@@ -53,16 +53,14 @@ export default function OwnerAnnouncementsPage() {
     };
   }, [selectedGroup]);
 
-  const handleSendMessage = async (content: string, category: string, file?: File) => {
+  const handleSendMessage = async (content: string, file?: File) => {
     if (!user || !selectedGroup) {
         toast({ variant: "destructive", title: "Error", description: "No group selected." });
         return;
     }
 
     const announcementData: Partial<Announcement> = {
-        title: "Announcement from Owner",
         content,
-        category,
         created_by: user.id,
         creator_name: "Owner",
         creator_role: "Owner",

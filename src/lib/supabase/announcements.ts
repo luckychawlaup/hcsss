@@ -5,9 +5,7 @@ const supabase = createClient();
 
 export interface Announcement {
   id: string;
-  title: string;
   content: string;
-  category: string;
   target: "students" | "teachers" | "both" | "admins";
   target_audience?: {
     type: "class" | "student";
