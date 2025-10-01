@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -89,7 +90,7 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: Announcement
         )}
         
         <div className={cn(
-          "relative px-3 py-2.5 rounded-2xl shadow-sm transition-all",
+          "relative px-3 py-2 rounded-2xl shadow-sm transition-all",
           isSender 
             ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm" 
             : "bg-secondary/80 backdrop-blur-sm rounded-tl-sm"
@@ -305,7 +306,7 @@ export default function AnnouncementChat({
       {/* Enhanced Input area */}
       <div className="border-t bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 p-3 sm:p-4 pb-safe shadow-lg">
         {editingMessage && (
-          <div className="mb-3 px-3 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between animate-in slide-in-from-bottom-2">
+          <div className="mb-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between animate-in slide-in-from-bottom-2">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
                 <Edit className="h-4 w-4 text-white" />
@@ -322,7 +323,7 @@ export default function AnnouncementChat({
         )}
         
         {attachment && !editingMessage && (
-            <div className="flex items-center gap-2 p-2.5 mb-3 bg-gradient-to-r from-secondary to-secondary/50 rounded-xl text-sm border animate-in slide-in-from-bottom-2">
+            <div className="flex items-center gap-2 p-2 mb-3 bg-gradient-to-r from-secondary to-secondary/50 rounded-xl text-sm border animate-in slide-in-from-bottom-2">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                   {attachment.type.startsWith('image/') ? (
                     <ImageIcon className="h-4 w-4 text-primary" />

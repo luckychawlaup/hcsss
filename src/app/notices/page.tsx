@@ -33,7 +33,7 @@ function AnnouncementCard({ notice }: { notice: Announcement }) {
   
   return (
     <Card className="overflow-hidden">
-        <CardHeader>
+        <CardHeader className="py-3">
             <div className="flex items-start justify-between gap-4">
                 <div>
                      <div className="text-xs text-muted-foreground">
@@ -45,7 +45,7 @@ function AnnouncementCard({ notice }: { notice: Announcement }) {
                 <Badge variant="secondary">{notice.category}</Badge>
             </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
             <p className="whitespace-pre-wrap">{notice.content}</p>
             {notice.attachment_url && <AttachmentPreview url={notice.attachment_url} />}
         </CardContent>
