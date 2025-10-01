@@ -14,49 +14,36 @@ export interface Mark {
 }
 
 export const MARKS_TABLE_SETUP_SQL = `
--- Create the marks table to store student grades for each exam subject
--- Updated to match the actual database structure
-CREATE TABLE IF NOT EXISTS public.marks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_auth_uid UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
-    subject TEXT NOT NULL,
-    marks INTEGER NOT NULL,
-    max_marks INTEGER NOT NULL,
-    grade TEXT,
-    exam_date TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT marks_unique_student_exam_subject UNIQUE (student_auth_uid, exam_id, subject)
-);
+-- This SQL script adds the 'exam_date' column to your 'marks' table.
+-- You only need to run this once in your Supabase SQL Editor.
 
--- Enable Row Level Security (RLS) for the marks table
-ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marks
+ADD COLUMN IF NOT EXISTS exam_date TIMESTAMPTZ;
 
--- Drop existing policies to prevent conflicts
+-- Re-create policies to ensure they are up-to-date.
 DROP POLICY IF EXISTS "Allow teachers to manage marks" ON public.marks;
 DROP POLICY IF EXISTS "Allow students to view their own marks" ON public.marks;
 DROP POLICY IF EXISTS "Allow admins to manage all marks" ON public.marks;
 
--- Policy: Allow authenticated teachers to perform all operations on marks
 CREATE POLICY "Allow teachers to manage marks"
 ON public.marks FOR ALL
 USING (
   (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
 );
 
--- Policy: Allow students to view their own marks (updated to use student_auth_uid)
 CREATE POLICY "Allow students to view their own marks"
 ON public.marks FOR SELECT
 USING (
-  student_auth_uid = auth.uid()
+  student_id = (SELECT id FROM public.students WHERE auth_uid = auth.uid())
 );
 
--- Policy: Allow admin users to manage all marks
 CREATE POLICY "Allow admins to manage all marks"
 ON public.marks FOR ALL
 USING (
-    auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7')
+  auth.uid() IN (
+    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
+    '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
+  )
 );
 `;
 
@@ -73,20 +60,8 @@ const getGrade = (marks: number, maxMarks: number): string => {
 
 export const setMarksForStudent = async (studentId: string, examId: string, marksData: { subject: string; marks: number; max_marks: number, exam_date?: Date }[]) => {
     try {
-        // Get the student's auth_uid since the marks table uses student_auth_uid
-        const { data: studentData, error: studentError } = await supabase
-            .from('students')
-            .select('auth_uid')
-            .eq('id', studentId)
-            .single();
-
-        if (studentError || !studentData) {
-            console.error("Could not get student auth_uid for setting marks:", studentError);
-            throw new Error("Student not found");
-        }
-
         const marksWithGrades = marksData.map(m => ({
-            student_auth_uid: studentData.auth_uid, // Use the correct column name
+            student_id: studentId,
             exam_id: examId,
             subject: m.subject,
             marks: m.marks,
@@ -95,9 +70,8 @@ export const setMarksForStudent = async (studentId: string, examId: string, mark
             exam_date: m.exam_date ? m.exam_date.toISOString() : null,
         }));
 
-        // Upsert operation: update if composite key exists, else insert
         const { error } = await supabase.from('marks').upsert(marksWithGrades, {
-            onConflict: 'student_auth_uid,exam_id,subject', // Use the correct column name
+            onConflict: 'student_id,exam_id,subject',
         });
 
         if (error) {
@@ -112,22 +86,10 @@ export const setMarksForStudent = async (studentId: string, examId: string, mark
 
 export const getStudentMarksForExam = async (studentId: string, examId: string): Promise<Mark[]> => {
     try {
-        // Get the student's auth_uid since the marks table uses student_auth_uid
-        const { data: studentData, error: studentError } = await supabase
-            .from('students')
-            .select('auth_uid')
-            .eq('id', studentId)
-            .single();
-
-        if (studentError || !studentData) {
-            console.error("Could not get student auth_uid for exam marks:", studentError);
-            return [];
-        }
-
         const { data, error } = await supabase
             .from('marks')
             .select('*')
-            .eq('student_auth_uid', studentData.auth_uid) // Use correct column name
+            .eq('student_id', studentId)
             .eq('exam_id', examId);
         
         if (error) {
@@ -135,12 +97,11 @@ export const getStudentMarksForExam = async (studentId: string, examId: string):
             throw error;
         }
 
-        // Map snake_case to camelCase
         return (data || []).map(item => ({
             ...item,
             max_marks: item.max_marks,
             exam_date: item.exam_date,
-            student_id: studentId // Add for compatibility
+            student_id: studentId
         }));
     } catch (error) {
         console.error("Error in getStudentMarksForExam:", error);
@@ -151,46 +112,22 @@ export const getStudentMarksForExam = async (studentId: string, examId: string):
 export const getMarksForStudent = async (studentId: string): Promise<Record<string, Mark[]>> => {
     try {
         if (!studentId) {
-            console.warn("No student ID provided to getMarksForStudent");
             return {};
         }
 
-        console.log("Fetching marks for student:", studentId);
-
-        // Get the student's auth_uid first since the marks table uses student_auth_uid
-        const { data: studentData, error: studentError } = await supabase
-            .from('students')
-            .select('auth_uid')
-            .eq('id', studentId)
-            .single();
-
-        if (studentError || !studentData) {
-            console.error("Could not get student auth_uid:", studentError);
-            return {};
-        }
-
-        console.log("Student auth_uid:", studentData.auth_uid);
-
-        // Now query marks using student_auth_uid (the actual column name)
         const { data, error } = await supabase
             .from('marks')
             .select('*')
-            .eq('student_auth_uid', studentData.auth_uid);
+            .eq('student_id', studentId);
 
         if (error) {
             console.error("Supabase error getting marks for student:", error.message || error);
-            console.error("Full error object:", error);
             return {};
         }
         
-        // If no data found, return empty object (this is not an error)
         if (!data || data.length === 0) {
-            console.log(`No marks found for student auth_uid: ${studentData.auth_uid}`);
             return {};
         }
-
-        console.log(`Found ${data.length} mark records for student:`, studentId);
-        console.log("Sample mark record:", data[0]);
 
         const marksByExam = data.reduce((acc, mark) => {
             const examId = mark.exam_id;
@@ -199,17 +136,14 @@ export const getMarksForStudent = async (studentId: string): Promise<Record<stri
                 ...mark, 
                 max_marks: mark.max_marks,
                 exam_date: mark.exam_date,
-                student_id: studentId // Add this for compatibility with existing code
+                student_id: studentId
             });
             return acc;
         }, {} as Record<string, Mark[]>);
         
-        console.log("Organized marks by exam:", Object.keys(marksByExam));
         return marksByExam;
     } catch (error) {
         console.error("Unexpected error in getMarksForStudent:", error);
         return {};
     }
 };
-
-    

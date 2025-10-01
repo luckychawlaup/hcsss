@@ -35,6 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format as formatDate } from 'date-fns';
+import { getStudentsForTeacher, Student } from "@/lib/supabase/students";
 
 const createExamSchema = z.object({
   name: z.string().min(3, "Exam name must be at least 3 characters."),
@@ -48,6 +49,7 @@ interface DatesheetManagerProps {
 
 export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     const [exams, setExams] = useState<Exam[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
     const [subjects, setSubjects] = useState<Record<string, { subject: string, exam_date?: Date }>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,27 +68,54 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (teacher) {
+            getStudentsForTeacher(teacher, (students) => setStudents(students as Student[]));
+        }
+    }, [teacher]);
     
     useEffect(() => {
-        if (selectedExam) {
+        if (selectedExam && classTeacherClass) {
             setIsFetchingSubjects(true);
-            // We just need the subjects, so we can fetch marks for any student in the class
-            // A better approach would be a dedicated datesheet table, but this works for now.
-            // Let's assume we can derive subjects from the first student or have a default list.
-            const defaultSubjects = teacher?.qualifications || ["English", "Hindi", "Maths", "Science", "Social Science"];
-            
-            const initialSubjects: Record<string, { subject: string, exam_date?: Date }> = {};
-            defaultSubjects.forEach(sub => {
-                initialSubjects[sub] = { subject: sub, exam_date: undefined };
-            });
+            const studentsInClass = students.filter(s => `${s.class}-${s.section}` === classTeacherClass);
+            const firstStudentId = studentsInClass[0]?.id;
 
-            // This part is a placeholder. In a real scenario, you'd fetch the existing schedule.
-            setSubjects(initialSubjects);
-            setIsFetchingSubjects(false);
+            if (firstStudentId) {
+                getStudentMarksForExam(firstStudentId, selectedExam.id).then(marks => {
+                    if (marks.length > 0) {
+                        const initialSubjects = marks.reduce((acc, mark) => {
+                            acc[mark.subject] = {
+                                subject: mark.subject,
+                                exam_date: mark.exam_date ? new Date(mark.exam_date) : undefined
+                            };
+                            return acc;
+                        }, {} as Record<string, { subject: string, exam_date?: Date }>);
+                        setSubjects(initialSubjects);
+                    } else {
+                        // If no marks exist, use teacher's subjects as default
+                        const defaultSubjects = teacher?.qualifications || ["English", "Hindi", "Maths", "Science", "Social Science"];
+                        const initialSubjects: Record<string, { subject: string, exam_date?: Date }> = {};
+                        defaultSubjects.forEach(sub => {
+                            initialSubjects[sub] = { subject: sub, exam_date: undefined };
+                        });
+                        setSubjects(initialSubjects);
+                    }
+                     setIsFetchingSubjects(false);
+                });
+            } else {
+                const defaultSubjects = teacher?.qualifications || ["English", "Hindi", "Maths", "Science", "Social Science"];
+                const initialSubjects: Record<string, { subject: string, exam_date?: Date }> = {};
+                defaultSubjects.forEach(sub => {
+                    initialSubjects[sub] = { subject: sub, exam_date: undefined };
+                });
+                setSubjects(initialSubjects);
+                setIsFetchingSubjects(false);
+            }
         } else {
             setSubjects({});
         }
-    }, [selectedExam, teacher?.qualifications]);
+    }, [selectedExam, classTeacherClass, students, teacher?.qualifications]);
     
     const handleAddSubject = () => {
         const newSubjectName = `New Subject ${Object.keys(subjects).length + 1}`;
@@ -123,28 +152,33 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     };
 
     const handleSubmit = async () => {
-        if (!selectedExam || Object.keys(subjects).length === 0) {
-            toast({ variant: "destructive", title: "Missing Information", description: "Please select an exam and add at least one subject." });
+        if (!selectedExam || !classTeacherClass || Object.keys(subjects).length === 0) {
+            toast({ variant: "destructive", title: "Missing Information", description: "Please select an exam and add subjects." });
             return;
         }
 
-        const validSubjects = Object.values(subjects).filter(s => s.subject.trim() !== "" && s.exam_date);
-        if (validSubjects.length === 0) {
-            toast({ variant: "destructive", title: "Incomplete Schedule", description: "Please provide a date for at least one subject." });
-            return;
+        const studentsInClass = students.filter(s => `${s.class}-${s.section}` === classTeacherClass);
+        if (studentsInClass.length === 0) {
+             toast({ variant: "destructive", title: "No Students in Class", description: "Cannot save datesheet for a class with no students." });
+             return;
         }
-        
+
         setIsSubmitting(true);
         try {
-            // This is a placeholder. In a real app, this would save the datesheet.
-            // For now, we'll just show a success message.
-            console.log("Saving Datesheet:", {
-                examId: selectedExam.id,
-                schedule: validSubjects,
-            });
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const scheduleData = Object.values(subjects).map(s => ({
+                subject: s.subject.trim(),
+                marks: 0, // Placeholder
+                max_marks: 100, // Placeholder
+                exam_date: s.exam_date
+            })).filter(s => s.subject !== "");
+
+            // Save the schedule for all students in the class
+            const savePromises = studentsInClass.map(student => 
+                setMarksForStudent(student.id, selectedExam.id, scheduleData)
+            );
+            await Promise.all(savePromises);
             
-            toast({ title: "Datesheet Saved!", description: `The schedule for ${selectedExam.name} has been saved.` });
+            toast({ title: "Datesheet Saved!", description: `The schedule for ${selectedExam.name} has been saved for all students in ${classTeacherClass}.` });
         } catch (error) {
             console.error("Error saving datesheet:", error);
             toast({ variant: "destructive", title: "Error", description: "Failed to save the datesheet." });
@@ -209,7 +243,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                          <CardTitle className="flex items-center gap-2"><BookOpen />Select Exam</CardTitle>
                          <Button variant="outline" onClick={() => setIsCreateExamOpen(true)}><PlusCircle className="mr-2"/>Create New Exam</Button>
                     </div>
-                    <CardDescription>Choose an exam to create or edit its datesheet.</CardDescription>
+                    <CardDescription>Choose an exam to create or edit its datesheet for your class: <span className="font-semibold text-primary">{classTeacherClass}</span></CardDescription>
                 </CardHeader>
                 <CardContent>
                      <Select onValueChange={(val) => setSelectedExam(exams.find(e => e.id === val) || null)}>
