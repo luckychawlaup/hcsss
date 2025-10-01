@@ -49,7 +49,8 @@ export default function ExamDatesheet() {
                         getStudentMarksForExam(studentProfile.id, currentOrNextExam.id).then(marks => {
                             const examWithSubjects: ExamWithSubjects = {
                                 ...currentOrNextExam,
-                                subjects: marks.map(m => ({ subject: m.subject, date: m.created_at || currentOrNextExam.date }))
+                                subjects: marks.map(m => ({ subject: m.subject, date: m.exam_date || currentOrNextExam.date }))
+                                            .filter(s => s.date)
                                             .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                             };
                             setUpcomingExam(examWithSubjects);
@@ -131,3 +132,5 @@ export default function ExamDatesheet() {
         );
     }
 }
+
+    

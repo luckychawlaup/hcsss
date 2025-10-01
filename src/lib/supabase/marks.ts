@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
@@ -9,6 +10,7 @@ export interface Mark {
     marks: number;
     max_marks: number;
     grade: string;
+    exam_date?: string;
 }
 
 export const MARKS_TABLE_SETUP_SQL = `
@@ -22,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.marks (
     marks INTEGER NOT NULL,
     max_marks INTEGER NOT NULL,
     grade TEXT,
+    exam_date TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT marks_unique_student_exam_subject UNIQUE (student_auth_uid, exam_id, subject)
@@ -68,7 +71,7 @@ const getGrade = (marks: number, maxMarks: number): string => {
     return 'E';
 };
 
-export const setMarksForStudent = async (studentId: string, examId: string, marksData: { subject: string; marks: number; max_marks: number }[]) => {
+export const setMarksForStudent = async (studentId: string, examId: string, marksData: { subject: string; marks: number; max_marks: number, exam_date?: Date }[]) => {
     try {
         // Get the student's auth_uid since the marks table uses student_auth_uid
         const { data: studentData, error: studentError } = await supabase
@@ -88,7 +91,8 @@ export const setMarksForStudent = async (studentId: string, examId: string, mark
             subject: m.subject,
             marks: m.marks,
             max_marks: m.max_marks,
-            grade: getGrade(m.marks, m.max_marks)
+            grade: getGrade(m.marks, m.max_marks),
+            exam_date: m.exam_date ? m.exam_date.toISOString() : null,
         }));
 
         // Upsert operation: update if composite key exists, else insert
@@ -122,7 +126,7 @@ export const getStudentMarksForExam = async (studentId: string, examId: string):
 
         const { data, error } = await supabase
             .from('marks')
-            .select('*, max_marks')
+            .select('*')
             .eq('student_auth_uid', studentData.auth_uid) // Use correct column name
             .eq('exam_id', examId);
         
@@ -134,7 +138,8 @@ export const getStudentMarksForExam = async (studentId: string, examId: string):
         // Map snake_case to camelCase
         return (data || []).map(item => ({
             ...item,
-            maxMarks: item.max_marks,
+            max_marks: item.max_marks,
+            exam_date: item.exam_date,
             student_id: studentId // Add for compatibility
         }));
     } catch (error) {
@@ -192,7 +197,8 @@ export const getMarksForStudent = async (studentId: string): Promise<Record<stri
             if (!acc[examId]) acc[examId] = [];
             acc[examId].push({ 
                 ...mark, 
-                maxMarks: mark.max_marks,
+                max_marks: mark.max_marks,
+                exam_date: mark.exam_date,
                 student_id: studentId // Add this for compatibility with existing code
             });
             return acc;
@@ -205,3 +211,5 @@ export const getMarksForStudent = async (studentId: string): Promise<Record<stri
         return {};
     }
 };
+
+    
