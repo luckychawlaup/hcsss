@@ -14,8 +14,11 @@ export interface Holiday {
 }
 
 export const HOLIDAYS_TABLE_SETUP_SQL = `
--- Create the school_holidays table to store dates when the school is closed.
-CREATE TABLE IF NOT EXISTS public.school_holidays (
+-- Drop the table and its dependent policies completely to ensure a clean start.
+DROP TABLE IF EXISTS public.school_holidays;
+
+-- Recreate the school_holidays table.
+CREATE TABLE public.school_holidays (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     date DATE NOT NULL,
     description TEXT NOT NULL,
@@ -24,45 +27,38 @@ CREATE TABLE IF NOT EXISTS public.school_holidays (
     CONSTRAINT holiday_unique_per_scope UNIQUE(date, class_section)
 );
 
--- Enable RLS for the holidays table
+-- Enable Row Level Security (RLS) on the newly created table.
 ALTER TABLE public.school_holidays ENABLE ROW LEVEL SECURITY;
 
--- Drop policies if they exist to prevent conflicts
-DROP POLICY IF EXISTS "Allow admins to manage holidays" ON public.school_holidays;
-DROP POLICY IF EXISTS "Allow class teachers to manage their class holidays" ON public.school_holidays;
-DROP POLICY IF EXISTS "Allow authenticated users to read holidays" ON public.school_holidays;
+-- **NEW & CORRECTED POLICIES**
 
--- Policy: Allow Principal/Owner to manage all holidays (school-wide and class-specific)
+-- Policy: Allow Principal/Owner to manage all holidays.
 CREATE POLICY "Allow admins to manage holidays"
 ON public.school_holidays FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
     (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
-)
-WITH CHECK (
-    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
-    OR
-    (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
 );
 
--- Policy: Allow Class Teachers to manage holidays for their specific class
+-- Policy: Allow Class Teachers to manage holidays ONLY for their assigned class.
+-- This version uses an EXISTS clause with a direct join condition to avoid ambiguity.
 CREATE POLICY "Allow class teachers to manage their class holidays"
 ON public.school_holidays FOR ALL
 USING (
-  class_section = (select class_teacher_of from public.teachers where auth_uid = auth.uid() and role = 'classTeacher')
-)
-WITH CHECK (
-  class_section = (select class_teacher_of from public.teachers where auth_uid = auth.uid() and role = 'classTeacher')
+    EXISTS (
+        SELECT 1
+        FROM public.teachers t
+        WHERE t.auth_uid = auth.uid()
+          AND t.role = 'classTeacher'
+          AND t.class_teacher_of = public.school_holidays.class_section
+    )
 );
 
-
--- Policy: Allow any authenticated user to read relevant holidays
+-- Policy: Allow any authenticated user (students, teachers, etc.) to read holiday information.
 CREATE POLICY "Allow authenticated users to read holidays"
 ON public.school_holidays FOR SELECT
-USING (
-    auth.role() = 'authenticated'
-);
+USING (auth.role() = 'authenticated');
 `;
 
 // Add a new holiday
