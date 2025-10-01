@@ -13,7 +13,7 @@ import type { Feedback } from "@/lib/supabase/feedback";
 import { prepopulateExams } from "@/lib/supabase/exams";
 import { getAllLeaveRequests, LeaveRequest } from "@/lib/supabase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info, CalendarOff, User as UserIcon } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info, CalendarOff, User as UserIcon, ChevronRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
@@ -45,15 +45,21 @@ type CombinedTeacher = (Teacher & { status: 'Registered' });
 type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "manageHolidays" | "reviewLeaves";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title:string, description:string, icon:React.ElementType, onClick:() => void }) => (
-    <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer" onClick={onClick}>
-        <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Icon className="h-6 w-6" />
+    <Card 
+        className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer" 
+        onClick={onClick}
+    >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
+            <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-6 w-6" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-base">{title}</h3>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                </div>
             </div>
-            <div>
-                <h3 className="font-semibold text-base">{title}</h3>
-                <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
         </CardHeader>
     </Card>
 );
@@ -346,3 +352,5 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
+
+    

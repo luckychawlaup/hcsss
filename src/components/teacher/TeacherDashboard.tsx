@@ -18,7 +18,7 @@ import { getStudentsForTeacher, CombinedStudent, updateStudent, Student } from "
 import { getFeedbackForClassTeacher, Feedback } from "@/lib/supabase/feedback";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/supabase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon, Book, CalendarDays, CalendarOff } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon, Book, CalendarDays, CalendarOff, ChevronRight } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import TeacherNav from "./TeacherNav";
 import { Button } from "../ui/button";
@@ -40,21 +40,26 @@ export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "
 
 const NavCard = ({ title, description, icon: Icon, onClick, asLink, href }: { title: string, description: string, icon: React.ElementType, onClick?: () => void, asLink?: boolean, href?: string }) => {
     const content = (
-         <Card className="hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer h-full">
-            <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-6 w-6" />
+         <Card 
+            className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer h-full"
+        >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
+                 <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-base">{title}</h3>
+                        <p className="text-sm text-muted-foreground">{description}</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 className="font-semibold text-base">{title}</h3>
-                    <p className="text-sm text-muted-foreground">{description}</p>
-                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
             </CardHeader>
         </Card>
     );
 
     if (asLink && href) {
-        return <Link href={href} target="_blank" rel="noopener noreferrer" className="block h-full">{content}</Link>
+        return <Link href={href} target="_blank" rel="noopener noreferrer" className="block h-full" onClick={onClick}>{content}</Link>
     }
 
     return <div onClick={onClick} className="h-full">{content}</div>
@@ -395,3 +400,5 @@ export default function TeacherDashboard() {
     </div>
   );
 }
+
+    
