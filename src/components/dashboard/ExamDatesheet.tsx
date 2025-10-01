@@ -75,7 +75,7 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
     }, [onUpcomingExamLoad]);
 
     if (isLoading) {
-        return <Skeleton className="h-64 w-full" />;
+        return <Skeleton className="h-48 w-full" />;
     }
 
     if (!upcomingExam || !upcomingExam.start_date) {
@@ -126,17 +126,17 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
     } else if (isAfter(startDate, today)) {
         // Exam is in the future, show the warning card
         return (
-            <Card className="bg-yellow-50 border-yellow-200">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-yellow-800">
-                        <AlertTriangle className="h-6 w-6" />
-                        Exams Approaching!
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="text-center text-yellow-700">
-                    <p className="font-semibold">Your {upcomingExam.name} will start on:</p>
-                    <p className="text-2xl font-bold mt-2">{new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                    <p className="mt-4">Be prepared and study well!</p>
+           <Card className="bg-yellow-50 border-yellow-200 w-full">
+                <CardContent className="p-3 flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
+                        <AlertTriangle className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-yellow-800 text-sm">Exams Approaching: {upcomingExam.name}</h3>
+                        <p className="text-xs text-yellow-700">
+                            Starts on {new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. Study well!
+                        </p>
+                    </div>
                 </CardContent>
             </Card>
         );
