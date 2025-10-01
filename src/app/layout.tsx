@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Suspense } from "react";
 import Loading from "./loading";
 import Footer from "@/components/dashboard/Footer";
+import { ThemeProvider } from "next-themes";
 
 
 const poppins = Poppins({
@@ -54,6 +55,12 @@ export default function RootLayout({
     <html lang="en" className={`${poppins.variable}`} suppressHydrationWarning>
       <head/>
       <body>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
             <Suspense fallback={<Loading />}>
               <div className="flex flex-col min-h-screen">
                 <main className="flex-grow">{children}</main>
@@ -61,6 +68,7 @@ export default function RootLayout({
               </div>
             </Suspense>
             <Toaster />
+          </ThemeProvider>
       </body>
     </html>
   );

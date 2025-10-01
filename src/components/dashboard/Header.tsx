@@ -3,17 +3,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Bell, User, LogOut } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Bell, LogOut, User as UserIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useSchoolInfo } from "@/hooks/use-school-info";
@@ -21,6 +12,7 @@ import { Skeleton } from "../ui/skeleton";
 import { useState, useEffect } from "react";
 import { getStudentByAuthId } from "@/lib/supabase/students";
 import type { Student } from "@/lib/supabase/students";
+import { ThemeToggleButton } from "../ui/theme-toggle-button";
 
 
 interface HeaderProps {
@@ -109,35 +101,7 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
             </Link>
           </Button>
         )}
-        {showAvatar && !isPrincipal && !isOwner && (
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <button className="focus:outline-none">
-                <Avatar className="h-9 w-9">
-                    <AvatarImage
-                    src={`https://api.dicebear.com/8.x/initials/svg?seed=${title}`}
-                    alt="User Avatar"
-                    />
-                    <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <Link href="/profile" passHref>
-                <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                </DropdownMenuItem>
-                </Link>
-                 <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Logout</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-            </DropdownMenu>
-        )}
+        <ThemeToggleButton />
         {(isPrincipal || isOwner) && (
             <Button variant="outline" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
