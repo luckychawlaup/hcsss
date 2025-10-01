@@ -31,11 +31,11 @@ USING (
   (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
 );
 
--- Policy to allow students to view their own marks, corrected to use the 'student' column.
+-- Policy to allow students to view their own marks, corrected to use the 'student_id' column.
 CREATE POLICY "Allow students to view their own marks"
 ON public.marks FOR SELECT
 USING (
-  student = (SELECT id FROM public.students WHERE auth_uid = auth.uid())
+  student_id = (SELECT id FROM public.students WHERE auth_uid = auth.uid())
 );
 
 CREATE POLICY "Allow admins to manage all marks"
@@ -62,7 +62,7 @@ const getGrade = (marks: number, maxMarks: number): string => {
 export const setMarksForStudent = async (studentId: string, examId: string, marksData: { subject: string; marks: number; max_marks: number, exam_date?: Date }[]) => {
     try {
         const marksWithGrades = marksData.map(m => ({
-            student: studentId,
+            student_id: studentId,
             exam_id: examId,
             subject: m.subject,
             marks: m.marks,
@@ -72,7 +72,7 @@ export const setMarksForStudent = async (studentId: string, examId: string, mark
         }));
 
         const { error } = await supabase.from('marks').upsert(marksWithGrades, {
-            onConflict: 'student,exam_id,subject',
+            onConflict: 'student_id,exam_id,subject',
         });
 
         if (error) {
@@ -90,7 +90,7 @@ export const getStudentMarksForExam = async (studentId: string, examId: string):
         const { data, error } = await supabase
             .from('marks')
             .select('*')
-            .eq('student', studentId)
+            .eq('student_id', studentId)
             .eq('exam_id', examId);
         
         if (error) {
@@ -119,7 +119,7 @@ export const getMarksForStudent = async (studentId: string): Promise<Record<stri
         const { data, error } = await supabase
             .from('marks')
             .select('*')
-            .eq('student', studentId);
+            .eq('student_id', studentId);
 
         if (error) {
             console.error("Supabase error getting marks for student:", error.message || error);
