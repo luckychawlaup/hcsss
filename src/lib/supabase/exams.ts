@@ -1,4 +1,3 @@
-
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -403,7 +402,3 @@ export const getStudentExams = async (studentId: string): Promise<Exam[]> => {
         return [];
     }
 };
-
-    
-
-    

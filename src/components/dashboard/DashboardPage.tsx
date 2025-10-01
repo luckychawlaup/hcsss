@@ -14,7 +14,7 @@ import Link from "next/link";
 import { Button } from "../ui/button";
 import BottomNav from "./BottomNav";
 import type { Exam } from "@/lib/supabase/exams";
-import { startOfDay, parseISO, isBefore, isAfter, subDays } from "date-fns";
+import { isAfter, startOfToday, parseISO, isWithinInterval, subDays, endOfDay } from "date-fns";
 
 function DashboardLoadingSkeleton() {
     return (
@@ -34,18 +34,18 @@ function DashboardLoadingSkeleton() {
 export default function DashboardPage() {
   const [upcomingExam, setUpcomingExam] = useState<Exam | null | undefined>(undefined);
   
-  const today = startOfDay(new Date());
+  const today = startOfToday();
   let showDatesheetInsteadOfHomework = false;
 
-  // Determine if we should show datesheet widget instead of homework
   if (upcomingExam?.start_date && upcomingExam.end_date) {
-    const examStartDate = startOfDay(parseISO(upcomingExam.start_date));
-    const examEndDate = startOfDay(parseISO(upcomingExam.end_date));
-    const oneDayBeforeStart = subDays(examStartDate, 1);
-    
-    // Show datesheet from 1 day before exam starts until exam ends (inclusive)
-    // Logic: today >= oneDayBefore AND today <= endDate
-    showDatesheetInsteadOfHomework = !isBefore(today, oneDayBeforeStart) && !isAfter(today, examEndDate);
+    const examStartDate = parseISO(upcomingExam.start_date);
+    const examEndDate = endOfDay(parseISO(upcomingExam.end_date));
+    // Show datesheet one day before the exam starts and until it ends
+    const periodForDatesheet = {
+        start: subDays(examStartDate, 1),
+        end: examEndDate
+    };
+    showDatesheetInsteadOfHomework = isWithinInterval(today, periodForDatesheet);
   }
 
 
@@ -65,12 +65,12 @@ export default function DashboardPage() {
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 text-primary">
                                         <Eye className="h-6 w-6" />
-                                        View Homework
+                                        Exams in Progress
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-muted-foreground mb-4">
-                                        Your exams are ongoing. Click below to view your homework assignments.
+                                        Your exams are ongoing. You can still view your homework assignments.
                                     </p>
                                     <Button asChild className="w-full">
                                         <Link href="/homework">

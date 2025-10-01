@@ -26,16 +26,17 @@ export default function ReportCardComponent() {
 
   useEffect(() => {
     let isMounted = true;
-    
+    let examsUnsubscribe: any;
+
     const fetchData = async () => {
+      if (!isMounted) return;
       setIsLoading(true);
       setError(null);
-      
+
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (!isMounted) return;
         if (authError || !user) {
-          console.error("Authentication error:", authError);
           setError("You must be logged in to view report cards.");
           setIsLoading(false);
           return;
@@ -48,47 +49,37 @@ export default function ReportCardComponent() {
           setIsLoading(false);
           return;
         }
+
+        const studentMarks = await getMarksForStudent(studentProfile.id);
+        if (!isMounted) return;
         
-        let examsUnsubscribe: any;
-        const examsPromise = new Promise<Exam[]>((resolve, reject) => {
-            examsUnsubscribe = getExams((examsData) => {
-                if (isMounted) {
-                  setExams(examsData || []);
-                  resolve(examsData || []);
-                }
-            });
+        setMarks(studentMarks || {});
+        
+        // Now that we have marks, fetch the corresponding exams
+        examsUnsubscribe = getExams((examsData) => {
+            if (isMounted) {
+                setExams(examsData || []);
+                setIsLoading(false);
+            }
         });
 
-        const [allExams, studentMarks] = await Promise.all([
-            examsPromise,
-            getMarksForStudent(studentProfile.id)
-        ]);
-
+      } catch (err: any) {
         if (isMounted) {
-            setMarks(studentMarks || {});
-            setIsLoading(false);
-        }
-        
-        return () => {
-            if(examsUnsubscribe && typeof examsUnsubscribe.unsubscribe === 'function') {
-                examsUnsubscribe.unsubscribe();
-            }
-        };
-
-      } catch (error) {
-        if (isMounted) {
-          console.error("Error fetching report card data:", error);
-          setError("Failed to load report cards.");
+          console.error("Error fetching report card data:", err);
+          setError(err.message || "Failed to load report cards.");
           setIsLoading(false);
         }
       }
     };
 
     fetchData();
-    
+
     return () => {
-        isMounted = false;
-    }
+      isMounted = false;
+      if (examsUnsubscribe && typeof examsUnsubscribe.unsubscribe === 'function') {
+        examsUnsubscribe.unsubscribe();
+      }
+    };
   }, [supabase]);
 
   // Filter exams that have marks available

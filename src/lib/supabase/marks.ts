@@ -1,4 +1,3 @@
-
 import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
@@ -217,6 +216,3 @@ export const getMarksForStudent = async (studentId: string): Promise<Record<stri
         return {};
     }
 };
-
-
-    

@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import { getExams, Exam } from "@/lib/supabase/exams";
 import { getMarksForStudent } from "@/lib/supabase/marks";
-import { startOfDay, parseISO, isBefore, isAfter, subDays } from 'date-fns';
+import { isWithinInterval, startOfToday, parseISO, isAfter, isBefore } from 'date-fns';
 
 type ExamWithSubjects = Exam & { subjects: { subject: string; date: string }[] };
 
@@ -53,29 +53,18 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
 
                 if (!isMounted) return;
 
-                const today = startOfDay(new Date());
+                const today = startOfToday();
                 let relevantExam: Exam | undefined;
                 let relevantSubjects: { subject: string; date: string }[] = [];
 
-                // Find the most relevant exam with a datesheet
-                const sortedExams = exams
-                    .filter(exam => exam.start_date && exam.end_date)
-                    .sort((a,b) => new Date(a.start_date!).getTime() - new Date(b.start_date!).getTime());
+                // Find the most relevant exam with a datesheet for the student
+                const sortedExams = exams.sort((a,b) => new Date(a.start_date || a.date).getTime() - new Date(b.start_date || b.date).getTime());
                 
                 for (const exam of sortedExams) {
                     const studentMarksForExam = marks[exam.id];
-                    
-                    // Check if this exam has a datesheet (subjects with dates)
                     if (studentMarksForExam && studentMarksForExam.some(m => m.exam_date)) {
-                        const examStartDate = startOfDay(parseISO(exam.start_date!));
-                        const examEndDate = startOfDay(parseISO(exam.end_date!));
-                        const oneDayBeforeStart = subDays(examStartDate, 1);
-
-                        // Show datesheet from 1 day before start until end date (inclusive)
-                        // This means: if today >= oneDayBefore AND today <= endDate
-                        const shouldShow = !isBefore(today, oneDayBeforeStart) && !isAfter(today, examEndDate);
-
-                        if (shouldShow) {
+                        const examEndDate = exam.end_date ? parseISO(exam.end_date) : null;
+                        if (!examEndDate || isAfter(examEndDate, today)) {
                             relevantExam = exam;
                             relevantSubjects = studentMarksForExam
                                 .filter(mark => mark.exam_date)
@@ -112,42 +101,70 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
         return <Skeleton className="h-48 w-full" />;
     }
 
-    if (!upcomingExam || !upcomingExam.subjects || upcomingExam.subjects.length === 0) {
-        return null;
+    if (!upcomingExam || !upcomingExam.start_date) {
+        return null; 
     }
 
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                    <CalendarDays className="h-6 w-6" />
-                    {upcomingExam.name} Schedule
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Subject</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {upcomingExam.subjects.map((s, i) => (
-                            <TableRow key={i}>
-                                <TableCell className="font-medium">
-                                    {new Date(s.date).toLocaleDateString('en-GB', { 
-                                        day: '2-digit', 
-                                        month: 'short',
-                                        year: 'numeric'
-                                    })}
-                                </TableCell>
-                                <TableCell>{s.subject}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-    );
+    const today = startOfToday();
+    const startDate = parseISO(upcomingExam.start_date);
+    const endDate = upcomingExam.end_date ? parseISO(upcomingExam.end_date) : startDate;
+
+    const inExamPeriod = isAfter(today, startDate) && isBefore(today, endDate);
+
+
+    if (isAfter(today, startDate)) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-primary">
+                        <CalendarDays className="h-6 w-6" />
+                        {upcomingExam.name} Schedule
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {upcomingExam.subjects.length > 0 ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Subject</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {upcomingExam.subjects.map((s, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell className="font-medium">{new Date(s.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</TableCell>
+                                        <TableCell>{s.subject}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="text-center text-muted-foreground p-4">
+                            The datesheet for this exam has not been published yet.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    } else if (isAfter(startDate, today)) {
+        // Exam is in the future, show the warning card
+        return (
+           <Card className="bg-yellow-50 border-yellow-200 w-full">
+                <CardContent className="p-3 flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
+                        <AlertTriangle className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-yellow-800 text-sm">Exams Approaching: {upcomingExam.name}</h3>
+                        <p className="text-xs text-yellow-700">
+                            Starts on {new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. Study well!
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    return null;
 }
