@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { isSameDay, getDay } from "date-fns";
 import { getHolidays } from "@/lib/supabase/holidays";
 import type { Holiday } from "@/lib/supabase/holidays";
@@ -20,34 +20,49 @@ export default function SchoolStatus() {
   const supabase = createClient();
 
   useEffect(() => {
-    setIsLoading(true);
-    
-    const fetchUserAndHolidays = async () => {
-        const { data: { user }} = await supabase.auth.getUser();
-        if (user) {
-            const role = await getRole(user);
-            setUserRole(role);
-            if (role === 'student') {
-                const studentProfile = await getStudentByAuthId(user.id);
-                setStudent(studentProfile);
-            }
-        }
+    let isMounted = true;
+    let holidaysUnsubscribe: any;
 
-        const unsubscribe = getHolidays((holidayRecords) => {
-          setHolidays(holidayRecords);
-          setIsLoading(false);
+    const fetchAllData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!isMounted) return;
+
+        if (user) {
+          const role = await getRole(user);
+          if (!isMounted) return;
+          setUserRole(role);
+
+          if (role === 'student') {
+            const studentProfile = await getStudentByAuthId(user.id);
+            if (isMounted) setStudent(studentProfile);
+          }
+        }
+        
+        // Fetch holidays regardless of user role
+        holidaysUnsubscribe = getHolidays((holidayRecords) => {
+          if (isMounted) {
+            setHolidays(holidayRecords);
+            setIsLoading(false); // Set loading to false once holidays are fetched
+          }
         });
 
-        return () => {
-          if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
-            unsubscribe.unsubscribe();
-          }
-        };
-    }
-    
-    fetchUserAndHolidays();
+      } catch (error) {
+        console.error("Error fetching user data for SchoolStatus:", error);
+        if (isMounted) setIsLoading(false); // Also stop loading on error
+      }
+    };
 
+    fetchAllData();
+
+    return () => {
+      isMounted = false;
+      if (holidaysUnsubscribe && typeof holidaysUnsubscribe.unsubscribe === 'function') {
+        holidaysUnsubscribe.unsubscribe();
+      }
+    };
   }, [supabase]);
+
 
   if (isLoading) {
     return <Skeleton className="h-12 w-full" />;
