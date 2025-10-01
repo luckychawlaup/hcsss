@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { isSameDay, getDay, startOfDay } from "date-fns";
+import { isSameDay, getDay, startOfDay, format, parseISO } from "date-fns";
 import { getHolidays } from "@/lib/supabase/holidays";
 import type { Holiday } from "@/lib/supabase/holidays";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
@@ -65,21 +65,37 @@ export default function SchoolStatus() {
 
   // Check for school-wide holiday (where class_section is null)
   const schoolWideHoliday = holidays.find(h => 
-    isSameDay(startOfDay(new Date(h.date)), today) && !h.class_section
+    isSameDay(startOfDay(parseISO(h.date)), today) && !h.class_section
   );
 
   // Check for class-specific holiday if user is a student
   const classSpecificHoliday = student 
     ? holidays.find(h => 
-        isSameDay(startOfDay(new Date(h.date)), today) && 
+        isSameDay(startOfDay(parseISO(h.date)), today) && 
         h.class_section === `${student.class}-${student.section}`
       )
     : null;
 
   const todayIsHoliday = schoolWideHoliday || classSpecificHoliday;
-
+  
   if (todayIsHoliday || isSunday) {
-    const holidayReason = todayIsHoliday ? todayIsHoliday.description : "It's Sunday!";
+    let holidayReason = isSunday ? "It's Sunday!" : todayIsHoliday!.description;
+    let holidayTitle = "School is OFF Today";
+
+    if (todayIsHoliday) {
+        const relevantHolidays = holidays.filter(h => h.description === todayIsHoliday.description && h.class_section === todayIsHoliday.class_section)
+            .map(h => startOfDay(parseISO(h.date)))
+            .sort((a,b) => a.getTime() - b.getTime());
+        
+        if (relevantHolidays.length > 1) {
+            const firstDay = relevantHolidays[0];
+            const lastDay = relevantHolidays[relevantHolidays.length - 1];
+            holidayTitle = "School is OFF";
+            holidayReason = `${todayIsHoliday.description} from ${format(firstDay, 'MMM d')} to ${format(lastDay, 'MMM d')}.`;
+        }
+    }
+
+
     return (
       <Card className="bg-blue-50 border-blue-200 w-full">
         <CardContent className="p-3 flex items-center gap-3">
@@ -87,7 +103,7 @@ export default function SchoolStatus() {
             <PartyPopper className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-blue-800 text-sm">School is OFF Today</h3>
+            <h3 className="font-semibold text-blue-800 text-sm">{holidayTitle}</h3>
             <p className="text-xs text-blue-700">
               {holidayReason}
             </p>
