@@ -21,17 +21,16 @@ export default function SchoolStatus() {
 
   useEffect(() => {
     let isMounted = true;
-    let holidaysUnsubscribe: any;
 
     const fetchAllData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!isMounted) return;
 
+        let role = null;
         if (user) {
-          const role = await getRole(user);
-          if (!isMounted) return;
-          setUserRole(role);
+          role = await getRole(user);
+          if (isMounted) setUserRole(role);
 
           if (role === 'student') {
             const studentProfile = await getStudentByAuthId(user.id);
@@ -39,17 +38,26 @@ export default function SchoolStatus() {
           }
         }
         
-        // Fetch holidays regardless of user role
-        holidaysUnsubscribe = getHolidays((holidayRecords) => {
-          if (isMounted) {
-            setHolidays(holidayRecords);
-            setIsLoading(false); // Set loading to false once holidays are fetched
-          }
+        // Use a promise to wait for holidays to be fetched
+        await new Promise<void>((resolve) => {
+            const holidaysUnsubscribe = getHolidays((holidayRecords) => {
+              if (isMounted) {
+                setHolidays(holidayRecords);
+                resolve();
+              }
+              // Clean up subscription
+              if (holidaysUnsubscribe && typeof holidaysUnsubscribe.unsubscribe === 'function') {
+                  holidaysUnsubscribe.unsubscribe();
+              }
+            });
         });
 
       } catch (error) {
-        console.error("Error fetching user data for SchoolStatus:", error);
-        if (isMounted) setIsLoading(false); // Also stop loading on error
+        console.error("Error fetching data for SchoolStatus:", error);
+      } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
       }
     };
 
@@ -57,9 +65,6 @@ export default function SchoolStatus() {
 
     return () => {
       isMounted = false;
-      if (holidaysUnsubscribe && typeof holidaysUnsubscribe.unsubscribe === 'function') {
-        holidaysUnsubscribe.unsubscribe();
-      }
     };
   }, [supabase]);
 
@@ -119,3 +124,4 @@ export default function SchoolStatus() {
     </Card>
   );
 }
+
