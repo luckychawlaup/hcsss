@@ -33,6 +33,7 @@ import ManageHolidays from "../principal/ManageHolidays";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import DatesheetManager from "./DatesheetManager";
+import SchoolStatus from "../dashboard/SchoolStatus";
 
 
 export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves" | "manageDatesheet" | "manageHolidays";
@@ -343,6 +344,7 @@ export default function TeacherDashboard() {
             default:
                 return (
                     <div className="space-y-6">
+                        <SchoolStatus />
                         <div className="mx-auto grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
                            {teacher?.role === 'classTeacher' && (
                                 <>

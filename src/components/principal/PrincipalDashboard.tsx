@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -21,6 +22,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import ManageHolidays from "./ManageHolidays";
+import SchoolStatus from "../dashboard/SchoolStatus";
 
 const TeacherList = dynamic(() => import('./TeacherList'), {
     loading: () => <Skeleton className="h-64 w-full" />
@@ -310,6 +312,7 @@ export default function PrincipalDashboard() {
           default:
               return (
                 <div className="space-y-6">
+                    <SchoolStatus />
                     <div className="mx-auto grid w-full grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
                         <StatCard title="Total Students" value={isLoading ? '...' : allStudents.length.toString()} icon={GraduationCap} />
                         <StatCard title="Total Teachers" value={isLoading ? '...' : allTeachers.length.toString()} icon={Users} />

@@ -17,6 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { getAdmins, removeAdmin, AdminUser } from "@/lib/supabase/admins";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AddAdminForm from "./AddAdminForm";
+import SchoolStatus from "../dashboard/SchoolStatus";
 import {
   Dialog,
   DialogContent,
@@ -255,6 +256,7 @@ export default function OwnerDashboard() {
           default:
               return (
                 <div className="space-y-6">
+                    <SchoolStatus />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <NavCard title="My Profile" description="Manage your account settings" icon={UserIcon} onClick={() => router.push('/owner/profile')} />
                         <NavCard title="Manage Admins" description="Add or remove principals & accountants" icon={KeyRound} onClick={() => setActiveView("manageAdmins")} />

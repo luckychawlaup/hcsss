@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ApproveLeaves from "../teacher/ApproveLeaves";
+import SchoolStatus from "../dashboard/SchoolStatus";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B", "C", "D"];
@@ -101,6 +102,7 @@ export default function AccountantDashboard() {
         <div className="flex min-h-screen w-full flex-col bg-background">
             <Header title="Accountant Dashboard" showAvatar={false} />
             <main className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
+                <SchoolStatus />
                 <Tabs defaultValue="feeManagement">
                     <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
                         <TabsTrigger value="feeManagement">Fee Management</TabsTrigger>

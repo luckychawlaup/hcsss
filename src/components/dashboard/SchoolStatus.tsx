@@ -6,6 +6,7 @@ import { isSameDay, getDay } from "date-fns";
 import { getHolidays } from "@/lib/supabase/holidays";
 import type { Holiday } from "@/lib/supabase/holidays";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
+import { getRole } from "@/lib/getRole";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Building, PartyPopper } from "lucide-react";
@@ -13,6 +14,7 @@ import { Skeleton } from "../ui/skeleton";
 
 export default function SchoolStatus() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
@@ -23,8 +25,12 @@ export default function SchoolStatus() {
     const fetchUserAndHolidays = async () => {
         const { data: { user }} = await supabase.auth.getUser();
         if (user) {
-            const studentProfile = await getStudentByAuthId(user.id);
-            setStudent(studentProfile);
+            const role = await getRole(user);
+            setUserRole(role);
+            if (role === 'student') {
+                const studentProfile = await getStudentByAuthId(user.id);
+                setStudent(studentProfile);
+            }
         }
 
         const unsubscribe = getHolidays((holidayRecords) => {
@@ -55,8 +61,8 @@ export default function SchoolStatus() {
     isSameDay(new Date(h.date), today) && !h.class_section
   );
 
-  // Check for class-specific holiday if student profile is loaded
-  const classSpecificHoliday = student 
+  // Check for class-specific holiday if user is a student
+  const classSpecificHoliday = userRole === 'student' && student 
     ? holidays.find(h => 
         isSameDay(new Date(h.date), today) && 
         h.class_section === `${student.class}-${student.section}`
