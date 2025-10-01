@@ -51,12 +51,12 @@ ON public.school_holidays FOR ALL
 USING (
     (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
     AND
-    class_section = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid())
+    public.school_holidays.class_section = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid())
 )
 WITH CHECK (
     (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
     AND
-    class_section = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid())
+    public.school_holidays.class_section = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid())
 );
 
 
