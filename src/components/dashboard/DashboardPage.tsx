@@ -10,12 +10,12 @@ import ExamDatesheet from "@/components/dashboard/ExamDatesheet";
 import { Suspense, useState } from "react";
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
-import { Book } from "lucide-react";
+import { Book, Eye } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import BottomNav from "./BottomNav";
 import type { Exam } from "@/lib/supabase/exams";
-import { isAfter, startOfToday, parseISO } from "date-fns";
+import { isAfter, startOfToday, parseISO, isWithinInterval, subDays, endOfDay } from "date-fns";
 
 function DashboardLoadingSkeleton() {
     return (
@@ -35,7 +35,20 @@ function DashboardLoadingSkeleton() {
 export default function DashboardPage() {
   const [upcomingExam, setUpcomingExam] = useState<Exam | null | undefined>(undefined);
   
-  const showHomework = !upcomingExam || (upcomingExam.start_date && isAfter(parseISO(upcomingExam.start_date), startOfToday()));
+  const today = startOfToday();
+  let showDatesheetInsteadOfHomework = false;
+
+  if (upcomingExam?.start_date && upcomingExam.end_date) {
+    const examStartDate = parseISO(upcomingExam.start_date);
+    const examEndDate = endOfDay(parseISO(upcomingExam.end_date));
+    // Show datesheet one day before the exam starts and until it ends
+    const periodForDatesheet = {
+        start: subDays(examStartDate, 1),
+        end: examEndDate
+    };
+    showDatesheetInsteadOfHomework = isWithinInterval(today, periodForDatesheet);
+  }
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -47,7 +60,28 @@ export default function DashboardPage() {
                     <SchoolStatus />
                     <div className="grid gap-6 md:grid-cols-2">
                         <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} />
-                        {showHomework && <TodayHomework />}
+                        
+                        {showDatesheetInsteadOfHomework ? (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-primary">
+                                        <Eye className="h-6 w-6" />
+                                        Exams in Progress
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-muted-foreground mb-4">
+                                        Your exams are ongoing. You can still view your homework assignments.
+                                    </p>
+                                    <Button asChild className="w-full">
+                                        <Link href="/homework">
+                                            View Homework
+                                        </Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ) : <TodayHomework /> }
+
                         <Attendance />
                         <ReportCardComponent />
                         <Card>
