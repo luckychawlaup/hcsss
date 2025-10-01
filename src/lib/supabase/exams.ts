@@ -18,7 +18,7 @@ export const SETUP_SQL = `
 -- This script will drop and recreate your exams table to ensure it is correct.
 -- WARNING: This will delete any existing data in the 'exams' table.
 
--- Drop the table if it exists
+-- Drop tables in the correct order to avoid dependency issues
 DROP TABLE IF EXISTS public.marks;
 DROP TABLE IF EXISTS public.exams;
 
@@ -35,22 +35,10 @@ CREATE TABLE public.exams (
 -- Enable RLS for exams
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies
-DROP POLICY IF EXISTS "Allow authenticated users to manage exams" ON public.exams;
-DROP POLICY IF EXISTS "Allow admins to manage all exams" ON public.exams;
-DROP POLICY IF EXISTS "Allow class teachers to manage exams" ON public.exams;
-DROP POLICY IF EXISTS "Allow authenticated users to read exams" ON public.exams;
-
-
--- Create new, secure policies
+-- Policies for 'exams' table
 CREATE POLICY "Allow admins to manage all exams"
 ON public.exams FOR ALL
 USING (
-    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
-    OR
-    (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
-)
-WITH CHECK (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
     (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
@@ -58,12 +46,7 @@ WITH CHECK (
 
 CREATE POLICY "Allow class teachers to manage exams"
 ON public.exams FOR ALL
-USING (
-    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
-)
-WITH CHECK (
-    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
-);
+USING ((SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher');
 
 CREATE POLICY "Allow authenticated users to read exams"
 ON public.exams FOR SELECT
@@ -88,28 +71,24 @@ CREATE TABLE public.marks (
 -- Enable RLS for marks
 ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
 
--- Policy: Allow Class Teachers and Principal to manage marks for their class
+-- Policies for 'marks' table
 CREATE POLICY "Allow class teachers & principal to manage marks"
 ON public.marks FOR ALL
 USING (
     (
-        -- Check if user is the class teacher of the student
         (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = 
         (SELECT class || '-' || section FROM public.students WHERE id = public.marks.student_id)
     )
     OR
     (
-        -- Check if user is a principal
         (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
     )
      OR
     (
-        -- Check if user is the owner
         auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050'
     )
 );
 
--- Policy: Allow students to view their own marks
 CREATE POLICY "Allow students to view their own marks"
 ON public.marks FOR SELECT
 USING (
@@ -424,5 +403,7 @@ export const getStudentExams = async (studentId: string): Promise<Exam[]> => {
         return [];
     }
 };
+
+    
 
     

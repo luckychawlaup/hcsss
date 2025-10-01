@@ -47,7 +47,7 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
 
                     const today = startOfToday();
                     const relevantExams = exams
-                        .filter(e => e.start_date && e.end_date)
+                        .filter(e => e.end_date) // Ensure end_date exists
                         .sort((a, b) => new Date(a.start_date!).getTime() - new Date(b.start_date!).getTime());
 
                     const currentOrNextExam = relevantExams.find(exam => {
@@ -165,3 +165,6 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
     
     return null;
 }
+
+
+    
