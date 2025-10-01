@@ -36,8 +36,9 @@ CREATE TABLE public.exams (
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 
 -- Policies for 'exams' table
-DROP POLICY IF EXISTS "Allow admins and class teachers to manage exams" ON public.exams;
 DROP POLICY IF EXISTS "Allow authenticated users to read exams" ON public.exams;
+DROP POLICY IF EXISTS "Allow admins and class teachers to manage exams" ON public.exams;
+
 
 CREATE POLICY "Allow authenticated users to read exams"
 ON public.exams FOR SELECT
@@ -113,7 +114,7 @@ const getGrade = (marks: number, maxMarks: number): string => {
     return 'E';
 };
 
-export const setMarksForStudent = async (studentIdOrClassSection: string, examId: string, marksData: { subject: string; marks: number; max_marks: number, exam_date?: Date }[], isPrincipalView: boolean = false) => {
+export const setMarksForStudent = async (studentIdOrClassSection: string, examId: string, marksData: { subject: string; marks: number; max_marks: number, exam_date?: Date }[]) => {
     try {
         const { data: { user } } = await supabase.auth.getUser();
         const userRole = await getRole(user);
@@ -136,7 +137,7 @@ export const setMarksForStudent = async (studentIdOrClassSection: string, examId
             const { data, error } = await supabase.from('students').select('id').eq('class', classVal).eq('section', sectionVal);
             if (error) throw error;
             studentIds = data.map(s => s.id);
-            if(studentIds.length === 0) { // If no students, save a template record. This might need a different table.
+            if(studentIds.length === 0) {
                  console.log("No students in class, but saving schedule for class", studentIdOrClassSection);
             }
         } else {

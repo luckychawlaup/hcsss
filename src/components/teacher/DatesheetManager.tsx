@@ -66,14 +66,15 @@ interface SubjectEntry {
 
 interface DatesheetManagerProps {
   teacher: Teacher | null;
-  isPrincipal: boolean;
 }
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B", "C", "D"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
-export default function DatesheetManager({ teacher, isPrincipal }: DatesheetManagerProps) {
+const supabase = createClient();
+
+export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     const [exams, setExams] = useState<Exam[]>([]);
     const [students, setStudents] = useState<Student[]>([]);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
@@ -86,11 +87,19 @@ export default function DatesheetManager({ teacher, isPrincipal }: DatesheetMana
     const [isDeleting, setIsDeleting] = useState(false);
     const [examToEdit, setExamToEdit] = useState<Exam | null>(null);
     const [selectedClass, setSelectedClass] = useState<string | null>(null);
+    const [isPrincipal, setIsPrincipal] = useState(false);
     
     const { toast } = useToast();
     const classTeacherClass = teacher?.role === 'classTeacher' ? teacher.class_teacher_of : null;
 
     useEffect(() => {
+        const checkRole = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            const role = await getRole(user);
+            setIsPrincipal(role === 'principal' || role === 'owner');
+        };
+        checkRole();
+
         const unsubscribe = getExams(setExams);
         return () => {
             if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
@@ -177,8 +186,7 @@ export default function DatesheetManager({ teacher, isPrincipal }: DatesheetMana
                 exam_date: s.exam_date
             })).filter(s => s.subject !== "");
 
-            // For principal, save as a template for the class
-             await setMarksForStudent(targetClass, selectedExam.id, scheduleData, isPrincipal);
+            await setMarksForStudent(targetClass, selectedExam.id, scheduleData);
             
             toast({ title: "Datesheet Saved!", description: `The schedule for ${selectedExam.name} has been saved for ${targetClass}.` });
         } catch (error) {
@@ -269,7 +277,7 @@ export default function DatesheetManager({ teacher, isPrincipal }: DatesheetMana
              <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
                 <UserX className="h-12 w-12 text-muted-foreground" />
                 <h3 className="mt-4 text-lg font-semibold">Permission Denied</h3>
-                <p className="text-muted-foreground mt-2">Only Class Teachers or the Principal can manage datesheets.</p>
+                <p className="text-muted-foreground mt-2">Only Class Teachers can manage datesheets.</p>
             </div>
         )
     }
