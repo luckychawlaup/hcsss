@@ -7,13 +7,15 @@ import Attendance from "@/components/dashboard/Attendance";
 import TodayHomework from "@/components/dashboard/TodayHomework";
 import ReportCardComponent from "@/components/dashboard/ReportCard";
 import ExamDatesheet from "@/components/dashboard/ExamDatesheet";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 import { Book } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import BottomNav from "./BottomNav";
+import type { Exam } from "@/lib/supabase/exams";
+import { isAfter, startOfToday, parseISO } from "date-fns";
 
 function DashboardLoadingSkeleton() {
     return (
@@ -31,6 +33,10 @@ function DashboardLoadingSkeleton() {
 
 
 export default function DashboardPage() {
+  const [upcomingExam, setUpcomingExam] = useState<Exam | null | undefined>(undefined);
+  
+  const showHomework = !upcomingExam || (upcomingExam.start_date && isAfter(parseISO(upcomingExam.start_date), startOfToday()));
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <div className="flex flex-1 flex-col">
@@ -40,7 +46,8 @@ export default function DashboardPage() {
                 <div className="space-y-6">
                     <SchoolStatus />
                     <div className="grid gap-6 md:grid-cols-2">
-                        <ExamDatesheet />
+                        <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} />
+                        {showHomework && <TodayHomework />}
                         <Attendance />
                         <ReportCardComponent />
                         <Card>

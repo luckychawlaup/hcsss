@@ -176,13 +176,15 @@ export const getHomeworks = (
 
     const channelName = `homework-${classSection}`;
     
+    // This subscription now listens for ANY change and re-fetches.
     const channel = supabase.channel(channelName)
         .on('postgres_changes', { 
             event: '*', 
             schema: 'public', 
-            table: HOMEWORK_COLLECTION
+            table: HOMEWORK_COLLECTION,
+            // Filter removed for reliability
         }, (payload) => {
-            fetchAndCallback();
+            fetchAndCallback(); // Re-fetch all relevant data on any change.
         })
         .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
@@ -329,5 +331,3 @@ export const deleteHomework = async (homeworkId: string): Promise<void> => {
         throw error;
     }
 };
-
-    

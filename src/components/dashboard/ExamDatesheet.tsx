@@ -10,14 +10,17 @@ import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import { getExams, Exam } from "@/lib/supabase/exams";
 import { getStudentMarksForExam } from "@/lib/supabase/marks";
-import { isWithinInterval, startOfToday, parseISO } from 'date-fns';
-import TodayHomework from "./TodayHomework";
+import { isWithinInterval, startOfToday, parseISO, isAfter } from 'date-fns';
 
 type ExamWithSubjects = Exam & { subjects: { subject: string; date: string }[] };
 
 const supabase = createClient();
 
-export default function ExamDatesheet() {
+interface ExamDatesheetProps {
+    onUpcomingExamLoad: (exam: Exam | null) => void;
+}
+
+export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps) {
     const [student, setStudent] = useState<Student | null>(null);
     const [upcomingExam, setUpcomingExam] = useState<ExamWithSubjects | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +31,7 @@ export default function ExamDatesheet() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 setIsLoading(false);
+                onUpcomingExamLoad(null);
                 return;
             }
 
@@ -41,9 +45,10 @@ export default function ExamDatesheet() {
                     const relevantExams = exams.filter(e => e.start_date && e.end_date);
                     const currentOrNextExam = relevantExams.find(exam => {
                         const startDate = parseISO(exam.start_date!);
-                        const endDate = parseISO(exam.end_date!);
-                        return isWithinInterval(today, { start: startDate, end: endDate }) || today < startDate;
+                        return today <= startDate || isWithinInterval(today, { start: startDate, end: parseISO(exam.end_date!) });
                     });
+                    
+                    onUpcomingExamLoad(currentOrNextExam || null);
                     
                     if (currentOrNextExam) {
                         getStudentMarksForExam(studentProfile.id, currentOrNextExam.id).then(marks => {
@@ -58,20 +63,25 @@ export default function ExamDatesheet() {
                     } else {
                         setUpcomingExam(null);
                     }
+                     setIsLoading(false);
                 });
+            } else {
+                 setIsLoading(false);
+                 onUpcomingExamLoad(null);
             }
-            setIsLoading(false);
         };
 
         fetchData();
-    }, []);
+    }, [onUpcomingExamLoad]);
 
     if (isLoading) {
         return <Skeleton className="h-64 w-full" />;
     }
 
     if (!upcomingExam || !upcomingExam.start_date) {
-        return <TodayHomework />;
+        // Return null or a placeholder if no exams are coming up.
+        // The logic in DashboardPage will decide whether to show homework.
+        return null;
     }
 
     const today = startOfToday();
@@ -113,8 +123,8 @@ export default function ExamDatesheet() {
                 </CardContent>
             </Card>
         );
-    } else {
-        // Exam is in the future
+    } else if (isAfter(startDate, today)) {
+        // Exam is in the future, show the warning card
         return (
             <Card className="bg-yellow-50 border-yellow-200">
                 <CardHeader>
@@ -131,6 +141,7 @@ export default function ExamDatesheet() {
             </Card>
         );
     }
-}
-
     
+    // If none of the conditions match, render nothing.
+    return null;
+}
