@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,6 +11,7 @@ import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import { getExams, Exam } from "@/lib/supabase/exams";
 import { getMarksForStudent } from "@/lib/supabase/marks";
 import { isWithinInterval, startOfToday, parseISO, isAfter, isBefore } from 'date-fns';
+import { ScrollArea } from "../ui/scroll-area";
 
 type ExamWithSubjects = Exam & { subjects: { subject: string; date: string }[] };
 
@@ -57,7 +59,6 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
                 let relevantExam: Exam | undefined;
                 let relevantSubjects: { subject: string; date: string }[] = [];
 
-                // Find the most relevant exam with a datesheet for the student
                 const sortedExams = exams.sort((a,b) => new Date(a.start_date || a.date).getTime() - new Date(b.start_date || b.date).getTime());
                 
                 for (const exam of sortedExams) {
@@ -98,31 +99,59 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
     }, [onUpcomingExamLoad]);
 
     if (isLoading) {
-        return <Skeleton className="h-48 w-full" />;
+        return <Skeleton className="h-full w-full" />;
     }
 
     if (!upcomingExam || !upcomingExam.start_date) {
-        return null; 
+        return (
+             <Card className="h-full flex flex-col">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-primary">
+                        <CalendarDays className="h-6 w-6" />
+                        Upcoming Exams
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col justify-center items-center text-center">
+                    <CalendarDays className="h-10 w-10 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground font-semibold">No upcoming exams.</p>
+                    <p className="text-sm text-muted-foreground">The next exam schedule has not been published yet.</p>
+                </CardContent>
+            </Card>
+        );
     }
 
     const today = startOfToday();
     const startDate = parseISO(upcomingExam.start_date);
-    const endDate = upcomingExam.end_date ? parseISO(upcomingExam.end_date) : startDate;
-
-    const inExamPeriod = isAfter(today, startDate) && isBefore(today, endDate);
-
-
-    if (isAfter(today, startDate)) {
+    
+    if (isAfter(startDate, today)) {
         return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-primary">
-                        <CalendarDays className="h-6 w-6" />
-                        {upcomingExam.name} Schedule
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {upcomingExam.subjects.length > 0 ? (
+           <Card className="bg-yellow-50 border-yellow-200 w-full">
+                <CardContent className="p-3 flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
+                        <AlertTriangle className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-yellow-800 text-sm">Exams Approaching: {upcomingExam.name}</h3>
+                        <p className="text-xs text-yellow-700">
+                            Starts on {new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}. Study well!
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card className="flex flex-col h-full">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-primary">
+                    <CalendarDays className="h-6 w-6" />
+                    {upcomingExam.name} Schedule
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                {upcomingExam.subjects.length > 0 ? (
+                    <ScrollArea className="h-96">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -139,32 +168,13 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
                                 ))}
                             </TableBody>
                         </Table>
-                    ) : (
-                        <div className="text-center text-muted-foreground p-4">
-                            The datesheet for this exam has not been published yet.
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        );
-    } else if (isAfter(startDate, today)) {
-        // Exam is in the future, show the warning card
-        return (
-           <Card className="bg-yellow-50 border-yellow-200 w-full">
-                <CardContent className="p-3 flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
-                        <AlertTriangle className="h-5 w-5" />
+                    </ScrollArea>
+                ) : (
+                    <div className="text-center text-muted-foreground p-4 h-full flex justify-center items-center">
+                        The datesheet for this exam has not been published yet.
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-yellow-800 text-sm">Exams Approaching: {upcomingExam.name}</h3>
-                        <p className="text-xs text-yellow-700">
-                            Starts on {new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}. Study well!
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-    
-    return null;
+                )}
+            </CardContent>
+        </Card>
+    );
 }

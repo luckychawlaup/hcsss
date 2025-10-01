@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Badge } from "../ui/badge";
+import { ScrollArea } from "../ui/scroll-area";
 
 function HomeworkSkeleton() {
   return (
@@ -86,7 +87,7 @@ export default function TodayHomework() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center text-center p-6 bg-destructive/10 rounded-md">
+          <div className="flex flex-col items-center justify-center text-center p-6 bg-destructive/10 rounded-md h-full">
             <Info className="h-8 w-8 text-destructive mb-2" />
             <p className="text-sm font-semibold text-destructive">Error: {error}</p>
           </div>
@@ -96,7 +97,7 @@ export default function TodayHomework() {
   }
 
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-primary">
           <Book className="h-6 w-6" />
@@ -106,35 +107,37 @@ export default function TodayHomework() {
             <Link href="/homework">View All</Link>
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         {isLoading ? (
           <HomeworkSkeleton />
         ) : homeworks.length > 0 ? (
-          <div className="space-y-4">
-            {homeworks.map((hw) => (
-              <div key={hw.id} className="flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-secondary/50">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <FileText className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-semibold">{hw.subject}</p>
-                        {hw.attachment_url && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                            <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{hw.description}</p>
-                      <p className="text-xs text-muted-foreground mt-2">Due: {format(new Date(hw.due_date), "do MMMM")}</p>
-                  </div>
-              </div>
-            ))}
-          </div>
+          <ScrollArea className="h-72">
+            <div className="space-y-4 pr-4">
+              {homeworks.map((hw) => (
+                <div key={hw.id} className="flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-secondary/50">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold">{hw.subject}</p>
+                          {hw.attachment_url && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                              <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer">
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{hw.description}</p>
+                        <p className="text-xs text-muted-foreground mt-2">Due: {format(new Date(hw.due_date), "do MMMM")}</p>
+                    </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
         ) : (
-            <div className="flex flex-col items-center justify-center text-center p-6 bg-secondary/30 rounded-md">
+            <div className="flex flex-col items-center justify-center text-center p-6 bg-secondary/30 rounded-md h-full">
                 <Info className="h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm font-semibold text-muted-foreground">No homework assigned for today!</p>
             </div>

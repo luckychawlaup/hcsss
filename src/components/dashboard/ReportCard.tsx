@@ -16,6 +16,7 @@ import { getExams, Exam } from "@/lib/supabase/exams";
 import { getMarksForStudent, Mark } from "@/lib/supabase/marks";
 import { Skeleton } from "../ui/skeleton";
 import { getStudentByAuthId } from "@/lib/supabase/students";
+import { ScrollArea } from "../ui/scroll-area";
 
 export default function ReportCardComponent() {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -55,7 +56,6 @@ export default function ReportCardComponent() {
         
         setMarks(studentMarks || {});
         
-        // Now that we have marks, fetch the corresponding exams
         examsUnsubscribe = getExams((examsData) => {
             if (isMounted) {
                 setExams(examsData || []);
@@ -82,7 +82,6 @@ export default function ReportCardComponent() {
     };
   }, [supabase]);
 
-  // Filter exams that have marks available
   const availableReportCards = exams
     .filter((exam) => {
       const examMarks = marks[exam.id];
@@ -104,10 +103,7 @@ export default function ReportCardComponent() {
         </CardHeader>
         <CardContent className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
+            <Skeleton key={i} className="h-12 w-full" />
           ))}
         </CardContent>
       </Card>
@@ -142,52 +138,47 @@ export default function ReportCardComponent() {
   }
 
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-primary">
           <FileText className="h-6 w-6" />
           Report Cards
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex-1">
         {availableReportCards.length > 0 ? (
-          availableReportCards.map((exam) => {
-            const examMarks = marks[exam.id] || [];
-            const subjectCount = examMarks.length;
-            
-            return (
+          <ScrollArea className="h-48">
+          <div className="space-y-3 pr-4">
+            {availableReportCards.map((exam) => (
               <div
                 key={exam.id}
-                className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors"
+                className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex-1">
                   <p className="font-semibold">{exam.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(exam.date).toLocaleDateString('en-US', {
-                      year: 'numeric',
+                  <p className="text-xs text-muted-foreground">
+                    Published on {new Date(exam.date).toLocaleDateString('en-US', {
                       month: 'long',
                       day: 'numeric'
                     })}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {subjectCount} subject{subjectCount !== 1 ? 's' : ''}
-                  </p>
                 </div>
-                <Button variant="outline" size="icon" asChild>
+                <Button variant="outline" size="sm" asChild>
                   <Link href={`/report-card/${exam.id}`}>
-                    <Download className="h-4 w-4" />
-                    <span className="sr-only">View Report for {exam.name}</span>
+                    <Download className="mr-2 h-3 w-3" />
+                    View
                   </Link>
                 </Button>
               </div>
-            );
-          })
+            ))}
+          </div>
+          </ScrollArea>
         ) : (
-          <div className="text-center text-muted-foreground p-8">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium mb-2">No report cards available</p>
+          <div className="text-center text-muted-foreground p-8 h-full flex flex-col justify-center items-center">
+            <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p className="font-medium mb-1">No reports published</p>
             <p className="text-sm">
-              Report cards will appear here once your exam results are published.
+              Check back here after your exams.
             </p>
           </div>
         )}

@@ -16,11 +16,45 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useSchoolInfo } from "@/hooks/use-school-info";
+import { Skeleton } from "../ui/skeleton";
+import { useState, useEffect } from "react";
+import { getStudentByAuthId } from "@/lib/supabase/students";
+import type { Student } from "@/lib/supabase/students";
+
 
 interface HeaderProps {
     title?: string;
     showAvatar?: boolean;
 }
+
+function WelcomeMessage({ user }) {
+  const [student, setStudent] = useState<Student | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      getStudentByAuthId(user.id).then(setStudent);
+    }
+  }, [user]);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
+
+  if (!student) {
+    return <Skeleton className="h-5 w-40" />;
+  }
+
+  return (
+    <h1 className="text-lg font-bold text-foreground sm:text-xl font-headline truncate">
+      {getGreeting()}, {student.name.split(' ')[0]}!
+    </h1>
+  );
+}
+
 
 export default function Header({ title, showAvatar = true }: HeaderProps) {
   const pathname = usePathname();
@@ -29,8 +63,20 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
   const isTeacher = pathname.startsWith('/teacher');
   const isPrincipal = pathname.startsWith('/principal');
   const isOwner = pathname.startsWith('/owner');
+  const { schoolInfo } = useSchoolInfo();
 
-  // Determine notification link based on role
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+    return () => authListener.subscription.unsubscribe();
+  }, [supabase]);
+
+
   const noticesLink = isTeacher ? "/teacher/notices" : "/notices";
 
   const handleLogout = async () => {
@@ -41,12 +87,19 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-card/80 px-4 shadow-sm backdrop-blur-sm sm:px-6">
-      <Link href="/" className="flex items-center gap-3">
-        <Image src="/hcsss.png" alt="School Logo" width={40} height={40} />
-        <h1 className="text-lg font-bold text-foreground sm:text-xl font-headline truncate">
-          {title || "HCSSS"}
-        </h1>
-      </Link>
+       <div className="flex items-center gap-3">
+        <Link href="/" className="flex-shrink-0">
+            <Image src="/hcsss.png" alt="School Logo" width={40} height={40} />
+        </Link>
+        <div>
+            {pathname === '/' && user ? <WelcomeMessage user={user} /> : (
+                <h1 className="text-lg font-bold text-foreground sm:text-xl font-headline truncate">
+                {title || (schoolInfo?.name ?? "HCSSS")}
+                </h1>
+            )}
+            {pathname === '/' && user && <p className="text-xs text-muted-foreground">{schoolInfo?.name}</p>}
+        </div>
+       </div>
       <div className="flex items-center gap-1">
         {!isPrincipal && !isOwner && (
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
