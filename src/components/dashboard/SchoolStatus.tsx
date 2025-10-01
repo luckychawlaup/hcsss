@@ -14,66 +14,48 @@ import { Skeleton } from "../ui/skeleton";
 
 export default function SchoolStatus() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
-  useEffect(() => {
-    let isMounted = true;
-    let holidaysUnsubscribe: any;
+  const fetchData = useCallback(async () => {
+    try {
+      // Fetch holidays first, this is common for all users
+      const holidaysUnsubscribe = getHolidays(setHolidays);
 
-    const fetchAllData = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch holidays first
-        await new Promise<void>((resolve) => {
-          holidaysUnsubscribe = getHolidays((holidayRecords) => {
-            if (isMounted) {
-              setHolidays(holidayRecords);
-            }
-            // This is a one-time fetch for the initial load, so we can resolve.
-            // The real-time subscription will handle updates.
-            resolve();
-          });
-        });
-
-        if (!isMounted) return;
-
-        // Then get user and role
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setUserRole(null);
-          setStudent(null);
-          return; // Exit if no user
-        }
-
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
         const role = await getRole(user);
-        if (isMounted) setUserRole(role);
-
-        // If student, fetch student profile
         if (role === 'student') {
           const studentProfile = await getStudentByAuthId(user.id);
-          if (isMounted) setStudent(studentProfile);
-        }
-      } catch (error) {
-        console.error("Error fetching data for SchoolStatus:", error);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
+          setStudent(studentProfile);
         }
       }
-    };
+      return holidaysUnsubscribe;
 
-    fetchAllData();
+    } catch (error) {
+      console.error("Error fetching data for SchoolStatus:", error);
+    } finally {
+      // This is the key: ensure loading is set to false after all async operations
+      setIsLoading(false);
+    }
+  }, [supabase]);
+
+
+  useEffect(() => {
+    let unsubscribe: any;
+    
+    fetchData().then(unsub => {
+      unsubscribe = unsub;
+    });
 
     return () => {
-      isMounted = false;
-      if (holidaysUnsubscribe && typeof holidaysUnsubscribe.unsubscribe === 'function') {
-        holidaysUnsubscribe.unsubscribe();
+      if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+        unsubscribe.unsubscribe();
       }
     };
-  }, [supabase]);
+  }, [fetchData]);
 
 
   if (isLoading) {
@@ -89,7 +71,7 @@ export default function SchoolStatus() {
   );
 
   // Check for class-specific holiday if user is a student
-  const classSpecificHoliday = userRole === 'student' && student 
+  const classSpecificHoliday = student 
     ? holidays.find(h => 
         isSameDay(new Date(h.date), today) && 
         h.class_section === `${student.class}-${student.section}`
