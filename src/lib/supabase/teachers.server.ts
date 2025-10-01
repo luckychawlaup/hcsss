@@ -2,7 +2,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/client";
-import { uploadImage } from "@/lib/imagekit";
+import { uploadImage, isImageKitInitialized } from "@/lib/imagekit";
 
 const supabase = createClient();
 const TEACHERS_COLLECTION = 'teachers';
@@ -34,6 +34,10 @@ export const addTeacher = async (formData: FormData) => {
     }
 
     try {
+        if (!isImageKitInitialized()) {
+            throw new Error("ImageKit is not configured. Please provide API keys in your .env file to enable image uploads.");
+        }
+        
         const photoBuffer = Buffer.from(await photo.arrayBuffer());
         const photoUrl = await uploadImage(photoBuffer, photo.name, 'staff_profiles');
 

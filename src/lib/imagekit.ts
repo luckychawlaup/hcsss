@@ -1,17 +1,25 @@
+
 // @ts-nocheck
 import ImageKit from 'imagekit';
 
-if (!process.env.IMAGEKIT_PUBLIC_KEY || !process.env.IMAGEKIT_PRIVATE_KEY || !process.env.IMAGEKIT_URL_ENDPOINT) {
-  throw new Error("ImageKit environment variables are not set. Please check your .env file.");
+let imagekit;
+
+if (process.env.IMAGEKIT_PUBLIC_KEY && process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT) {
+  imagekit = new ImageKit({
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+  });
+} else {
+  console.warn("ImageKit environment variables are not set. Image uploads will be disabled. Please check your .env file.");
 }
 
-const imagekit = new ImageKit({
-  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
-  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
-});
+export const isImageKitInitialized = () => !!imagekit;
 
 export const uploadImage = async (file: Buffer, fileName: string, folder: string): Promise<string> => {
+  if (!imagekit) {
+    throw new Error("ImageKit is not configured. Please provide API keys in your .env file.");
+  }
   try {
     const response = await imagekit.upload({
       file: file,

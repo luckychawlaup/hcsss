@@ -2,7 +2,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/client";
-import { uploadImage } from "@/lib/imagekit";
+import { uploadImage, isImageKitInitialized } from "@/lib/imagekit";
 
 const supabase = createClient();
 const STUDENTS_COLLECTION = 'students';
@@ -36,6 +36,10 @@ export const addStudent = async (formData: FormData) => {
     }
 
     try {
+        if (!isImageKitInitialized()) {
+            throw new Error("ImageKit is not configured. Please provide API keys in your .env file to enable image uploads.");
+        }
+        
         // 2. Generate SRN
         const { data: countData, error: countError } = await supabase.rpc('get_student_count');
         if (countError) throw countError;
