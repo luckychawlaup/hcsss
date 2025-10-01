@@ -41,10 +41,9 @@ USING (
 CREATE POLICY "Allow admins to manage all marks"
 ON public.marks FOR ALL
 USING (
-  auth.uid() IN (
-    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
-    '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
-  )
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
+    OR
+    (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
 );
 `;
 

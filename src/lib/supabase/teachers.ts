@@ -35,18 +35,18 @@ CREATE TABLE IF NOT EXISTS public.teachers (
 ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies to prevent conflicts
-DROP POLICY IF EXISTS "Allow principal to manage teachers" ON public.teachers;
+DROP POLICY IF EXISTS "Allow principal/owner to manage teachers" ON public.teachers;
 DROP POLICY IF EXISTS "Allow teachers to view and update their own profiles" ON public.teachers;
 
 -- Policy: Allow Principal/Owner to manage all teacher records
-CREATE POLICY "Allow principal to manage teachers"
+CREATE POLICY "Allow principal/owner to manage teachers"
 ON public.teachers FOR ALL
 USING (
-  auth.uid() IN (
-    '6cc51c80-e098-4d6d-8450-5ff5931b7391', -- Principal UID
-    '946ba406-1ba6-49cf-ab78-f611d1350f33'  -- Owner UID
-  )
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
+    OR
+    (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
 );
+
 
 -- Policy: Allow teachers to view their own profile and securely update only their bank details
 CREATE POLICY "Allow teachers to view and update their own profiles"

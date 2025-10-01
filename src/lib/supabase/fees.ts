@@ -33,7 +33,7 @@ DROP POLICY IF EXISTS "Allow students to view their own fees" ON public.fees;
 
 CREATE POLICY "Allow accountants to manage fees"
 ON public.fees FOR ALL
-USING (auth.uid() = 'cf210695-e635-4363-aea5-740f2707a6d7'); -- Accountant UID
+USING ((SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'accountant');
 
 CREATE POLICY "Allow students to view their own fees"
 ON public.fees FOR SELECT
