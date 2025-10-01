@@ -31,8 +31,9 @@ import {
 interface AnnouncementBubbleProps {
   notice: Announcement;
   isSender: boolean;
-  onEdit: (notice: Announcement) => void;
-  onDelete: (noticeId: string) => void;
+  onEdit?: (notice: Announcement) => void;
+  onDelete?: (noticeId: string) => void;
+  readOnly?: boolean;
 }
 
 function AttachmentPreview({ url }: { url: string }) {
@@ -65,7 +66,7 @@ function AttachmentPreview({ url }: { url: string }) {
     )
 }
 
-function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: AnnouncementBubbleProps) {
+function AnnouncementBubble({ notice, isSender, onEdit, onDelete, readOnly }: AnnouncementBubbleProps) {
   const createdAt = notice.created_at ? new Date(notice.created_at) : new Date();
   const isRecent = (Date.now() - createdAt.getTime()) < 15 * 60 * 1000;
 
@@ -119,7 +120,7 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: Announcement
         </div>
       </div>
       
-      {isSender && isRecent && (
+      {isSender && !readOnly && isRecent && onEdit && onDelete && (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button 
@@ -147,12 +148,13 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete }: Announcement
 interface AnnouncementChatProps {
   announcements: Announcement[];
   chatTitle: string | null;
-  onSendMessage: (content: string, category: string, file?: File) => Promise<void>;
-  onUpdateMessage: (id: string, content: string) => Promise<void>;
-  onDeleteMessage: (id: string) => Promise<void>;
+  onSendMessage?: (content: string, category: string, file?: File) => Promise<void>;
+  onUpdateMessage?: (id: string, content: string) => Promise<void>;
+  onDeleteMessage?: (id: string) => Promise<void>;
   senderName: string;
-  senderRole: string;
+  senderRole?: string;
   headerContent?: React.ReactNode;
+  readOnly?: boolean;
 }
 
 export default function AnnouncementChat({ 
@@ -163,7 +165,8 @@ export default function AnnouncementChat({
   onDeleteMessage, 
   senderName, 
   senderRole, 
-  headerContent 
+  headerContent,
+  readOnly = false
 }: AnnouncementChatProps) {
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState("General");
@@ -192,10 +195,10 @@ export default function AnnouncementChat({
     setIsSending(true);
 
     try {
-      if(editingMessage) {
+      if(editingMessage && onUpdateMessage) {
           await onUpdateMessage(editingMessage.id, message);
           setEditingMessage(null);
-      } else {
+      } else if(onSendMessage) {
           await onSendMessage(message, category, attachment || undefined);
       }
 
@@ -221,6 +224,7 @@ export default function AnnouncementChat({
   }
 
   const handleEdit = (notice: Announcement) => {
+    if (readOnly) return;
     setEditingMessage(notice);
     setMessage(notice.content);
     setCategory(notice.category);
@@ -237,7 +241,7 @@ export default function AnnouncementChat({
   }
   
   const confirmDelete = async () => {
-      if (deletingMessageId) {
+      if (deletingMessageId && onDeleteMessage) {
           await onDeleteMessage(deletingMessageId);
           setDeletingMessageId(null);
       }
@@ -277,7 +281,7 @@ export default function AnnouncementChat({
             </div>
             <h3 className="text-lg font-semibold mb-2">No Announcements Yet</h3>
             <p className="text-muted-foreground text-sm">
-              Be the first to send an announcement to <span className="font-semibold">{chatTitle}</span>
+              Check back later for updates.
             </p>
           </div>
         ) : (
@@ -286,144 +290,147 @@ export default function AnnouncementChat({
                 key={notice.id} 
                 notice={notice} 
                 isSender={notice.creator_name === senderName} 
-                onEdit={handleEdit}
-                onDelete={setDeletingMessageId}
+                onEdit={!readOnly ? handleEdit : undefined}
+                onDelete={!readOnly ? setDeletingMessageId : undefined}
+                readOnly={readOnly}
             />
           ))
         )}
       </div>
       
-      <div className="border-t bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 p-3 sm:p-4 pb-safe shadow-lg">
-        {editingMessage && (
-          <div className="mb-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between animate-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                <Edit className="h-4 w-4 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">Editing message</span>
-                <span className="text-xs text-blue-700 dark:text-blue-300 line-clamp-1">{editingMessage.content}</span>
-              </div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={cancelEdit} className="h-8 w-8 hover:bg-blue-100 dark:hover:bg-blue-900 flex-shrink-0">
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        
-        {attachment && !editingMessage && (
-            <div className="flex items-center gap-2 p-2 mb-2 bg-gradient-to-r from-secondary to-secondary/50 rounded-xl text-sm border animate-in slide-in-from-bottom-2">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  {attachment.type.startsWith('image/') ? (
-                    <ImageIcon className="h-4 w-4 text-primary" />
-                  ) : (
-                    <FileText className="h-4 w-4 text-primary" />
-                  )}
+      {!readOnly && (
+        <div className="border-t bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 p-3 sm:p-4 pb-safe shadow-lg">
+          {editingMessage && (
+            <div className="mb-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between animate-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                  <Edit className="h-4 w-4 text-white" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="truncate font-medium text-xs">{attachment.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {(attachment.size / 1024).toFixed(1)} KB
-                  </p>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">Editing message</span>
+                  <span className="text-xs text-blue-700 dark:text-blue-300 line-clamp-1">{editingMessage.content}</span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => { 
-                    setAttachment(null); 
-                    if(fileInputRef.current) fileInputRef.current.value = ""; 
-                  }} 
-                  className="flex-shrink-0 h-8 w-8 hover:bg-destructive/10"
-                >
-                    <X className="h-4 w-4" />
-                </Button>
+              </div>
+              <Button variant="ghost" size="icon" onClick={cancelEdit} className="h-8 w-8 hover:bg-blue-100 dark:hover:bg-blue-900 flex-shrink-0">
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-        )}
-        
-        {showCategoryInput && !editingMessage && (
-          <div className="mb-2 animate-in slide-in-from-bottom-2">
-            <Input
-                value={category}
-                onChange={e => setCategory(e.target.value)}
-                placeholder="Enter category (e.g., Homework, Event)"
-                disabled={isSending}
-                className="w-full rounded-xl border-2"
-                onBlur={() => !category && setShowCategoryInput(false)}
-            />
-          </div>
-        )}
-        
-        <div className="flex items-end gap-2">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={() => fileInputRef.current?.click()} 
-              disabled={isSending || !!editingMessage}
-              className="flex-shrink-0 h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
-            >
-                <Paperclip className="h-5 w-5" />
-            </Button>
-            
-            <Input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileChange}
-                accept="image/*,application/pdf"
-            />
-            
-            <div className="flex-1 relative">
+          )}
+          
+          {attachment && !editingMessage && (
+              <div className="flex items-center gap-2 p-2 mb-2 bg-gradient-to-r from-secondary to-secondary/50 rounded-xl text-sm border animate-in slide-in-from-bottom-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    {attachment.type.startsWith('image/') ? (
+                      <ImageIcon className="h-4 w-4 text-primary" />
+                    ) : (
+                      <FileText className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate font-medium text-xs">{attachment.name}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {(attachment.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => { 
+                      setAttachment(null); 
+                      if(fileInputRef.current) fileInputRef.current.value = ""; 
+                    }} 
+                    className="flex-shrink-0 h-8 w-8 hover:bg-destructive/10"
+                  >
+                      <X className="h-4 w-4" />
+                  </Button>
+              </div>
+          )}
+          
+          {showCategoryInput && !editingMessage && (
+            <div className="mb-2 animate-in slide-in-from-bottom-2">
               <Input
-                  ref={messageInputRef}
-                  value={message}
-                  onChange={e => setMessage(e.target.value)}
-                  placeholder={editingMessage ? "Edit your message..." : `Message to ${chatTitle}...`}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                  placeholder="Enter category (e.g., Homework, Event)"
                   disabled={isSending}
-                  className="pr-12 rounded-xl border-2 focus:ring-2 focus:ring-primary/20 h-10"
+                  className="w-full rounded-xl border-2"
+                  onBlur={() => !category && setShowCategoryInput(false)}
               />
-              {!editingMessage && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowCategoryInput(!showCategoryInput)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg"
-                  title="Add category"
-                >
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    {category !== 'General' ? '✓' : '#'}
-                  </span>
-                </Button>
-              )}
             </div>
-            
-            <Button 
-              onClick={handleSend} 
-              disabled={isSending || (!message.trim() && !attachment)}
-              size="icon"
-              className="flex-shrink-0 h-10 w-10 rounded-xl bg-primary shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-                {isSending ? (
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Send className="h-5 w-5" />
+          )}
+          
+          <div className="flex items-end gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => fileInputRef.current?.click()} 
+                disabled={isSending || !!editingMessage}
+                className="flex-shrink-0 h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+              >
+                  <Paperclip className="h-5 w-5" />
+              </Button>
+              
+              <Input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept="image/*,application/pdf"
+              />
+              
+              <div className="flex-1 relative">
+                <Input
+                    ref={messageInputRef}
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    placeholder={editingMessage ? "Edit your message..." : `Message to ${chatTitle}...`}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    disabled={isSending}
+                    className="pr-12 rounded-xl border-2 focus:ring-2 focus:ring-primary/20 h-10"
+                />
+                {!editingMessage && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowCategoryInput(!showCategoryInput)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg"
+                    title="Add category"
+                  >
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {category !== 'General' ? '✓' : '#'}
+                    </span>
+                  </Button>
                 )}
-            </Button>
-        </div>
-        
-        {!editingMessage && category !== 'General' && (
-          <div className="mt-2 px-1">
-            <span className="text-xs text-muted-foreground">
-              Category: <span className="font-semibold text-foreground">{category}</span>
-            </span>
+              </div>
+              
+              <Button 
+                onClick={handleSend} 
+                disabled={isSending || (!message.trim() && !attachment)}
+                size="icon"
+                className="flex-shrink-0 h-10 w-10 rounded-xl bg-primary shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                  {isSending ? (
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
+              </Button>
           </div>
-        )}
-      </div>
+          
+          {!editingMessage && category !== 'General' && (
+            <div className="mt-2 px-1">
+              <span className="text-xs text-muted-foreground">
+                Category: <span className="font-semibold text-foreground">{category}</span>
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
     
     <AlertDialog open={!!deletingMessageId} onOpenChange={() => setDeletingMessageId(null)}>
