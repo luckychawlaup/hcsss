@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
@@ -127,8 +128,8 @@ export const getTeachersAndPending = (callback: (teachers: CombinedTeacher[]) =>
 }
 
 export const getTeacherByAuthId = async (authId: string): Promise<Teacher | null> => {
-    const { data, error } = await supabase.from(TEACHERS_COLLECTION).select('*').eq('auth_uid', authId).single();
-    if (error && error.code !== 'PGRST116') {
+    const { data, error } = await supabase.from(TEACHERS_COLLECTION).select('*').eq('auth_uid', authId).maybeSingle();
+    if (error) {
         console.error("Error fetching teacher by auth ID:", error);
     }
     return data;
@@ -139,9 +140,9 @@ export const getTeacherByEmail = async (email: string): Promise<Teacher | null> 
     .from('teachers')
     .select('*')
     .eq('email', email)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') {
+  if (error) {
     console.error('Error fetching teacher by email:', error);
   }
   

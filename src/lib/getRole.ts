@@ -1,4 +1,5 @@
 
+
 import { User } from "@supabase/supabase-js";
 import { createClient } from "./supabase/client";
 
@@ -18,12 +19,12 @@ export const getRole = async (user: User | null): Promise<'teacher' | 'student' 
             .from('admin_roles')
             .select('role')
             .eq('uid', user.id)
-            .single();
+            .maybeSingle();
 
         if (adminRole) {
             return adminRole.role as 'principal' | 'accountant';
         }
-        if (adminError && adminError.code !== 'PGRST116') { // 'PGRST116' is "No rows found"
+        if (adminError) {
             console.error("Error checking admin_roles:", adminError);
         }
     } catch(e) {
@@ -42,9 +43,9 @@ export const getRole = async (user: User | null): Promise<'teacher' | 'student' 
             .from('teachers')
             .select('id')
             .eq('auth_uid', user.id)
-            .single();
+            .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
             console.error("Error checking for teacher role:", error);
         }
 

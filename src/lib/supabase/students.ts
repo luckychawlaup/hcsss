@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
@@ -77,12 +78,9 @@ export const getStudentsAndPending = (callback: (students: CombinedStudent[]) =>
 }
 
 export const getStudentByAuthId = async (authUid: string): Promise<Student | null> => {
-    const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').eq('auth_uid', authUid).single();
+    const { data, error } = await supabase.from(STUDENTS_COLLECTION).select('*').eq('auth_uid', authUid).maybeSingle();
     if (error) {
-        if (error.code !== 'PGRST116') { // Ignore "No rows found"
-             console.error("Error fetching student by auth ID:", error);
-        }
-        return null;
+        console.error("Error fetching student by auth ID:", error);
     }
     return data;
 }
@@ -92,9 +90,9 @@ export const getStudentByEmail = async (email: string): Promise<Student | null> 
     .from('students')
     .select('*')
     .eq('email', email)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') {
+  if (error) {
     console.error('Error fetching student by email:', error);
   }
   
