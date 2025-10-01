@@ -61,6 +61,9 @@ export default function DashboardPage() {
         <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
             <Suspense fallback={<DashboardLoadingSkeleton />}>
                 <div className="space-y-6">
+                    <div style={{ display: 'none' }}>
+                        <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} />
+                    </div>
                     <SchoolStatus />
                     <div className="flex flex-col lg:flex-row lg:gap-8 gap-6">
                        <div className="lg:w-2/3 space-y-6">
@@ -87,7 +90,6 @@ export default function DashboardPage() {
                            <Attendance />
                        </div>
                        <div className="lg:w-1/3 space-y-6">
-                           <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} />
                            <ReportCardComponent />
                            <Card>
                                 <CardHeader>
