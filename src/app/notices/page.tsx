@@ -46,7 +46,7 @@ export default function NoticesPage() {
                 unsubscribeAnnouncements = getAnnouncementsForStudent(
                     { classSection, studentId },
                     (announcements) => {
-                        const sorted = announcements.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                        const sorted = announcements.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
                         setNotices(sorted);
                         setIsLoading(false);
                     }
@@ -88,3 +88,4 @@ export default function NoticesPage() {
     </div>
   );
 }
+
