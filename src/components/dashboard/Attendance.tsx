@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import { getStudentAttendanceForMonth, AttendanceRecord } from "@/lib/supabase/attendance";
 import { getHolidays, Holiday } from "@/lib/supabase/holidays";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, parseISO, isSameDay } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -62,7 +62,7 @@ export default function Attendance() {
     const [studentInfo, setStudentInfo] = useState<Student | null>(null);
     const supabase = createClient();
 
-    const fetchAttendanceAndHolidays = useCallback(async (studentId: string, studentClass: string, month: Date) => {
+    const fetchAttendanceAndHolidays = useCallback(async (studentId: string, month: Date) => {
         setIsLoading(true);
         try {
             const records = await getStudentAttendanceForMonth(studentId, month);
@@ -89,8 +89,7 @@ export default function Attendance() {
                 setStudentInfo(student);
 
                 if (student) {
-                    const studentClass = `${student.class}-${student.section}`;
-                    fetchAttendanceAndHolidays(student.id, studentClass, currentMonth);
+                    fetchAttendanceAndHolidays(student.id, currentMonth);
 
                     const channel = supabase
                         .channel(`public:attendance:student_id=eq.${student.id}`)
@@ -102,7 +101,7 @@ export default function Attendance() {
                         },
                             (payload) => {
                                 console.log('Attendance change detected, refetching...');
-                                fetchAttendanceAndHolidays(student.id, studentClass, currentMonth);
+                                fetchAttendanceAndHolidays(student.id, currentMonth);
                             }
                         ).subscribe();
                     
@@ -147,13 +146,14 @@ export default function Attendance() {
         }
         
         for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+            const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day, 12); // Use midday to avoid timezone issues
             const dayOfWeek = date.getDay();
             const formattedDate = format(date, 'yyyy-MM-dd');
             
             const record = attendance.find(a => a.date === formattedDate);
             const isHoliday = holidays.find(h => 
-                h.date === formattedDate && (!h.class_section || h.class_section === studentClass)
+                isSameDay(parseISO(h.date), date) && 
+                (!h.class_section || h.class_section === studentClass)
             );
 
             let status: DayStatus = 'unmarked';

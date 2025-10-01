@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format, isSameDay } from "date-fns";
-import { DayPicker, SelectSingleEventHandler } from "react-day-picker";
+import { format, isSameDay, eachDayOfInterval } from "date-fns";
+import { DayPicker, SelectRangeEventHandler, DateRange } from "react-day-picker";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +25,7 @@ interface ManageHolidaysProps {
 export default function ManageHolidays({ teacher }: ManageHolidaysProps) {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
+  const [selectedRange, setSelectedRange] = useState<DateRange | undefined>();
   const [description, setDescription] = useState("");
   const [isForAll, setIsForAll] = useState(true);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
@@ -51,41 +51,47 @@ export default function ManageHolidays({ teacher }: ManageHolidaysProps) {
     };
   }, []);
   
-  const handleDayClick: SelectSingleEventHandler = (day) => {
-    setSelectedDay(day);
+  const handleRangeSelect: SelectRangeEventHandler = (range) => {
+    setSelectedRange(range);
   };
 
   const handleAddHoliday = async () => {
-    if (!selectedDay || !description) {
-      toast({ variant: "destructive", title: "Missing Information", description: "Please select a date and enter a description." });
+    if (!selectedRange?.from || !description) {
+      toast({ variant: "destructive", title: "Missing Information", description: "Please select a date range and enter a description." });
       return;
     }
     
     setIsSubmitting(true);
     try {
-        const holidayDate = format(selectedDay, 'yyyy-MM-dd');
-        
-        // Principal/Owner View
-        if (isPrincipalView) {
-            if (isForAll) {
-                 await addHoliday({ date: holidayDate, description, class_section: null });
-                 toast({ title: "Holiday Added", description: `A school-wide holiday has been declared on ${holidayDate}.` });
-            } else {
-                 const promises = selectedClasses.map(cs => addHoliday({ date: holidayDate, description, class_section: cs }));
-                 await Promise.all(promises);
-                 toast({ title: "Holidays Added", description: `Holiday declared for ${selectedClasses.length} classes.` });
+        const holidayDates = eachDayOfInterval({
+            start: selectedRange.from,
+            end: selectedRange.to || selectedRange.from,
+        });
+
+        const holidayPromises = holidayDates.flatMap(holidayDate => {
+             const formattedDate = format(holidayDate, 'yyyy-MM-dd');
+             if (isPrincipalView) {
+                if (isForAll) {
+                    return addHoliday({ date: formattedDate, description, class_section: null });
+                } else {
+                    return selectedClasses.map(cs => addHoliday({ date: formattedDate, description, class_section: cs }));
+                }
+            } else if (classTeacherClass) {
+                return addHoliday({ date: formattedDate, description, class_section: classTeacherClass });
             }
-        } else if (classTeacherClass) {
-            // Class Teacher View
-            await addHoliday({ date: holidayDate, description, class_section: classTeacherClass });
-            toast({ title: "Holiday Added", description: `A holiday for your class has been declared on ${holidayDate}.` });
-        }
+            return [];
+        });
+
+        await Promise.all(holidayPromises);
+
+        toast({ title: "Holiday(s) Added", description: `${holidayDates.length} day(s) have been declared as holidays.` });
         
         setDescription("");
         setSelectedClasses([]);
+        setSelectedRange(undefined);
         
     } catch (error) {
-        toast({ variant: "destructive", title: "Failed to Add Holiday", description: "This date may already be marked as a holiday." });
+        toast({ variant: "destructive", title: "Failed to Add Holiday", description: "One or more dates may already be marked as a holiday." });
     } finally {
         setIsSubmitting(false);
     }
@@ -96,12 +102,13 @@ export default function ManageHolidays({ teacher }: ManageHolidaysProps) {
     toast({ title: "Holiday Removed" });
   }
 
-  const holidaysOnSelectedDay = selectedDay 
-    ? holidays.filter(h => isSameDay(new Date(h.date), selectedDay!))
+  const holidaysOnSelectedDay = selectedRange?.from
+    ? holidays.filter(h => isSameDay(new Date(h.date), selectedRange!.from!))
     : [];
 
   const modifiers = {
     holiday: holidays.map(h => new Date(h.date)),
+    selected: selectedRange
   };
 
   const modifiersStyles = {
@@ -120,22 +127,22 @@ export default function ManageHolidays({ teacher }: ManageHolidaysProps) {
     <Card>
       <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="flex flex-col items-center">
-            <h3 className="font-semibold text-lg mb-4">Select a Date</h3>
+            <h3 className="font-semibold text-lg mb-4">Select Date(s)</h3>
             <DayPicker
-                mode="single"
-                selected={selectedDay}
-                onSelect={handleDayClick}
+                mode="range"
+                selected={selectedRange}
+                onSelect={handleRangeSelect}
                 modifiers={modifiers}
                 modifiersStyles={modifiersStyles}
                 className="rounded-md border"
             />
              <div className="mt-4 text-sm text-center text-muted-foreground p-2 bg-secondary rounded-md">
-                Dates marked in red are holidays.
+                You can select a single day or a range of days.
              </div>
         </div>
         <div className="space-y-4">
              <div>
-                <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><CalendarCheck/> Manage Holiday for {selectedDay ? format(selectedDay, 'PPP') : '...'}</h3>
+                <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><CalendarCheck/> Manage Holiday</h3>
                  <div className="space-y-4 p-4 border rounded-lg">
                     <div className="space-y-1">
                         <Label htmlFor="description">Holiday Description</Label>
@@ -143,7 +150,7 @@ export default function ManageHolidays({ teacher }: ManageHolidaysProps) {
                             id="description" 
                             value={description}
                             onChange={e => setDescription(e.target.value)}
-                            placeholder="e.g., Diwali" 
+                            placeholder="e.g., Diwali Break" 
                         />
                     </div>
 
