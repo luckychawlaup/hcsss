@@ -9,8 +9,8 @@ import { CalendarDays, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import { getExams, Exam } from "@/lib/supabase/exams";
-import { getStudentMarksForExam } from "@/lib/supabase/marks";
-import { isWithinInterval, startOfToday, parseISO, isAfter } from 'date-fns';
+import { getMarksForStudent } from "@/lib/supabase/marks";
+import { isWithinInterval, startOfToday, parseISO, isAfter, isBefore } from 'date-fns';
 
 type ExamWithSubjects = Exam & { subjects: { subject: string; date: string }[] };
 
@@ -42,51 +42,52 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
             setStudent(studentProfile);
 
             if (studentProfile) {
-                const examsUnsubscribe = getExams((exams) => {
-                    if (!isMounted) return;
+                const [exams, marks] = await Promise.all([
+                    new Promise<Exam[]>(resolve => {
+                        const unsub = getExams(examsData => {
+                            resolve(examsData || []);
+                            if (unsub && typeof unsub.unsubscribe === 'function') unsub.unsubscribe();
+                        });
+                    }),
+                    getMarksForStudent(studentProfile.id)
+                ]);
 
-                    const today = startOfToday();
-                    const relevantExams = exams
-                        .filter(e => e.end_date) // Ensure end_date exists
-                        .sort((a, b) => new Date(a.start_date!).getTime() - new Date(b.start_date!).getTime());
+                if (!isMounted) return;
 
-                    const currentOrNextExam = relevantExams.find(exam => {
-                        const endDate = parseISO(exam.end_date!);
-                        return isAfter(endDate, today);
-                    });
-                    
-                    onUpcomingExamLoad(currentOrNextExam || null);
-                    
-                    if (currentOrNextExam) {
-                        getStudentMarksForExam(studentProfile.id, currentOrNextExam.id).then(marks => {
-                            if (!isMounted) return;
-                            
-                            const subjectsWithDates = marks
+                const today = startOfToday();
+                let relevantExam: Exam | undefined;
+                let relevantSubjects: { subject: string; date: string }[] = [];
+
+                // Find the most relevant exam with a datesheet for the student
+                const sortedExams = exams.sort((a,b) => new Date(a.start_date || a.date).getTime() - new Date(b.start_date || b.date).getTime());
+                
+                for (const exam of sortedExams) {
+                    const studentMarksForExam = marks[exam.id];
+                    if (studentMarksForExam && studentMarksForExam.some(m => m.exam_date)) {
+                        const examEndDate = exam.end_date ? parseISO(exam.end_date) : null;
+                        if (!examEndDate || isAfter(examEndDate, today)) {
+                            relevantExam = exam;
+                            relevantSubjects = studentMarksForExam
                                 .filter(mark => mark.exam_date)
                                 .map(mark => ({
                                     subject: mark.subject,
                                     date: mark.exam_date!,
                                 }))
                                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-                            const examWithSubjects: ExamWithSubjects = {
-                                ...currentOrNextExam,
-                                subjects: subjectsWithDates
-                            };
-                            setUpcomingExam(examWithSubjects);
-                             if (isMounted) setIsLoading(false);
-                        });
-                    } else {
-                        setUpcomingExam(null);
-                        if (isMounted) setIsLoading(false);
+                            break; 
+                        }
                     }
-                });
+                }
+                
+                onUpcomingExamLoad(relevantExam || null);
 
-                 return () => {
-                    if (examsUnsubscribe && typeof examsUnsubscribe.unsubscribe === 'function') {
-                        examsUnsubscribe.unsubscribe();
-                    }
-                };
+                if (relevantExam) {
+                    setUpcomingExam({ ...relevantExam, subjects: relevantSubjects });
+                } else {
+                    setUpcomingExam(null);
+                }
+
+                if (isMounted) setIsLoading(false);
             } else {
                  if (isMounted) setIsLoading(false);
                  onUpcomingExamLoad(null);
@@ -107,9 +108,12 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
 
     const today = startOfToday();
     const startDate = parseISO(upcomingExam.start_date);
-    const inExamPeriod = today >= startDate;
+    const endDate = upcomingExam.end_date ? parseISO(upcomingExam.end_date) : startDate;
 
-    if (inExamPeriod) {
+    const inExamPeriod = isAfter(today, startDate) && isBefore(today, endDate);
+
+
+    if (isAfter(today, startDate)) {
         return (
             <Card>
                 <CardHeader>
@@ -165,6 +169,3 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
     
     return null;
 }
-
-
-    
