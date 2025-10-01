@@ -38,11 +38,30 @@ CREATE TABLE public.marks (
 -- Enable RLS
 ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
 
--- Policy: Allow teachers to manage marks
-CREATE POLICY "Allow teachers to manage marks"
+-- Drop existing policies if they exist to prevent conflicts
+DROP POLICY IF EXISTS "Allow class teachers to manage marks for their class" ON public.marks;
+DROP POLICY IF EXISTS "Allow students to view their own marks" ON public.marks;
+DROP POLICY IF EXISTS "Allow admins to manage all marks" ON public.marks;
+
+-- Policy: Allow Class Teachers to manage marks ONLY for students in their class.
+CREATE POLICY "Allow class teachers to manage marks for their class"
 ON public.marks FOR ALL
 USING (
-  (SELECT auth.uid() FROM public.teachers WHERE auth_uid = auth.uid()) IS NOT NULL
+    (
+        SELECT role
+        FROM public.teachers
+        WHERE auth_uid = auth.uid()
+    ) = 'classTeacher'
+    AND
+    (
+        SELECT class || '-' || section
+        FROM public.students
+        WHERE id = public.marks.student_id
+    ) = (
+        SELECT class_teacher_of
+        FROM public.teachers
+        WHERE auth_uid = auth.uid()
+    )
 );
 
 -- Policy: Allow students to view their own marks
@@ -52,7 +71,7 @@ USING (
   student_id = (SELECT id FROM public.students WHERE auth_uid = auth.uid())
 );
 
--- Policy: Allow admins to manage all marks
+-- Policy: Allow Principal and Owner to have full access
 CREATE POLICY "Allow admins to manage all marks"
 ON public.marks FOR ALL
 USING (
