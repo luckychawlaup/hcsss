@@ -200,7 +200,9 @@ export default function TeacherAnnouncementsPage() {
             </Card>
         </div>
       </main>
-      <TeacherNav activeView="makeAnnouncement" setActiveView={() => {}} teacherRole={teacher?.role} />
+      {!selectedGroup && (
+        <TeacherNav activeView="makeAnnouncement" setActiveView={() => {}} teacherRole={teacher?.role} />
+      )}
     </div>
   );
 }
