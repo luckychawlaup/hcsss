@@ -1,5 +1,5 @@
 
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next/dist/server/config-shared';
 
 const cspHeader = `
     default-src 'self';
