@@ -144,7 +144,7 @@ export default function ProfilePageContent() {
       </div>
 
       {/* Render correct navigation based on role */}
-      {role === "teacher" && <TeacherNav activeView="profile" setActiveView={() => {}} />}
+      {role === "teacher" && <TeacherNav activeView="profile" setActiveView={() => {}} teacherRole={teacher?.role} />}
       {role === "student" && <BottomNav />}
     </>
   );
