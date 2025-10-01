@@ -61,31 +61,11 @@ export default function DashboardPage() {
         <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
             <Suspense fallback={<DashboardLoadingSkeleton />}>
                 <div className="space-y-6">
-                    <div style={{ display: 'none' }}>
-                        <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} />
-                    </div>
                     <SchoolStatus />
                     <div className="flex flex-col lg:flex-row lg:gap-8 gap-6">
                        <div className="lg:w-2/3 space-y-6">
                             {showDatesheetInsteadOfHomework ? (
-                                <Card className="flex flex-col">
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2 text-primary">
-                                            <Eye className="h-6 w-6" />
-                                            Exams in Progress
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="flex-1 flex flex-col justify-center items-center text-center">
-                                        <p className="text-muted-foreground mb-4">
-                                            Your exams are ongoing. You can view your homework assignments by clicking the button below.
-                                        </p>
-                                        <Button asChild>
-                                            <Link href="/homework">
-                                                View Homework
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+                                <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} />
                             ) : <TodayHomework /> }
                            <Attendance />
                        </div>
