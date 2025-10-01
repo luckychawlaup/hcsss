@@ -38,7 +38,7 @@ export default function ProfilePageContent() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
   const [role, setRole] = useState<"student" | "teacher" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(true);
   const supabase = createClient();
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
