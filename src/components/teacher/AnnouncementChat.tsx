@@ -94,11 +94,6 @@ function AnnouncementBubble({ notice, isSender, onEdit, onDelete, readOnly, show
             ? "bg-primary text-primary-foreground rounded-tr-sm" 
             : "bg-secondary/80 backdrop-blur-sm rounded-tl-sm"
         )}>
-          {notice.title && (
-            <p className="text-sm font-semibold pb-1 border-b border-white/10 mb-1">
-              {notice.title}
-            </p>
-          )}
           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
             {notice.content}
           </p>
