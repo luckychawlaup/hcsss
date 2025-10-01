@@ -133,6 +133,7 @@ export const setMarksForStudent = async (studentIdOrClassSection: string, examId
         let studentIds: string[] = [];
 
         if (isPrincipal) {
+            // It's a class section string
             const [classVal, sectionVal] = studentIdOrClassSection.split('-');
             const { data, error } = await supabase.from('students').select('id').eq('class', classVal).eq('section', sectionVal);
             if (error) throw error;
@@ -141,6 +142,7 @@ export const setMarksForStudent = async (studentIdOrClassSection: string, examId
                  console.log("No students in class, but saving schedule for class", studentIdOrClassSection);
             }
         } else {
+            // It's a single student UUID
             studentIds = [studentIdOrClassSection];
         }
 

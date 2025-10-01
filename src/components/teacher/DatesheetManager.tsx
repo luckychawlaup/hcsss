@@ -186,6 +186,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                 exam_date: s.exam_date
             })).filter(s => s.subject !== "");
 
+            // For principals, we pass the class section. For teachers, it will fall back to using studentId (which is what studentIdOrClassSection holds in that case).
             await setMarksForStudent(targetClass, selectedExam.id, scheduleData);
             
             toast({ title: "Datesheet Saved!", description: `The schedule for ${selectedExam.name} has been saved for ${targetClass}.` });
