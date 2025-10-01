@@ -21,43 +21,47 @@ export default function SchoolStatus() {
 
   useEffect(() => {
     let isMounted = true;
+    let holidaysUnsubscribe: any;
 
     const fetchAllData = async () => {
+      setIsLoading(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!isMounted) return;
-
-        let role = null;
-        if (user) {
-          role = await getRole(user);
-          if (isMounted) setUserRole(role);
-
-          if (role === 'student') {
-            const studentProfile = await getStudentByAuthId(user.id);
-            if (isMounted) setStudent(studentProfile);
-          }
-        }
-        
-        // Use a promise to wait for holidays to be fetched
+        // Fetch holidays first
         await new Promise<void>((resolve) => {
-            const holidaysUnsubscribe = getHolidays((holidayRecords) => {
-              if (isMounted) {
-                setHolidays(holidayRecords);
-                resolve();
-              }
-              // Clean up subscription
-              if (holidaysUnsubscribe && typeof holidaysUnsubscribe.unsubscribe === 'function') {
-                  holidaysUnsubscribe.unsubscribe();
-              }
-            });
+          holidaysUnsubscribe = getHolidays((holidayRecords) => {
+            if (isMounted) {
+              setHolidays(holidayRecords);
+            }
+            // This is a one-time fetch for the initial load, so we can resolve.
+            // The real-time subscription will handle updates.
+            resolve();
+          });
         });
 
+        if (!isMounted) return;
+
+        // Then get user and role
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setUserRole(null);
+          setStudent(null);
+          return; // Exit if no user
+        }
+
+        const role = await getRole(user);
+        if (isMounted) setUserRole(role);
+
+        // If student, fetch student profile
+        if (role === 'student') {
+          const studentProfile = await getStudentByAuthId(user.id);
+          if (isMounted) setStudent(studentProfile);
+        }
       } catch (error) {
         console.error("Error fetching data for SchoolStatus:", error);
       } finally {
-          if (isMounted) {
-            setIsLoading(false);
-          }
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -65,6 +69,9 @@ export default function SchoolStatus() {
 
     return () => {
       isMounted = false;
+      if (holidaysUnsubscribe && typeof holidaysUnsubscribe.unsubscribe === 'function') {
+        holidaysUnsubscribe.unsubscribe();
+      }
     };
   }, [supabase]);
 
@@ -124,4 +131,3 @@ export default function SchoolStatus() {
     </Card>
   );
 }
-
