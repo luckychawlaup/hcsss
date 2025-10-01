@@ -105,20 +105,21 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                 getStudentMarksForExam(firstStudentId, selectedExam.id).then(marks => {
                     if (marks.length > 0) {
                         const initialSubjects = marks.map(mark => ({
-                            id: mark.subject, // Using subject as initial ID, but could be a UUID
+                            id: mark.subject, // Using subject as initial ID
                             subject: mark.subject,
                             exam_date: mark.exam_date ? new Date(mark.exam_date) : undefined
                         }));
                         setSubjects(initialSubjects);
                     } else {
-                        // If no marks exist, use teacher's subjects as default
-                        const defaultSubjects = teacher?.qualifications || ["English", "Hindi", "Maths", "Science", "Social Science"];
+                        // If no marks exist, use teacher's main subject or some defaults
+                         const defaultSubjects = teacher?.qualifications?.length ? teacher.qualifications : ["English", "Hindi", "Maths", "Science", "Social Science"];
                         setSubjects(defaultSubjects.map(sub => ({ id: sub, subject: sub, exam_date: undefined })));
                     }
                      setIsFetchingSubjects(false);
                 });
             } else {
-                const defaultSubjects = teacher?.qualifications || ["English", "Hindi", "Maths", "Science", "Social Science"];
+                // No students in class, use teacher's subjects as default
+                 const defaultSubjects = teacher?.qualifications?.length ? teacher.qualifications : ["English", "Hindi", "Maths", "Science", "Social Science"];
                 setSubjects(defaultSubjects.map(sub => ({ id: sub, subject: sub, exam_date: undefined })));
                 setIsFetchingSubjects(false);
             }
@@ -151,6 +152,10 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
         }
 
         const studentsInClass = students.filter(s => `${s.class}-${s.section}` === classTeacherClass);
+        if (studentsInClass.length === 0) {
+            toast({ variant: "destructive", title: "No Students", description: `There are no students in ${classTeacherClass} to save the datesheet for.`});
+            return;
+        }
         
         setIsSubmitting(true);
         try {
@@ -161,13 +166,11 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                 exam_date: s.exam_date
             })).filter(s => s.subject !== "");
 
-            if (studentsInClass.length > 0) {
-                // Save the schedule for all students in the class
-                const savePromises = studentsInClass.map(student => 
-                    setMarksForStudent(student.id, selectedExam.id, scheduleData)
-                );
-                await Promise.all(savePromises);
-            }
+            // Save the schedule for all students in the class
+            const savePromises = studentsInClass.map(student => 
+                setMarksForStudent(student.id, selectedExam.id, scheduleData)
+            );
+            await Promise.all(savePromises);
             
             toast({ title: "Datesheet Saved!", description: `The schedule for ${selectedExam.name} has been saved for all students in ${classTeacherClass}.` });
         } catch (error) {
@@ -462,4 +465,3 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     );
 }
 
-    
