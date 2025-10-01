@@ -299,7 +299,7 @@ export default function PrincipalDashboard() {
                               Manage Holidays
                           </CardTitle>
                           <CardDescription>
-                              Declare school holidays. These days will not be counted for attendance.
+                              Declare school holidays for the entire school or for specific classes.
                           </CardDescription>
                       </CardHeader>
                       <CardContent>

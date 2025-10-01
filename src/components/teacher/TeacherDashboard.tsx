@@ -18,7 +18,7 @@ import { getStudentsForTeacher, CombinedStudent, updateStudent, Student } from "
 import { getFeedbackForClassTeacher, Feedback } from "@/lib/supabase/feedback";
 import { getLeaveRequestsForClassTeacher, LeaveRequest } from "@/lib/supabase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon, Book, CalendarDays } from "lucide-react";
+import { Users, ClipboardCheck, CalendarCheck, BookUp, ArrowLeft, Megaphone, CalendarPlus, Camera, BookMarked, UserCheck as UserCheckIcon, Book, CalendarDays, CalendarOff } from "lucide-react";
 import { StatCard } from "@/components/principal/StatCard";
 import TeacherNav from "./TeacherNav";
 import { Button } from "../ui/button";
@@ -29,12 +29,13 @@ import ApproveLeaves from '../teacher/ApproveLeaves';
 import AddHomeworkForm from './AddHomeworkForm';
 import Gradebook from './Gradebook';
 import MarkAttendance from './MarkAttendance';
+import ManageHolidays from "../principal/ManageHolidays";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import DatesheetManager from "./DatesheetManager";
 
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves" | "manageDatesheet";
+export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves" | "manageDatesheet" | "manageHolidays";
 
 const NavCard = ({ title, description, icon: Icon, onClick, asLink, href }: { title: string, description: string, icon: React.ElementType, onClick?: () => void, asLink?: boolean, href?: string }) => {
     const content = (
@@ -318,6 +319,27 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 );
+             case 'manageHolidays':
+                return (
+                    <Card>
+                        <CardHeader>
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <CalendarOff />
+                                Manage Holidays
+                            </CardTitle>
+                            <CardDescription>
+                                Declare holidays for your class.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <ManageHolidays teacher={teacher} />
+                        </CardContent>
+                    </Card>
+                );
             default:
                 return (
                     <div className="space-y-6">
@@ -348,6 +370,7 @@ export default function TeacherDashboard() {
                                     <NavCard title="Mark Attendance" description="Mark daily student attendance" icon={UserCheckIcon} onClick={() => setActiveView("markAttendance")} />
                                     <NavCard title="Manage Datesheet" description="Create exams and set schedules" icon={CalendarDays} onClick={() => setActiveView("manageDatesheet")} />
                                     <NavCard title="Gradebook" description="Manage student grades" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
+                                     <NavCard title="Declare Holiday" description="Declare a holiday for your class" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
                                 </>
                            )}
                         </div>

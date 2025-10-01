@@ -11,8 +11,9 @@ import { UserCheck, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getStudentByAuthId } from "@/lib/supabase/students";
+import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import { getStudentAttendanceForMonth, AttendanceRecord } from "@/lib/supabase/attendance";
+import { getHolidays, Holiday } from "@/lib/supabase/holidays";
 import { format, getDaysInMonth, startOfMonth, addMonths, subMonths } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -56,11 +57,12 @@ const DayCell = ({ day, status }: { day: number, status: DayStatus }) => {
 export default function Attendance() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+    const [holidays, setHolidays] = useState<Holiday[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [studentInfo, setStudentInfo] = useState<any>(null);
+    const [studentInfo, setStudentInfo] = useState<Student | null>(null);
     const supabase = createClient();
 
-    const fetchAttendanceForStudent = useCallback(async (studentId: string, month: Date) => {
+    const fetchAttendanceAndHolidays = useCallback(async (studentId: string, studentClass: string, month: Date) => {
         setIsLoading(true);
         try {
             const records = await getStudentAttendanceForMonth(studentId, month);
@@ -72,6 +74,13 @@ export default function Attendance() {
         }
     }, []);
 
+     useEffect(() => {
+        const holidaysUnsub = getHolidays(setHolidays);
+        return () => {
+            if (holidaysUnsub) holidaysUnsub.unsubscribe();
+        }
+    }, []);
+
     useEffect(() => {
         const getStudentAndSetupSubscription = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -80,7 +89,8 @@ export default function Attendance() {
                 setStudentInfo(student);
 
                 if (student) {
-                    fetchAttendanceForStudent(student.id, currentMonth);
+                    const studentClass = `${student.class}-${student.section}`;
+                    fetchAttendanceAndHolidays(student.id, studentClass, currentMonth);
 
                     const channel = supabase
                         .channel(`public:attendance:student_id=eq.${student.id}`)
@@ -92,7 +102,7 @@ export default function Attendance() {
                         },
                             (payload) => {
                                 console.log('Attendance change detected, refetching...');
-                                fetchAttendanceForStudent(student.id, currentMonth);
+                                fetchAttendanceAndHolidays(student.id, studentClass, currentMonth);
                             }
                         ).subscribe();
                     
@@ -113,7 +123,7 @@ export default function Attendance() {
             subscriptionCleanupPromise.then(cleanup => cleanup && cleanup());
         };
         
-    }, [currentMonth, supabase, fetchAttendanceForStudent]);
+    }, [currentMonth, supabase, fetchAttendanceAndHolidays]);
 
     const navigateMonth = (direction: 'prev' | 'next') => {
         const newMonth = direction === 'prev' 
@@ -127,6 +137,7 @@ export default function Attendance() {
         const daysInMonth = getDaysInMonth(currentMonth);
         const firstDayOfWeek = monthStart.getDay(); 
         const today = new Date();
+        const studentClass = studentInfo ? `${studentInfo.class}-${studentInfo.section}` : null;
 
         const calendarDays = [];
         
@@ -141,10 +152,15 @@ export default function Attendance() {
             const formattedDate = format(date, 'yyyy-MM-dd');
             
             const record = attendance.find(a => a.date === formattedDate);
+            const isHoliday = holidays.find(h => 
+                h.date === formattedDate && (!h.class_section || h.class_section === studentClass)
+            );
 
             let status: DayStatus = 'unmarked';
             
-            if (dayOfWeek === 0) {
+            if (isHoliday) {
+                status = 'holiday';
+            } else if (dayOfWeek === 0) {
                 status = 'sunday';
             } else if (date > today) {
                 status = 'future';
@@ -270,4 +286,3 @@ export default function Attendance() {
         </Card>
     );
 }
-

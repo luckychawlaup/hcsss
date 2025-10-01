@@ -6,16 +6,21 @@ const supabase = createClient();
 const HOLIDAYS_TABLE = 'school_holidays';
 
 export interface Holiday {
+  id?: string;
   date: string; // YYYY-MM-DD
   description: string;
+  class_section?: string | null; // e.g., "10-A" or null for school-wide
 }
 
 export const HOLIDAYS_TABLE_SETUP_SQL = `
 -- Create the school_holidays table to store dates when the school is closed.
 CREATE TABLE IF NOT EXISTS public.school_holidays (
-    date DATE PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    date DATE NOT NULL,
     description TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    class_section TEXT, -- If NULL, it's a school-wide holiday
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT holiday_unique_per_scope UNIQUE(date, class_section)
 );
 
 -- Enable RLS for the holidays table
@@ -23,30 +28,48 @@ ALTER TABLE public.school_holidays ENABLE ROW LEVEL SECURITY;
 
 -- Drop policies if they exist to prevent conflicts
 DROP POLICY IF EXISTS "Allow admins to manage holidays" ON public.school_holidays;
+DROP POLICY IF EXISTS "Allow class teachers to manage their class holidays" ON public.school_holidays;
 DROP POLICY IF EXISTS "Allow authenticated users to read holidays" ON public.school_holidays;
 
--- Policy: Allow admin roles (Principal/Owner) to manage holidays
+-- Policy: Allow Principal/Owner to manage all holidays (school-wide and class-specific)
 CREATE POLICY "Allow admins to manage holidays"
 ON public.school_holidays FOR ALL
 USING (
-    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
     (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
 )
 WITH CHECK (
-    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
     (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
 );
 
--- Policy: Allow any authenticated user to read the holiday list
+-- Policy: Allow Class Teachers to manage holidays for their specific class
+CREATE POLICY "Allow class teachers to manage their class holidays"
+ON public.school_holidays FOR ALL
+USING (
+    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
+    AND
+    class_section = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid())
+)
+WITH CHECK (
+    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
+    AND
+    class_section = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid())
+);
+
+
+-- Policy: Allow any authenticated user to read relevant holidays
 CREATE POLICY "Allow authenticated users to read holidays"
 ON public.school_holidays FOR SELECT
-USING (auth.role() = 'authenticated');
+USING (
+    auth.role() = 'authenticated'
+);
 `;
 
 // Add a new holiday
-export const addHoliday = async (holiday: Holiday): Promise<void> => {
+export const addHoliday = async (holiday: Omit<Holiday, 'id'>): Promise<void> => {
     const { error } = await supabase.from(HOLIDAYS_TABLE).insert([holiday]);
     if (error) {
         console.error("Error adding holiday:", error);
@@ -54,9 +77,9 @@ export const addHoliday = async (holiday: Holiday): Promise<void> => {
     }
 };
 
-// Delete a holiday by its date
-export const deleteHoliday = async (date: string): Promise<void> => {
-    const { error } = await supabase.from(HOLIDAYS_TABLE).delete().eq('date', date);
+// Delete a holiday by its id
+export const deleteHoliday = async (id: string): Promise<void> => {
+    const { error } = await supabase.from(HOLIDAYS_TABLE).delete().eq('id', id);
     if (error) {
         console.error("Error deleting holiday:", error);
         throw error;

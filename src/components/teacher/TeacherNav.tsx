@@ -3,14 +3,14 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Home, ClipboardCheck, BookUp, User, Camera, Megaphone, CalendarPlus, BookMarked, UserCheck, CalendarDays } from "lucide-react";
+import { Home, ClipboardCheck, BookUp, User, Camera, Megaphone, CalendarPlus, BookMarked, UserCheck, CalendarDays, CalendarOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { TeacherView } from "./TeacherDashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NavItem {
-  view: TeacherView | "profile" | "gallery" | "teacherLeave" | "gradebook";
+  view: TeacherView | "profile" | "gallery" | "teacherLeave" | "gradebook" | "manageHolidays";
   label: string;
   icon: React.ElementType;
   href?: string;
@@ -34,7 +34,7 @@ const mobileNavItems: NavItem[] = [
 ];
 
 interface TeacherNavProps {
-    activeView: TeacherView | "profile" | "gallery" | "teacherLeave";
+    activeView: TeacherView | "profile" | "gallery" | "teacherLeave" | "manageHolidays";
     setActiveView: (view: TeacherView) => void;
     teacherRole?: "classTeacher" | "subjectTeacher";
 }

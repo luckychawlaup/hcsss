@@ -5,16 +5,30 @@ import { useState, useEffect } from "react";
 import { format, isSameDay, getDay } from "date-fns";
 import { getHolidays } from "@/lib/supabase/holidays";
 import type { Holiday } from "@/lib/supabase/holidays";
+import { getStudentByAuthId, Student } from "@/lib/supabase/students";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Building, PartyPopper } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 
 export default function SchoolStatus() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
     setIsLoading(true);
+    
+    const fetchUser = async () => {
+        const { data: { user }} = await supabase.auth.getUser();
+        if (user) {
+            const studentProfile = await getStudentByAuthId(user.id);
+            setStudent(studentProfile);
+        }
+    }
+    fetchUser();
+
     const unsubscribe = getHolidays((holidayRecords) => {
       setHolidays(holidayRecords);
       setIsLoading(false);
@@ -25,17 +39,27 @@ export default function SchoolStatus() {
         unsubscribe.unsubscribe();
       }
     };
-  }, []);
+  }, [supabase]);
 
   if (isLoading) {
     return <Skeleton className="h-14 w-full" />;
   }
 
   const today = new Date();
-  const todayIsHoliday = holidays.find(h => isSameDay(new Date(h.date), today));
   const isSunday = getDay(today) === 0;
 
+  // Check for school-wide holiday
+  const schoolWideHoliday = holidays.find(h => isSameDay(new Date(h.date), today) && !h.class_section);
+
+  // Check for class-specific holiday if student profile is loaded
+  const classSpecificHoliday = student 
+    ? holidays.find(h => isSameDay(new Date(h.date), today) && h.class_section === `${student.class}-${student.section}`)
+    : null;
+
+  const todayIsHoliday = schoolWideHoliday || classSpecificHoliday;
+
   if (todayIsHoliday || isSunday) {
+    const holidayReason = todayIsHoliday ? todayIsHoliday.description : "It's Sunday!";
     return (
       <Card className="bg-blue-50 border-blue-200 w-full">
         <CardContent className="p-3 flex items-center gap-3">
@@ -45,7 +69,7 @@ export default function SchoolStatus() {
           <div>
             <h3 className="font-semibold text-blue-800 text-sm">School is OFF Today</h3>
             <p className="text-xs text-blue-700">
-              {todayIsHoliday ? todayIsHoliday.description : "It's Sunday!"}
+              {holidayReason}
             </p>
           </div>
         </CardContent>
