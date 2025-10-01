@@ -19,9 +19,10 @@ export const SETUP_SQL = `
 -- WARNING: This will delete any existing data in the 'exams' table.
 
 -- Drop the table if it exists
+DROP TABLE IF EXISTS public.marks;
 DROP TABLE IF EXISTS public.exams;
 
--- Create the table with the correct columns and foreign keys
+-- Create the 'exams' table first
 CREATE TABLE public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -31,17 +32,61 @@ CREATE TABLE public.exams (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable RLS (Row Level Security)
+-- Enable RLS for exams
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if they exist, then recreate them
-DROP POLICY IF EXISTS "Allow authenticated users to manage exams" ON public.exams;
-
--- Create new policy that allows any authenticated user to manage exams
+-- Create policy for exams
 CREATE POLICY "Allow authenticated users to manage exams"
 ON public.exams FOR ALL
 USING (auth.role() = 'authenticated')
 WITH CHECK (auth.role() = 'authenticated');
+
+
+-- Now create the 'marks' table with the foreign key to exams
+CREATE TABLE public.marks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL,
+    marks INTEGER NOT NULL DEFAULT 0,
+    max_marks INTEGER NOT NULL DEFAULT 100,
+    grade TEXT,
+    exam_date TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT marks_unique_student_exam_subject UNIQUE (student_id, exam_id, subject)
+);
+
+-- Enable RLS for marks
+ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Allow Class Teachers and Principal to manage marks for their class
+CREATE POLICY "Allow class teachers & principal to manage marks"
+ON public.marks FOR ALL
+USING (
+    (
+        -- Check if user is the class teacher of the student
+        (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = 
+        (SELECT class || '-' || section FROM public.students WHERE id = public.marks.student_id)
+    )
+    OR
+    (
+        -- Check if user is a principal
+        (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
+    )
+     OR
+    (
+        -- Check if user is the owner
+        auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050'
+    )
+);
+
+-- Policy: Allow students to view their own marks
+CREATE POLICY "Allow students to view their own marks"
+ON public.marks FOR SELECT
+USING (
+  student_id = (SELECT id FROM public.students WHERE auth_uid = auth.uid())
+);
 `;
 
 // Helper function to check if tables exist
@@ -106,10 +151,11 @@ export const getExams = (callback: (exams: Exam[]) => void) => {
         }, (payload) => {
             fetchAndCallbackExams(callback);
         })
-        .subscribe();
-    
-    // Initial fetch
-    fetchAndCallbackExams(callback);
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                fetchAndCallbackExams(callback);
+            }
+        });
     
     return channel;
 };
