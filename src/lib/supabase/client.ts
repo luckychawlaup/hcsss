@@ -19,10 +19,5 @@ export const createClient = () =>
         detectSessionInUrl: true,
         flowType: 'pkce',
       },
-      cookieOptions: {
-        path: '/',
-        secure: true,
-        sameSite: 'lax',
-      },
     }
   )
