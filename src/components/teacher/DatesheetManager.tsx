@@ -43,6 +43,12 @@ const createExamSchema = z.object({
   end_date: z.date().optional(),
 });
 
+interface SubjectEntry {
+    id: string;
+    subject: string;
+    exam_date?: Date;
+}
+
 interface DatesheetManagerProps {
   teacher: Teacher | null;
 }
@@ -51,7 +57,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     const [exams, setExams] = useState<Exam[]>([]);
     const [students, setStudents] = useState<Student[]>([]);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
-    const [subjects, setSubjects] = useState<Record<string, { subject: string, exam_date?: Date }>>({});
+    const [subjects, setSubjects] = useState<SubjectEntry[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFetchingSubjects, setIsFetchingSubjects] = useState(false);
     const [isCreateExamOpen, setIsCreateExamOpen] = useState(false);
@@ -84,75 +90,48 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
             if (firstStudentId) {
                 getStudentMarksForExam(firstStudentId, selectedExam.id).then(marks => {
                     if (marks.length > 0) {
-                        const initialSubjects = marks.reduce((acc, mark) => {
-                            acc[mark.subject] = {
-                                subject: mark.subject,
-                                exam_date: mark.exam_date ? new Date(mark.exam_date) : undefined
-                            };
-                            return acc;
-                        }, {} as Record<string, { subject: string, exam_date?: Date }>);
+                        const initialSubjects = marks.map(mark => ({
+                            id: mark.subject, // Using subject as initial ID, but could be a UUID
+                            subject: mark.subject,
+                            exam_date: mark.exam_date ? new Date(mark.exam_date) : undefined
+                        }));
                         setSubjects(initialSubjects);
                     } else {
                         // If no marks exist, use teacher's subjects as default
                         const defaultSubjects = teacher?.qualifications || ["English", "Hindi", "Maths", "Science", "Social Science"];
-                        const initialSubjects: Record<string, { subject: string, exam_date?: Date }> = {};
-                        defaultSubjects.forEach(sub => {
-                            initialSubjects[sub] = { subject: sub, exam_date: undefined };
-                        });
-                        setSubjects(initialSubjects);
+                        setSubjects(defaultSubjects.map(sub => ({ id: sub, subject: sub, exam_date: undefined })));
                     }
                      setIsFetchingSubjects(false);
                 });
             } else {
                 const defaultSubjects = teacher?.qualifications || ["English", "Hindi", "Maths", "Science", "Social Science"];
-                const initialSubjects: Record<string, { subject: string, exam_date?: Date }> = {};
-                defaultSubjects.forEach(sub => {
-                    initialSubjects[sub] = { subject: sub, exam_date: undefined };
-                });
-                setSubjects(initialSubjects);
+                setSubjects(defaultSubjects.map(sub => ({ id: sub, subject: sub, exam_date: undefined })));
                 setIsFetchingSubjects(false);
             }
         } else {
-            setSubjects({});
+            setSubjects([]);
         }
     }, [selectedExam, classTeacherClass, students, teacher?.qualifications]);
     
     const handleAddSubject = () => {
-        const newSubjectName = `New Subject ${Object.keys(subjects).length + 1}`;
-        setSubjects(prev => ({
-            ...prev,
-            [newSubjectName]: { subject: newSubjectName, exam_date: undefined }
-        }));
+        const newId = `new-subject-${Date.now()}`;
+        setSubjects(prev => [...prev, { id: newId, subject: "", exam_date: undefined }]);
     };
     
-    const handleRemoveSubject = (subjectKey: string) => {
-        setSubjects(prev => {
-            const newSubjects = { ...prev };
-            delete newSubjects[subjectKey];
-            return newSubjects;
-        });
+    const handleRemoveSubject = (id: string) => {
+        setSubjects(prev => prev.filter(s => s.id !== id));
     };
 
-    const handleSubjectNameChange = (oldName: string, newName: string) => {
-        setSubjects(prev => {
-            const newSubjects = { ...prev };
-            if (oldName !== newName && newSubjects[oldName]) {
-                 newSubjects[newName] = { ...newSubjects[oldName], subject: newName };
-                 delete newSubjects[oldName];
-            }
-            return newSubjects;
-        });
+    const handleSubjectNameChange = (id: string, newName: string) => {
+        setSubjects(prev => prev.map(s => s.id === id ? { ...s, subject: newName } : s));
     };
     
-    const handleDateChange = (subject: string, date: Date | undefined) => {
-        setSubjects(prev => ({
-            ...prev,
-            [subject]: { ...prev[subject], exam_date: date }
-        }));
+    const handleDateChange = (id: string, date: Date | undefined) => {
+        setSubjects(prev => prev.map(s => s.id === id ? { ...s, exam_date: date } : s));
     };
 
     const handleSubmit = async () => {
-        if (!selectedExam || !classTeacherClass || Object.keys(subjects).length === 0) {
+        if (!selectedExam || !classTeacherClass || subjects.length === 0) {
             toast({ variant: "destructive", title: "Missing Information", description: "Please select an exam and add subjects." });
             return;
         }
@@ -165,7 +144,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
 
         setIsSubmitting(true);
         try {
-            const scheduleData = Object.values(subjects).map(s => ({
+            const scheduleData = subjects.map(s => ({
                 subject: s.subject.trim(),
                 marks: 0, // Placeholder
                 max_marks: 100, // Placeholder
@@ -265,14 +244,14 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                     </CardHeader>
                     <CardContent className="space-y-4">
                          <div className="space-y-3">
-                            {Object.entries(subjects).map(([key, value]) => (
-                                <div key={key} className="flex flex-col sm:flex-row items-start sm:items-end gap-2 p-3 border rounded-lg">
+                            {subjects.map((subjectEntry) => (
+                                <div key={subjectEntry.id} className="flex flex-col sm:flex-row items-start sm:items-end gap-2 p-3 border rounded-lg">
                                     <div className="flex-1 w-full sm:w-auto">
-                                        <Label htmlFor={`subject-${key}`}>Subject</Label>
+                                        <Label htmlFor={`subject-${subjectEntry.id}`}>Subject</Label>
                                         <Input
-                                          id={`subject-${key}`}
-                                          value={value.subject}
-                                          onChange={(e) => handleSubjectNameChange(key, e.target.value)}
+                                          id={`subject-${subjectEntry.id}`}
+                                          value={subjectEntry.subject}
+                                          onChange={(e) => handleSubjectNameChange(subjectEntry.id, e.target.value)}
                                           placeholder="Subject Name"
                                         />
                                     </div>
@@ -280,17 +259,17 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                                         <Label>Exam Date</Label>
                                         <Popover>
                                         <PopoverTrigger asChild>
-                                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !value.exam_date && "text-muted-foreground")}>
+                                            <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !subjectEntry.exam_date && "text-muted-foreground")}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {value.exam_date ? formatDate(value.exam_date, "PPP") : <span>Pick date</span>}
+                                                {subjectEntry.exam_date ? formatDate(subjectEntry.exam_date, "PPP") : <span>Pick date</span>}
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0">
-                                            <Calendar mode="single" selected={value.exam_date} onSelect={(date) => handleDateChange(key, date)} initialFocus />
+                                            <Calendar mode="single" selected={subjectEntry.exam_date} onSelect={(date) => handleDateChange(subjectEntry.id, date)} initialFocus />
                                         </PopoverContent>
                                         </Popover>
                                     </div>
-                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveSubject(key)}><Trash2 className="text-destructive"/></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveSubject(subjectEntry.id)}><Trash2 className="text-destructive"/></Button>
                                 </div>
                             ))}
                         </div>
