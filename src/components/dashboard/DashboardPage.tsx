@@ -16,6 +16,7 @@ import { Button } from "../ui/button";
 import BottomNav from "./BottomNav";
 import type { Exam } from "@/lib/supabase/exams";
 import { isAfter, startOfToday, parseISO, isWithinInterval, subDays, endOfDay } from "date-fns";
+import Footer from "./Footer";
 
 function DashboardLoadingSkeleton() {
     return (
@@ -61,8 +62,8 @@ export default function DashboardPage() {
             <Suspense fallback={<DashboardLoadingSkeleton />}>
                 <div className="space-y-6">
                     <SchoolStatus />
-                    <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8 gap-6">
-                       <div className="lg:col-span-2 space-y-6">
+                    <div className="flex flex-col lg:flex-row lg:gap-8 gap-6">
+                       <div className="lg:w-2/3 space-y-6">
                             {showDatesheetInsteadOfHomework ? (
                                 <Card className="flex flex-col">
                                     <CardHeader>
@@ -85,7 +86,7 @@ export default function DashboardPage() {
                             ) : <TodayHomework /> }
                            <Attendance />
                        </div>
-                       <div className="space-y-6">
+                       <div className="lg:w-1/3 space-y-6">
                            <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} />
                            <ReportCardComponent />
                            <Card>
@@ -112,6 +113,7 @@ export default function DashboardPage() {
             </Suspense>
         </main>
       </div>
+      <Footer />
        <BottomNav />
     </div>
   );
