@@ -317,13 +317,13 @@ export const updateExam = async (id: string, updates: Partial<Omit<Exam, 'id' | 
         
         if (error) {
             console.error("Error updating exam:", error);
-            return null;
+            throw error;
         }
         
         return data;
     } catch (e) {
         console.error("Unexpected error updating exam:", e);
-        return null;
+        throw e;
     }
 };
 
@@ -336,13 +336,13 @@ export const deleteExam = async (id: string): Promise<boolean> => {
         
         if (error) {
             console.error("Error deleting exam:", error);
-            return false;
+            throw error;
         }
         
         return true;
     } catch (e) {
         console.error("Unexpected error deleting exam:", e);
-        return false;
+        throw e;
     }
 };
 
@@ -396,3 +396,5 @@ export const getStudentExams = async (studentId: string): Promise<Exam[]> => {
         return [];
     }
 };
+
+    
