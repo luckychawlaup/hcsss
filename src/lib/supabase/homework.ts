@@ -180,8 +180,7 @@ export const getHomeworks = (
         .on('postgres_changes', { 
             event: '*', 
             schema: 'public', 
-            table: HOMEWORK_COLLECTION, 
-            filter: `class_section=eq.${classSection}` 
+            table: HOMEWORK_COLLECTION
         }, (payload) => {
             fetchAndCallback();
         })

@@ -137,11 +137,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
         }
 
         const studentsInClass = students.filter(s => `${s.class}-${s.section}` === classTeacherClass);
-        if (studentsInClass.length === 0) {
-             toast({ variant: "destructive", title: "No Students in Class", description: "Cannot save datesheet for a class with no students." });
-             return;
-        }
-
+        
         setIsSubmitting(true);
         try {
             const scheduleData = subjects.map(s => ({
@@ -151,11 +147,13 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                 exam_date: s.exam_date
             })).filter(s => s.subject !== "");
 
-            // Save the schedule for all students in the class
-            const savePromises = studentsInClass.map(student => 
-                setMarksForStudent(student.id, selectedExam.id, scheduleData)
-            );
-            await Promise.all(savePromises);
+            if (studentsInClass.length > 0) {
+                // Save the schedule for all students in the class
+                const savePromises = studentsInClass.map(student => 
+                    setMarksForStudent(student.id, selectedExam.id, scheduleData)
+                );
+                await Promise.all(savePromises);
+            }
             
             toast({ title: "Datesheet Saved!", description: `The schedule for ${selectedExam.name} has been saved for all students in ${classTeacherClass}.` });
         } catch (error) {
