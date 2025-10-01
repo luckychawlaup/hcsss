@@ -47,17 +47,26 @@ WITH CHECK (
 );
 
 -- Policy: Allow Class Teachers to manage holidays for their specific class
+-- This policy joins the teachers table to securely check the class teacher's assignment against the holiday's class_section
 CREATE POLICY "Allow class teachers to manage their class holidays"
 ON public.school_holidays FOR ALL
 USING (
-    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
-    AND
-    class_section = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid())
+    EXISTS (
+        SELECT 1
+        FROM public.teachers t
+        WHERE t.auth_uid = auth.uid()
+          AND t.role = 'classTeacher'
+          AND t.class_teacher_of = public.school_holidays.class_section
+    )
 )
 WITH CHECK (
-    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
-    AND
-    class_section = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid())
+    EXISTS (
+        SELECT 1
+        FROM public.teachers t
+        WHERE t.auth_uid = auth.uid()
+          AND t.role = 'classTeacher'
+          AND t.class_teacher_of = public.school_holidays.class_section
+    )
 );
 
 
