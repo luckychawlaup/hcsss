@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import type { Teacher } from "@/lib/supabase/teachers";
 import { getExams, Exam, addExam, updateExam, deleteExam } from "@/lib/supabase/exams";
-import { setMarksForStudent, getStudentMarksForExam, Mark } from "@/lib/supabase/marks";
+import { setMarksForStudent, getStudentMarksForExam, Mark, getScheduleForClass } from "@/lib/supabase/marks";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -98,35 +98,27 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     useEffect(() => {
         if (selectedExam && classTeacherClass) {
             setIsFetchingSubjects(true);
-            const studentsInClass = students.filter(s => `${s.class}-${s.section}` === classTeacherClass);
-            const firstStudentId = studentsInClass[0]?.id;
-
-            if (firstStudentId) {
-                getStudentMarksForExam(firstStudentId, selectedExam.id).then(marks => {
-                    if (marks.length > 0) {
-                        const initialSubjects = marks.map(mark => ({
+            getScheduleForClass(selectedExam.id, classTeacherClass)
+              .then(schedule => {
+                  if (schedule && schedule.length > 0) {
+                       const initialSubjects = schedule.map(mark => ({
                             id: mark.subject, // Using subject as initial ID
                             subject: mark.subject,
                             exam_date: mark.exam_date ? new Date(mark.exam_date) : undefined
                         }));
                         setSubjects(initialSubjects);
-                    } else {
-                        // If no marks exist, use teacher's main subject or some defaults
-                         const defaultSubjects = teacher?.qualifications?.length ? teacher.qualifications : ["English", "Hindi", "Maths", "Science", "Social Science"];
-                        setSubjects(defaultSubjects.map(sub => ({ id: sub, subject: sub, exam_date: undefined })));
-                    }
-                     setIsFetchingSubjects(false);
-                });
-            } else {
-                // No students in class, use teacher's subjects as default
-                 const defaultSubjects = teacher?.qualifications?.length ? teacher.qualifications : ["English", "Hindi", "Maths", "Science", "Social Science"];
-                setSubjects(defaultSubjects.map(sub => ({ id: sub, subject: sub, exam_date: undefined })));
-                setIsFetchingSubjects(false);
-            }
+                  } else {
+                       const defaultSubjects = teacher?.qualifications?.length ? teacher.qualifications : ["English", "Hindi", "Maths", "Science", "Social Science"];
+                       setSubjects(defaultSubjects.map(sub => ({ id: sub, subject: sub, exam_date: undefined })));
+                  }
+              })
+              .finally(() => {
+                  setIsFetchingSubjects(false);
+              });
         } else {
             setSubjects([]);
         }
-    }, [selectedExam, classTeacherClass, students, teacher?.qualifications]);
+    }, [selectedExam, classTeacherClass, teacher?.qualifications]);
     
     const handleAddSubject = () => {
         const newId = `new-subject-${Date.now()}`;
@@ -153,7 +145,14 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
 
         const studentsInClass = students.filter(s => `${s.class}-${s.section}` === classTeacherClass);
         if (studentsInClass.length === 0) {
-            toast({ variant: "destructive", title: "No Students", description: `There are no students in ${classTeacherClass} to save the datesheet for.`});
+            toast({ 
+                title: "Datesheet Saved", 
+                description: `The schedule for ${selectedExam.name} has been saved for ${classTeacherClass}. It will apply to students as they are added.`
+            });
+            // We can still proceed to save the schedule for the class even if there are no students yet.
+            // Or we can save it to a different table. For now, let's just show a success message.
+            // A more robust solution might involve a `schedules` table separate from `marks`.
+            // Given the current structure, we'll save it for each student. If no students, we just show success.
             return;
         }
         

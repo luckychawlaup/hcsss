@@ -157,6 +157,28 @@ export const getStudentMarksForExam = async (studentId: string, examId: string):
     }
 };
 
+export const getScheduleForClass = async (examId: string, classSection: string): Promise<any[] | null> => {
+    try {
+        const { data: students, error: studentError } = await supabase
+            .from('students')
+            .select('id')
+            .eq('class', classSection.split('-')[0])
+            .eq('section', classSection.split('-')[1])
+            .limit(1);
+
+        if (studentError || !students || students.length === 0) {
+            console.warn("No students in class, cannot fetch schedule from marks.");
+            return null;
+        }
+        
+        return getStudentMarksForExam(students[0].id, examId);
+
+    } catch (error) {
+        console.error("Error fetching schedule for class:", error);
+        return null;
+    }
+}
+
 export const getMarksForStudent = async (studentId: string): Promise<Record<string, Mark[]>> => {
     try {
         if (!studentId) {
