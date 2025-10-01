@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format, isSameDay, getDay } from "date-fns";
+import { isSameDay, getDay } from "date-fns";
 import { getHolidays } from "@/lib/supabase/holidays";
 import type { Holiday } from "@/lib/supabase/holidays";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
@@ -20,40 +20,47 @@ export default function SchoolStatus() {
   useEffect(() => {
     setIsLoading(true);
     
-    const fetchUser = async () => {
+    const fetchUserAndHolidays = async () => {
         const { data: { user }} = await supabase.auth.getUser();
         if (user) {
             const studentProfile = await getStudentByAuthId(user.id);
             setStudent(studentProfile);
         }
+
+        const unsubscribe = getHolidays((holidayRecords) => {
+          setHolidays(holidayRecords);
+          setIsLoading(false);
+        });
+
+        return () => {
+          if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
+            unsubscribe.unsubscribe();
+          }
+        };
     }
-    fetchUser();
+    
+    fetchUserAndHolidays();
 
-    const unsubscribe = getHolidays((holidayRecords) => {
-      setHolidays(holidayRecords);
-      setIsLoading(false);
-    });
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe.unsubscribe();
-      }
-    };
   }, [supabase]);
 
   if (isLoading) {
-    return <Skeleton className="h-14 w-full" />;
+    return <Skeleton className="h-12 w-full" />;
   }
 
   const today = new Date();
   const isSunday = getDay(today) === 0;
 
-  // Check for school-wide holiday
-  const schoolWideHoliday = holidays.find(h => isSameDay(new Date(h.date), today) && !h.class_section);
+  // Check for school-wide holiday (where class_section is null)
+  const schoolWideHoliday = holidays.find(h => 
+    isSameDay(new Date(h.date), today) && !h.class_section
+  );
 
   // Check for class-specific holiday if student profile is loaded
   const classSpecificHoliday = student 
-    ? holidays.find(h => isSameDay(new Date(h.date), today) && h.class_section === `${student.class}-${student.section}`)
+    ? holidays.find(h => 
+        isSameDay(new Date(h.date), today) && 
+        h.class_section === `${student.class}-${student.section}`
+      )
     : null;
 
   const todayIsHoliday = schoolWideHoliday || classSpecificHoliday;
@@ -63,7 +70,7 @@ export default function SchoolStatus() {
     return (
       <Card className="bg-blue-50 border-blue-200 w-full">
         <CardContent className="p-3 flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 flex-shrink-0">
             <PartyPopper className="h-5 w-5" />
           </div>
           <div>
@@ -80,7 +87,7 @@ export default function SchoolStatus() {
   return (
     <Card className="bg-green-50 border-green-200 w-full">
       <CardContent className="p-3 flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600 flex-shrink-0">
           <Building className="h-5 w-5" />
         </div>
         <div>
