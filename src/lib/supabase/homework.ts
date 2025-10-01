@@ -79,8 +79,6 @@ CREATE INDEX IF NOT EXISTS idx_homework_assigned_by ON public.homework(assigned_
 const uploadFileToSupabase = async (file: File, bucket: string, folder: string): Promise<string> => {
     const filePath = `${folder}/${Date.now()}_${file.name}`;
     
-    console.log('Uploading file:', filePath);
-    
     const { data, error } = await supabase.storage.from(bucket).upload(filePath, file);
     if (error) {
         console.error('Error uploading to Supabase Storage:', error);
@@ -92,7 +90,6 @@ const uploadFileToSupabase = async (file: File, bucket: string, folder: string):
         throw new Error('Could not get public URL for uploaded file.');
     }
     
-    console.log('File uploaded successfully, URL:', urlData.publicUrl);
     return urlData.publicUrl;
 };
 
@@ -100,7 +97,6 @@ export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment
     try {
         let attachment_url;
         if (attachment) {
-            console.log('Processing attachment:', attachment.name);
             attachment_url = await uploadFileToSupabase(attachment, 'homework', 'files');
         }
 
@@ -108,8 +104,6 @@ export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment
             ...homeworkData, 
             attachment_url: attachment_url || null 
         };
-
-        console.log('Inserting homework data:', finalHomeworkData);
 
         const { data, error } = await supabase
             .from(HOMEWORK_COLLECTION)
@@ -121,7 +115,6 @@ export const addHomework = async (homeworkData: Omit<Homework, 'id'>, attachment
             throw new Error(`Failed to save homework: ${error.message}`);
         }
         
-        console.log('Homework inserted successfully:', data);
     } catch (error) {
         console.error('addHomework error:', error);
         throw error;
@@ -136,7 +129,6 @@ export const getHomeworks = (
 ) => {
     const fetchAndCallback = async () => {
         try {
-            console.log(`Fetching homeworks for class: ${classSection}, filter:`, options?.dateFilter);
             
             let query = supabase
                 .from(HOMEWORK_COLLECTION)
@@ -149,11 +141,9 @@ export const getHomeworks = (
                 if (options.dateFilter === 'today') {
                     const todayStart = startOfDay(new Date()).toISOString();
                     const todayEnd = endOfDay(new Date()).toISOString();
-                    console.log(`Filtering for today: ${todayStart} to ${todayEnd}`);
                     query = query.gte('assigned_at', todayStart).lte('assigned_at', todayEnd);
                 } else if (typeof options.dateFilter === 'number') {
                     const fromDate = startOfDay(subDays(new Date(), options.dateFilter)).toISOString();
-                    console.log(`Filtering from date: ${fromDate}`);
                     query = query.gte('assigned_at', fromDate);
                 }
             }
@@ -166,7 +156,6 @@ export const getHomeworks = (
                 return;
             }
             
-            console.log(`Found ${data?.length || 0} homeworks:`, data);
             callback(data || []);
         } catch (error) {
             console.error('fetchAndCallback error:', error);
@@ -176,15 +165,13 @@ export const getHomeworks = (
 
     const channelName = `homework-${classSection}`;
     
-    // This subscription now listens for ANY change and re-fetches.
     const channel = supabase.channel(channelName)
         .on('postgres_changes', { 
             event: '*', 
             schema: 'public', 
             table: HOMEWORK_COLLECTION,
-            // Filter removed for reliability
         }, (payload) => {
-            fetchAndCallback(); // Re-fetch all relevant data on any change.
+            fetchAndCallback();
         })
         .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
@@ -280,7 +267,6 @@ export const updateHomework = async (homeworkId: string, updatedData: Partial<Ho
             throw new Error(`Failed to update homework: ${error.message}`);
         }
         
-        console.log('Homework updated successfully:', data);
     } catch (error) {
         console.error('updateHomework error:', error);
         throw error;
@@ -325,7 +311,6 @@ export const deleteHomework = async (homeworkId: string): Promise<void> => {
             }
         }
         
-        console.log('Homework deleted successfully');
     } catch (error) {
         console.error('deleteHomework error:', error);
         throw error;

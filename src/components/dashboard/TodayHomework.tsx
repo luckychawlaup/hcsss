@@ -3,28 +3,21 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Book, Download, Info } from "lucide-react";
+import { Book, Download, Info, FileText } from "lucide-react";
 import { getHomeworks, Homework } from "@/lib/supabase/homework";
 import { getStudentByAuthId } from "@/lib/supabase/students";
 import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
 import Link from "next/link";
+import { Badge } from "../ui/badge";
 
 function HomeworkSkeleton() {
   return (
-    <div className="space-y-2">
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-8 w-full" />
+    <div className="space-y-4">
+      <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-20 w-full" />
     </div>
   );
 }
@@ -40,43 +33,28 @@ export default function TodayHomework() {
 
     const fetchHomework = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        console.log('TodayHomework: Starting to fetch user data...');
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) {
-          console.error('TodayHomework: Auth error:', authError);
-          setError('Authentication error');
-          setIsLoading(false);
-          return;
-        }
+        const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          console.log('TodayHomework: No user found');
           setIsLoading(false);
           return;
         }
         
-        console.log('TodayHomework: User found, getting student profile...');
         const studentProfile = await getStudentByAuthId(user.id);
         
         if (!studentProfile) {
-          console.error('TodayHomework: No student profile found for user:', user.id);
           setError('Student profile not found');
           setIsLoading(false);
           return;
         }
         
-        console.log('TodayHomework: Student profile found:', studentProfile);
         const classSection = `${studentProfile.class}-${studentProfile.section}`;
-        console.log('TodayHomework: Using class section:', classSection);
         
-        // Set up homework subscription
         channel = getHomeworks(classSection, (newHomeworks) => {
-          console.log('TodayHomework: Received homework data:', newHomeworks);
           setHomeworks(newHomeworks);
           setIsLoading(false);
-          setError(null);
         }, { dateFilter: 'today' });
         
       } catch (err) {
@@ -90,12 +68,10 @@ export default function TodayHomework() {
 
     return () => {
       if (channel) {
-        console.log('TodayHomework: Cleaning up channel...');
         supabase.removeChannel(channel);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [supabase]);
 
   if (error) {
     return (
@@ -133,44 +109,35 @@ export default function TodayHomework() {
       <CardContent>
         {isLoading ? (
           <HomeworkSkeleton />
-        ) : (
-          <div className="overflow-x-auto">
-            {homeworks.length > 0 ? (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                        <TableHead>Subject</TableHead>
-                        <TableHead>Assignment</TableHead>
-                        <TableHead className="text-right">File</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {homeworks.map((hw) => (
-                            <TableRow key={hw.id}>
-                                <TableCell className="font-medium">{hw.subject}</TableCell>
-                                <TableCell>{hw.description}</TableCell>
-                                <TableCell className="text-right">
-                                    {hw.attachment_url ? (
-                                    <Button variant="ghost" size="icon" asChild>
-                                        <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer">
-                                        <Download className="h-4 w-4" />
-                                        </a>
-                                    </Button>
-                                    ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                    )}
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            ) : (
-                <div className="flex flex-col items-center justify-center text-center p-6 bg-secondary/30 rounded-md">
-                    <Info className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm font-semibold text-muted-foreground">No homework assigned for today!</p>
-                </div>
-            )}
+        ) : homeworks.length > 0 ? (
+          <div className="space-y-4">
+            {homeworks.map((hw) => (
+              <div key={hw.id} className="flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-secondary/50">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <FileText className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold">{hw.subject}</p>
+                        {hw.attachment_url && (
+                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                            <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer">
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{hw.description}</p>
+                      <p className="text-xs text-muted-foreground mt-2">Due: {format(new Date(hw.due_date), "do MMMM")}</p>
+                  </div>
+              </div>
+            ))}
           </div>
+        ) : (
+            <div className="flex flex-col items-center justify-center text-center p-6 bg-secondary/30 rounded-md">
+                <Info className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm font-semibold text-muted-foreground">No homework assigned for today!</p>
+            </div>
         )}
       </CardContent>
     </Card>
