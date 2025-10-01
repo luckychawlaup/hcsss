@@ -80,7 +80,8 @@ export default function SchoolStatus() {
   
   if (todayIsHoliday || isSunday) {
     let holidayReason = isSunday ? "It's Sunday!" : todayIsHoliday!.description;
-    let holidayTitle = "School is OFF Today";
+    let holidayTitle = "School is OFF";
+    let dateRangeString = "";
 
     if (todayIsHoliday) {
         const relevantHolidays = holidays.filter(h => h.description === todayIsHoliday.description && h.class_section === todayIsHoliday.class_section)
@@ -90,8 +91,7 @@ export default function SchoolStatus() {
         if (relevantHolidays.length > 1) {
             const firstDay = relevantHolidays[0];
             const lastDay = relevantHolidays[relevantHolidays.length - 1];
-            holidayTitle = "School is OFF";
-            holidayReason = `${todayIsHoliday.description} from ${format(firstDay, 'MMM d')} to ${format(lastDay, 'MMM d')}.`;
+            dateRangeString = ` (from ${format(firstDay, 'MMM d')} to ${format(lastDay, 'MMM d')})`;
         }
     }
 
@@ -103,7 +103,7 @@ export default function SchoolStatus() {
             <PartyPopper className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-blue-800 text-sm">{holidayTitle}</h3>
+            <h3 className="font-semibold text-blue-800 text-sm">{holidayTitle}{dateRangeString}</h3>
             <p className="text-xs text-blue-700">
               {holidayReason}
             </p>
