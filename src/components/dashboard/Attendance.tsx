@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import { getStudentAttendanceForMonth, AttendanceRecord } from "@/lib/supabase/attendance";
 import { getHolidays, Holiday } from "@/lib/supabase/holidays";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, parseISO, isSameDay } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, parseISO, isSameDay, startOfDay } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -77,7 +77,9 @@ export default function Attendance() {
      useEffect(() => {
         const holidaysUnsub = getHolidays(setHolidays);
         return () => {
-            if (holidaysUnsub) holidaysUnsub.unsubscribe();
+            if (holidaysUnsub && typeof holidaysUnsub.unsubscribe === 'function') {
+                holidaysUnsub.unsubscribe();
+            }
         }
     }, []);
 
@@ -151,10 +153,13 @@ export default function Attendance() {
             const formattedDate = format(date, 'yyyy-MM-dd');
             
             const record = attendance.find(a => a.date === formattedDate);
-            const isHoliday = holidays.find(h => 
-                isSameDay(parseISO(h.date), date) && 
-                (!h.class_section || h.class_section === studentClass)
-            );
+            const isHoliday = holidays.find(h => {
+                // Adjust for timezone differences by comparing start of day
+                const holidayDate = startOfDay(new Date(h.date));
+                const calendarDate = startOfDay(date);
+                return isSameDay(holidayDate, calendarDate) && 
+                       (!h.class_section || h.class_section === studentClass);
+            });
 
             let status: DayStatus = 'unmarked';
             
