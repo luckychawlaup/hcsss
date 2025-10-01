@@ -35,11 +35,39 @@ CREATE TABLE public.exams (
 -- Enable RLS for exams
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 
--- Create policy for exams
-CREATE POLICY "Allow authenticated users to manage exams"
+-- Drop existing policies
+DROP POLICY IF EXISTS "Allow authenticated users to manage exams" ON public.exams;
+DROP POLICY IF EXISTS "Allow admins to manage all exams" ON public.exams;
+DROP POLICY IF EXISTS "Allow class teachers to manage exams" ON public.exams;
+DROP POLICY IF EXISTS "Allow authenticated users to read exams" ON public.exams;
+
+
+-- Create new, secure policies
+CREATE POLICY "Allow admins to manage all exams"
 ON public.exams FOR ALL
-USING (auth.role() = 'authenticated')
-WITH CHECK (auth.role() = 'authenticated');
+USING (
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
+    OR
+    (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
+)
+WITH CHECK (
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
+    OR
+    (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
+);
+
+CREATE POLICY "Allow class teachers to manage exams"
+ON public.exams FOR ALL
+USING (
+    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
+)
+WITH CHECK (
+    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
+);
+
+CREATE POLICY "Allow authenticated users to read exams"
+ON public.exams FOR SELECT
+USING (auth.role() = 'authenticated');
 
 
 -- Now create the 'marks' table with the foreign key to exams
