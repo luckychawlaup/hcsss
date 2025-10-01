@@ -26,6 +26,8 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
+
         const fetchData = async () => {
             setIsLoading(true);
             const { data: { user } } = await supabase.auth.getUser();
@@ -36,22 +38,29 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
             }
 
             const studentProfile = await getStudentByAuthId(user.id);
+            if (!isMounted) return;
             setStudent(studentProfile);
 
             if (studentProfile) {
-                const exams = await getExams((exams) => {
-                    const today = startOfToday();
+                const examsUnsubscribe = getExams((exams) => {
+                    if (!isMounted) return;
 
-                    const relevantExams = exams.filter(e => e.start_date && e.end_date);
+                    const today = startOfToday();
+                    const relevantExams = exams
+                        .filter(e => e.start_date && e.end_date)
+                        .sort((a, b) => new Date(a.start_date!).getTime() - new Date(b.start_date!).getTime());
+
                     const currentOrNextExam = relevantExams.find(exam => {
                         const startDate = parseISO(exam.start_date!);
-                        return today <= startDate || isWithinInterval(today, { start: startDate, end: parseISO(exam.end_date!) });
+                        const endDate = parseISO(exam.end_date!);
+                        return isAfter(endDate, today); // Find first exam that hasn't ended yet
                     });
                     
                     onUpcomingExamLoad(currentOrNextExam || null);
                     
                     if (currentOrNextExam) {
                         getStudentMarksForExam(studentProfile.id, currentOrNextExam.id).then(marks => {
+                            if (!isMounted) return;
                             const examWithSubjects: ExamWithSubjects = {
                                 ...currentOrNextExam,
                                 subjects: marks.map(m => ({ subject: m.subject, date: m.exam_date || currentOrNextExam.date }))
@@ -65,6 +74,12 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
                     }
                      setIsLoading(false);
                 });
+
+                 return () => {
+                    if (examsUnsubscribe && typeof examsUnsubscribe.unsubscribe === 'function') {
+                        examsUnsubscribe.unsubscribe();
+                    }
+                };
             } else {
                  setIsLoading(false);
                  onUpcomingExamLoad(null);
@@ -72,6 +87,7 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
         };
 
         fetchData();
+        return () => { isMounted = false };
     }, [onUpcomingExamLoad]);
 
     if (isLoading) {
@@ -79,9 +95,7 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
     }
 
     if (!upcomingExam || !upcomingExam.start_date) {
-        // Return null or a placeholder if no exams are coming up.
-        // The logic in DashboardPage will decide whether to show homework.
-        return null;
+        return null; 
     }
 
     const today = startOfToday();
@@ -142,6 +156,5 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
         );
     }
     
-    // If none of the conditions match, render nothing.
     return null;
 }

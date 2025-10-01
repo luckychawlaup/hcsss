@@ -67,7 +67,7 @@ USING (
 CREATE POLICY "Allow admins to access all homework"
 ON public.homework FOR ALL
 USING (
-    auth.uid() IN ('6cc51c80-e098-4d6d-8450-5ff5931b7391', 'cf210695-e635-4363-aea5-740f2707a6d7')
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
 );
 
 -- Create indexes for better query performance
