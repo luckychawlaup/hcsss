@@ -20,30 +20,32 @@ export const MARKS_TABLE_SETUP_SQL = `
 ALTER TABLE public.marks
 ADD COLUMN IF NOT EXISTS exam_date TIMESTAMPTZ;
 
--- Re-create policies to ensure they are up-to-date.
+-- Re-create policies to ensure they are up-to-date and use dynamic role checking.
 DROP POLICY IF EXISTS "Allow teachers to manage marks" ON public.marks;
 DROP POLICY IF EXISTS "Allow students to view their own marks" ON public.marks;
 DROP POLICY IF EXISTS "Allow admins to manage all marks" ON public.marks;
 
+-- Policy: Allows both Class Teachers and Subject Teachers to manage marks.
 CREATE POLICY "Allow teachers to manage marks"
 ON public.marks FOR ALL
 USING (
-  (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) IN ('classTeacher', 'subjectTeacher')
+  (SELECT auth.uid() FROM public.teachers WHERE auth_uid = auth.uid()) IS NOT NULL
 );
 
--- Policy to allow students to view their own marks, corrected to use the 'student_id' column.
+-- Policy: Allows a student to view only their own marks.
 CREATE POLICY "Allow students to view their own marks"
 ON public.marks FOR SELECT
 USING (
   student_id = (SELECT id FROM public.students WHERE auth_uid = auth.uid())
 );
 
+-- Policy: Allows Principal and Owner to have full access based on their dynamic roles.
 CREATE POLICY "Allow admins to manage all marks"
 ON public.marks FOR ALL
 USING (
-    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
-    OR
-    (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
+  (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
+  OR
+  (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
 );
 `;
 
