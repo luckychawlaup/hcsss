@@ -32,7 +32,7 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
             setIsLoading(true);
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                setIsLoading(false);
+                if (isMounted) setIsLoading(false);
                 onUpcomingExamLoad(null);
                 return;
             }
@@ -51,9 +51,8 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
                         .sort((a, b) => new Date(a.start_date!).getTime() - new Date(b.start_date!).getTime());
 
                     const currentOrNextExam = relevantExams.find(exam => {
-                        const startDate = parseISO(exam.start_date!);
                         const endDate = parseISO(exam.end_date!);
-                        return isAfter(endDate, today); // Find first exam that hasn't ended yet
+                        return isAfter(endDate, today);
                     });
                     
                     onUpcomingExamLoad(currentOrNextExam || null);
@@ -61,18 +60,26 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
                     if (currentOrNextExam) {
                         getStudentMarksForExam(studentProfile.id, currentOrNextExam.id).then(marks => {
                             if (!isMounted) return;
+                            
+                            const subjectsWithDates = marks
+                                .filter(mark => mark.exam_date)
+                                .map(mark => ({
+                                    subject: mark.subject,
+                                    date: mark.exam_date!,
+                                }))
+                                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
                             const examWithSubjects: ExamWithSubjects = {
                                 ...currentOrNextExam,
-                                subjects: marks.map(m => ({ subject: m.subject, date: m.exam_date || currentOrNextExam.date }))
-                                            .filter(s => s.date)
-                                            .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                                subjects: subjectsWithDates
                             };
                             setUpcomingExam(examWithSubjects);
+                             if (isMounted) setIsLoading(false);
                         });
                     } else {
                         setUpcomingExam(null);
+                        if (isMounted) setIsLoading(false);
                     }
-                     setIsLoading(false);
                 });
 
                  return () => {
@@ -81,7 +88,7 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
                     }
                 };
             } else {
-                 setIsLoading(false);
+                 if (isMounted) setIsLoading(false);
                  onUpcomingExamLoad(null);
             }
         };
