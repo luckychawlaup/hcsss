@@ -3,10 +3,10 @@ import type {NextConfig} from 'next';
 
 const cspHeader = `
     default-src 'self';
-    connect-src 'self' https://ougpdhfuwsnvsaolpohc.supabase.co;
+    connect-src 'self' https://ougpdhfuwsnvsaolpohc.supabase.co wss://ougpdhfuwsnvsaolpohc.supabase.co;
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
     style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://picsum.photos https://hiltonconventschool.edu.in https://cnvwsxlwpvyjxemgpdks.supabase.co https://ik.imagekit.io https://ougpdhfuwsnvsaolpohc.supabase.co https://api.dicebear.com;
+    img-src 'self' blob: data: https://picsum.photos https://fastly.picsum.photos https://hiltonconventschool.edu.in https://cnvwsxlwpvyjxemgpdks.supabase.co https://ik.imagekit.io https://ougpdhfuwsnvsaolpohc.supabase.co https://api.dicebear.com;
     font-src 'self';
     object-src 'none';
     base-uri 'self';
@@ -48,6 +48,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'picsum.photos',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'fastly.picsum.photos',
         port: '',
         pathname: '/**',
       },

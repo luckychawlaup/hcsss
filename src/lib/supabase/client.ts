@@ -5,6 +5,11 @@ export const createClient = () =>
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: {
+        headers: {
+          'Accept': '*/*'
+        }
+      },
       auth: {
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
         storageKey: 'supabase.auth.token',
