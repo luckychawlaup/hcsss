@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { isSameDay, getDay } from "date-fns";
+import { isSameDay, getDay, startOfDay } from "date-fns";
 import { getHolidays } from "@/lib/supabase/holidays";
 import type { Holiday } from "@/lib/supabase/holidays";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
@@ -19,42 +19,40 @@ export default function SchoolStatus() {
   const supabase = createClient();
 
   const fetchData = useCallback(async () => {
+    setIsLoading(true);
     try {
-      // Fetch holidays first, this is common for all users
-      const holidaysUnsubscribe = getHolidays(setHolidays);
-
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (user) {
-        const role = await getRole(user);
-        if (role === 'student') {
-          const studentProfile = await getStudentByAuthId(user.id);
-          setStudent(studentProfile);
-        }
-      }
-      return holidaysUnsubscribe;
+      const holidaysPromise = new Promise<Holiday[]>(resolve => {
+        const unsub = getHolidays(holidayData => {
+          resolve(holidayData);
+          if (unsub && typeof unsub.unsubscribe === 'function') {
+            unsub.unsubscribe();
+          }
+        });
+      });
 
+      const [holidayData, role] = await Promise.all([
+        holidaysPromise,
+        getRole(user)
+      ]);
+      
+      setHolidays(holidayData);
+
+      if (role === 'student' && user) {
+        const studentProfile = await getStudentByAuthId(user.id);
+        setStudent(studentProfile);
+      }
     } catch (error) {
       console.error("Error fetching data for SchoolStatus:", error);
     } finally {
-      // This is the key: ensure loading is set to false after all async operations
       setIsLoading(false);
     }
   }, [supabase]);
 
 
   useEffect(() => {
-    let unsubscribe: any;
-    
-    fetchData().then(unsub => {
-      unsubscribe = unsub;
-    });
-
-    return () => {
-      if (unsubscribe && typeof unsubscribe.unsubscribe === 'function') {
-        unsubscribe.unsubscribe();
-      }
-    };
+    fetchData();
   }, [fetchData]);
 
 
@@ -62,18 +60,18 @@ export default function SchoolStatus() {
     return <Skeleton className="h-12 w-full" />;
   }
 
-  const today = new Date();
+  const today = startOfDay(new Date());
   const isSunday = getDay(today) === 0;
 
   // Check for school-wide holiday (where class_section is null)
   const schoolWideHoliday = holidays.find(h => 
-    isSameDay(new Date(h.date), today) && !h.class_section
+    isSameDay(startOfDay(new Date(h.date)), today) && !h.class_section
   );
 
   // Check for class-specific holiday if user is a student
   const classSpecificHoliday = student 
     ? holidays.find(h => 
-        isSameDay(new Date(h.date), today) && 
+        isSameDay(startOfDay(new Date(h.date)), today) && 
         h.class_section === `${student.class}-${student.section}`
       )
     : null;
