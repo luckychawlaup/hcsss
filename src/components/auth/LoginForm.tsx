@@ -102,7 +102,11 @@ export default function LoginForm({ role }: LoginFormProps) {
           targetPath = '/owner';
       }
       
+      // Use router.push for client-side navigation
       router.push(targetPath);
+      // It's good practice to call router.refresh() to ensure the server-side state is up-to-date after login.
+      router.refresh();
+
 
     } catch (error: any) {
       let errorMessage = "An unknown error occurred.";
@@ -112,9 +116,7 @@ export default function LoginForm({ role }: LoginFormProps) {
            errorMessage = "Your email is not verified. Please check your inbox for the verification link.";
       }
       setError(errorMessage);
-    } finally {
-        // This may not be reached if redirect happens, which is fine
-        setIsLoading(false);
+      setIsLoading(false);
     }
   }
   
