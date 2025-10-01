@@ -62,10 +62,10 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
                 const sortedExams = exams.sort((a,b) => new Date(a.start_date || a.date).getTime() - new Date(b.start_date || b.date).getTime());
                 
                 for (const exam of sortedExams) {
-                    const studentMarksForExam = marks[exam.id];
-                    if (studentMarksForExam && studentMarksForExam.some(m => m.exam_date)) {
-                        const examEndDate = exam.end_date ? parseISO(exam.end_date) : null;
-                        if (!examEndDate || isAfter(examEndDate, today)) {
+                     const examEndDate = exam.end_date ? parseISO(exam.end_date) : new Date(exam.date);
+                     if (isAfter(examEndDate, today)) {
+                         const studentMarksForExam = marks[exam.id];
+                         if (studentMarksForExam && studentMarksForExam.some(m => m.exam_date)) {
                             relevantExam = exam;
                             relevantSubjects = studentMarksForExam
                                 .filter(mark => mark.exam_date)
@@ -76,7 +76,7 @@ export default function ExamDatesheet({ onUpcomingExamLoad }: ExamDatesheetProps
                                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
                             break; 
                         }
-                    }
+                     }
                 }
                 
                 onUpcomingExamLoad(relevantExam || null);

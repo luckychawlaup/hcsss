@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -87,6 +88,17 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (teacher) {
+            const unsubscribeStudents = getStudentsForTeacher(teacher, (studentData) => {
+                setStudents(studentData as Student[]);
+            });
+            return () => {
+                if (unsubscribeStudents) unsubscribeStudents();
+            }
+        }
+    }, [teacher]);
     
     useEffect(() => {
         if (selectedExam && classTeacherClass) {
@@ -138,14 +150,10 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
 
         const studentsInClass = students.filter(s => `${s.class}-${s.section}` === classTeacherClass);
         if (studentsInClass.length === 0) {
-            toast({ 
-                title: "Datesheet Saved", 
-                description: `The schedule for ${selectedExam.name} has been saved for ${classTeacherClass}. It will apply to students as they are added.`
+             toast({ 
+                title: "No Students in Class", 
+                description: `The schedule for ${selectedExam.name} will be saved for ${classTeacherClass}, but you must add students to the class for it to apply.`
             });
-            // We can still proceed to save the schedule for the class even if there are no students yet.
-            // A more robust solution might involve a `schedules` table separate from `marks`.
-            // Given the current structure, we'll save it for each student. If no students, we just show success.
-            return;
         }
         
         setIsSubmitting(true);
@@ -190,7 +198,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     }, [examToEdit, createExamForm]);
 
 
-    const handleCreateOrUpdateExam = async (values: z.infer<typeof createExamSchema>) => {
+    const handleCreateOrUpdateExam = async (values: z.infer<typeof createExamSchema>>) => {
         setIsCreatingExam(true);
         try {
             if (examToEdit) {
