@@ -278,11 +278,11 @@ export default function Attendance() {
                         </div>
                         
                         {attendance.length === 0 && !isLoading && (
-                            <div className="text-center py-8">
-                                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                                <p className="text-muted-foreground">No attendance records found for this month</p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Check back after your teacher marks attendance
+                            <div className="text-center py-4">
+                                <Calendar className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-sm text-muted-foreground">No attendance records found for this month.</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Check back after your teacher marks attendance.
                                 </p>
                             </div>
                         )}
