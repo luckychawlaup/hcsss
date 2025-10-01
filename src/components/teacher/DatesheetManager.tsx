@@ -88,12 +88,6 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
             }
         };
     }, []);
-
-    useEffect(() => {
-        if (teacher) {
-            getStudentsForTeacher(teacher, (students) => setStudents(students as Student[]));
-        }
-    }, [teacher]);
     
     useEffect(() => {
         if (selectedExam && classTeacherClass) {
@@ -150,7 +144,6 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                 description: `The schedule for ${selectedExam.name} has been saved for ${classTeacherClass}. It will apply to students as they are added.`
             });
             // We can still proceed to save the schedule for the class even if there are no students yet.
-            // Or we can save it to a different table. For now, let's just show a success message.
             // A more robust solution might involve a `schedules` table separate from `marks`.
             // Given the current structure, we'll save it for each student. If no students, we just show success.
             return;
@@ -463,4 +456,3 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
         </div>
     );
 }
-
