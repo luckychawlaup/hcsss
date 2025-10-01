@@ -7,7 +7,7 @@ const cspHeader = `
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https://picsum.photos https://fastly.picsum.photos https://hiltonconventschool.edu.in https://cnvwsxlwpvyjxemgpdks.supabase.co https://ik.imagekit.io https://ougpdhfuwsnvsaolpohc.supabase.co https://api.dicebear.com;
-    font-src 'self';
+    font-src 'self' https://r2cdn.perplexity.ai;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
