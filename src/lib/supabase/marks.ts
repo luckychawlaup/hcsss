@@ -1,5 +1,6 @@
 
 import { createClient } from "@/lib/supabase/client";
+import { getRole } from "../getRole";
 const supabase = createClient();
 
 export interface Mark {
@@ -35,21 +36,22 @@ CREATE TABLE public.exams (
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 
 -- Policies for 'exams' table
-CREATE POLICY "Allow admins to manage all exams"
+DROP POLICY IF EXISTS "Allow admins and class teachers to manage exams" ON public.exams;
+DROP POLICY IF EXISTS "Allow authenticated users to read exams" ON public.exams;
+
+CREATE POLICY "Allow authenticated users to read exams"
+ON public.exams FOR SELECT
+USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow admins and class teachers to manage exams"
 ON public.exams FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
     (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
+    OR
+    (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
 );
-
-CREATE POLICY "Allow class teachers to manage exams"
-ON public.exams FOR ALL
-USING ((SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher');
-
-CREATE POLICY "Allow authenticated users to read exams"
-ON public.exams FOR SELECT
-USING (auth.role() = 'authenticated');
 
 
 -- Now create the 'marks' table with the foreign key to exams
@@ -71,6 +73,10 @@ CREATE TABLE public.marks (
 ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
 
 -- Policies for 'marks' table
+DROP POLICY IF EXISTS "Allow class teachers & principal to manage marks" ON public.marks;
+DROP POLICY IF EXISTS "Allow students to view their own marks" ON public.marks;
+
+
 CREATE POLICY "Allow class teachers & principal to manage marks"
 ON public.marks FOR ALL
 USING (
@@ -80,13 +86,14 @@ USING (
     )
     OR
     (
-        (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
+        (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     )
      OR
     (
         auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050'
     )
 );
+
 
 CREATE POLICY "Allow students to view their own marks"
 ON public.marks FOR SELECT
@@ -106,10 +113,14 @@ const getGrade = (marks: number, maxMarks: number): string => {
     return 'E';
 };
 
-export const setMarksForStudent = async (studentId: string, examId: string, marksData: { subject: string; marks: number; max_marks: number, exam_date?: Date }[]) => {
+export const setMarksForStudent = async (studentIdOrClassSection: string, examId: string, marksData: { subject: string; marks: number; max_marks: number, exam_date?: Date }[], isPrincipalView: boolean = false) => {
     try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userRole = await getRole(user);
+        const isPrincipal = userRole === 'principal' || userRole === 'owner';
+
+
         const marksWithGrades = marksData.map(m => ({
-            student_id: studentId,
             exam_id: examId,
             subject: m.subject,
             marks: m.marks,
@@ -117,15 +128,32 @@ export const setMarksForStudent = async (studentId: string, examId: string, mark
             grade: getGrade(m.marks, m.max_marks),
             exam_date: m.exam_date ? m.exam_date.toISOString() : null,
         }));
+        
+        let studentIds: string[] = [];
 
-        const { error } = await supabase.from('marks').upsert(marksWithGrades, {
-            onConflict: 'student_id,exam_id,subject',
-        });
-
-        if (error) {
-            console.error("Error setting marks:", error);
-            throw error;
+        if (isPrincipal) {
+            const [classVal, sectionVal] = studentIdOrClassSection.split('-');
+            const { data, error } = await supabase.from('students').select('id').eq('class', classVal).eq('section', sectionVal);
+            if (error) throw error;
+            studentIds = data.map(s => s.id);
+            if(studentIds.length === 0) { // If no students, save a template record. This might need a different table.
+                 console.log("No students in class, but saving schedule for class", studentIdOrClassSection);
+            }
+        } else {
+            studentIds = [studentIdOrClassSection];
         }
+
+        const upsertPayload = studentIds.flatMap(sId => 
+            marksWithGrades.map(m => ({ ...m, student_id: sId }))
+        );
+
+        if (upsertPayload.length > 0) {
+            const { error } = await supabase.from('marks').upsert(upsertPayload, {
+                onConflict: 'student_id,exam_id,subject',
+            });
+            if (error) throw error;
+        }
+
     } catch (error) {
         console.error("Error in setMarksForStudent:", error);
         throw error;

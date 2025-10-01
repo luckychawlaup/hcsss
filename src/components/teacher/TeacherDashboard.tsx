@@ -34,6 +34,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import DatesheetManager from "./DatesheetManager";
 import SchoolStatus from "../dashboard/SchoolStatus";
+import { getRole } from "@/lib/getRole";
 
 
 export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves" | "manageDatesheet" | "manageHolidays";
@@ -72,6 +73,8 @@ export default function TeacherDashboard() {
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
   const supabase = createClient();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -82,6 +85,9 @@ export default function TeacherDashboard() {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
         const user = session?.user;
         if (user) {
+            const role = await getRole(user);
+            setUserRole(role);
+
             const teacherProfile = await getTeacherByAuthId(user.id);
             setTeacher(teacherProfile);
             if (!teacherProfile) {
@@ -137,6 +143,7 @@ export default function TeacherDashboard() {
   const pendingFeedbackCount = useMemo(() => relevantFeedback.filter(l => l.status === 'Pending').length, [relevantFeedback]);
   const pendingLeavesCount = useMemo(() => leaveRequests.filter(l => l.status === 'Pending').length, [leaveRequests]);
 
+  const isPrincipal = userRole === 'principal' || userRole === 'owner';
 
    const renderContent = () => {
         switch(activeView) {
@@ -321,7 +328,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <DatesheetManager teacher={teacher} />
+                           <DatesheetManager teacher={teacher} isPrincipal={isPrincipal} />
                         </CardContent>
                     </Card>
                 );

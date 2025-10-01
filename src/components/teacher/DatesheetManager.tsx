@@ -47,12 +47,16 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format as formatDate } from 'date-fns';
 import { getStudentsForTeacher, Student } from "@/lib/supabase/students";
+import { createClient } from "@/lib/supabase/client";
+import { getRole } from "@/lib/getRole";
 
 const createExamSchema = z.object({
   name: z.string().min(3, "Exam name must be at least 3 characters."),
   start_date: z.date().optional(),
   end_date: z.date().optional(),
 });
+
+type CreateExamValues = z.infer<typeof createExamSchema>;
 
 interface SubjectEntry {
     id: string;
@@ -62,9 +66,14 @@ interface SubjectEntry {
 
 interface DatesheetManagerProps {
   teacher: Teacher | null;
+  isPrincipal: boolean;
 }
 
-export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
+const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
+const sections = ["A", "B", "C", "D"];
+const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
+
+export default function DatesheetManager({ teacher, isPrincipal }: DatesheetManagerProps) {
     const [exams, setExams] = useState<Exam[]>([]);
     const [students, setStudents] = useState<Student[]>([]);
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
@@ -76,6 +85,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [examToEdit, setExamToEdit] = useState<Exam | null>(null);
+    const [selectedClass, setSelectedClass] = useState<string | null>(null);
     
     const { toast } = useToast();
     const classTeacherClass = teacher?.role === 'classTeacher' ? teacher.class_teacher_of : null;
@@ -101,9 +111,10 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     }, [teacher]);
     
     useEffect(() => {
-        if (selectedExam && classTeacherClass) {
+        const classToFetch = isPrincipal ? selectedClass : classTeacherClass;
+        if (selectedExam && classToFetch) {
             setIsFetchingSubjects(true);
-            getScheduleForClass(selectedExam.id, classTeacherClass)
+            getScheduleForClass(selectedExam.id, classToFetch)
               .then(schedule => {
                   if (schedule && schedule.length > 0) {
                        const initialSubjects = schedule.map(mark => ({
@@ -123,7 +134,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
         } else {
             setSubjects([]);
         }
-    }, [selectedExam, classTeacherClass, teacher?.qualifications]);
+    }, [selectedExam, classTeacherClass, teacher?.qualifications, isPrincipal, selectedClass]);
     
     const handleAddSubject = () => {
         const newId = `new-subject-${Date.now()}`;
@@ -143,16 +154,17 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     };
 
     const handleSubmit = async () => {
-        if (!selectedExam || !classTeacherClass || subjects.length === 0) {
-            toast({ variant: "destructive", title: "Missing Information", description: "Please select an exam and add subjects." });
+        const targetClass = isPrincipal ? selectedClass : classTeacherClass;
+        if (!selectedExam || !targetClass || subjects.length === 0) {
+            toast({ variant: "destructive", title: "Missing Information", description: "Please select a class, an exam and add subjects." });
             return;
         }
 
-        const studentsInClass = students.filter(s => `${s.class}-${s.section}` === classTeacherClass);
-        if (studentsInClass.length === 0) {
+        const studentsInClass = students.filter(s => `${s.class}-${s.section}` === targetClass);
+        if (studentsInClass.length === 0 && !isPrincipal) {
              toast({ 
                 title: "No Students in Class", 
-                description: `The schedule for ${selectedExam.name} will be saved for ${classTeacherClass}, but you must add students to the class for it to apply.`
+                description: `The schedule for ${selectedExam.name} will be saved for ${targetClass}, but you must add students to the class for it to apply.`
             });
         }
         
@@ -165,13 +177,10 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                 exam_date: s.exam_date
             })).filter(s => s.subject !== "");
 
-            // Save the schedule for all students in the class
-            const savePromises = studentsInClass.map(student => 
-                setMarksForStudent(student.id, selectedExam.id, scheduleData)
-            );
-            await Promise.all(savePromises);
+            // For principal, save as a template for the class
+             await setMarksForStudent(targetClass, selectedExam.id, scheduleData, isPrincipal);
             
-            toast({ title: "Datesheet Saved!", description: `The schedule for ${selectedExam.name} has been saved for all students in ${classTeacherClass}.` });
+            toast({ title: "Datesheet Saved!", description: `The schedule for ${selectedExam.name} has been saved for ${targetClass}.` });
         } catch (error) {
             console.error("Error saving datesheet:", error);
             toast({ variant: "destructive", title: "Error", description: "Failed to save the datesheet." });
@@ -180,7 +189,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
         }
     };
 
-    const createExamForm = useForm<z.infer<typeof createExamSchema>>({
+    const createExamForm = useForm<CreateExamValues>({
         resolver: zodResolver(createExamSchema),
         defaultValues: { name: "" }
     });
@@ -198,11 +207,10 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
     }, [examToEdit, createExamForm]);
 
 
-    const handleCreateOrUpdateExam = async (values: z.infer<typeof createExamSchema>>) => {
+    const handleCreateOrUpdateExam = async (values: CreateExamValues) => {
         setIsCreatingExam(true);
         try {
             if (examToEdit) {
-                // Update existing exam
                  await updateExam(examToEdit.id, {
                     name: values.name.trim(),
                     start_date: values.start_date?.toISOString(),
@@ -210,7 +218,6 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                 });
                 toast({ title: "Exam Updated Successfully"});
             } else {
-                // Create new exam
                 const examData = {
                     name: values.name.trim(),
                     date: new Date().toISOString(),
@@ -257,12 +264,12 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
         }
     }
     
-    if (teacher?.role !== 'classTeacher') {
+    if (teacher?.role !== 'classTeacher' && !isPrincipal) {
         return (
              <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
                 <UserX className="h-12 w-12 text-muted-foreground" />
                 <h3 className="mt-4 text-lg font-semibold">Permission Denied</h3>
-                <p className="text-muted-foreground mt-2">Only Class Teachers can manage datesheets.</p>
+                <p className="text-muted-foreground mt-2">Only Class Teachers or the Principal can manage datesheets.</p>
             </div>
         )
     }
@@ -275,9 +282,26 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                          <CardTitle className="flex items-center gap-2"><BookOpen />Manage Exams</CardTitle>
                          <Button variant="outline" onClick={() => { setExamToEdit(null); setIsCreateExamOpen(true); }}><PlusCircle className="mr-2"/>Create New Exam</Button>
                     </div>
-                    <CardDescription>Create, edit, or delete exams. Select an exam to manage its datesheet for your class: <span className="font-semibold text-primary">{classTeacherClass}</span></CardDescription>
+                    <CardDescription>
+                        {isPrincipal ? "Create exams, then select a class and an exam to manage its datesheet." : `Create exams, then select one to manage its datesheet for your class: ${classTeacherClass}`}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
+                    {isPrincipal && (
+                        <div className="mb-4">
+                            <Label>Select Class to Manage</Label>
+                             <Select onValueChange={setSelectedClass} value={selectedClass || ""}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a class section" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {allClassSections.map(cs => (
+                                        <SelectItem key={cs} value={cs}>{cs}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
                     {exams.length > 0 ? exams.map(exam => (
                          <div key={exam.id} className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
                              <button className="flex-1 text-left" onClick={() => setSelectedExam(exam)}>
@@ -299,7 +323,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
 
             {isFetchingSubjects ? (
                 <div className="space-y-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div>
-            ) : selectedExam ? (
+            ) : selectedExam && (isPrincipal ? selectedClass : classTeacherClass) ? (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><FileSignature />Set Schedule for {selectedExam.name}</CardTitle>
@@ -346,7 +370,7 @@ export default function DatesheetManager({ teacher }: DatesheetManagerProps) {
                 </Card>
             ) : (
                  <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12 text-center">
-                    <p className="text-muted-foreground">Please select an exam to create its schedule.</p>
+                    <p className="text-muted-foreground">Please select a class (if you are a Principal) and an exam to create its schedule.</p>
                 </div>
             )}
              <Dialog open={isCreateExamOpen} onOpenChange={(isOpen) => { if (!isOpen) setExamToEdit(null); setIsCreateExamOpen(isOpen); }}>
