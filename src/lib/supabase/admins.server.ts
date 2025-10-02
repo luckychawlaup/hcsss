@@ -18,7 +18,7 @@ export const addAdmin = async (formData: FormData) => {
                 role: adminData.role,
                 full_name: adminData.name,
             },
-            email_confirm: true, // Auto-confirm the email, no confirmation email will be sent
+            email_confirm: true, 
         }
     });
 
@@ -53,12 +53,7 @@ export const addAdmin = async (formData: FormData) => {
             throw new Error(`Failed to create admin profile: ${dbError.message}`);
         }
         
-        // 3. Send password reset email for them to set their password
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email as string);
-
-        if (resetError) {
-            console.warn("Admin account created, but failed to send password set email:", resetError.message);
-        }
+        // 3. Send password reset email for them to set their password - REMOVED AS PER REQUEST
 
     } catch (e: any) {
         // Cleanup auth user if any step fails after its creation

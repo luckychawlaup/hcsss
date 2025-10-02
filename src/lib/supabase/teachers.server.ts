@@ -58,10 +58,7 @@ export const addTeacher = async (formData: FormData) => {
             throw dbError;
         }
 
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(teacherData.email as string);
-        if(resetError) {
-            console.warn("Teacher created, but failed to send password reset email.", resetError);
-        }
+        // Password reset email REMOVED
 
     } catch (e: any) {
         await supabase.functions.invoke('delete-user', { body: { uid: user.id } });

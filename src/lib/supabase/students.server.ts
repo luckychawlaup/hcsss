@@ -69,12 +69,8 @@ export const addStudent = async (formData: FormData) => {
             throw new Error(`Failed to add student. Original error: ${dbError.message}`);
         }
 
-        // 4. Send password reset email for initial password setup
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(studentData.email as string);
-        if (resetError) {
-            console.warn("Student created, but failed to send password reset email.", resetError);
-        }
-
+        // 4. Send password reset email for initial password setup - REMOVED
+       
     } catch (e: any) {
         // Cleanup auth user if any step fails after its creation
         await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
