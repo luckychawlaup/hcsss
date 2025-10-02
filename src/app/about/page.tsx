@@ -7,6 +7,7 @@ import { Building, Target, BookOpen, Mail, Bot, Code } from "lucide-react";
 import Image from "next/image";
 import { useSchoolInfo } from "@/hooks/use-school-info";
 import { Skeleton } from "@/components/ui/skeleton";
+import Footer from "@/components/dashboard/Footer";
 
 export default function AboutUsPage() {
   const { schoolInfo, isLoading } = useSchoolInfo();
@@ -25,6 +26,7 @@ export default function AboutUsPage() {
                      <Skeleton className="h-32 w-full" />
                 </div>
             </main>
+             <Footer />
         </div>
     );
   }
@@ -145,6 +147,7 @@ export default function AboutUsPage() {
         </Card>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

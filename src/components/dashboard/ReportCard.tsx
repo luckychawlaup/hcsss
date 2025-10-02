@@ -10,7 +10,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getExams, Exam } from "@/lib/supabase/exams";
 import { getMarksForStudent, Mark } from "@/lib/supabase/marks";
@@ -138,7 +138,7 @@ export default function ReportCardComponent() {
   }
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-primary">
           <FileText className="h-6 w-6" />
@@ -150,12 +150,12 @@ export default function ReportCardComponent() {
           <ScrollArea className="h-48">
           <div className="space-y-3 pr-4">
             {availableReportCards.map((exam) => (
+              <Link href={`/report-card/${exam.id}`} key={exam.id} className="block group">
               <div
-                key={exam.id}
-                className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                className="flex items-center justify-between rounded-lg border p-3 hover:bg-secondary/50 transition-colors"
               >
                 <div className="flex-1">
-                  <p className="font-semibold">{exam.name}</p>
+                  <p className="font-semibold group-hover:text-primary transition-colors">{exam.name}</p>
                   <p className="text-xs text-muted-foreground">
                     Published on {new Date(exam.date).toLocaleDateString('en-US', {
                       month: 'long',
@@ -163,13 +163,9 @@ export default function ReportCardComponent() {
                     })}
                   </p>
                 </div>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/report-card/${exam.id}`}>
-                    <Download className="mr-2 h-3 w-3" />
-                    View
-                  </Link>
-                </Button>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />
               </div>
+              </Link>
             ))}
           </div>
           </ScrollArea>

@@ -21,16 +21,11 @@ import Footer from "./Footer";
 function DashboardLoadingSkeleton() {
     return (
         <div className="space-y-6">
-            <Skeleton className="h-16 w-full" />
-            <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2 space-y-6">
-                    <Skeleton className="h-96 w-full" />
-                    <Skeleton className="h-48 w-full" />
-                </div>
-                <div className="space-y-6">
-                     <Skeleton className="h-48 w-full" />
-                     <Skeleton className="h-48 w-full" />
-                </div>
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-80 w-full" />
+            <div className="grid gap-6 md:grid-cols-2">
+                <Skeleton className="h-96 w-full" />
+                <Skeleton className="h-48 w-full" />
             </div>
         </div>
     )
@@ -92,33 +87,26 @@ export default function DashboardPage() {
                              </CardContent>
                         </Card>
                     )}
+                    
+                    {/* Main content grid */}
+                    <div className="space-y-6">
+                        {/* Hero Component: Homework or Datesheet */}
+                        <div className="h-full">
+                           {showDatesheetInsteadOfHomework 
+                                ? <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} /> 
+                                : <TodayHomework />
+                            }
+                        </div>
 
-                    <div className="flex flex-col lg:flex-row lg:gap-8 gap-6">
-                       <div className="lg:w-2/3 space-y-6">
-                            {showDatesheetInsteadOfHomework ? <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} /> : <TodayHomework />}
-                            <Attendance />
-                       </div>
-                       <div className="lg:w-1/3 space-y-6">
-                           <ReportCardComponent />
-                           <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-primary">
-                                        <Book className="h-6 w-6" />
-                                        Online Textbooks
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground mb-4">
-                                        Access NCERT textbooks and other educational resources directly.
-                                    </p>
-                                    <Button asChild className="w-full">
-                                        <a href="https://ncert.nic.in/textbook.php" target="_blank" rel="noopener noreferrer">
-                                            Download Textbooks
-                                        </a>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                       </div>
+                        {/* Grid for other cards */}
+                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                            <div className="lg:col-span-3">
+                                <Attendance />
+                            </div>
+                            <div className="lg:col-span-2">
+                                <ReportCardComponent />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </Suspense>

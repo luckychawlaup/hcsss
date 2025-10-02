@@ -17,6 +17,7 @@ import {
 import { Phone, Mail, MapPin, Shield } from "lucide-react";
 import { useSchoolInfo } from "@/hooks/use-school-info";
 import { Skeleton } from "@/components/ui/skeleton";
+import Footer from "@/components/dashboard/Footer";
 
 
 function HelpPageContent() {
@@ -102,6 +103,7 @@ export default function HelpPage() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header title="Help & Support" />
       <HelpPageContent/>
+      <Footer />
       <BottomNav />
     </div>
   );

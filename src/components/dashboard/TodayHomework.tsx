@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Book, Download, Info, FileText } from "lucide-react";
+import { Book, Download, Info, FileText, ChevronRight } from "lucide-react";
 import { getHomeworks, Homework } from "@/lib/supabase/homework";
 import { getStudentByAuthId } from "@/lib/supabase/students";
 import { createClient } from "@/lib/supabase/client";
@@ -17,8 +17,9 @@ import { ScrollArea } from "../ui/scroll-area";
 function HomeworkSkeleton() {
   return (
     <div className="space-y-4">
-      <Skeleton className="h-20 w-full" />
-      <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-24 w-full" />
     </div>
   );
 }
@@ -76,15 +77,12 @@ export default function TodayHomework() {
 
   if (error) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-primary">
             <Book className="h-6 w-6" />
             Today's Homework
           </CardTitle>
-          <Button variant="link" size="sm" asChild>
-            <Link href="/homework">View All</Link>
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center text-center p-6 bg-destructive/10 rounded-md h-full">
@@ -97,23 +95,19 @@ export default function TodayHomework() {
   }
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col h-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-primary">
           <Book className="h-6 w-6" />
           Today's Homework
         </CardTitle>
-        <Button variant="link" size="sm" asChild>
-            <Link href="/homework">View All</Link>
-        </Button>
       </CardHeader>
-      <CardContent className="flex-1">
+      <CardContent className="flex-1 flex flex-col">
         {isLoading ? (
           <HomeworkSkeleton />
         ) : homeworks.length > 0 ? (
-          <ScrollArea className="h-72">
-            <div className="space-y-4 pr-4">
-              {homeworks.map((hw) => (
+          <div className="flex-1 space-y-4">
+              {homeworks.slice(0,3).map((hw) => (
                 <div key={hw.id} className="flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-secondary/50">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <FileText className="h-5 w-5" />
@@ -129,20 +123,35 @@ export default function TodayHomework() {
                             </Button>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">{hw.description}</p>
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{hw.description}</p>
                         <p className="text-xs text-muted-foreground mt-2">Due: {format(new Date(hw.due_date), "do MMMM")}</p>
                     </div>
                 </div>
               ))}
-            </div>
-          </ScrollArea>
+                {homeworks.length > 3 && (
+                    <div className="text-center">
+                        <Button variant="link" asChild>
+                            <Link href="/homework">
+                                And {homeworks.length - 3} more...
+                            </Link>
+                        </Button>
+                    </div>
+                )}
+          </div>
         ) : (
-            <div className="flex flex-col items-center justify-center text-center p-6 bg-secondary/30 rounded-md h-full">
+            <div className="flex flex-1 flex-col items-center justify-center text-center p-6 bg-secondary/30 rounded-md h-full">
                 <Info className="h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm font-semibold text-muted-foreground">No homework assigned for today!</p>
             </div>
         )}
       </CardContent>
+       <div className="p-6 pt-0 mt-auto">
+            <Button asChild className="w-full">
+                <Link href="/homework">
+                    View All Homework <ChevronRight className="ml-2 h-4 w-4"/>
+                </Link>
+            </Button>
+        </div>
     </Card>
   );
 }

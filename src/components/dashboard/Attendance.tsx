@@ -192,18 +192,20 @@ export default function Attendance() {
         : 0;
 
     return (
-        <Card>
+        <Card className="h-full">
             <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <CardTitle className="flex items-center gap-2 text-primary">
-                    <UserCheck className="h-6 w-6" />
-                    My Attendance
+                <div className="flex-1">
+                    <CardTitle className="flex items-center gap-2 text-primary">
+                        <UserCheck className="h-6 w-6" />
+                        My Attendance
+                    </CardTitle>
                     {studentInfo && (
-                        <span className="text-sm font-normal text-muted-foreground">
-                            - {studentInfo.class}-{studentInfo.section}
-                        </span>
+                        <p className="text-sm font-normal text-muted-foreground">
+                            {studentInfo.class}-{studentInfo.section}
+                        </p>
                     )}
-                </CardTitle>
-                <div className="flex items-center gap-2 self-center md:self-auto">
+                </div>
+                <div className="flex items-center gap-2 self-start md:self-center">
                     <Button
                         variant="outline"
                         size="icon"
@@ -236,22 +238,23 @@ export default function Attendance() {
                 ) : (
                     <>
                          {attendance.length > 0 && (
-                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mb-4 justify-center">
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-                                    <span className="font-medium">Present: {attendanceStats.present}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
-                                    <span className="font-medium">Absent: {attendanceStats.absent}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></div>
-                                    <span className="font-medium">Half Day: {attendanceStats.halfDay}</span>
-                                </div>
-                                <div className="font-semibold text-primary">
-                                    Attendance: {attendancePercentage}%
-                                </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-6 text-center">
+                               <div className="p-3 rounded-lg bg-green-500/10">
+                                   <p className="font-bold text-green-600 text-xl">{attendanceStats.present}</p>
+                                   <p className="text-xs text-green-700/80">Present</p>
+                               </div>
+                                <div className="p-3 rounded-lg bg-red-500/10">
+                                   <p className="font-bold text-red-600 text-xl">{attendanceStats.absent}</p>
+                                   <p className="text-xs text-red-700/80">Absent</p>
+                               </div>
+                                <div className="p-3 rounded-lg bg-yellow-500/10">
+                                   <p className="font-bold text-yellow-600 text-xl">{attendanceStats.halfDay}</p>
+                                   <p className="text-xs text-yellow-700/80">Half Day</p>
+                               </div>
+                               <div className="p-3 rounded-lg bg-blue-500/10">
+                                   <p className="font-bold text-blue-600 text-xl">{attendancePercentage}%</p>
+                                   <p className="text-xs text-blue-700/80">Overall</p>
+                               </div>
                             </div>
                         )}
                         <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-muted-foreground mb-2">
@@ -279,11 +282,8 @@ export default function Attendance() {
                         
                         {attendance.length === 0 && !isLoading && (
                             <div className="text-center py-4">
-                                <Calendar className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                                <p className="text-sm text-muted-foreground">No attendance records found for this month.</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Check back after your teacher marks attendance.
-                                </p>
+                                <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-sm text-muted-foreground font-medium">No attendance records found for this month.</p>
                             </div>
                         )}
                     </>
