@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { User } from "@supabase/supabase-js";
@@ -39,44 +39,49 @@ function ReportCardContent() {
     const examId = params.examId as string;
     const supabase = createClient();
 
-    useEffect(() => {
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-            const currentUser = session?.user;
-            setUser(currentUser);
-            if (currentUser && examId) {
-                try {
-                    const studentData = await getStudentByAuthId(currentUser.id);
-                    setStudent(studentData);
+    const fetchData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
 
-                    const allExams = await new Promise<Exam[]>((resolve) => {
-                        const unsub = getExams(exams => {
-                           resolve(exams);
-                           if (unsub && typeof unsub.unsubscribe === 'function') {
-                               unsub.unsubscribe();
-                           }
-                        });
-                    });
-                    const currentExam = allExams.find(e => e.id === examId);
-                    setExam(currentExam || null);
-
-                    if (studentData) {
-                        const marksData = await getStudentMarksForExam(studentData.id, examId);
-                        setMarks(marksData);
-                    }
-                } catch (error) {
-                    console.error("Error fetching report card data:", error);
-                } finally {
-                    setIsLoading(false);
-                }
-            } else {
-                setIsLoading(false);
+            if (!user) {
+                router.push('/login');
+                return;
             }
-        });
 
-        return () => {
-            authListener.subscription.unsubscribe();
-        };
-    }, [supabase, examId]);
+            const studentData = await getStudentByAuthId(user.id);
+            setStudent(studentData);
+
+            // Fetch exams and marks concurrently
+            const [allExams, marksData] = await Promise.all([
+                new Promise<Exam[]>(resolve => {
+                    const unsub = getExams(exams => {
+                       resolve(exams);
+                       if (unsub && typeof unsub.unsubscribe === 'function') {
+                           unsub.unsubscribe();
+                       }
+                    });
+                }),
+                studentData ? getStudentMarksForExam(studentData.id, examId) : Promise.resolve([])
+            ]);
+            
+            const currentExam = allExams.find(e => e.id === examId);
+            setExam(currentExam || null);
+            setMarks(marksData);
+
+        } catch (error) {
+            console.error("Error fetching report card data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [supabase, examId, router]);
+
+
+     useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
 
     const handlePrint = () => window.print();
 
