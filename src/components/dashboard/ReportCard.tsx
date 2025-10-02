@@ -85,7 +85,8 @@ export default function ReportCardComponent() {
   const availableReportCards = exams
     .filter((exam) => {
       const examMarks = marks[exam.id];
-      return examMarks && Array.isArray(examMarks) && examMarks.length > 0;
+      // Check if marks exist, it's an array, it has entries, and at least one entry has a non-zero mark
+      return examMarks && Array.isArray(examMarks) && examMarks.length > 0 && examMarks.some(m => m.marks > 0);
     })
     .sort(
       (a, b) =>
@@ -110,11 +111,6 @@ export default function ReportCardComponent() {
     );
   }
 
-  // If there are no available report cards after loading, render nothing.
-  if (availableReportCards.length === 0) {
-    return null;
-  }
-  
   if (error) {
     return (
       <Card>
@@ -140,6 +136,10 @@ export default function ReportCardComponent() {
         </CardContent>
       </Card>
     );
+  }
+  
+  if (availableReportCards.length === 0) {
+    return null;
   }
 
   return (

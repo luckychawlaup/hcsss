@@ -13,6 +13,7 @@ import { Book, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import BottomNav from "./BottomNav";
+import ExamDatesheet from "./ExamDatesheet";
 
 function DashboardLoadingSkeleton() {
     return (
@@ -64,6 +65,8 @@ export default function DashboardPage() {
                         </div>
 
                         <NcertCard />
+                        
+                        <ExamDatesheet />
 
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                             <div className="lg:col-span-3">
