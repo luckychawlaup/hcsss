@@ -95,8 +95,8 @@ export default function ReportCardComponent() {
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
+        <CardHeader className="text-center">
+          <CardTitle className="flex items-center justify-center gap-2 text-primary">
             <FileText className="h-6 w-6" />
             Report Cards
           </CardTitle>
@@ -113,8 +113,8 @@ export default function ReportCardComponent() {
   if (error) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
+        <CardHeader className="text-center">
+          <CardTitle className="flex items-center justify-center gap-2 text-primary">
             <FileText className="h-6 w-6" />
             Report Cards
           </CardTitle>
@@ -139,8 +139,8 @@ export default function ReportCardComponent() {
 
   return (
     <Card className="flex flex-col h-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-primary">
+      <CardHeader className="text-center">
+        <CardTitle className="flex items-center justify-center gap-2 text-primary">
           <FileText className="h-6 w-6" />
           Report Cards
         </CardTitle>

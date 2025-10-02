@@ -77,7 +77,9 @@ export default function Home() {
 
   return (
       <Suspense fallback={<Loading />}>
-        <DashboardPage />
+        <div className="pb-24">
+            <DashboardPage />
+        </div>
       </Suspense>
   );
 }

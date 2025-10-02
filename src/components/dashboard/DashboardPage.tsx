@@ -81,13 +81,11 @@ export default function DashboardPage() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <div className="flex flex-1 flex-col">
         <Header title="Student Dashboard" showAvatar={true} />
-        <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24">
+        <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8">
             <Suspense fallback={<DashboardLoadingSkeleton />}>
                 <div className="space-y-6">
                     <SchoolStatus />
                     
-                    <NcertCard />
-
                     {showDatesheetInsteadOfHomework && upcomingExam && (
                         <Card className="bg-yellow-50 border-yellow-200 w-full dark:bg-yellow-900/20 dark:border-yellow-800">
                              <CardContent className="p-4 flex items-center gap-4">
@@ -114,6 +112,8 @@ export default function DashboardPage() {
                                 : <TodayHomework />
                             }
                         </div>
+
+                        <NcertCard />
 
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                             <div className="lg:col-span-3">
