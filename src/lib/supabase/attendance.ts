@@ -70,7 +70,7 @@ ON public.attendance FOR SELECT
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'accountant')
     OR
-    (auth.uid() = (SELECT '${process.env.NEXT_PUBLIC_OWNER_UID}')) -- Owner UID
+    (auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}') -- Owner UID
 );
 
 -- Function to automatically update updated_at timestamp

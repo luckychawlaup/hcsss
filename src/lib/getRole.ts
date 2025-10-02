@@ -1,5 +1,4 @@
 
-
 import { User } from "@supabase/supabase-js";
 import { createClient } from "./supabase/client";
 

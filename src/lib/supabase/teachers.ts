@@ -44,7 +44,7 @@ ON public.teachers FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
     OR
-    (auth.uid() = (SELECT '${process.env.NEXT_PUBLIC_OWNER_UID}')) -- Owner UID
+    (auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}') -- Owner UID
 );
 
 

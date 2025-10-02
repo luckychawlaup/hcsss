@@ -43,7 +43,7 @@ ON public.salary_slips FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    (auth.uid() = (SELECT '${process.env.NEXT_PUBLIC_OWNER_UID}'))
+    (auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}')
 );
 
 CREATE POLICY "Allow teachers to view their own salary slips"

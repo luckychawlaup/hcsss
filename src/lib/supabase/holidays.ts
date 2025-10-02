@@ -37,7 +37,7 @@ ON public.school_holidays FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    (auth.uid() = (SELECT '${process.env.NEXT_PUBLIC_OWNER_UID}')) -- Owner UID
+    (auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}') -- Owner UID
 );
 
 -- Policy: Allow Class Teachers to manage holidays ONLY for their assigned class.

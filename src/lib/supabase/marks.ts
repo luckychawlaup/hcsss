@@ -1,5 +1,4 @@
 
-
 import { createClient } from "@/lib/supabase/client";
 import { getRole } from "../getRole";
 const supabase = createClient();
@@ -50,7 +49,7 @@ ON public.exams FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    (auth.uid() = (SELECT '${process.env.NEXT_PUBLIC_OWNER_UID}')) -- Owner UID
+    (auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}') -- Owner UID
     OR
     (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
 );
@@ -92,7 +91,7 @@ USING (
     )
      OR
     (
-        auth.uid() = (SELECT '${process.env.NEXT_PUBLIC_OWNER_UID}')
+        auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}'
     )
 );
 
