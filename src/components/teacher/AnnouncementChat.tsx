@@ -365,7 +365,8 @@ export default function AnnouncementChat({
                       }
                     }}
                     disabled={isSending}
-                    className="pr-12 rounded-xl border-2 focus:ring-2 focus:ring-primary/20 min-h-[80px] resize-none"
+                    className="pr-12 rounded-xl border-2 focus:ring-2 focus:ring-primary/20 min-h-[40px] max-h-[200px] resize-none"
+                    rows={1}
                     onInput={(e) => {
                       const target = e.currentTarget;
                       target.style.height = "auto";
