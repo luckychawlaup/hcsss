@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import ManageHolidays from "./ManageHolidays";
 import SchoolStatus from "../dashboard/SchoolStatus";
+import DatesheetManager from "../teacher/DatesheetManager";
 
 const TeacherList = dynamic(() => import('./TeacherList'), {
     loading: () => <Skeleton className="h-64 w-full" />
@@ -42,7 +43,7 @@ const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
 
 type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "manageHolidays" | "reviewLeaves";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "manageHolidays" | "reviewLeaves" | "manageDatesheet";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title:string, description:string, icon:React.ElementType, onClick:() => void }) => (
     <Card 
@@ -315,6 +316,27 @@ export default function PrincipalDashboard() {
                       </CardContent>
                   </Card>
               );
+        case 'manageDatesheet':
+                 return (
+                    <Card>
+                        <CardHeader>
+                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Dashboard
+                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <Info />
+                                Manage Datesheet
+                            </CardTitle>
+                            <CardDescription>
+                                Create exams and set schedules for any class.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <DatesheetManager teacher={null} />
+                        </CardContent>
+                    </Card>
+                );
           default:
               return (
                 <div className="space-y-6">
@@ -334,6 +356,7 @@ export default function PrincipalDashboard() {
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => router.push('/principal/announcements')} />
                         <NavCard title="Manage Holidays" description="Declare school holidays" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
+                        <NavCard title="Manage Datesheet" description="Create exams and set schedules" icon={Info} onClick={() => setActiveView("manageDatesheet")} />
                     </div>
                 </div>
               );

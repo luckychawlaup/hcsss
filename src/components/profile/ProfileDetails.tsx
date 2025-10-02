@@ -34,18 +34,22 @@ import { UpdateEmailForm } from './UpdateEmailForm';
 import { Button } from '../ui/button';
 
 const DetailItem = ({ icon, label, value, onEdit, isEditable }: { icon: React.ReactNode; label: string; value?: string | null | string[]; onEdit?: () => void; isEditable?: boolean; }) => {
-    if (!value) return null;
+    if (!value && !isEditable) return null;
     
-    let displayValue: React.ReactNode = value;
+    let displayValue: React.ReactNode = value || <span className="text-muted-foreground italic">Not set</span>;
 
     if (Array.isArray(value)) {
-        displayValue = (
-            <div className="flex flex-wrap gap-2">
-                {value.map((item, index) => (
-                    <Badge key={index} variant="secondary">{item}</Badge>
-                ))}
-            </div>
-        );
+        if (value.length > 0) {
+            displayValue = (
+                <div className="flex flex-wrap gap-2">
+                    {value.map((item, index) => (
+                        <Badge key={index} variant="secondary">{item}</Badge>
+                    ))}
+                </div>
+            );
+        } else {
+             displayValue = <span className="text-muted-foreground italic">None</span>;
+        }
     }
 
     return (

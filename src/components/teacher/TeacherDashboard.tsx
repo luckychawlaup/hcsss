@@ -328,7 +328,7 @@ export default function TeacherDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <DatesheetManager teacher={teacher} isPrincipal={isPrincipal} />
+                           <DatesheetManager teacher={teacher} />
                         </CardContent>
                     </Card>
                 );
