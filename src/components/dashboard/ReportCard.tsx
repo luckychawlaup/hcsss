@@ -26,56 +26,47 @@ export default function ReportCardComponent() {
   const supabase = createClient();
 
   useEffect(() => {
-    let isMounted = true;
     let examsUnsubscribe: any;
 
     const fetchData = async () => {
-      if (!isMounted) return;
       setIsLoading(true);
       setError(null);
-
+      
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (!isMounted) return;
         if (authError || !user) {
-          setError("You must be logged in to view report cards.");
-          setIsLoading(false);
-          return;
+          throw new Error("You must be logged in to view report cards.");
         }
 
         const studentProfile = await getStudentByAuthId(user.id);
-        if (!isMounted) return;
         if (!studentProfile) {
-          setError("Student profile not found. Please contact administration.");
-          setIsLoading(false);
-          return;
+          throw new Error("Student profile not found. Please contact administration.");
         }
 
-        const studentMarks = await getMarksForStudent(studentProfile.id);
-        if (!isMounted) return;
-        
+        const [studentMarks] = await Promise.all([
+           getMarksForStudent(studentProfile.id),
+        ]);
+
         setMarks(studentMarks || {});
         
+        // Setup real-time subscription for exams
         examsUnsubscribe = getExams((examsData) => {
-            if (isMounted) {
-                setExams(examsData || []);
-                setIsLoading(false);
-            }
+            setExams(examsData || []);
         });
 
       } catch (err: any) {
-        if (isMounted) {
-          console.error("Error fetching report card data:", err);
-          setError(err.message || "Failed to load report cards.");
-          setIsLoading(false);
-        }
+        console.error("Error fetching report card data:", err);
+        setError(err.message || "Failed to load report cards.");
+      } finally {
+        // This ensures loading is always stopped
+        setIsLoading(false);
       }
     };
 
     fetchData();
 
     return () => {
-      isMounted = false;
+      // Cleanup subscription on component unmount
       if (examsUnsubscribe && typeof examsUnsubscribe.unsubscribe === 'function') {
         examsUnsubscribe.unsubscribe();
       }
@@ -85,7 +76,6 @@ export default function ReportCardComponent() {
   const availableReportCards = exams
     .filter((exam) => {
       const examMarks = marks[exam.id];
-      // Check if marks exist, it's an array, and at least one entry has a non-zero mark
       return examMarks && Array.isArray(examMarks) && examMarks.length > 0 && examMarks.some(m => m.marks > 0);
     })
     .sort(
