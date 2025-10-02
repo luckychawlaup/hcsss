@@ -18,7 +18,7 @@ export const addAdmin = async (formData: FormData) => {
                 role: adminData.role,
                 full_name: adminData.name,
             },
-            email_confirm: true, // Auto-confirm the email
+            email_confirm: true, // Auto-confirm the email, no confirmation email will be sent
         }
     });
 
