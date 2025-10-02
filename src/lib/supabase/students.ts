@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
@@ -33,13 +32,11 @@ export interface Student {
 export type CombinedStudent = (Student & { status: 'Registered' });
 
 // This function is now a wrapper around the server action.
-export const addStudent = async (studentData: Omit<Student, 'id' | 'auth_uid' | 'srn' | 'photo_url' | 'aadhar_url'> & { photo: File, aadharCard?: File}) => {
+export const addStudent = async (studentData: Omit<Student, 'id' | 'auth_uid' | 'srn'>) => {
     // We create a FormData object to send the file to the server action.
     const formData = new FormData();
     Object.entries(studentData).forEach(([key, value]) => {
-        if (key === 'photo' || key === 'aadharCard') {
-            // handled below
-        } else if (value instanceof Date) {
+        if (value instanceof Date) {
             formData.append(key, value.toISOString());
         } else if (typeof value === 'object' && value !== null) {
             formData.append(key, JSON.stringify(value));
@@ -47,10 +44,7 @@ export const addStudent = async (studentData: Omit<Student, 'id' | 'auth_uid' | 
             formData.append(key, value.toString());
         }
     });
-    formData.append('photo', studentData.photo);
-    if (studentData.aadharCard && studentData.aadharCard.size > 0) {
-        formData.append('aadharCard', studentData.aadharCard);
-    }
+    
     return addStudentWithUpload(formData);
 };
 

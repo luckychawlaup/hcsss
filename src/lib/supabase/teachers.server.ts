@@ -2,14 +2,12 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/client";
-import { uploadImage, isImageKitInitialized } from "@/lib/imagekit";
 
 const supabase = createClient();
 const TEACHERS_COLLECTION = 'teachers';
 
 export const addTeacher = async (formData: FormData) => {
     const teacherData = Object.fromEntries(formData.entries());
-    const photo = formData.get('photo') as File;
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email: teacherData.email as string,
@@ -34,13 +32,6 @@ export const addTeacher = async (formData: FormData) => {
     }
 
     try {
-        if (!isImageKitInitialized()) {
-            throw new Error("ImageKit is not configured. Please provide API keys in your .env file to enable image uploads.");
-        }
-        
-        const photoBuffer = Buffer.from(await photo.arrayBuffer());
-        const photoUrl = await uploadImage(photoBuffer, photo.name, 'staff_profiles');
-
         const finalTeacherData = {
             name: teacherData.name,
             email: teacherData.email,
@@ -56,7 +47,7 @@ export const addTeacher = async (formData: FormData) => {
             classes_taught: teacherData.classes_taught ? JSON.parse(teacherData.classes_taught as string) : [],
             joining_date: new Date(teacherData.joining_date as string).toISOString(),
             auth_uid: user.id,
-            photo_url: photoUrl,
+            photo_url: teacherData.photo_url,
         };
 
         const { error: dbError } = await supabase.from(TEACHERS_COLLECTION).insert([finalTeacherData]);

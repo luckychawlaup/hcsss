@@ -35,13 +35,9 @@ import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
 import { addTeacher } from "@/lib/supabase/teachers";
 
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
-const PHOTO_FILE_TYPES = ["image/jpeg", "image/png", "image/jpg"];
-
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B", "C", "D"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
-
 
 const addTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -57,13 +53,7 @@ const addTeacherSchema = z.object({
   class_teacher_of: z.string().optional(),
   classes_taught: z.array(z.string()).optional().default([]),
   joining_date: z.date({ required_error: "Joining date is required."}),
-  photo: z.any()
-    .refine((files) => files?.length == 1, "Teacher photo is required.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max photo size is 1MB.`)
-    .refine(
-      (files) => PHOTO_FILE_TYPES.includes(files?.[0]?.type),
-      "Only .jpg, and .png formats are supported for photos."
-    ),
+  photo_url: z.string().url("Please enter a valid photo URL."),
 }).refine(data => {
     if (data.role === 'classTeacher') return !!data.class_teacher_of;
     return true;
@@ -77,7 +67,6 @@ const addTeacherSchema = z.object({
     message: "Please select at least one class for the Subject Teacher.",
     path: ["classes_taught"],
 });
-
 
 interface AddTeacherFormProps {
     onTeacherAdded: () => void;
@@ -103,6 +92,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
       subject: "",
       qualifications: [],
       classes_taught: [],
+      photo_url: "",
     },
   });
 
@@ -127,10 +117,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
     setIsLoading(true);
     setError(null);
     try {
-        await addTeacher({
-            ...values,
-            photo: values.photo[0]
-        });
+        await addTeacher(values);
       
         toast({
             title: "Teacher Added!",
@@ -430,14 +417,13 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
                 </FormItem>
                  <FormField
                     control={control}
-                    name="photo"
+                    name="photo_url"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Teacher's Photo</FormLabel>
+                        <FormLabel>Teacher's Photo URL</FormLabel>
                         <FormControl>
-                            <Input type="file" accept="image/png, image/jpeg, image/jpg" {...form.register("photo")} />
+                            <Input placeholder="https://example.com/photo.jpg" {...field} />
                         </FormControl>
-                        <p className="text-xs text-muted-foreground">PNG, JPG up to 1MB. Recommended 500x500.</p>
                         <FormMessage />
                         </FormItem>
                     )}

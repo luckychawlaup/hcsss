@@ -2,15 +2,12 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/client";
-import { uploadImage, isImageKitInitialized } from "@/lib/imagekit";
 
 const supabase = createClient();
 const STUDENTS_COLLECTION = 'students';
 
 export const addStudent = async (formData: FormData) => {
     const studentData = Object.fromEntries(formData.entries());
-    const photo = formData.get('photo') as File;
-    const aadharCard = formData.get('aadharCard') as File | null;
 
     // 1. Sign up the user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -36,24 +33,10 @@ export const addStudent = async (formData: FormData) => {
     }
 
     try {
-        if (!isImageKitInitialized()) {
-            throw new Error("ImageKit is not configured. Please provide API keys in your .env file to enable image uploads.");
-        }
-        
         // 2. Generate SRN
         const { data: countData, error: countError } = await supabase.rpc('get_student_count');
         if (countError) throw countError;
         const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
-        
-        // 3. Upload images to ImageKit
-        const photoBuffer = Buffer.from(await photo.arrayBuffer());
-        const photoUrl = await uploadImage(photoBuffer, photo.name, 'student_profiles');
-
-        let aadharUrl: string | undefined;
-        if (aadharCard && aadharCard.size > 0) {
-            const aadharFileBuffer = Buffer.from(await aadharCard.arrayBuffer());
-            aadharUrl = await uploadImage(aadharFileBuffer, aadharCard.name, 'student_documents');
-        }
         
         const finalStudentData = { 
             name: studentData.name,
@@ -72,11 +55,11 @@ export const addStudent = async (formData: FormData) => {
             aadhar_number: studentData.aadhar_number,
             auth_uid: user.id,
             srn,
-            photo_url: photoUrl,
-            aadhar_url: aadharUrl,
+            photo_url: studentData.photo_url,
+            aadhar_url: studentData.aadhar_url,
         };
         
-        // 5. Insert student record into the database
+        // 3. Insert student record into the database
         const { error: dbError } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
 
         if (dbError) {
@@ -86,7 +69,7 @@ export const addStudent = async (formData: FormData) => {
             throw new Error(`Failed to add student. Original error: ${dbError.message}`);
         }
 
-        // 6. Send password reset email for initial password setup
+        // 4. Send password reset email for initial password setup
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(studentData.email as string);
         if (resetError) {
             console.warn("Student created, but failed to send password reset email.", resetError);

@@ -33,10 +33,6 @@ import { Textarea } from "../ui/textarea";
 import { addStudent } from "@/lib/supabase/students";
 import { Separator } from "../ui/separator";
 
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
-const AADHAR_FILE_TYPES = ["application/pdf", "image/jpeg", "image/png"];
-const PHOTO_FILE_TYPES = ["image/jpeg", "image/png", "image/jpg"];
-
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B", "C", "D"];
 
@@ -54,21 +50,9 @@ const addStudentSchema = z.object({
     mother_phone: z.string().optional(),
     student_phone: z.string().optional(),
     opted_subjects: z.array(z.string()).optional(),
-    photo: z.any()
-        .refine((files) => files?.length == 1, "Student photo is required.")
-        .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max photo size is 1MB.`)
-        .refine(
-        (files) => PHOTO_FILE_TYPES.includes(files?.[0]?.type),
-        "Only .jpg and .png formats are supported for photos."
-    ),
+    photo_url: z.string().url("A valid photo URL is required."),
     aadhar_number: z.string().length(12, "Aadhar number must be 12 digits.").optional(),
-    aadharCard: z.any()
-        .optional()
-        .refine((files) => !files || files.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 1MB.`)
-        .refine(
-        (files) => !files || files.length === 0 || AADHAR_FILE_TYPES.includes(files?.[0]?.type),
-        "Only .jpg, .png, and .pdf formats are supported for Aadhar card."
-    ),
+    aadhar_url: z.string().url("Please enter a valid URL for Aadhar.").optional(),
 }).refine(data => data.father_phone || data.mother_phone, {
     message: "At least one parent's phone number is required.",
     path: ["father_phone"],
@@ -95,6 +79,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
       address: "",
       date_of_birth: "",
       opted_subjects: [],
+      photo_url: "",
     },
   });
 
@@ -120,11 +105,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     setIsLoading(true);
     setError(null);
     try {
-        await addStudent({
-            ...values,
-            photo: values.photo[0],
-            aadharCard: values.aadharCard?.[0]
-        });
+        await addStudent(values);
         toast({
             title: "Student Added Successfully!",
             description: `${values.name} has been admitted to Class ${values.class}-${values.section}.`,
@@ -363,14 +344,13 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 </FormItem>
                  <FormField
                     control={control}
-                    name="photo"
+                    name="photo_url"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Student Photo</FormLabel>
+                        <FormLabel>Student Photo URL</FormLabel>
                         <FormControl>
-                            <Input type="file" accept="image/png, image/jpeg, image/jpg" {...form.register("photo")} />
+                            <Input placeholder="https://example.com/photo.jpg" {...field} />
                         </FormControl>
-                        <p className="text-xs text-muted-foreground">PNG, JPG up to 1MB. Recommended 500x500.</p>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -390,12 +370,12 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 />
                  <FormField
                     control={control}
-                    name="aadharCard"
+                    name="aadhar_url"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Aadhar Card Scan (Optional)</FormLabel>
+                        <FormLabel>Aadhar Card Scan URL (Optional)</FormLabel>
                         <FormControl>
-                            <Input type="file" accept="application/pdf, image/png, image/jpeg" {...form.register("aadharCard")} />
+                            <Input placeholder="https://example.com/aadhar.jpg" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>

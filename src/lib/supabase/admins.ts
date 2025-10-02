@@ -19,18 +19,15 @@ export interface AdminUser {
     created_at?: string;
 }
 
-export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'photo_url'> & { dob: string; phone_number: string; address?: string, photo: File }) => {
+export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string; phone_number: string; address?: string }) => {
     const formData = new FormData();
     Object.entries(adminData).forEach(([key, value]) => {
-         if (key === 'photo') {
-            // handled below
-        } else if (typeof value === 'object' && value !== null) {
+        if (typeof value === 'object' && value !== null) {
             formData.append(key, JSON.stringify(value));
         } else if (value !== undefined && value !== null) {
             formData.append(key, value.toString());
         }
     });
-    formData.append('photo', adminData.photo);
     
     return addAdminWithUpload(formData);
 };

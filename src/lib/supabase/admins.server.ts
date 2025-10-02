@@ -2,14 +2,12 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/client";
-import { uploadImage } from "@/lib/imagekit";
 
 const supabase = createClient();
 const ADMIN_ROLES_TABLE = 'admin_roles';
 
 export const addAdmin = async (formData: FormData) => {
     const adminData = Object.fromEntries(formData.entries());
-    const photo = formData.get('photo') as File;
 
     // 1. Sign up the user in Supabase Auth
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -35,11 +33,7 @@ export const addAdmin = async (formData: FormData) => {
     }
 
     try {
-        // 2. Upload photo to ImageKit
-        const fileBuffer = Buffer.from(await photo.arrayBuffer());
-        const photoUrl = await uploadImage(fileBuffer, photo.name, 'staff_profiles');
-
-        // 3. Insert profile into admin_roles table
+        // 2. Insert profile into admin_roles table
         const { error: dbError } = await supabase
             .from(ADMIN_ROLES_TABLE)
             .insert({ 
@@ -50,7 +44,7 @@ export const addAdmin = async (formData: FormData) => {
                 phone_number: adminData.phone_number,
                 address: adminData.address,
                 dob: adminData.dob,
-                photo_url: photoUrl
+                photo_url: adminData.photo_url
             });
 
         if (dbError) {
@@ -59,7 +53,7 @@ export const addAdmin = async (formData: FormData) => {
             throw new Error(`Failed to create admin profile: ${dbError.message}`);
         }
         
-        // 4. Send password reset email for them to set their password
+        // 3. Send password reset email for them to set their password
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(adminData.email as string);
 
         if (resetError) {

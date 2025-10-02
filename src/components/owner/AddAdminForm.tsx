@@ -23,9 +23,6 @@ import { Textarea } from "../ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { addAdmin } from "@/lib/supabase/admins";
 
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
-const PHOTO_FILE_TYPES = ["image/jpeg", "image/png", "image/jpg"];
-
 const addAdminSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
@@ -33,13 +30,7 @@ const addAdminSchema = z.object({
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
   address: z.string().optional(),
   role: z.enum(["principal", "accountant"], { required_error: "You must select a role."}),
-  photo: z.any()
-    .refine((files) => files?.length == 1, "Profile photo is required.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max photo size is 1MB.`)
-    .refine(
-      (files) => PHOTO_FILE_TYPES.includes(files?.[0]?.type),
-      "Only .jpg, .png formats are supported for photos."
-    ),
+  photo_url: z.string().url("Please enter a valid photo URL."),
 });
 
 interface AddAdminFormProps {
@@ -60,6 +51,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
       phone_number: "",
       address: "",
       role: "principal",
+      photo_url: "",
     },
   });
 
@@ -71,7 +63,6 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
       await addAdmin({
           ...values,
           address: values.address || '',
-          photo: values.photo[0]
       });
       
       toast({
@@ -156,14 +147,13 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                 />
                 <FormField
                     control={form.control}
-                    name="photo"
+                    name="photo_url"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Admin Photo</FormLabel>
+                        <FormLabel>Admin Photo URL</FormLabel>
                         <FormControl>
-                            <Input type="file" accept="image/png, image/jpeg, image/jpg" {...form.register("photo")} />
+                            <Input placeholder="https://example.com/photo.jpg" {...field} />
                         </FormControl>
-                         <p className="text-xs text-muted-foreground">PNG, JPG up to 1MB. Recommended 500x500.</p>
                         <FormMessage />
                         </FormItem>
                     )}

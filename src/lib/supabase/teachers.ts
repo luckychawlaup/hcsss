@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
@@ -60,7 +59,6 @@ WITH CHECK (
 );
 `;
 
-
 export interface Teacher {
     id: string;
     auth_uid: string;
@@ -88,13 +86,10 @@ export interface Teacher {
 
 export type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-
-export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 'photo_url'> & { photo: File }) => {
+export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid'>) => {
     const formData = new FormData();
     Object.entries(teacherData).forEach(([key, value]) => {
-        if (key === 'photo') {
-            // handled below
-        } else if (value instanceof Date) {
+        if (value instanceof Date) {
             formData.append(key, value.toISOString());
         } else if (typeof value === 'object' && value !== null) {
             formData.append(key, JSON.stringify(value));
@@ -102,7 +97,6 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 
             formData.append(key, value.toString());
         }
     });
-    formData.append('photo', teacherData.photo);
     
     return addTeacherWithUpload(formData);
 };
