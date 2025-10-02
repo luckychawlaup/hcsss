@@ -100,19 +100,34 @@ function FeeHistory() {
   const supabase = createClient();
 
   useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const studentProfile = await getStudentByAuthId(user.id);
-        setStudent(studentProfile);
-        if (studentProfile) {
-          getFeesForStudent(studentProfile.id, setFees);
+    setIsLoading(true);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const user = session?.user;
+        if (user) {
+          getStudentByAuthId(user.id).then((studentProfile) => {
+            setStudent(studentProfile);
+            if (studentProfile) {
+                const feeChannel = getFeesForStudent(studentProfile.id, (newFees) => {
+                    setFees(newFees);
+                });
+                // This is a bit of a simplification, as we're not truly "done" loading
+                // but it's good enough to show the UI. The fee data will populate via realtime.
+                setIsLoading(false);
+                return () => supabase.removeChannel(feeChannel);
+            } else {
+                 setIsLoading(false);
+            }
+          });
+        } else {
+             setIsLoading(false);
         }
       }
-      setIsLoading(false);
-    }
-    fetchData();
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [supabase]);
 
   const academicMonths = [
