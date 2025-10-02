@@ -1,4 +1,3 @@
-
 "use client";
 
 import Header from "@/components/dashboard/Header";
@@ -16,7 +15,6 @@ import { Button } from "../ui/button";
 import BottomNav from "./BottomNav";
 import type { Exam } from "@/lib/supabase/exams";
 import { isAfter, startOfToday, parseISO, isWithinInterval, subDays, endOfDay } from "date-fns";
-import Footer from "./Footer";
 
 function DashboardLoadingSkeleton() {
     return (
@@ -128,7 +126,6 @@ export default function DashboardPage() {
             </Suspense>
         </main>
       </div>
-      <Footer />
        <BottomNav />
     </div>
   );

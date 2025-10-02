@@ -1,4 +1,3 @@
-
 "use client";
 import Header from "@/components/dashboard/Header";
 import BottomNav from "@/components/dashboard/BottomNav";
@@ -17,7 +16,6 @@ import {
 import { Phone, Mail, MapPin, Shield } from "lucide-react";
 import { useSchoolInfo } from "@/hooks/use-school-info";
 import { Skeleton } from "@/components/ui/skeleton";
-import Footer from "@/components/dashboard/Footer";
 
 
 function HelpPageContent() {
@@ -104,7 +102,6 @@ export default function HelpPage() {
       <Header title="Help & Support" />
       <HelpPageContent/>
       <BottomNav />
-      <Footer />
     </div>
   );
 }
