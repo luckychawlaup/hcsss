@@ -3,13 +3,11 @@
 import { User } from "@supabase/supabase-js";
 import { createClient } from "./supabase/client";
 
-const ownerUID = "8ca56ec5-5e29-444f-931a-7247d65da329";
-
 export const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'accountant' | 'principal' | 'owner' | null> => {
     if (!user) return null;
     
     // Check for hardcoded owner UID first
-    if (user.id === ownerUID) return 'owner';
+    if (user.id === process.env.NEXT_PUBLIC_OWNER_UID) return 'owner';
     
     const supabase = createClient();
     
