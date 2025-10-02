@@ -26,6 +26,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Textarea } from '../ui/textarea';
 
 
 interface AnnouncementBubbleProps {
@@ -167,7 +168,7 @@ export default function AnnouncementChat({
   const [isSending, setIsSending] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const messageInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -352,7 +353,7 @@ export default function AnnouncementChat({
               />
               
               <div className="flex-1 relative">
-                <Input
+                <Textarea
                     ref={messageInputRef}
                     value={message}
                     onChange={e => setMessage(e.target.value)}
@@ -364,7 +365,13 @@ export default function AnnouncementChat({
                       }
                     }}
                     disabled={isSending}
-                    className="pr-12 rounded-xl border-2 focus:ring-2 focus:ring-primary/20 h-10"
+                    className="pr-12 rounded-xl border-2 focus:ring-2 focus:ring-primary/20 min-h-10 h-10 resize-none overflow-hidden"
+                    rows={1}
+                    onInput={(e) => {
+                      const target = e.currentTarget;
+                      target.style.height = "auto";
+                      target.style.height = `${target.scrollHeight}px`;
+                    }}
                 />
               </div>
               
