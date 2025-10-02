@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { isSameDay, getDay, startOfDay, format, parseISO, isWithinInterval } from "date-fns";
+import { isSameDay, getDay, startOfDay, format, parseISO, isWithinInterval, addDays } from "date-fns";
 import { getHolidays } from "@/lib/supabase/holidays";
 import type { Holiday } from "@/lib/supabase/holidays";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
@@ -74,57 +74,40 @@ export default function SchoolStatus() {
   }
 
   const today = startOfDay(new Date());
+  const tomorrow = startOfDay(addDays(today, 1));
   const isSunday = getDay(today) === 0;
   
-  const ongoingExam = exams.find(exam => 
-    exam.start_date && exam.end_date && 
-    isWithinInterval(today, { 
-      start: parseISO(exam.start_date), 
-      end: parseISO(exam.end_date) 
+  const studentClassSection = student ? `${student.class}-${student.section}` : null;
+
+  const upcomingHolidays = holidays
+    .filter(h => {
+        const holidayDate = startOfDay(parseISO(h.date));
+        return holidayDate >= today && (h.class_section === null || h.class_section === studentClassSection);
     })
-  );
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // Check for school-wide holiday (where class_section is null)
-  const schoolWideHoliday = holidays.find(h => 
-    isSameDay(startOfDay(parseISO(h.date)), today) && !h.class_section
-  );
-
-  // Check for class-specific holiday if user is a student
-  const classSpecificHoliday = student 
-    ? holidays.find(h => 
-        isSameDay(startOfDay(parseISO(h.date)), today) && 
-        h.class_section === `${student.class}-${student.section}`
-      )
-    : null;
-
-  const todayIsHoliday = schoolWideHoliday || classSpecificHoliday;
+  const nextHoliday = upcomingHolidays[0];
+  let holidayToShow: Holiday | null = null;
+  if(nextHoliday) {
+      const holidayDate = startOfDay(parseISO(nextHoliday.date));
+      if(isSameDay(holidayDate, today) || isSameDay(holidayDate, tomorrow)) {
+          holidayToShow = nextHoliday;
+      }
+  }
   
-  if (todayIsHoliday || isSunday) {
+  const todayIsHoliday = holidays.find(h => isSameDay(startOfDay(parseISO(h.date)), today) && (h.class_section === null || h.class_section === studentClassSection));
+
+  if (isSunday || todayIsHoliday) {
     let holidayReason = isSunday ? "It's Sunday!" : todayIsHoliday!.description;
-    let holidayTitle = "School is OFF";
-    let dateRangeString = "";
-
-    if (todayIsHoliday) {
-        const relevantHolidays = holidays.filter(h => h.description === todayIsHoliday.description && h.class_section === todayIsHoliday.class_section)
-            .map(h => startOfDay(parseISO(h.date)))
-            .sort((a,b) => a.getTime() - b.getTime());
-        
-        if (relevantHolidays.length > 1) {
-            const firstDay = relevantHolidays[0];
-            const lastDay = relevantHolidays[relevantHolidays.length - 1];
-            dateRangeString = ` (from ${format(firstDay, 'MMM d')} to ${format(lastDay, 'MMM d')})`;
-        }
-    }
-
-
-    return (
+    let holidayTitle = "School is OFF Today";
+     return (
       <Card className="bg-blue-50 border-blue-200 w-full">
         <CardContent className="p-3 flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 flex-shrink-0">
             <PartyPopper className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-blue-800 text-sm">{holidayTitle}{dateRangeString}</h3>
+            <h3 className="font-semibold text-blue-800 text-sm">{holidayTitle}</h3>
             <p className="text-xs text-blue-700">
               {holidayReason}
             </p>
@@ -133,6 +116,46 @@ export default function SchoolStatus() {
       </Card>
     );
   }
+
+  if (holidayToShow) {
+    const relevantHolidays = holidays
+        .filter(h => h.description === holidayToShow!.description && h.class_section === holidayToShow!.class_section)
+        .map(h => startOfDay(parseISO(h.date)))
+        .sort((a, b) => a.getTime() - b.getTime());
+    
+    let dateRangeString = "";
+    if (relevantHolidays.length > 1) {
+        const firstDay = relevantHolidays[0];
+        const lastDay = relevantHolidays[relevantHolidays.length - 1];
+        dateRangeString = ` (from ${format(firstDay, 'MMM d')} to ${format(lastDay, 'MMM d')})`;
+    } else {
+        dateRangeString = ` on ${format(parseISO(holidayToShow.date), 'MMMM d')}`
+    }
+
+    return (
+        <Card className="bg-blue-50 border-blue-200 w-full">
+            <CardContent className="p-3 flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 flex-shrink-0">
+                <PartyPopper className="h-5 w-5" />
+            </div>
+            <div>
+                <h3 className="font-semibold text-blue-800 text-sm">Upcoming Holiday{dateRangeString}</h3>
+                <p className="text-xs text-blue-700">
+                {holidayToShow.description}
+                </p>
+            </div>
+            </CardContent>
+        </Card>
+    );
+  }
+
+  const ongoingExam = exams.find(exam => 
+    exam.start_date && exam.end_date && 
+    isWithinInterval(today, { 
+      start: parseISO(exam.start_date), 
+      end: parseISO(exam.end_date) 
+    })
+  );
   
   if (ongoingExam) {
      return (
