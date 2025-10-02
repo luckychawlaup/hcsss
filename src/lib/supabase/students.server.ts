@@ -73,3 +73,4 @@ export const addStudent = async (formData: FormData) => {
         throw e;
     }
 };
+

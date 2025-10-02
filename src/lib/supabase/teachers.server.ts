@@ -61,3 +61,4 @@ export const addTeacher = async (formData: FormData) => {
         throw e;
     }
 };
+
