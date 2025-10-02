@@ -14,13 +14,13 @@ import { createClient } from "@/lib/supabase/client";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
 import { getStudentAttendanceForMonth, AttendanceRecord } from "@/lib/supabase/attendance";
 import { getHolidays, Holiday } from "@/lib/supabase/holidays";
-import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, parseISO, isSameDay, startOfDay } from "date-fns";
+import { format, getDaysInMonth, startOfMonth, addMonths, subMonths, parseISO, isSameDay, startOfDay, isBefore, isAfter } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type DayStatus = 'present' | 'absent' | 'half-day' | 'sunday' | 'future' | 'unmarked' | 'holiday';
 
-const DayCell = ({ day, status }: { day: number, status: DayStatus }) => {
+const DayCell = ({ day, status, title }: { day: number, status: DayStatus, title: string }) => {
     const statusClasses: Record<DayStatus, string> = {
         present: "bg-green-500 text-white hover:bg-green-600",
         absent: "bg-red-500 text-white hover:bg-red-600",
@@ -30,16 +30,6 @@ const DayCell = ({ day, status }: { day: number, status: DayStatus }) => {
         unmarked: "bg-gray-200 text-gray-500 hover:bg-gray-300",
         holiday: "bg-blue-500 text-white hover:bg-blue-600",
     };
-
-    const statusLabels: Record<DayStatus, string> = {
-        present: "Present",
-        absent: "Absent", 
-        "half-day": "Half Day",
-        sunday: "Sunday",
-        future: "Future",
-        unmarked: "Not Marked",
-        holiday: "Holiday",
-    };
     
     return (
         <div 
@@ -47,7 +37,7 @@ const DayCell = ({ day, status }: { day: number, status: DayStatus }) => {
                 "flex items-center justify-center h-10 w-10 rounded-full text-sm font-semibold transition-colors cursor-pointer", 
                 statusClasses[status]
             )}
-            title={`Day ${day} - ${statusLabels[status]}`}
+            title={title}
         >
             {day}
         </div>
@@ -61,6 +51,16 @@ export default function Attendance() {
     const [isLoading, setIsLoading] = useState(true);
     const [studentInfo, setStudentInfo] = useState<Student | null>(null);
     const supabase = createClient();
+
+    // Academic session boundaries
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonthNum = today.getMonth(); // 0-11
+    // Session is from April (month 3) to March of next year
+    const academicYearStartYear = currentMonthNum >= 3 ? currentYear : currentYear - 1;
+    
+    const sessionStartDate = new Date(academicYearStartYear, 3, 1); // April 1st
+    const sessionEndDate = new Date(academicYearStartYear + 1, 2, 31); // March 31st
 
     const fetchAttendanceAndHolidays = useCallback(async (studentId: string, month: Date) => {
         setIsLoading(true);
@@ -130,8 +130,17 @@ export default function Attendance() {
         const newMonth = direction === 'prev' 
             ? subMonths(currentMonth, 1) 
             : addMonths(currentMonth, 1);
+
+        if (isAfter(newMonth, sessionEndDate) || isBefore(newMonth, sessionStartDate)) {
+            return; // Don't navigate outside the academic session
+        }
+
         setCurrentMonth(newMonth);
     };
+
+    const isPrevDisabled = isBefore(startOfMonth(currentMonth), startOfMonth(addMonths(sessionStartDate, 1)));
+    const isNextDisabled = isAfter(startOfMonth(currentMonth), startOfMonth(subMonths(sessionEndDate, 1)));
+
 
     const renderCalendarDays = () => {
         const monthStart = startOfMonth(currentMonth);
@@ -141,6 +150,16 @@ export default function Attendance() {
         const studentClass = studentInfo ? `${studentInfo.class}-${studentInfo.section}` : null;
 
         const calendarDays = [];
+        
+        const statusLabels: Record<DayStatus, string> = {
+            present: "Present",
+            absent: "Absent", 
+            "half-day": "Half Day",
+            sunday: "Sunday",
+            future: "Future",
+            unmarked: "Not Marked",
+            holiday: "Holiday",
+        };
 
         const emptyDays = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
         for (let i = 0; i < emptyDays; i++) {
@@ -155,7 +174,6 @@ export default function Attendance() {
             const record = attendance.find(a => a.date === formattedDate);
             
             const isHoliday = holidays.find(h => {
-                // Corrected date comparison logic
                 const holidayDate = startOfDay(parseISO(h.date));
                 const calendarDate = startOfDay(date);
                 return isSameDay(holidayDate, calendarDate) && 
@@ -163,18 +181,23 @@ export default function Attendance() {
             });
 
             let status: DayStatus = 'unmarked';
+            let title = `Day ${day} - Not Marked`;
 
-            if (isHoliday) {
+            if (dayOfWeek === 0) {
                 status = 'holiday';
-            } else if (dayOfWeek === 0) {
-                status = 'sunday';
+                title = `Day ${day} - Sunday`;
+            } else if (isHoliday) {
+                status = 'holiday';
+                title = `Day ${day} - ${isHoliday.description}`;
             } else if (date > today) {
                 status = 'future';
+                 title = `Day ${day} - Future`;
             } else if (record) {
                 status = record.status;
+                title = `Day ${day} - ${statusLabels[status]}`;
             }
 
-            calendarDays.push(<DayCell key={day} day={day} status={status} />);
+            calendarDays.push(<DayCell key={day} day={day} status={status} title={title} />);
         }
 
         return calendarDays;
@@ -210,7 +233,7 @@ export default function Attendance() {
                         variant="outline"
                         size="icon"
                         onClick={() => navigateMonth('prev')}
-                        disabled={isLoading}
+                        disabled={isLoading || isPrevDisabled}
                         className="h-8 w-8"
                     >
                         <ChevronLeft className="h-4 w-4" />
@@ -222,7 +245,7 @@ export default function Attendance() {
                         variant="outline"
                         size="icon"
                         onClick={() => navigateMonth('next')}
-                        disabled={isLoading || startOfMonth(currentMonth) >= startOfMonth(new Date())}
+                        disabled={isLoading || isNextDisabled}
                         className="h-8 w-8"
                     >
                         <ChevronRight className="h-4 w-4" />
@@ -276,3 +299,4 @@ export default function Attendance() {
         </Card>
     );
 }
+
