@@ -50,9 +50,9 @@ const addStudentSchema = z.object({
     mother_phone: z.string().optional(),
     student_phone: z.string().optional(),
     opted_subjects: z.array(z.string()).optional(),
-    photo_url: z.string().url("A valid photo URL is required."),
-    aadhar_number: z.string().length(12, "Aadhar number must be 12 digits.").optional(),
-    aadhar_url: z.string().url("Please enter a valid URL for Aadhar.").optional(),
+    photo_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
+    aadhar_number: z.string().length(12, "Aadhar number must be 12 digits.").optional().or(z.literal('')),
+    aadhar_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
 }).refine(data => data.father_phone || data.mother_phone, {
     message: "At least one parent's phone number is required.",
     path: ["father_phone"],
@@ -105,7 +105,12 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     setIsLoading(true);
     setError(null);
     try {
-        await addStudent(values);
+        await addStudent({
+            ...values,
+            photo_url: values.photo_url || undefined,
+            aadhar_url: values.aadhar_url || undefined,
+            aadhar_number: values.aadhar_number || undefined,
+        });
         toast({
             title: "Student Added Successfully!",
             description: `${values.name} has been admitted to Class ${values.class}-${values.section}.`,
@@ -347,7 +352,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                     name="photo_url"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Student Photo URL</FormLabel>
+                        <FormLabel>Student Photo URL (Optional)</FormLabel>
                         <FormControl>
                             <Input placeholder="https://example.com/photo.jpg" {...field} />
                         </FormControl>

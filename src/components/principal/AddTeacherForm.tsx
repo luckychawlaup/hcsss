@@ -53,7 +53,7 @@ const addTeacherSchema = z.object({
   class_teacher_of: z.string().optional(),
   classes_taught: z.array(z.string()).optional().default([]),
   joining_date: z.date({ required_error: "Joining date is required."}),
-  photo_url: z.string().url("Please enter a valid photo URL."),
+  photo_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
 }).refine(data => {
     if (data.role === 'classTeacher') return !!data.class_teacher_of;
     return true;
@@ -117,7 +117,10 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
     setIsLoading(true);
     setError(null);
     try {
-        await addTeacher(values);
+        await addTeacher({
+            ...values,
+            photo_url: values.photo_url || undefined,
+        });
       
         toast({
             title: "Teacher Added!",
@@ -420,7 +423,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
                     name="photo_url"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Teacher's Photo URL</FormLabel>
+                        <FormLabel>Teacher's Photo URL (Optional)</FormLabel>
                         <FormControl>
                             <Input placeholder="https://example.com/photo.jpg" {...field} />
                         </FormControl>

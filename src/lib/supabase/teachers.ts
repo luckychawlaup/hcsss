@@ -64,7 +64,7 @@ export interface Teacher {
     auth_uid: string;
     name: string;
     email: string;
-    photo_url: string;
+    photo_url?: string;
     dob: string; // DD/MM/YYYY
     father_name: string;
     mother_name: string;

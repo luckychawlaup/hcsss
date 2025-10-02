@@ -30,7 +30,7 @@ const addAdminSchema = z.object({
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
   address: z.string().optional(),
   role: z.enum(["principal", "accountant"], { required_error: "You must select a role."}),
-  photo_url: z.string().url("Please enter a valid photo URL."),
+  photo_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
 });
 
 interface AddAdminFormProps {
@@ -63,6 +63,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
       await addAdmin({
           ...values,
           address: values.address || '',
+          photo_url: values.photo_url || undefined,
       });
       
       toast({
@@ -150,7 +151,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                     name="photo_url"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Admin Photo URL</FormLabel>
+                        <FormLabel>Admin Photo URL (Optional)</FormLabel>
                         <FormControl>
                             <Input placeholder="https://example.com/photo.jpg" {...field} />
                         </FormControl>

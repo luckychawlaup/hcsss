@@ -19,7 +19,7 @@ export interface AdminUser {
     created_at?: string;
 }
 
-export const addAdmin = async (adminData: Omit<AdminUser, 'uid'> & { dob: string; phone_number: string; address?: string }) => {
+export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'created_at'>) => {
     const formData = new FormData();
     Object.entries(adminData).forEach(([key, value]) => {
         if (typeof value === 'object' && value !== null) {
