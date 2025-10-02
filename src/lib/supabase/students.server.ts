@@ -9,29 +9,28 @@ export const addStudent = async (formData: FormData) => {
     const supabase = createClient();
     const studentData = Object.fromEntries(formData.entries());
 
-    // 1. Create the user in Supabase Auth using the admin method
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: studentData.email as string,
-        password: crypto.randomUUID(), // Temporary password
-        email_confirm: true,
-        user_metadata: {
-            full_name: studentData.name,
-            role: 'student'
+    const { data: functionData, error: functionError } = await supabase.functions.invoke('create-user', {
+        body: {
+            email: studentData.email as string,
+            password: crypto.randomUUID(), // Temporary password
+            user_metadata: {
+                full_name: studentData.name,
+                role: 'student'
+            }
         }
     });
 
-    if (authError) {
-        console.error("Error creating auth user for student:", authError);
-        throw authError;
+    if (functionError) {
+        console.error("Error creating auth user for student:", functionError);
+        throw new Error(functionError.message);
     }
     
-    const user = authData.user;
+    const user = functionData.user;
     if (!user) {
         throw new Error("Could not create auth user for student.");
     }
 
     try {
-        // 2. Generate SRN
         const { data: countData, error: countError } = await supabase.rpc('get_student_count');
         if (countError) throw countError;
         const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
@@ -57,19 +56,15 @@ export const addStudent = async (formData: FormData) => {
             aadhar_url: studentData.aadhar_url,
         };
         
-        // 3. Insert student record into the database
         const { error: dbError } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
 
         if (dbError) {
-            console.error("Error adding student to DB:", dbError.message);
-            // If DB insert fails, delete the created auth user
-            await supabase.auth.admin.deleteUser(user.id);
+            await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
             throw new Error(`Failed to add student. Original error: ${dbError.message}`);
         }
        
     } catch (e: any) {
-        // Cleanup auth user if any step fails after its creation
-        await supabase.auth.admin.deleteUser(user.id);
+        await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
         throw e;
     }
 };

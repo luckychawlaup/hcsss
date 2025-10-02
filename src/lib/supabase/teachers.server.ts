@@ -9,22 +9,23 @@ export const addTeacher = async (formData: FormData) => {
     const supabase = createClient();
     const teacherData = Object.fromEntries(formData.entries());
 
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: teacherData.email as string,
-        password: crypto.randomUUID(), // Temporary password
-        email_confirm: true,
-        user_metadata: {
-            full_name: teacherData.name,
-            role: 'teacher'
+    const { data: functionData, error: functionError } = await supabase.functions.invoke('create-user', {
+        body: {
+            email: teacherData.email as string,
+            password: crypto.randomUUID(), // Temporary password
+            user_metadata: {
+                full_name: teacherData.name,
+                role: 'teacher'
+            }
         }
     });
 
-    if (authError) {
-        console.error("Error creating auth user for teacher:", authError);
-        throw authError;
+    if (functionError) {
+        console.error("Error creating auth user for teacher:", functionError);
+        throw new Error(functionError.message);
     }
 
-    const user = authData.user;
+    const user = functionData.user;
     if (!user) {
         throw new Error("Could not create user for teacher.");
     }
@@ -51,13 +52,12 @@ export const addTeacher = async (formData: FormData) => {
         const { error: dbError } = await supabase.from(TEACHERS_COLLECTION).insert([finalTeacherData]);
 
         if (dbError) {
-            console.error("Error saving teacher to DB:", dbError);
-            await supabase.auth.admin.deleteUser(user.id);
+            await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
             throw dbError;
         }
 
     } catch (e: any) {
-        await supabase.auth.admin.deleteUser(user.id);
+        await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
         throw e;
     }
 };
