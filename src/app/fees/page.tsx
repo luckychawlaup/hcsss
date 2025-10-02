@@ -1,11 +1,12 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import Header from "@/components/dashboard/Header";
 import BottomNav from "@/components/dashboard/BottomNav";
 import { createClient } from "@/lib/supabase/client";
-import { getStudentByAuthId, Student } from "@/lib/supabase/students";
-import { getFeesForStudent, Fee } from "@/lib/supabase/fees";
+import { Student } from "@/lib/supabase/students";
+import { Fee } from "@/lib/supabase/fees";
 import {
   Card,
   CardHeader,
@@ -92,43 +93,31 @@ function FeeReceipt({ fee, student, schoolName }: { fee: Fee, student: Student, 
 }
 
 function FeeHistory() {
-  const [student, setStudent] = useState<Student | null>(null);
-  const [fees, setFees] = useState<Fee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedFee, setSelectedFee] = useState<Fee | null>(null);
   const { schoolInfo, isLoading: isSchoolInfoLoading } = useSchoolInfo();
-  const supabase = createClient();
 
-  useEffect(() => {
-    setIsLoading(true);
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        const user = session?.user;
-        if (user) {
-          getStudentByAuthId(user.id).then((studentProfile) => {
-            setStudent(studentProfile);
-            if (studentProfile) {
-                const feeChannel = getFeesForStudent(studentProfile.id, (newFees) => {
-                    setFees(newFees);
-                });
-                // This is a bit of a simplification, as we're not truly "done" loading
-                // but it's good enough to show the UI. The fee data will populate via realtime.
-                setIsLoading(false);
-                return () => supabase.removeChannel(feeChannel);
-            } else {
-                 setIsLoading(false);
-            }
-          });
-        } else {
-             setIsLoading(false);
-        }
-      }
-    );
+  // Dummy data for testing
+  const dummyStudent: Student = {
+      id: 'dummy-student-id',
+      auth_uid: 'dummy-auth-id',
+      srn: 'HCS0001',
+      name: 'Test Student',
+      email: 'student@test.com',
+      father_name: 'Test Father',
+      mother_name: 'Test Mother',
+      address: '123 Test Street',
+      class: '10',
+      section: 'A',
+      admission_date: new Date().toISOString(),
+      date_of_birth: '01/01/2008'
+  };
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [supabase]);
+  const dummyFees: Fee[] = [
+      { id: 'fee-1', student_id: 'dummy-student-id', month: 'April', status: 'paid', amount: 5000, updated_at: '2024-04-05T10:00:00Z' },
+      { id: 'fee-2', student_id: 'dummy-student-id', month: 'May', status: 'paid', amount: 5000, updated_at: '2024-05-06T10:00:00Z' },
+      { id: 'fee-3', student_id: 'dummy-student-id', month: 'June', status: 'due', amount: 5000 },
+      { id: 'fee-4', student_id: 'dummy-student-id', month: 'July', status: 'overdue', amount: 5000 },
+  ];
 
   const academicMonths = [
     "April", "May", "June", "July", "August", "September", 
@@ -136,7 +125,7 @@ function FeeHistory() {
   ];
 
   const feeStatusByMonth = academicMonths.map(month => {
-    const feeRecord = fees.find(f => f.month === month);
+    const feeRecord = dummyFees.find(f => f.month === month);
     return {
       month: month,
       status: feeRecord?.status || 'pending',
@@ -155,18 +144,8 @@ function FeeHistory() {
     }
   };
 
-  if (isLoading || isSchoolInfoLoading) {
+  if (isSchoolInfoLoading) {
     return <div className="p-8 space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>;
-  }
-  
-  if (!student) {
-      return (
-           <div className="text-center p-8">
-                <Wallet className="mx-auto h-16 w-16 text-muted-foreground" />
-                <h1 className="mt-4 text-2xl font-bold text-foreground">Error</h1>
-                <p className="mt-2 text-muted-foreground">Could not load student profile.</p>
-            </div>
-      )
   }
 
   return (
@@ -194,9 +173,9 @@ function FeeHistory() {
         ))}
       </div>
       
-       {selectedFee && student && (
+       {selectedFee && dummyStudent && (
         <Dialog open={!!selectedFee} onOpenChange={() => setSelectedFee(null)}>
-          <FeeReceipt fee={selectedFee} student={student} schoolName={schoolInfo?.name || "Hilton Convent School"} />
+          <FeeReceipt fee={selectedFee} student={dummyStudent} schoolName={schoolInfo?.name || "Hilton Convent School"} />
         </Dialog>
       )}
     </>
