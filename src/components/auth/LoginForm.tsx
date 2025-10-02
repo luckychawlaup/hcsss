@@ -102,10 +102,8 @@ export default function LoginForm({ role }: LoginFormProps) {
           targetPath = '/owner';
       }
       
-      // Use router.push for client-side navigation
-      router.push(targetPath);
-      // It's good practice to call router.refresh() to ensure the server-side state is up-to-date after login.
-      router.refresh();
+      // Use window.location.href for a hard redirect to ensure server-side re-render
+      window.location.href = targetPath;
 
 
     } catch (error: any) {
