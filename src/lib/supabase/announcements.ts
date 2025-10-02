@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -63,13 +64,13 @@ export const getAnnouncementsForStudent = (
 
     const fetchAnnouncements = async () => {
         // Corrected query to fetch:
-        // 1. Announcements for 'both' students and teachers (no specific audience)
-        // 2. Announcements for 'all students' (target 'students', no specific audience)
+        // 1. Announcements for 'both' (no specific audience)
+        // 2. Announcements for 'students' (no specific audience)
         // 3. Announcements for the student's specific class
-        // 4. Announcements for the specific student ID (not common, but supported)
+        // 4. Announcements for the specific student ID
         const orQuery = [
-            `target.eq.both,target_audience.is.null`,
-            `target.eq.students,target_audience.is.null`,
+            `and(target.eq.both,target_audience.is.null)`,
+            `and(target.eq.students,target_audience.is.null)`,
             `target_audience->>value.eq.${studentInfo.classSection}`,
             `target_audience->>value.eq.${studentInfo.studentId}`
         ].join(',');
@@ -136,7 +137,7 @@ export const getAnnouncementsForTeachers = (
     callback: (announcements: Announcement[]) => void
 ) => {
     const fetchAndCallback = async () => {
-        const orQuery = 'target.eq.teachers,target.eq.both,target.eq.admins';
+        const orQuery = 'target.eq.teachers,target.eq.both';
         const { data, error } = await supabase.from('announcements').select('*').or(orQuery).is('target_audience', null).order('created_at', { ascending: true });
         if (data) callback(data);
         if (error) console.error(error);
@@ -144,7 +145,7 @@ export const getAnnouncementsForTeachers = (
 
      const channel = supabase
         .channel('announcements-teachers')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("teachers","both","admins")`}, (payload) => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `target=in.("teachers","both")`}, (payload) => {
             fetchAndCallback();
         })
         .subscribe((status) => {
