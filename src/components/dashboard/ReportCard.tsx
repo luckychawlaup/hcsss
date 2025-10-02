@@ -85,7 +85,7 @@ export default function ReportCardComponent() {
   const availableReportCards = exams
     .filter((exam) => {
       const examMarks = marks[exam.id];
-      // Check if marks exist, it's an array, it has entries, and at least one entry has a non-zero mark
+      // Check if marks exist, it's an array, and at least one entry has a non-zero mark
       return examMarks && Array.isArray(examMarks) && examMarks.length > 0 && examMarks.some(m => m.marks > 0);
     })
     .sort(
