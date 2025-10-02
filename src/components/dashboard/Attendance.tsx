@@ -216,19 +216,12 @@ export default function Attendance() {
 
     return (
         <Card className="h-full">
-            <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2 text-primary">
-                        <UserCheck className="h-6 w-6" />
-                        My Attendance
-                    </CardTitle>
-                    {studentInfo && (
-                        <p className="text-sm font-normal text-muted-foreground">
-                            {studentInfo.class}-{studentInfo.section}
-                        </p>
-                    )}
-                </div>
-                <div className="flex items-center gap-2 self-start md:self-center">
+            <CardHeader className="text-center">
+                 <CardTitle className="flex items-center justify-center gap-2 text-primary">
+                    <UserCheck className="h-6 w-6" />
+                    My Attendance
+                </CardTitle>
+                <div className="flex items-center gap-2 justify-center pt-2">
                     <Button
                         variant="outline"
                         size="icon"
@@ -299,4 +292,3 @@ export default function Attendance() {
         </Card>
     );
 }
-

@@ -78,7 +78,7 @@ export default function TodayHomework() {
   if (error) {
     return (
       <Card className="h-full">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-center">
           <CardTitle className="flex items-center gap-2 text-primary">
             <Book className="h-6 w-6" />
             Today's Homework
@@ -96,7 +96,7 @@ export default function TodayHomework() {
 
   return (
     <Card className="flex flex-col h-full">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-center">
         <CardTitle className="flex items-center gap-2 text-primary">
           <Book className="h-6 w-6" />
           Today's Homework
