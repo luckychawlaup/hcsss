@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     setError(null);
     
-    // Dynamically construct the redirect URL
+    // Dynamically construct the redirect URL to prevent mismatch errors.
     const redirectUrl = `${window.location.origin}/auth/callback`;
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
@@ -91,10 +91,10 @@ export default function ForgotPasswordPage() {
 
         <Card className="p-6">
             {isSubmitted ? (
-            <Alert variant="default" className="bg-green-50 border-green-200">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-800">Reset Link Sent!</AlertTitle>
-                <AlertDescription className="text-green-700">
+            <Alert variant="default" className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <AlertTitle className="text-green-800 dark:text-green-200">Reset Link Sent!</AlertTitle>
+                <AlertDescription className="text-green-700 dark:text-green-300">
                 If an account with that email exists, a password reset link has been sent. Please check your inbox and spam folder.
                 </AlertDescription>
             </Alert>

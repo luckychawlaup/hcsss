@@ -62,6 +62,7 @@ export default function UpdatePasswordPage() {
         variant: "default",
       });
 
+      // Sign out to clear the temporary session and redirect to login
       await supabase.auth.signOut();
       router.replace("/login");
 
