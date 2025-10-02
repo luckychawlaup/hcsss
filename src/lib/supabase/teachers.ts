@@ -2,7 +2,7 @@
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
-import { addTeacher as addTeacherWithUpload } from './teachers.server';
+import { addTeacher as addTeacherServerAction } from './teachers.server';
 
 const supabase = createClient();
 const TEACHERS_COLLECTION = 'teachers';
@@ -98,7 +98,7 @@ export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid'>) 
         }
     });
     
-    return addTeacherWithUpload(formData);
+    return addTeacherServerAction(formData);
 };
 
 export const getTeachersAndPending = (callback: (teachers: CombinedTeacher[]) => void) => {

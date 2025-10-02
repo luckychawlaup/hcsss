@@ -2,7 +2,7 @@
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
-import { addAdmin as addAdminWithUpload } from './admins.server';
+import { addAdmin as addAdminServerAction } from './admins.server';
 
 const supabase = createClient();
 const ADMIN_ROLES_TABLE = 'admin_roles';
@@ -22,14 +22,12 @@ export interface AdminUser {
 export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'created_at'>) => {
     const formData = new FormData();
     Object.entries(adminData).forEach(([key, value]) => {
-        if (typeof value === 'object' && value !== null) {
-            formData.append(key, JSON.stringify(value));
-        } else if (value !== undefined && value !== null) {
+        if (value !== undefined && value !== null) {
             formData.append(key, value.toString());
         }
     });
     
-    return addAdminWithUpload(formData);
+    return addAdminServerAction(formData);
 };
 
 // --- List all admins ---

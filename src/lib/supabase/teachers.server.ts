@@ -11,7 +11,7 @@ export const addTeacher = async (formData: FormData) => {
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: teacherData.email as string,
-        password: Math.random().toString(36).slice(-8), // Temporary password
+        password: crypto.randomUUID(), // Temporary password
         email_confirm: true,
         user_metadata: {
             full_name: teacherData.name,
@@ -61,4 +61,3 @@ export const addTeacher = async (formData: FormData) => {
         throw e;
     }
 };
-

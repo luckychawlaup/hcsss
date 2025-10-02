@@ -2,7 +2,7 @@
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
-import { addStudent as addStudentWithUpload } from './students.server';
+import { addStudent as addStudentServerAction } from './students.server';
 
 const supabase = createClient();
 const STUDENTS_COLLECTION = 'students';
@@ -45,7 +45,7 @@ export const addStudent = async (studentData: Omit<Student, 'id' | 'auth_uid' | 
         }
     });
     
-    return addStudentWithUpload(formData);
+    return addStudentServerAction(formData);
 };
 
 

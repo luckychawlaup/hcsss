@@ -59,4 +59,3 @@ export const addAdmin = async (formData: FormData) => {
     
     return { message: "Admin account created. They will receive an email to set their password." };
 };
-

@@ -12,7 +12,7 @@ export const addStudent = async (formData: FormData) => {
     // 1. Create the user in Supabase Auth using the admin method
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: studentData.email as string,
-        password: Math.random().toString(36).slice(-8), // Temporary password
+        password: crypto.randomUUID(), // Temporary password
         email_confirm: true,
         user_metadata: {
             full_name: studentData.name,
@@ -73,4 +73,3 @@ export const addStudent = async (formData: FormData) => {
         throw e;
     }
 };
-
