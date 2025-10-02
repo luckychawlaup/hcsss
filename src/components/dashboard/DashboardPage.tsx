@@ -10,7 +10,7 @@ import ExamDatesheet from "@/components/dashboard/ExamDatesheet";
 import { Suspense, useState } from "react";
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
-import { Book, Eye, AlertTriangle } from "lucide-react";
+import { Book, Eye, AlertTriangle, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import BottomNav from "./BottomNav";
@@ -31,6 +31,25 @@ function DashboardLoadingSkeleton() {
     )
 }
 
+const NcertCard = () => (
+    <Link href="https://ncert.nic.in/textbook.php" target="_blank" rel="noopener noreferrer" className="block w-full">
+        <Card className="group hover:bg-secondary transition-colors">
+            <CardContent className="p-4 flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary flex-shrink-0">
+                    <Book className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                    <h3 className="font-semibold text-foreground text-sm">Online Textbooks</h3>
+                    <p className="text-xs text-muted-foreground">
+                        Access official NCERT textbooks for all subjects.
+                    </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </CardContent>
+        </Card>
+    </Link>
+)
+
 
 export default function DashboardPage() {
   const [upcomingExam, setUpcomingExam] = useState<Exam | null | undefined>(undefined);
@@ -43,13 +62,11 @@ export default function DashboardPage() {
     const examStartDate = parseISO(upcomingExam.start_date);
     const examEndDate = endOfDay(parseISO(upcomingExam.end_date));
     
-    // Show alert one day before
     const periodForDatesheet = {
         start: subDays(examStartDate, 1),
         end: examEndDate
     };
 
-    // Determine if exams are currently active
     const examActivePeriod = {
         start: examStartDate,
         end: examEndDate
@@ -69,6 +86,8 @@ export default function DashboardPage() {
                 <div className="space-y-6">
                     <SchoolStatus />
                     
+                    <NcertCard />
+
                     {showDatesheetInsteadOfHomework && upcomingExam && (
                         <Card className="bg-yellow-50 border-yellow-200 w-full dark:bg-yellow-900/20 dark:border-yellow-800">
                              <CardContent className="p-4 flex items-center gap-4">
@@ -88,9 +107,7 @@ export default function DashboardPage() {
                         </Card>
                     )}
                     
-                    {/* Main content grid */}
                     <div className="space-y-6">
-                        {/* Hero Component: Homework or Datesheet */}
                         <div className="h-full">
                            {showDatesheetInsteadOfHomework 
                                 ? <ExamDatesheet onUpcomingExamLoad={setUpcomingExam} /> 
@@ -98,7 +115,6 @@ export default function DashboardPage() {
                             }
                         </div>
 
-                        {/* Grid for other cards */}
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                             <div className="lg:col-span-3">
                                 <Attendance />
