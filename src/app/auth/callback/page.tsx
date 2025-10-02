@@ -12,28 +12,21 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const supabase = createClient();
     
-    const handleAuth = async () => {
-      // Supabase's library automatically handles the session from the URL hash.
-      // We just need to listen for the PASSWORD_RECOVERY event.
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          // This event fires when the user clicks the password reset link.
-          // Supabase has now created a temporary secure session.
-          // We can safely redirect to the update password page.
+    // This page should ONLY handle the password recovery flow.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // The `PASSWORD_RECOVERY` event is fired when the user clicks the link
+      // in the password reset email.
+      if (event === 'PASSWORD_RECOVERY') {
+          // Supabase's client library automatically handles the session from the URL hash.
+          // We can now safely redirect to the page where the user can set a new password.
           router.replace('/auth/update-password');
-        } else {
-          // For any other auth event (like magic link login), go home.
-          router.replace('/');
-        }
-      });
+      }
+    });
 
-      return () => {
-        subscription.unsubscribe();
-      };
+    // Cleanup the subscription when the component unmounts
+    return () => {
+      subscription.unsubscribe();
     };
-
-    handleAuth();
-
   }, [router]);
 
   return (
