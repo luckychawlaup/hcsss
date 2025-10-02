@@ -26,7 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, PlusCircle, Trash2, Users, WalletCards } from "lucide-react";
 import type { Teacher } from "@/lib/supabase/teachers";
-import { addSalarySlip } from "@/lib/supabase/salary";
+import { addSalarySlip, SALARY_TABLE_SETUP_SQL } from "@/lib/supabase/salary";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 

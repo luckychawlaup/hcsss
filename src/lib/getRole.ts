@@ -3,7 +3,7 @@
 import { User } from "@supabase/supabase-js";
 import { createClient } from "./supabase/client";
 
-const ownerUID = "6bed2c29-8ac9-4e2b-b9ef-26877d42f050";
+const ownerUID = "8ca56ec5-5e29-444f-931a-7247d65da329";
 
 export const getRole = async (user: User | null): Promise<'teacher' | 'student' | 'accountant' | 'principal' | 'owner' | null> => {
     if (!user) return null;

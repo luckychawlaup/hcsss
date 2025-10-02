@@ -43,7 +43,11 @@ DROP POLICY IF EXISTS "Allow authenticated users to read school info" ON public.
 -- More robust policy for the principal
 CREATE POLICY "Allow principal to manage school info"
 ON public.school_info FOR ALL
-USING (auth.uid() = '6cc51c80-e098-4d6d-8450-5ff5931b7391'); -- Principal UID
+USING (
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
+    OR
+    (auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329') -- Owner UID
+);
 
 CREATE POLICY "Allow authenticated users to read school info"
 ON public.school_info FOR SELECT

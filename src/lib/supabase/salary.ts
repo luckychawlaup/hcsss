@@ -15,6 +15,37 @@ export interface SalarySlip {
     createdAt: string;
 }
 
+export const SALARY_TABLE_SETUP_SQL = `
+CREATE TABLE IF NOT EXISTS public.salary_slips (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
+    month TEXT NOT NULL,
+    "basicSalary" NUMERIC NOT NULL,
+    earnings JSONB,
+    deductions JSONB,
+    "netSalary" NUMERIC NOT NULL,
+    status TEXT NOT NULL,
+    "createdAt" TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.salary_slips ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow principal/owner to manage salary slips" ON public.salary_slips;
+DROP POLICY IF EXISTS "Allow teachers to view their own salary slips" ON public.salary_slips;
+
+CREATE POLICY "Allow principal/owner to manage salary slips"
+ON public.salary_slips FOR ALL
+USING (
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
+    OR
+    (auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329')
+);
+
+CREATE POLICY "Allow teachers to view their own salary slips"
+ON public.salary_slips FOR SELECT
+USING (teacher_id = (SELECT id FROM public.teachers WHERE auth_uid = auth.uid()));
+`;
+
 export const addSalarySlip = async (slipData: Omit<SalarySlip, 'id' | 'createdAt' | 'netSalary'>): Promise<string | null> => {
     const totalEarnings = slipData.basicSalary + slipData.earnings.reduce((acc, e) => acc + e.amount, 0);
     const totalDeductions = slipData.deductions.reduce((acc, d) => acc + d.amount, 0);

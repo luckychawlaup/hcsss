@@ -27,6 +27,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "../ui/input";
+import { getTeachersAndPending, Teacher } from "@/lib/supabase/teachers";
 
 const SchoolInfoForm = dynamic(() => import('../principal/SchoolInfoForm'), {
     loading: () => <Skeleton className="h-80 w-full" />
@@ -179,6 +180,8 @@ export default function OwnerDashboard() {
   const [activeView, setActiveView] = useState<OwnerView>("dashboard");
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
+  const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -187,8 +190,12 @@ export default function OwnerDashboard() {
         setUser(authUser);
     });
 
+     const unsubTeachers = getTeachersAndPending(setAllTeachers);
+     setIsLoading(false);
+
     return () => {
         authListener.subscription.unsubscribe();
+        if (unsubTeachers) unsubTeachers();
     };
 
   }, [supabase]);
@@ -230,11 +237,11 @@ export default function OwnerDashboard() {
                                 Manage Payroll
                             </CardTitle>
                             <CardDescription>
-                                This is a placeholder for payroll management. A full implementation requires fetching teacher data.
+                                This tool allows you to generate salary slips for your teachers.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-muted-foreground text-center">Payroll management UI would be here.</p>
+                           <GenerateSalary teachers={allTeachers} isLoading={isLoading} />
                         </CardContent>
                     </Card>
                 );
@@ -287,5 +294,3 @@ export default function OwnerDashboard() {
     </div>
   );
 }
-
-    

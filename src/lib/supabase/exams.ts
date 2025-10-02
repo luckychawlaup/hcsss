@@ -40,7 +40,7 @@ ON public.exams FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    (auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050') -- Owner UID
+    (auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329') -- Owner UID
 );
 
 CREATE POLICY "Allow class teachers to manage exams"
@@ -84,7 +84,7 @@ USING (
     )
      OR
     (
-        auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050'
+        auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'
     )
 );
 
