@@ -9,25 +9,23 @@ export const addAdmin = async (formData: FormData) => {
     const supabase = createClient();
     const adminData = Object.fromEntries(formData.entries());
 
-    // 1. Sign up the user in Supabase Auth
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    // 1. Create the user in Supabase Auth using the admin method
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: adminData.email as string,
         password: crypto.randomUUID(), 
-        options: {
-            data: {
-                role: adminData.role,
-                full_name: adminData.name,
-            },
-            email_confirm: true, 
-        }
+        email_confirm: true,
+        user_metadata: {
+            role: adminData.role,
+            full_name: adminData.name,
+        },
     });
 
-    if (signUpError) {
-        console.error("Error creating admin auth user:", signUpError);
-        throw new Error(signUpError.message);
+    if (authError) {
+        console.error("Error creating admin auth user:", authError);
+        throw new Error(authError.message);
     }
     
-    const user = data.user;
+    const user = authData.user;
     if (!user) {
         throw new Error("User not created in Supabase Auth.");
     }
@@ -49,17 +47,16 @@ export const addAdmin = async (formData: FormData) => {
 
         if (dbError) {
             // If DB insert fails, delete the auth user to prevent orphans
-            await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
+            await supabase.auth.admin.deleteUser(user.id);
             throw new Error(`Failed to create admin profile: ${dbError.message}`);
         }
         
-        // 3. Send password reset email for them to set their password - REMOVED AS PER REQUEST
-
     } catch (e: any) {
         // Cleanup auth user if any step fails after its creation
-        await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
+        await supabase.auth.admin.deleteUser(user.id);
         throw e;
     }
     
     return { message: "Admin account created. They will receive an email to set their password." };
 };
+

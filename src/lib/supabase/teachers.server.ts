@@ -9,15 +9,13 @@ export const addTeacher = async (formData: FormData) => {
     const supabase = createClient();
     const teacherData = Object.fromEntries(formData.entries());
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: teacherData.email as string,
         password: Math.random().toString(36).slice(-8), // Temporary password
-        options: {
-            data: {
-                full_name: teacherData.name,
-                role: 'teacher'
-            },
-            email_confirm: true,
+        email_confirm: true,
+        user_metadata: {
+            full_name: teacherData.name,
+            role: 'teacher'
         }
     });
 
@@ -54,14 +52,12 @@ export const addTeacher = async (formData: FormData) => {
 
         if (dbError) {
             console.error("Error saving teacher to DB:", dbError);
-            await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
+            await supabase.auth.admin.deleteUser(user.id);
             throw dbError;
         }
 
-        // Password reset email REMOVED
-
     } catch (e: any) {
-        await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
+        await supabase.auth.admin.deleteUser(user.id);
         throw e;
     }
 };

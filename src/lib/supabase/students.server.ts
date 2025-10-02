@@ -9,16 +9,14 @@ export const addStudent = async (formData: FormData) => {
     const supabase = createClient();
     const studentData = Object.fromEntries(formData.entries());
 
-    // 1. Sign up the user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // 1. Create the user in Supabase Auth using the admin method
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: studentData.email as string,
         password: Math.random().toString(36).slice(-8), // Temporary password
-        options: {
-            data: {
-                full_name: studentData.name,
-                role: 'student'
-            },
-            email_confirm: true, // Auto-confirm email
+        email_confirm: true,
+        user_metadata: {
+            full_name: studentData.name,
+            role: 'student'
         }
     });
 
@@ -65,15 +63,13 @@ export const addStudent = async (formData: FormData) => {
         if (dbError) {
             console.error("Error adding student to DB:", dbError.message);
             // If DB insert fails, delete the created auth user
-            await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
+            await supabase.auth.admin.deleteUser(user.id);
             throw new Error(`Failed to add student. Original error: ${dbError.message}`);
         }
-
-        // 4. Send password reset email for initial password setup - REMOVED
        
     } catch (e: any) {
         // Cleanup auth user if any step fails after its creation
-        await supabase.functions.invoke('delete-user', { body: { uid: user.id } });
+        await supabase.auth.admin.deleteUser(user.id);
         throw e;
     }
 };
