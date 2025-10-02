@@ -53,7 +53,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center text-sm">
-           <Link href="/forgot-password" className="text-muted-foreground hover:text-primary underline-offset-4 hover:underline">
+           <Link href="https://hcsss-email-password-update.onrender.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary underline-offset-4 hover:underline">
             Forgot your password?
            </Link>
         </div>
