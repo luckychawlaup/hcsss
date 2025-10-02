@@ -91,7 +91,7 @@ export default function JoiningLetterPage() {
                  <div className="flex justify-end items-center gap-4 text-xs text-muted-foreground mt-1">
                      <div className="flex items-center gap-1.5">
                         <Shield className="h-3 w-3" />
-                        <span>CBSE Affiliation No: {schoolInfo.affiliationNo}</span>
+                        <span>CBSE Affiliation No: {schoolInfo.affiliation_no}</span>
                     </div>
                 </div>
             </div>
@@ -126,7 +126,7 @@ export default function JoiningLetterPage() {
             </p>
 
             <p className="mt-4">
-                Your role as a {teacher.role === 'classTeacher' ? `Class Teacher for ${teacher.class_teacher_of}`: 'Subject Teacher'} will be integral to our academic team. We were impressed with your qualifications and believe your expertise will be a valuable asset to our students and the school community.
+                Your role as a {teacher.role === 'classTeacher' ? `Class Teacher for ${teacher.class_teacher_of}`: 'Teacher'} will be integral to our academic team. We were impressed with your qualifications and believe your expertise will be a valuable asset to our students and the school community.
             </p>
 
             <p className="mt-4">

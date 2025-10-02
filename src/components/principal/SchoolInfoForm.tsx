@@ -26,8 +26,8 @@ const infoSchema = z.object({
   email: z.string().email("Invalid email address."),
   phone: z.string().min(10, "Phone number is required."),
   address: z.string().min(10, "Address is required."),
-  affiliationNo: z.string().min(1, "Affiliation number is required."),
-  schoolCode: z.string().min(1, "School code is required."),
+  affiliation_no: z.string().min(1, "Affiliation number is required."),
+  school_code: z.string().min(1, "School code is required."),
 });
 
 function SettingsSkeleton() {
@@ -55,8 +55,8 @@ export default function SchoolInfoForm() {
         email: "",
         phone: "",
         address: "",
-        affiliationNo: "",
-        schoolCode: "",
+        affiliation_no: "",
+        school_code: "",
     }
   });
 
@@ -161,7 +161,7 @@ export default function SchoolInfoForm() {
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
                 control={form.control}
-                name="affiliationNo"
+                name="affiliation_no"
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>CBSE Affiliation No.</FormLabel>
@@ -174,7 +174,7 @@ export default function SchoolInfoForm() {
             />
             <FormField
                 control={form.control}
-                name="schoolCode"
+                name="school_code"
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>School Code</FormLabel>

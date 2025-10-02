@@ -63,7 +63,7 @@ const leaveSchema = z.object({
 
 const getStatusVariant = (status: LeaveRequest["status"]) => {
   switch (status) {
-    case "Confirmed":
+    case "Approved":
       return "success";
     case "Pending":
       return "secondary";
@@ -363,7 +363,7 @@ export function TeacherLeave() {
                         <AlertDescription>{leave.rejectionReason}</AlertDescription>
                     </Alert>
                 )}
-                {(leave.status === 'Confirmed' && leave.approverComment) && (
+                {(leave.status === 'Approved' && leave.approverComment) && (
                      <Alert variant="default" className="mt-2">
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Approver's Comment</AlertTitle>

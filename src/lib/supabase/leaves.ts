@@ -14,11 +14,13 @@ export interface LeaveRequest {
   startDate: string; 
   endDate: string; 
   reason: string;
-  status: 'Pending' | 'Confirmed' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Rejected';
   appliedAt: string; 
   rejectionReason?: string;
   approverComment?: string;
   document_url?: string;
+  approved_by?: string;
+  approved_at?: string;
 }
 
 const uploadFileToSupabase = async (file: File): Promise<string> => {
@@ -42,17 +44,17 @@ export const LEAVES_TABLE_SETUP_SQL = `
 CREATE TABLE IF NOT EXISTS public.leaves (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    "userName" TEXT NOT NULL,
-    "userRole" TEXT NOT NULL,
+    user_name TEXT NOT NULL,
+    user_role TEXT NOT NULL,
     class TEXT,
-    "teacherId" UUID,
-    "startDate" TIMESTAMPTZ NOT NULL,
-    "endDate" TIMESTAMPTZ NOT NULL,
+    teacher_id UUID,
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ NOT NULL,
     reason TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'Pending',
-    "appliedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "rejectionReason" TEXT,
-    "approverComment" TEXT,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    rejection_reason TEXT,
+    approver_comment TEXT,
     document_url TEXT
 );
 
@@ -94,15 +96,15 @@ export const addLeaveRequest = async (authUid: string, leaveRequest: Omit<LeaveR
 
         const finalRequestData = {
             user_id: authUid,
-            userName: leaveRequest.userName,
-            userRole: leaveRequest.userRole,
+            user_name: leaveRequest.userName,
+            user_role: leaveRequest.userRole,
             class: leaveRequest.class,
-            teacherId: leaveRequest.teacherId,
-            startDate: leaveRequest.startDate,
-            endDate: leaveRequest.endDate,
+            teacher_id: leaveRequest.teacherId,
+            start_date: leaveRequest.startDate,
+            end_date: leaveRequest.endDate,
             reason: leaveRequest.reason,
             status: 'Pending',
-            appliedAt: leaveRequest.appliedAt,
+            applied_at: leaveRequest.appliedAt,
             document_url,
         };
         
@@ -130,7 +132,7 @@ export const getLeaveRequestsForUser = (userId: string, callback: (leaves: Leave
 
     const fetchLeaves = async () => {
         try {
-            const { data, error } = await supabase.from('leaves').select('*').eq('user_id', userId).order('appliedAt', { ascending: false });
+            const { data, error } = await supabase.from('leaves').select('*').eq('user_id', userId).order('applied_at', { ascending: false });
             if (error) throw error;
             callback(data || []);
         } catch (error) {
@@ -163,8 +165,8 @@ export const getLeaveRequestsForTeachers = (callback: (leaves: LeaveRequest[]) =
             const { data, error } = await supabase
                 .from('leaves')
                 .select('*')
-                .eq('userRole', 'Teacher')
-                .order('appliedAt', { ascending: false });
+                .eq('user_role', 'Teacher')
+                .order('applied_at', { ascending: false });
             if (error) throw error;
             callback(data || []);
         } catch (error) {
@@ -174,7 +176,7 @@ export const getLeaveRequestsForTeachers = (callback: (leaves: LeaveRequest[]) =
     };
 
     const channel = supabase.channel('teacher-leaves')
-        .on('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION, filter: 'userRole=eq.Teacher' }, 
+        .on('postgres_changes', { event: '*', schema: 'public', table: LEAVES_COLLECTION, filter: 'user_role=eq.Teacher' }, 
         (payload) => {
             fetchTeacherLeaves();
         })
@@ -217,9 +219,9 @@ export const getLeaveRequestsForClassTeacher = (classSection: string, callback: 
             const { data, error } = await supabase
                 .from('leaves')
                 .select('*')
-                .eq('userRole', 'Student')
+                .eq('user_role', 'Student')
                 .eq('class', classSection)
-                .order('appliedAt', { ascending: false });
+                .order('applied_at', { ascending: false });
             if (error) throw error;
             callback(data || []);
         } catch (error) {
@@ -260,7 +262,7 @@ export const getAllLeaveRequests = (callback: (leaves: LeaveRequest[]) => void) 
 
     const fetchAllLeaves = async () => {
         try {
-            const { data, error } = await supabase.from('leaves').select('*').order('appliedAt', { ascending: false });
+            const { data, error } = await supabase.from('leaves').select('*').order('applied_at', { ascending: false });
              if (error) throw error;
             callback(data || []);
         } catch (error) {

@@ -35,7 +35,7 @@ interface ApproveLeavesProps {
 
 const getStatusVariant = (status: LeaveRequest['status']) => {
   switch (status) {
-    case "Confirmed":
+    case "Approved":
       return "success";
     case "Pending":
       return "warning";
@@ -177,7 +177,7 @@ export default function ApproveLeaves({ leaves, isPrincipal = false }: ApproveLe
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Pending">Pending</SelectItem>
-                                    <SelectItem value="Confirmed">Confirm</SelectItem>
+                                    <SelectItem value="Approved">Approve</SelectItem>
                                     <SelectItem value="Rejected">Reject</SelectItem>
                                 </SelectContent>
                             </Select>

@@ -1,3 +1,4 @@
+
 "use client";
 import Header from "@/components/dashboard/Header";
 import BottomNav from "@/components/dashboard/BottomNav";
@@ -38,6 +39,17 @@ function HelpPageContent() {
             answer: "Go to the 'Profile' section from the bottom navigation. Your details are displayed there. To update any information, please contact the school administration."
         }
     ];
+
+    if(!schoolInfo) {
+      return (
+        <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
+             <div className="mx-auto w-full max-w-4xl space-y-6">
+                 <Skeleton className="h-48 w-full" />
+                 <Skeleton className="h-32 w-full" />
+             </div>
+        </main>
+      )
+    }
 
     return (
         <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
@@ -86,7 +98,7 @@ function HelpPageContent() {
                         </div>
                         <div className="flex items-start gap-4">
                             <Shield className="h-5 w-5 text-primary mt-1" />
-                            <p>CBSE Affiliation No: {schoolInfo.affiliationNo}<br/>School Code: {schoolInfo.schoolCode}</p>
+                            <p>CBSE Affiliation No: {schoolInfo.affiliation_no}<br/>School Code: {schoolInfo.school_code}</p>
                         </div>
                     </CardContent>
                     )}

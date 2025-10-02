@@ -47,7 +47,7 @@ const addTeacherSchema = z.object({
   mother_name: z.string().min(2, "Mother's name is required."),
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
   address: z.string().min(10, "Address is too short."),
-  role: z.enum(["classTeacher", "subjectTeacher"], { required_error: "You must select a role."}),
+  role: z.enum(["classTeacher", "teacher"], { required_error: "You must select a role."}),
   subject: z.string().min(2, "Subject is required."),
   qualifications: z.array(z.string()).optional().default([]),
   class_teacher_of: z.string().optional(),
@@ -61,7 +61,7 @@ const addTeacherSchema = z.object({
     message: "Please select a class for the Class Teacher.",
     path: ["class_teacher_of"],
 }).refine(data => {
-    if (data.role === 'subjectTeacher') return data.classes_taught && data.classes_taught.length > 0;
+    if (data.role === 'teacher') return data.classes_taught && data.classes_taught.length > 0;
     return true;
 }, {
     message: "Please select at least one class for the Subject Teacher.",
@@ -316,7 +316,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
                                     </FormItem>
                                     <FormItem className="flex items-center space-x-2 space-y-0">
                                         <FormControl>
-                                        <RadioGroupItem value="subjectTeacher" />
+                                        <RadioGroupItem value="teacher" />
                                         </FormControl>
                                         <FormLabel className="font-normal">Subject Teacher</FormLabel>
                                     </FormItem>

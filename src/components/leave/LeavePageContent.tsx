@@ -59,12 +59,14 @@ const leaveSchema = z.object({
 
 const getStatusVariant = (status: LeaveRequest["status"]) => {
   switch (status) {
-    case "Confirmed":
+    case "Approved":
       return "success";
     case "Pending":
       return "secondary";
     case "Rejected":
       return "destructive";
+    default:
+        return "secondary";
   }
 };
 
@@ -138,8 +140,8 @@ export default function LeavePageContent() {
         const newLeave: Omit<LeaveRequest, 'id' | 'document_url'> = {
             user_id: currentStudent.auth_uid,
             userName: currentStudent.name,
-            class: `${currentStudent.class}-${currentStudent.section}`,
             userRole: "Student",
+            class: `${currentStudent.class}-${currentStudent.section}`,
             startDate: values.startDate.toISOString(),
             endDate: (values.endDate || values.startDate).toISOString(),
             reason: values.reason,
@@ -322,7 +324,7 @@ export default function LeavePageContent() {
                         <AlertDescription>{leave.rejectionReason}</AlertDescription>
                     </Alert>
                 )}
-                {(leave.status === 'Confirmed' && leave.approverComment) && (
+                {(leave.status === 'Approved' && leave.approverComment) && (
                      <Alert variant="default" className="mt-2">
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Approver's Comment</AlertTitle>

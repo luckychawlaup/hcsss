@@ -209,9 +209,9 @@ export function SalaryDetails({ teacher }: SalaryDetailsProps) {
                             salaryHistory.map(record => (
                                 <TableRow key={record.id}>
                                     <TableCell>{record.month}</TableCell>
-                                    <TableCell>₹{record.netSalary.toLocaleString('en-IN')}</TableCell>
+                                    <TableCell>₹{record.net_salary.toLocaleString('en-IN')}</TableCell>
                                     <TableCell>
-                                        <Badge variant={record.status === "Paid" ? "default" : "secondary"}>{record.status}</Badge>
+                                        <Badge variant={record.status === "paid" ? "default" : "secondary"}>{record.status}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <Button asChild variant="outline" size="sm">

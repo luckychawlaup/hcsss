@@ -70,7 +70,7 @@ export interface Teacher {
     mother_name: string;
     phone_number: string;
     address: string;
-    role: 'classTeacher' | 'subjectTeacher';
+    role: 'teacher' | 'classTeacher';
     subject: string;
     qualifications?: string[];
     class_teacher_of?: string; // e.g., "10-A"

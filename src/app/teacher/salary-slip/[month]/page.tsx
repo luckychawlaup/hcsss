@@ -71,7 +71,7 @@ function SalarySlipContent() {
     window.print();
   };
   
-  const totalEarnings = (salarySlip?.basicSalary ?? 0) + (salarySlip?.earnings?.reduce((acc, earn) => acc + earn.amount, 0) ?? 0);
+  const totalEarnings = (salarySlip?.basic_salary ?? 0) + (salarySlip?.earnings?.reduce((acc, earn) => acc + earn.amount, 0) ?? 0);
   const totalDeductions = salarySlip?.deductions?.reduce((acc, ded) => acc + ded.amount, 0) ?? 0;
   const netSalary = totalEarnings - totalDeductions;
 
@@ -104,7 +104,7 @@ function SalarySlipContent() {
            <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
             <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /><span>{schoolInfo.email}</span></div>
             <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" /><span>{schoolInfo.phone}</span></div>
-             <div className="flex items-center gap-1.5"><Shield className="h-3 w-3" /><span>CBSE Affiliation: {schoolInfo.affiliationNo}</span></div>
+             <div className="flex items-center gap-1.5"><Shield className="h-3 w-3" /><span>CBSE Affiliation: {schoolInfo.affiliation_no}</span></div>
           </div>
         </header>
 
@@ -132,7 +132,7 @@ function SalarySlipContent() {
                 <div className="border rounded-lg p-4">
                      <h3 className="font-semibold text-green-600 mb-3">Earnings</h3>
                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Basic Salary</span><span>{formatCurrency(salarySlip.basicSalary)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Basic Salary</span><span>{formatCurrency(salarySlip.basic_salary)}</span></div>
                         {salarySlip.earnings?.map((item, index) => (
                             <div key={index} className="flex justify-between">
                                 <span className="text-muted-foreground">{item.name}</span>

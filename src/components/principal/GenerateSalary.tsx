@@ -26,7 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, PlusCircle, Trash2, Users, WalletCards } from "lucide-react";
 import type { Teacher } from "@/lib/supabase/teachers";
-import { addSalarySlip, SALARY_TABLE_SETUP_SQL } from "@/lib/supabase/salary";
+import { addSalarySlip } from "@/lib/supabase/salary";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -34,7 +34,7 @@ const salarySchema = z.object({
   teacher_id: z.string({ required_error: "Please select a teacher." }),
   month: z.string().min(1, "Month is required."),
   year: z.string().min(4, "Year is required."),
-  basicSalary: z.coerce.number().min(0, "Basic salary must be a positive number."),
+  basic_salary: z.coerce.number().min(0, "Basic salary must be a positive number."),
   earnings: z.array(
     z.object({
       name: z.string().min(1, "Earning name is required."),
@@ -71,7 +71,7 @@ export default function GenerateSalary({ teachers, isLoading }: GenerateSalaryPr
     defaultValues: {
       year: currentYear.toString(),
       month: months[new Date().getMonth()],
-      basicSalary: 30000,
+      basic_salary: 30000,
       earnings: [{ name: "HRA", amount: 12000 }, { name: "Special Allowance", amount: 5000 }],
       deductions: [{ name: "Provident Fund", amount: 1800 }, { name: "TDS", amount: 1500 }],
     },
@@ -93,10 +93,10 @@ export default function GenerateSalary({ teachers, isLoading }: GenerateSalaryPr
       const slipData = {
         teacher_id: values.teacher_id,
         month: `${values.month} ${values.year}`,
-        basicSalary: values.basicSalary,
+        basic_salary: values.basic_salary,
         earnings: values.earnings || [],
         deductions: values.deductions || [],
-        status: "Paid" as const,
+        status: "paid" as const,
       };
       const newSlipId = await addSalarySlip(slipData);
       toast({
@@ -207,7 +207,7 @@ export default function GenerateSalary({ teachers, isLoading }: GenerateSalaryPr
                 <CardContent className="space-y-4">
                      <FormField
                         control={form.control}
-                        name="basicSalary"
+                        name="basic_salary"
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Basic Salary</FormLabel>

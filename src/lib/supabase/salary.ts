@@ -7,12 +7,14 @@ export interface SalarySlip {
     id: string;
     teacher_id: string;
     month: string; // e.g., "August 2024"
-    basicSalary: number;
+    basic_salary: number;
     earnings: { name: string; amount: number }[];
     deductions: { name: string; amount: number }[];
-    netSalary: number;
-    status: 'Paid' | 'Pending';
-    createdAt: string;
+    net_salary: number;
+    status: 'draft' | 'issued' | 'paid';
+    created_at: string;
+    issued_at?: string;
+    paid_at?: string;
 }
 
 export const SALARY_TABLE_SETUP_SQL = `
@@ -20,12 +22,15 @@ CREATE TABLE IF NOT EXISTS public.salary_slips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
     month TEXT NOT NULL,
-    "basicSalary" NUMERIC NOT NULL,
+    basic_salary NUMERIC NOT NULL,
     earnings JSONB,
     deductions JSONB,
-    "netSalary" NUMERIC NOT NULL,
-    status TEXT NOT NULL,
-    "createdAt" TIMESTAMPTZ DEFAULT NOW()
+    net_salary NUMERIC NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('draft', 'issued', 'paid')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    issued_at TIMESTAMPTZ,
+    paid_at TIMESTAMPTZ,
+    CONSTRAINT salary_slip_unique_teacher_month UNIQUE (teacher_id, month)
 );
 
 ALTER TABLE public.salary_slips ENABLE ROW LEVEL SECURITY;
@@ -38,7 +43,7 @@ ON public.salary_slips FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    (auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329')
+    (auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid)
 );
 
 CREATE POLICY "Allow teachers to view their own salary slips"
@@ -46,12 +51,12 @@ ON public.salary_slips FOR SELECT
 USING (teacher_id = (SELECT id FROM public.teachers WHERE auth_uid = auth.uid()));
 `;
 
-export const addSalarySlip = async (slipData: Omit<SalarySlip, 'id' | 'createdAt' | 'netSalary'>): Promise<string | null> => {
-    const totalEarnings = slipData.basicSalary + slipData.earnings.reduce((acc, e) => acc + e.amount, 0);
+export const addSalarySlip = async (slipData: Omit<SalarySlip, 'id' | 'created_at' | 'net_salary'>): Promise<string | null> => {
+    const totalEarnings = slipData.basic_salary + slipData.earnings.reduce((acc, e) => acc + e.amount, 0);
     const totalDeductions = slipData.deductions.reduce((acc, d) => acc + d.amount, 0);
-    const netSalary = totalEarnings - totalDeductions;
+    const net_salary = totalEarnings - totalDeductions;
     
-    const finalSlipData = { ...slipData, netSalary };
+    const finalSlipData = { ...slipData, net_salary };
 
     const { data, error } = await supabase.from(SALARY_COLLECTION).insert([finalSlipData]).select('id').single();
 
@@ -75,11 +80,11 @@ export const getSalarySlipsForTeacher = (teacherId: string, callback: (slips: Sa
     const channel = supabase.channel(`salary-slips-${teacherId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: SALARY_COLLECTION, filter: `teacher_id=eq.${teacherId}` }, 
         async () => {
-            const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacher_id', teacherId).order('createdAt', { ascending: false });
+            const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacher_id', teacherId).order('created_at', { ascending: false });
             if(data) callback(data);
         }).subscribe(async (status) => {
              if (status === 'SUBSCRIBED') {
-                const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacher_id', teacherId).order('createdAt', { ascending: false });
+                const { data, error } = await supabase.from(SALARY_COLLECTION).select('*').eq('teacher_id', teacherId).order('created_at', { ascending: false });
                 if(data) callback(data);
             }
         });
