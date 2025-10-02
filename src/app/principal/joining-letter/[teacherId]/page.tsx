@@ -16,7 +16,6 @@ import { useSchoolInfo } from '@/hooks/use-school-info';
 
 export default function JoiningLetterPage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
-  const [registrationKey, setRegistrationKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { schoolInfo, isLoading: isSchoolInfoLoading } = useSchoolInfo();
@@ -30,8 +29,6 @@ export default function JoiningLetterPage() {
           const teacherData = await getTeacherByAuthId(teacherId);
           if (teacherData) {
             setTeacher(teacherData);
-            const regKey = await getRegistrationKeyForTeacher(teacherData.email);
-            setRegistrationKey(regKey);
           }
       }
       setIsLoading(false);
@@ -65,14 +62,14 @@ export default function JoiningLetterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-8 print:p-0">
+    <div className="min-h-screen bg-muted/40 p-4 sm:p-8 print:p-0">
         <div className="fixed inset-0 flex items-center justify-center z-0 pointer-events-none print:hidden">
-            <h1 className="text-[12rem] font-bold text-gray-200/50 transform -rotate-45 select-none whitespace-nowrap">
+            <h1 className="text-[12rem] font-bold text-gray-200/50 dark:text-gray-800/50 transform -rotate-45 select-none whitespace-nowrap">
                 {schoolInfo.name || "Hilton Convent School"}
             </h1>
         </div>
 
-      <div className="mx-auto max-w-4xl bg-white p-8 sm:p-12 shadow-lg print:shadow-none relative z-10 print:border-none">
+      <div className="mx-auto max-w-4xl bg-card text-card-foreground p-8 sm:p-12 shadow-lg print:shadow-none relative z-10 print:border-none">
         
         <header className="flex items-start justify-between pb-6">
             <div className="flex-shrink-0">
@@ -100,7 +97,7 @@ export default function JoiningLetterPage() {
             </div>
         </header>
 
-        <div className="w-full h-px bg-gray-200" />
+        <div className="w-full h-px bg-border" />
 
 
         <div className="flex items-center justify-between mt-8">
@@ -152,32 +149,14 @@ export default function JoiningLetterPage() {
        <div className="mx-auto max-w-4xl mt-8 print:hidden">
             <Alert>
                 <Info className="h-4 w-4" />
-                <AlertTitle>Action Required: Onboarding Instructions for {teacher.name}</AlertTitle>
+                <AlertTitle>Onboarding Instructions for {teacher.name}</AlertTitle>
                 <AlertDescription className="space-y-4 mt-2">
-                    <p>Please provide the following details to the new teacher so they can register their account on the school portal.</p>
-                    {registrationKey ? (
-                         <div>
-                            <p className="font-semibold">One-Time Registration Key:</p>
-                            <div className="flex items-center justify-between rounded-md border bg-secondary p-2 mt-1">
-                                <span className="font-mono text-sm">{registrationKey}</span>
-                                <Button size="sm" variant="ghost" onClick={() => copyToClipboard(registrationKey, 'Registration Key')}>
-                                    <ClipboardCopy className="mr-2" /> Copy Key
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                         <p className="text-destructive">Registration key could not be found. Please ensure the teacher was registered correctly.</p>
-                    )}
-                    <div>
-                        <p className="font-semibold">Registered Email Address:</p>
-                        <div className="flex items-center justify-between rounded-md border bg-secondary p-2 mt-1">
-                            <span className="font-mono text-sm">{teacher.email}</span>
-                             <Button size="sm" variant="ghost" onClick={() => copyToClipboard(teacher.email, 'Email Address')}>
-                                <ClipboardCopy className="mr-2" /> Copy Email
-                            </Button>
-                        </div>
-                    </div>
-                     <p className="text-xs text-muted-foreground pt-2">The teacher must use these exact details on the Teacher Login page by clicking `Register your account` to create their account and set a password.</p>
+                    <p>Please share the following instructions with the new teacher:</p>
+                    <ul className="list-disc list-inside space-y-2 text-sm">
+                        <li>An email has been automatically sent to their registered email address (<span className="font-semibold">{teacher.email}</span>) with a link to set their password.</li>
+                        <li>They must use this link to create a password for their new account on the school portal.</li>
+                        <li>If they do not receive the email or if the link expires, they can use the "Forgot your password?" option on the login page to request a new link.</li>
+                    </ul>
                 </AlertDescription>
             </Alert>
        </div>
