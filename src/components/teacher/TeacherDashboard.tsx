@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -32,12 +30,11 @@ import MarkAttendance from './MarkAttendance';
 import ManageHolidays from "../principal/ManageHolidays";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
-import DatesheetManager from "./DatesheetManager";
 import SchoolStatus from "../dashboard/SchoolStatus";
 import { getRole } from "@/lib/getRole";
 
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves" | "manageDatesheet" | "manageHolidays";
+export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves" | "manageHolidays";
 
 const NavCard = ({ title, description, icon: Icon, onClick, asLink, href }: { title: string, description: string, icon: React.ElementType, onClick?: () => void, asLink?: boolean, href?: string }) => {
     const content = (
@@ -311,27 +308,6 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 );
-            case 'manageDatesheet':
-                 return (
-                    <Card>
-                        <CardHeader>
-                            <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Dashboard
-                            </Button>
-                            <CardTitle className="flex items-center gap-2">
-                                <CalendarDays />
-                                Manage Datesheet
-                            </CardTitle>
-                            <CardDescription>
-                                Create new exams and set the datesheet for your class.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                           <DatesheetManager teacher={teacher} />
-                        </CardContent>
-                    </Card>
-                );
              case 'manageHolidays':
                 return (
                     <Card>
@@ -382,7 +358,6 @@ export default function TeacherDashboard() {
                                     <NavCard title="Review Feedback" description="Manage student feedback" icon={ClipboardCheck} onClick={() => setActiveView("approveFeedback")} />
                                     <NavCard title="Review Leaves" description="Approve student leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                                     <NavCard title="Mark Attendance" description="Mark daily student attendance" icon={UserCheckIcon} onClick={() => setActiveView("markAttendance")} />
-                                    <NavCard title="Manage Datesheet" description="Create exams and set schedules" icon={CalendarDays} onClick={() => setActiveView("manageDatesheet")} />
                                     <NavCard title="Gradebook" description="Manage student grades" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
                                      <NavCard title="Declare Holiday" description="Declare a holiday for your class" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
                                 </>

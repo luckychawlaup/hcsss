@@ -1,4 +1,3 @@
-
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -253,3 +252,69 @@ export const deleteAnnouncement = async (announcementId: string) => {
   const { error } = await supabase.from('announcements').delete().eq('id', announcementId);
   if (error) throw error;
 };
+
+export const ANNOUNCEMENTS_TABLE_SETUP_SQL = `
+CREATE TABLE IF NOT EXISTS public.announcements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    content TEXT NOT NULL,
+    target TEXT NOT NULL, -- 'students', 'teachers', 'both', 'admins'
+    target_audience JSONB, -- { "type": "class", "value": "10-A" } or { "type": "student", "value": "student_id" }
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    edited_at TIMESTAMPTZ,
+    created_by UUID,
+    creator_name TEXT,
+    creator_role TEXT,
+    attachment_url TEXT
+);
+
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow admins to manage all announcements" ON public.announcements;
+DROP POLICY IF EXISTS "Allow teachers to manage announcements for their classes" ON public.announcements;
+DROP POLICY IF EXISTS "Allow authenticated users to read relevant announcements" ON public.announcements;
+
+CREATE POLICY "Allow admins to manage all announcements"
+ON public.announcements FOR ALL
+USING (
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
+    OR
+    auth.uid() = '6bed2c29-8ac9-4e2b-b9ef-26877d42f050' -- Owner UID
+);
+
+CREATE POLICY "Allow teachers to manage announcements for their classes"
+ON public.announcements FOR ALL
+USING (
+    created_by = (SELECT id FROM public.teachers WHERE auth_uid = auth.uid())
+    AND
+    (
+        target = 'teachers' 
+        OR 
+        (target_audience->>'type' = 'class' AND target_audience->>'value' IN (SELECT unnest(classes_taught) FROM public.teachers WHERE auth_uid = auth.uid()))
+        OR
+        (target_audience->>'type' = 'class' AND target_audience->>'value' = (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()))
+    )
+);
+
+CREATE POLICY "Allow authenticated users to read relevant announcements"
+ON public.announcements FOR SELECT
+USING (
+    -- Public announcements
+    (target = 'both' AND target_audience IS NULL)
+    OR
+    -- Announcements for all students
+    (target = 'students' AND target_audience IS NULL AND (SELECT auth.uid() from public.students where auth_uid = auth.uid()) IS NOT NULL)
+    OR
+    -- Announcements for all teachers
+    (target = 'teachers' AND target_audience IS NULL AND (SELECT auth.uid() from public.teachers where auth_uid = auth.uid()) IS NOT NULL)
+    OR
+    -- Announcements for a student's specific class
+    (
+      (SELECT class || '-' || section FROM public.students WHERE auth_uid = auth.uid()) = (target_audience->>'value')
+    )
+    OR
+    -- Announcements for a specific student
+    (
+      (SELECT id::text FROM public.students WHERE auth_uid = auth.uid()) = (target_audience->>'value')
+    )
+);
+`;
