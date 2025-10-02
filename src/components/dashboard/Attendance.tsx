@@ -270,22 +270,6 @@ export default function Attendance() {
                         <div className="grid grid-cols-7 gap-2 mb-4">
                             {renderCalendarDays()}
                         </div>
-                        
-                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs justify-center border-t pt-3">
-                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div><span>Present</span></div>
-                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div><span>Absent</span></div>
-                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></div><span>Half Day</span></div>
-                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div><span>Holiday</span></div>
-                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-gray-200 rounded-full"></div><span>Not Marked</span></div>
-                            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-muted rounded-full"></div><span>Sunday</span></div>
-                        </div>
-                        
-                        {attendance.length === 0 && !isLoading && (
-                            <div className="text-center py-4">
-                                <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                                <p className="text-sm text-muted-foreground font-medium">No attendance records found for this month.</p>
-                            </div>
-                        )}
                     </>
                 )}
             </CardContent>

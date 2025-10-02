@@ -103,8 +103,8 @@ export default function HelpPage() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header title="Help & Support" />
       <HelpPageContent/>
-      <Footer />
       <BottomNav />
+      <Footer />
     </div>
   );
 }
