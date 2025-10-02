@@ -1,12 +1,12 @@
 
 'use server'
 
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 
-const supabase = createClient();
 const TEACHERS_COLLECTION = 'teachers';
 
 export const addTeacher = async (formData: FormData) => {
+    const supabase = createClient();
     const teacherData = Object.fromEntries(formData.entries());
 
     const { data: authData, error: authError } = await supabase.auth.signUp({

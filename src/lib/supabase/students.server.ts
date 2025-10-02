@@ -1,12 +1,12 @@
 
 'use server'
 
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 
-const supabase = createClient();
 const STUDENTS_COLLECTION = 'students';
 
 export const addStudent = async (formData: FormData) => {
+    const supabase = createClient();
     const studentData = Object.fromEntries(formData.entries());
 
     // 1. Sign up the user in Supabase Auth
