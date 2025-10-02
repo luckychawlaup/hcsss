@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -52,7 +53,7 @@ import { createClient } from "@/lib/supabase/client";
 const supabase = createClient();
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-const sections = ["A", "B"];
+const sections = ["A", "B", "C", "D"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
 const editTeacherSchema = z.object({
@@ -68,7 +69,7 @@ const editTeacherSchema = z.object({
   qualifications: z.array(z.string()).optional().default([]),
   class_teacher_of: z.string().optional(),
   classes_taught: z.array(z.string()).optional().default([]),
-  joining_date: z.number(),
+  joining_date: z.string(),
   bank_account: z.object({
       accountHolderName: z.string().optional(),
       accountNumber: z.string().optional(),

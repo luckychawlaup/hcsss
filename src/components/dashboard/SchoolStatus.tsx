@@ -2,18 +2,20 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { isSameDay, getDay, startOfDay, format, parseISO } from "date-fns";
+import { isSameDay, getDay, startOfDay, format, parseISO, isWithinInterval } from "date-fns";
 import { getHolidays } from "@/lib/supabase/holidays";
 import type { Holiday } from "@/lib/supabase/holidays";
 import { getStudentByAuthId, Student } from "@/lib/supabase/students";
+import { getExams, Exam } from "@/lib/supabase/exams";
 import { getRole } from "@/lib/getRole";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Building, PartyPopper } from "lucide-react";
+import { Building, PartyPopper, Edit } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 
 export default function SchoolStatus() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
   const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
@@ -31,13 +33,24 @@ export default function SchoolStatus() {
           }
         });
       });
+      
+       const examsPromise = new Promise<Exam[]>(resolve => {
+        const unsub = getExams(examData => {
+          resolve(examData);
+          if (unsub && typeof unsub.unsubscribe === 'function') {
+            unsub.unsubscribe();
+          }
+        });
+      });
 
-      const [holidayData, role] = await Promise.all([
+      const [holidayData, examData, role] = await Promise.all([
         holidaysPromise,
+        examsPromise,
         getRole(user)
       ]);
       
       setHolidays(holidayData);
+      setExams(examData);
 
       if (role === 'student' && user) {
         const studentProfile = await getStudentByAuthId(user.id);
@@ -62,6 +75,14 @@ export default function SchoolStatus() {
 
   const today = startOfDay(new Date());
   const isSunday = getDay(today) === 0;
+  
+  const ongoingExam = exams.find(exam => 
+    exam.start_date && exam.end_date && 
+    isWithinInterval(today, { 
+      start: parseISO(exam.start_date), 
+      end: parseISO(exam.end_date) 
+    })
+  );
 
   // Check for school-wide holiday (where class_section is null)
   const schoolWideHoliday = holidays.find(h => 
@@ -106,6 +127,24 @@ export default function SchoolStatus() {
             <h3 className="font-semibold text-blue-800 text-sm">{holidayTitle}{dateRangeString}</h3>
             <p className="text-xs text-blue-700">
               {holidayReason}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (ongoingExam) {
+     return (
+      <Card className="bg-amber-50 border-amber-200 w-full">
+        <CardContent className="p-3 flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-600 flex-shrink-0">
+            <Edit className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-amber-800 text-sm">{ongoingExam.name} are ongoing!</h3>
+            <p className="text-xs text-amber-700">
+              Exams are scheduled from {format(parseISO(ongoingExam.start_date!), 'MMM d')} to {format(parseISO(ongoingExam.end_date!), 'MMM d')}. Best of luck!
             </p>
           </div>
         </CardContent>

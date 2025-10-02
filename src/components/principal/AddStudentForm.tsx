@@ -35,7 +35,7 @@ import { addStudent } from "@/lib/supabase/students";
 import { Separator } from "../ui/separator";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-const sections = ["A", "B"];
+const sections = ["A", "B", "C", "D"];
 
 const addStudentSchema = z.object({
     name: z.string().min(2, "Student name is required."),

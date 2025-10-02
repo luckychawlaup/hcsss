@@ -21,7 +21,7 @@ import ApproveLeaves from "../teacher/ApproveLeaves";
 import SchoolStatus from "../dashboard/SchoolStatus";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-const sections = ["A", "B"];
+const sections = ["A", "B", "C", "D"];
 const months = ["April", "May", "June", "July", "August", "September", "October", "November", "December", "January", "February", "March"];
 
 const StatusIcon = ({ status }: { status: FeeStatus }) => {
