@@ -38,7 +38,6 @@ export default function ProfilePageContent() {
   const [profile, setProfile] = useState<Student | Teacher | null>(null);
   const [role, setRole] = useState<"student" | "teacher" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showDetails, setShowDetails] = useState(false);
   const supabase = createClient();
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -84,10 +83,6 @@ export default function ProfilePageContent() {
     router.push("/login");
   };
 
-  const toggleDetails = () => {
-      setShowDetails(prev => !prev);
-  }
-
   if (isLoading) {
     return <ProfileSkeleton />;
   }
@@ -112,18 +107,13 @@ export default function ProfilePageContent() {
 
   return (
     <>
-      <div className="pb-20 md:pb-0">
-        <div onClick={toggleDetails} className="cursor-pointer">
+      <div className="pb-20">
+        <div>
             {profileHeader}
-             <div className="text-center -mt-4 mb-4">
-                <Button variant="link" size="sm">
-                    {showDetails ? "Hide Details" : "Show Full Profile"}
-                </Button>
-            </div>
         </div>
         
         <div className="p-4 sm:p-6 lg:p-8 space-y-4">
-             {showDetails && profileDetails}
+             {profileDetails}
 
              <Card>
                 <CardContent className="p-2">

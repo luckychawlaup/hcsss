@@ -68,7 +68,7 @@ export default function NoticesPage() {
   return (
     <div className="flex h-screen w-full flex-col bg-background">
       <Header title="All Announcements" />
-      <main className="flex-1 overflow-hidden p-0">
+      <main className="flex-1 overflow-y-auto pb-16">
           <Card className="h-full w-full border-0 rounded-none">
             <CardContent className="p-0 h-full">
                {isLoading ? (
@@ -88,4 +88,3 @@ export default function NoticesPage() {
     </div>
   );
 }
-

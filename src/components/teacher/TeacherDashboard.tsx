@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -398,7 +397,7 @@ export default function TeacherDashboard() {
       <TeacherNav activeView={activeView} setActiveView={setActiveView} teacherRole={teacher?.role} />
       <div className="flex flex-1 flex-col">
         <Header title="Teacher Dashboard" showAvatar={true} />
-        <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
+        <main className="flex-1 space-y-8 p-4 sm:p-6 lg:p-8 pb-24">
             <div className="mx-auto w-full max-w-6xl">
             {renderContent()}
             </div>
@@ -407,5 +406,3 @@ export default function TeacherDashboard() {
     </div>
   );
 }
-
-    
