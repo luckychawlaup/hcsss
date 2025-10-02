@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -11,7 +12,7 @@ import type { Feedback } from "@/lib/supabase/feedback";
 import { prepopulateExams } from "@/lib/supabase/exams";
 import { getAllLeaveRequests, LeaveRequest } from "@/lib/supabase/leaves";
 import { Skeleton } from "../ui/skeleton";
-import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info, CalendarOff, User as UserIcon, ChevronRight } from "lucide-react";
+import { UserPlus, Users, GraduationCap, Eye, Megaphone, CalendarCheck, Loader2, ArrowLeft, BookUp, ClipboardCheck, DollarSign, Camera, Settings, Info, CalendarOff, User as UserIcon, ChevronRight, CalendarDays } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./StatCard";
@@ -21,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import ManageHolidays from "./ManageHolidays";
 import SchoolStatus from "../dashboard/SchoolStatus";
+import DatesheetManager from "../teacher/DatesheetManager";
 
 const TeacherList = dynamic(() => import('./TeacherList'), {
     loading: () => <Skeleton className="h-64 w-full" />
@@ -40,7 +42,7 @@ const ApproveLeaves = dynamic(() => import('../teacher/ApproveLeaves'), {
 
 type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "manageHolidays" | "reviewLeaves";
+type PrincipalView = "dashboard" | "manageTeachers" | "manageStudents" | "viewFeedback" | "manageHolidays" | "reviewLeaves" | "manageDatesheet";
 
 const NavCard = ({ title, description, icon: Icon, onClick }: { title:string, description:string, icon:React.ElementType, onClick:() => void }) => (
     <Card 
@@ -63,7 +65,7 @@ const NavCard = ({ title, description, icon: Icon, onClick }: { title:string, de
 );
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-const sections = ["A", "B"];
+const sections = ["A", "B", "C", "D"];
 const allClassSections = classes.flatMap(c => sections.map(s => `${c}-${s}`));
 
 export default function PrincipalDashboard() {
@@ -313,6 +315,27 @@ export default function PrincipalDashboard() {
                       </CardContent>
                   </Card>
               );
+            case 'manageDatesheet':
+                return (
+                     <Card>
+                        <CardHeader>
+                           <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                              <ArrowLeft className="mr-2 h-4 w-4" />
+                              Back to Dashboard
+                          </Button>
+                          <CardTitle className="flex items-center gap-2">
+                              <CalendarDays />
+                              Manage Exam Datesheets
+                          </CardTitle>
+                          <CardDescription>
+                             Create and update exam schedules for all classes.
+                          </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <DatesheetManager isPrincipalView={true} teacher={null} />
+                      </CardContent>
+                  </Card>
+                )
           default:
               return (
                 <div className="space-y-6">
@@ -328,6 +351,7 @@ export default function PrincipalDashboard() {
                         <NavCard title="My Profile" description="View and manage your profile" icon={UserIcon} onClick={() => router.push('/principal/profile')} />
                         <NavCard title="Manage Teachers" description="Add, view, and manage staff" icon={Users} onClick={() => setActiveView("manageTeachers")} />
                         <NavCard title="Manage Students" description="Add, view, and manage students" icon={GraduationCap} onClick={() => setActiveView("manageStudents")} />
+                        <NavCard title="Manage Datesheets" description="Create exam schedules" icon={CalendarDays} onClick={() => setActiveView("manageDatesheet")} />
                         <NavCard title="Review Feedback" description="Review submissions and complaints" icon={ClipboardCheck} onClick={() => setActiveView("viewFeedback")} />
                         <NavCard title="Review Leaves" description="Approve or reject leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                         <NavCard title="Make Announcement" description="Publish notices for staff and students" icon={Megaphone} onClick={() => router.push('/principal/announcements')} />

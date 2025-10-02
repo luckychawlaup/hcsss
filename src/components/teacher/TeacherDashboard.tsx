@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -32,9 +33,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import SchoolStatus from "../dashboard/SchoolStatus";
 import { getRole } from "@/lib/getRole";
+import DatesheetManager from "./DatesheetManager";
 
 
-export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves" | "manageHolidays";
+export type TeacherView = "dashboard" | "manageStudents" | "approveFeedback" | "addHomework" | "makeAnnouncement" | "teacherLeave" | "gradebook" | "markAttendance" | "reviewLeaves" | "manageHolidays" | "manageDatesheet";
 
 const NavCard = ({ title, description, icon: Icon, onClick, asLink, href }: { title: string, description: string, icon: React.ElementType, onClick?: () => void, asLink?: boolean, href?: string }) => {
     const content = (
@@ -329,6 +331,27 @@ export default function TeacherDashboard() {
                         </CardContent>
                     </Card>
                 );
+             case 'manageDatesheet':
+                return (
+                    <Card>
+                        <CardHeader>
+                           <Button variant="ghost" onClick={() => setActiveView('dashboard')} className="justify-start p-0 h-auto mb-4 text-primary">
+                              <ArrowLeft className="mr-2 h-4 w-4" />
+                              Back to Dashboard
+                          </Button>
+                          <CardTitle className="flex items-center gap-2">
+                              <CalendarDays />
+                              Manage Exam Datesheet
+                          </CardTitle>
+                          <CardDescription>
+                             Create and update exam schedules for your class.
+                          </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <DatesheetManager teacher={teacher} />
+                      </CardContent>
+                  </Card>
+                );
             default:
                 return (
                     <div className="space-y-6">
@@ -359,7 +382,8 @@ export default function TeacherDashboard() {
                                     <NavCard title="Review Leaves" description="Approve student leave requests" icon={CalendarCheck} onClick={() => setActiveView("reviewLeaves")} />
                                     <NavCard title="Mark Attendance" description="Mark daily student attendance" icon={UserCheckIcon} onClick={() => setActiveView("markAttendance")} />
                                     <NavCard title="Gradebook" description="Manage student grades" icon={BookMarked} onClick={() => setActiveView("gradebook")} />
-                                     <NavCard title="Declare Holiday" description="Declare a holiday for your class" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
+                                    <NavCard title="Manage Datesheet" description="Create exam schedules" icon={CalendarDays} onClick={() => setActiveView("manageDatesheet")} />
+                                    <NavCard title="Declare Holiday" description="Declare a holiday for your class" icon={CalendarOff} onClick={() => setActiveView("manageHolidays")} />
                                 </>
                            )}
                         </div>

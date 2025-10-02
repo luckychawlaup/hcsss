@@ -10,7 +10,7 @@ import type { TeacherView } from "./TeacherDashboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NavItem {
-  view: TeacherView | "profile" | "gallery" | "teacherLeave" | "gradebook" | "manageHolidays";
+  view: TeacherView | "profile" | "gallery" | "teacherLeave" | "gradebook" | "manageHolidays" | "manageDatesheet";
   label: string;
   icon: React.ElementType;
   href?: string;
@@ -34,7 +34,7 @@ const mobileNavItems: NavItem[] = [
 ];
 
 interface TeacherNavProps {
-    activeView: TeacherView | "profile" | "gallery" | "teacherLeave" | "manageHolidays";
+    activeView: TeacherView | "profile" | "gallery" | "teacherLeave" | "manageHolidays" | "manageDatesheet";
     setActiveView: (view: TeacherView) => void;
     teacherRole?: "classTeacher" | "subjectTeacher";
 }
