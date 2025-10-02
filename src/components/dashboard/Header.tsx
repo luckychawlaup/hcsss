@@ -12,6 +12,8 @@ import { Skeleton } from "../ui/skeleton";
 import { useState, useEffect } from "react";
 import { getStudentByAuthId } from "@/lib/supabase/students";
 import type { Student } from "@/lib/supabase/students";
+import { getTeacherByAuthId, Teacher } from "@/lib/supabase/teachers";
+import { getAdmins, AdminUser } from "@/lib/supabase/admins";
 import { ThemeToggleButton } from "../ui/theme-toggle-button";
 
 
@@ -20,7 +22,14 @@ interface HeaderProps {
     showAvatar?: boolean;
 }
 
-function WelcomeMessage({ user }) {
+const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+};
+
+function StudentWelcomeMessage({ user }) {
   const [student, setStudent] = useState<Student | null>(null);
 
   useEffect(() => {
@@ -28,13 +37,6 @@ function WelcomeMessage({ user }) {
       getStudentByAuthId(user.id).then(setStudent);
     }
   }, [user]);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
-    return "Good Evening";
-  };
 
   if (!student) {
     return <Skeleton className="h-5 w-40" />;
@@ -45,6 +47,48 @@ function WelcomeMessage({ user }) {
       {getGreeting()}, {student.name.split(' ')[0]}!
     </h1>
   );
+}
+
+function TeacherWelcomeMessage({ user }) {
+  const [teacher, setTeacher] = useState<Teacher | null>(null);
+  
+  useEffect(() => {
+    if (user) {
+      getTeacherByAuthId(user.id).then(setTeacher);
+    }
+  }, [user]);
+
+  if (!teacher) {
+    return <Skeleton className="h-5 w-40" />;
+  }
+
+  return (
+    <h1 className="text-lg font-bold text-foreground sm:text-xl font-headline truncate">
+      {getGreeting()}, {teacher.name.split(' ')[0]}!
+    </h1>
+  );
+}
+
+function PrincipalWelcomeMessage({ user }) {
+    const [admin, setAdmin] = useState<AdminUser | null>(null);
+    useEffect(() => {
+        if(user) {
+            getAdmins().then(admins => {
+                const currentAdmin = admins.find(a => a.uid === user.id);
+                if(currentAdmin) setAdmin(currentAdmin);
+            })
+        }
+    }, [user]);
+
+     if (!admin) {
+        return <h1 className="text-lg font-bold text-foreground sm:text-xl font-headline truncate">Principal Dashboard</h1>;
+    }
+
+    return (
+        <h1 className="text-lg font-bold text-foreground sm:text-xl font-headline truncate">
+            {getGreeting()}, {admin.name.split(' ')[0]}!
+        </h1>
+    );
 }
 
 
@@ -76,6 +120,22 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
     router.push("/login");
   }
 
+  const renderTitle = () => {
+    if (pathname === '/' && user) {
+        return <StudentWelcomeMessage user={user} />;
+    }
+    if (pathname === '/teacher' && user) {
+        return <TeacherWelcomeMessage user={user} />;
+    }
+    if (pathname === '/principal' && user) {
+        return <PrincipalWelcomeMessage user={user} />;
+    }
+    return (
+        <h1 className="text-lg font-bold text-foreground sm:text-xl font-headline truncate">
+            {title || (schoolInfo?.name ?? "HCSSS")}
+        </h1>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-card/80 px-4 shadow-sm backdrop-blur-sm sm:px-6">
@@ -84,12 +144,8 @@ export default function Header({ title, showAvatar = true }: HeaderProps) {
             <Image src="/hcsss.png" alt="School Logo" width={40} height={40} />
         </Link>
         <div>
-            {pathname === '/' && user ? <WelcomeMessage user={user} /> : (
-                <h1 className="text-lg font-bold text-foreground sm:text-xl font-headline truncate">
-                {title || (schoolInfo?.name ?? "HCSSS")}
-                </h1>
-            )}
-            {pathname === '/' && user && <p className="text-xs text-muted-foreground">{schoolInfo?.name}</p>}
+            {renderTitle()}
+            {['/', '/teacher', '/principal'].includes(pathname) && user && <p className="text-xs text-muted-foreground">{schoolInfo?.name}</p>}
         </div>
        </div>
       <div className="flex items-center gap-1">
