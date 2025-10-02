@@ -10,7 +10,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, ChevronRight } from "lucide-react";
+import { FileText, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getExams, Exam } from "@/lib/supabase/exams";
 import { getMarksForStudent, Mark } from "@/lib/supabase/marks";
@@ -110,6 +110,11 @@ export default function ReportCardComponent() {
     );
   }
 
+  // If there are no available report cards after loading, render nothing.
+  if (availableReportCards.length === 0) {
+    return null;
+  }
+  
   if (error) {
     return (
       <Card>
@@ -146,8 +151,7 @@ export default function ReportCardComponent() {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1">
-        {availableReportCards.length > 0 ? (
-          <ScrollArea className="h-48">
+        <ScrollArea className="h-48">
           <div className="space-y-3 pr-4">
             {availableReportCards.map((exam) => (
               <Link href={`/report-card/${exam.id}`} key={exam.id} className="block group">
@@ -168,16 +172,7 @@ export default function ReportCardComponent() {
               </Link>
             ))}
           </div>
-          </ScrollArea>
-        ) : (
-          <div className="text-center text-muted-foreground p-8 h-full flex flex-col justify-center items-center">
-            <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p className="font-medium mb-1">No reports published</p>
-            <p className="text-sm">
-              Check back here after your exams.
-            </p>
-          </div>
-        )}
+        </ScrollArea>
       </CardContent>
     </Card>
   );
