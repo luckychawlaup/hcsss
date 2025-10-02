@@ -44,11 +44,14 @@ export default function ForgotPasswordPage() {
   async function onSubmit(values: z.infer<typeof forgotPasswordSchema>) {
     setIsLoading(true);
     setError(null);
+    
+    // Dynamically construct the redirect URL
+    const redirectUrl = `${window.location.origin}/auth/callback`;
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       values.email,
       {
-        redirectTo: 'https://9000-firebase-studio-1757343757356.cluster-52r6vzs3ujeoctkkxpjif3x34a.cloudworkstations.dev/auth/callback',
+        redirectTo: redirectUrl,
       }
     );
 
