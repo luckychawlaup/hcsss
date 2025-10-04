@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { UpdateEmailForm } from "@/components/profile/UpdateEmailForm";
-import { StudentProfileDetails, ProfileSkeleton, TeacherProfile } from "@/components/profile/ProfileDetails";
+import { AdminProfileDetails, ProfileSkeleton, TeacherProfile } from "@/components/profile/ProfileDetails";
 
 
 export default function OwnerProfilePage() {
@@ -75,11 +75,10 @@ export default function OwnerProfilePage() {
                         <TeacherProfile teacher={profile as any} />
                     </div>
                     <div className="p-4 sm:p-6 lg:p-8 space-y-4">
-                        <StudentProfileDetails student={profile as any} user={user} />
+                        <AdminProfileDetails profile={profile} user={user} />
                     </div>
                 </div>
             </main>
         </div>
     );
 }
-

@@ -32,13 +32,13 @@ const addAdminSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   dob: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in DD/MM/YYYY format."),
   gender: z.enum(["Male", "Female", "Other"], { required_error: "Please select a gender."}),
-  phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
+  phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format.").max(13, "Phone number should not exceed 13 digits including country code."),
   address: z.string().optional(),
   role: z.enum(["principal", "accountant"], { required_error: "You must select a role."}),
   joining_date: z.date({ required_error: "Joining date is required."}),
   photo_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
-  aadhar_number: z.string().length(12, "Aadhar number must be 12 digits.").optional().or(z.literal('')),
-  pan_number: z.string().length(10, "PAN must be 10 characters.").optional().or(z.literal('')),
+  aadhar_number: z.string().length(12, "Aadhar number must be exactly 12 digits.").regex(/^\d+$/, "Aadhar must only contain numbers.").optional().or(z.literal('')),
+  pan_number: z.string().length(10, "PAN must be exactly 10 characters.").optional().or(z.literal('')),
 });
 
 interface AddAdminFormProps {
@@ -175,7 +175,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                     <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                        <Input placeholder="+91 12345 67890" {...field} />
+                        <Input placeholder="e.g., +911234567890" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -244,7 +244,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                         <FormItem>
                         <FormLabel>Aadhar Number (Optional)</FormLabel>
                         <FormControl>
-                            <Input placeholder="12-digit Aadhar number" {...field} />
+                            <Input type="number" placeholder="12-digit Aadhar number" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>

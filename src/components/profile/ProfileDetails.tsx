@@ -25,7 +25,9 @@ import {
   BookOpen,
   Users,
   GraduationCap,
-  Edit
+  Edit,
+  Key,
+  Fingerprint
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -151,7 +153,7 @@ export function StudentProfileDetails({ student, user }: { student: Student, use
 }
 
 export function TeacherProfile({ teacher }: { teacher: (Teacher | AdminUser) & { auth_uid?: string } }) {
-    const displayId = 'employee_id' in teacher && teacher.employee_id ? teacher.employee_id : ('auth_uid' in teacher ? teacher.auth_uid : teacher.uid)?.substring(0, 8).toUpperCase() || 'N/A';
+    const displayId = teacher.employee_id || teacher.uid?.substring(0, 8).toUpperCase() || 'N/A';
     const idLabel = 'employee_id' in teacher && teacher.employee_id ? 'Employee ID' : 'User ID';
 
     return (
@@ -200,6 +202,54 @@ export function TeacherProfileDetails({ teacher, user }: { teacher: Teacher, use
                  </CardContent>
             </Card>
             {user && (
+                 <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                        <DialogTitle>Change Login Email</DialogTitle>
+                        <DialogDescription>
+                            A confirmation link will be sent to both your old and new email addresses.
+                        </DialogDescription>
+                        </DialogHeader>
+                        <UpdateEmailForm currentEmail={user.email!} />
+                    </DialogContent>
+                </Dialog>
+            )}
+        </>
+    )
+}
+
+export function AdminProfileDetails({ profile, user }: { profile: AdminUser, user: AuthUser | null }) {
+    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+
+    return (
+        <>
+             <Card>
+                <CardHeader><CardTitle className="text-lg">Professional Information</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <DetailItem icon={<Briefcase />} label="Role" value={profile.role} />
+                    <DetailItem icon={<Calendar />} label="Joining Date" value={formatDate(profile.joining_date)} />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Personal Information</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <DetailItem icon={<Mail />} label="Email Address" value={profile.email} isEditable={true} onEdit={() => setIsEmailDialogOpen(true)} />
+                    <DetailItem icon={<Phone />} label="Phone Number" value={profile.phone_number} />
+                    <DetailItem icon={<Calendar />} label="Date of Birth" value={formatDate(profile.dob)} />
+                    <DetailItem icon={<User />} label="Gender" value={profile.gender} />
+                    <DetailItem icon={<Home />} label="Address" value={profile.address} />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader><CardTitle className="text-lg">Identity Information</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                     <DetailItem icon={<Key />} label="PAN Number" value={profile.pan_number} />
+                     <DetailItem icon={<Fingerprint />} label="Aadhar Number" value={profile.aadhar_number} />
+                </CardContent>
+            </Card>
+             {user && (
                  <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
                     <DialogContent>
                         <DialogHeader>
