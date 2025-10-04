@@ -16,6 +16,7 @@ export const addAdmin = async (formData: FormData) => {
             user_metadata: {
                 role: adminData.role,
                 full_name: adminData.name,
+                avatar_url: adminData.photo_url, // Add photo_url here
             }
         }
     });
