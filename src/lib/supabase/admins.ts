@@ -28,10 +28,10 @@ DROP POLICY IF EXISTS "Allow authenticated admins to read admin roles" ON public
 CREATE POLICY "Allow owner to manage admin roles"
 ON public.admin_roles FOR ALL
 USING (
-    auth.uid() = (SELECT id FROM public.users WHERE email = '${process.env.NEXT_PUBLIC_OWNER_EMAIL}')
+    auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}'
 )
 WITH CHECK (
-    auth.uid() = (SELECT id FROM public.users WHERE email = '${process.env.NEXT_PUBLIC_OWNER_EMAIL}')
+    auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}'
 );
 
 
