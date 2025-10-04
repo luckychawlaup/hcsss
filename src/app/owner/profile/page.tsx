@@ -1,22 +1,23 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
 import Header from "@/components/dashboard/Header";
 import { User as AuthUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Mail, User, Edit } from "lucide-react";
-import { UpdateEmailForm } from "@/components/profile/UpdateEmailForm";
+import { getAdminByUid, AdminUser } from "@/lib/supabase/admins";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { UpdateEmailForm } from "@/components/profile/UpdateEmailForm";
+import { StudentProfileDetails, ProfileSkeleton, TeacherProfile } from "@/components/profile/ProfileDetails";
+
 
 export default function OwnerProfilePage() {
     const [user, setUser] = useState<AuthUser | null>(null);
+    const [profile, setProfile] = useState<AdminUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
     const supabase = createClient();
     const router = useRouter();
 
@@ -24,53 +25,61 @@ export default function OwnerProfilePage() {
         const fetchUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             setUser(user);
+            if (user) {
+                const adminProfile = await getAdminByUid(user.id);
+                 if (adminProfile) {
+                    setProfile(adminProfile);
+                } else {
+                    // Create a synthetic profile for the owner if not in DB
+                    setProfile({
+                        uid: user.id,
+                        name: "Owner",
+                        email: user.email || "owner@hcs.com",
+                        role: 'owner' as any,
+                    });
+                }
+            }
             setIsLoading(false);
         };
         fetchUser();
     }, [supabase]);
 
+    if (isLoading) {
+       return (
+         <div className="flex min-h-screen w-full flex-col bg-background">
+            <Header title="Owner Profile" showAvatar={false} />
+            <main className="flex-1 p-4 sm:p-6 lg:p-8">
+                 <ProfileSkeleton />
+            </main>
+        </div>
+       )
+    }
+
+    if (!profile) {
+        return (
+             <div className="flex min-h-screen w-full flex-col bg-background">
+                <Header title="Owner Profile" showAvatar={false} />
+                <main className="flex-1 p-4 sm:p-6 lg:p-8">
+                    <p>Could not load profile.</p>
+                </main>
+            </div>
+        );
+    }
+
     return (
         <div className="flex min-h-screen w-full flex-col bg-background">
             <Header title="Owner Profile" showAvatar={false} />
-            <main className="flex-1 p-4 sm:p-6 lg:p-8">
-                <div className="mx-auto w-full max-w-2xl space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <User /> Account Details
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {isLoading ? (
-                                <Skeleton className="h-6 w-1/2" />
-                            ) : (
-                                 <div className="flex items-center justify-between group">
-                                    <p className="text-muted-foreground">{user?.email}</p>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => setIsEmailDialogOpen(true)}>
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                     <Button variant="outline" onClick={() => router.push('/owner')}>
-                        Back to Dashboard
-                    </Button>
+             <main className="flex-1">
+                 <div className="pb-20">
+                    <div>
+                        <TeacherProfile teacher={profile as any} />
+                    </div>
+                    <div className="p-4 sm:p-6 lg:p-8 space-y-4">
+                        <StudentProfileDetails student={profile as any} user={user} />
+                    </div>
                 </div>
             </main>
-            {user && (
-                 <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                        <DialogTitle>Change Login Email</DialogTitle>
-                        <DialogDescription>
-                            A confirmation link will be sent to both your old and new email addresses.
-                        </DialogDescription>
-                        </DialogHeader>
-                        <UpdateEmailForm currentEmail={user.email!} />
-                    </DialogContent>
-                </Dialog>
-            )}
         </div>
     );
 }
+

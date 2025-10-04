@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
@@ -24,14 +25,16 @@ ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow owner to manage admin roles" ON public.admin_roles;
 DROP POLICY IF EXISTS "Allow authenticated users to read admin roles" ON public.admin_roles;
+DROP POLICY IF EXISTS "Allow authenticated admins to read admin roles" ON public.admin_roles; -- remove legacy policy
 
--- Policy for the Owner (full access)
+-- Policy for the Owner to have full control (insert, update, delete, select)
 CREATE POLICY "Allow owner to manage admin roles"
 ON public.admin_roles FOR ALL
 USING (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527')
 WITH CHECK (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527');
 
--- Policy for any logged-in user to read the roles table. This is safe.
+-- Policy for ANY logged-in user to be able to READ from this table.
+-- This is safe and necessary for the getRole() function to work correctly for all users.
 CREATE POLICY "Allow authenticated users to read admin roles"
 ON public.admin_roles FOR SELECT
 USING (auth.role() = 'authenticated');
@@ -60,6 +63,15 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'created_at'>)
     
     return addAdminServerAction(formData);
 };
+
+// --- Get a single admin by UID ---
+export const getAdminByUid = async (uid: string): Promise<AdminUser | null> => {
+    const { data, error } = await supabase.from(ADMIN_ROLES_TABLE).select('*').eq('uid', uid).maybeSingle();
+    if (error) {
+        console.error("Error fetching admin by UID:", error);
+    }
+    return data;
+}
 
 // --- List all admins ---
 export const getAdmins = async (): Promise<AdminUser[]> => {
