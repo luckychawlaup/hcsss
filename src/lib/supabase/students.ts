@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +9,8 @@ const STUDENTS_COLLECTION = 'students';
 
 export const STUDENTS_TABLE_SETUP_SQL = `
 DROP TABLE IF EXISTS public.students CASCADE;
+DROP TABLE IF EXISTS public.promotion_history;
+
 
 CREATE TABLE public.students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -51,7 +52,20 @@ CREATE TABLE public.students (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE public.promotion_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    from_class TEXT NOT NULL,
+    from_section TEXT NOT NULL,
+    to_class TEXT NOT NULL,
+    to_section TEXT NOT NULL,
+    academic_year TEXT NOT NULL, -- e.g., "2023-2024"
+    promoted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.promotion_history ENABLE ROW LEVEL SECURITY;
+
 
 DROP POLICY IF EXISTS "Allow principal/owner to manage student records" ON public.students;
 CREATE POLICY "Allow principal/owner to manage student records"
@@ -80,6 +94,21 @@ DROP POLICY IF EXISTS "Allow students to view their own profile" ON public.stude
 CREATE POLICY "Allow students to view their own profile"
 ON public.students FOR SELECT
 USING (auth_uid = auth.uid());
+
+-- Policies for promotion_history
+CREATE POLICY "Allow admins to manage promotion history"
+ON public.promotion_history FOR ALL
+USING (
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
+    OR
+    (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527')
+);
+
+CREATE POLICY "Allow users to view their own promotion history"
+ON public.promotion_history FOR SELECT
+USING (
+    (SELECT id FROM public.students WHERE auth_uid = auth.uid()) = student_id
+);
 `;
 
 
@@ -271,3 +300,53 @@ export const getStudentsForTeacher = (teacher: any | null, callback: (students: 
 
     return () => supabase.removeChannel(channel);
 }
+
+
+export const promoteStudents = async ({
+    studentIds,
+    fromClass,
+    toClass,
+    academicYear,
+}: {
+    studentIds: string[];
+    fromClass: { class: string; section: string };
+    toClass: { class: string; section: string };
+    academicYear: string;
+}): Promise<void> => {
+    if (!studentIds || studentIds.length === 0) {
+        throw new Error("No students selected for promotion.");
+    }
+
+    // 1. Update the student records
+    const { error: updateError } = await supabase
+        .from('students')
+        .update({
+            class: toClass.class,
+            section: toClass.section,
+            roll_number: null, // Reset roll number for the new class
+        })
+        .in('id', studentIds);
+
+    if (updateError) {
+        console.error("Error updating student records:", updateError);
+        throw new Error(`Failed to promote students: ${updateError.message}`);
+    }
+
+    // 2. Create records in the promotion history table
+    const historyRecords = studentIds.map(studentId => ({
+        student_id: studentId,
+        from_class: fromClass.class,
+        from_section: fromClass.section,
+        to_class: toClass.class,
+        to_section: toClass.section,
+        academic_year: academicYear,
+    }));
+
+    const { error: historyError } = await supabase.from('promotion_history').insert(historyRecords);
+
+    if (historyError) {
+        // This is a tricky situation. The promotion happened, but the history wasn't logged.
+        // For now, we'll log the error but not fail the whole operation.
+        console.error("CRITICAL: Students were promoted, but failed to log promotion history:", historyError);
+    }
+};
