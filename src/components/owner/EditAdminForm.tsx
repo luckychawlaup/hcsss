@@ -79,10 +79,13 @@ export default function EditAdminForm({ admin, onAdminUpdated }: EditAdminFormPr
     setIsLoading(true);
     setError(null);
 
+    // Exclude email from the update payload
+    const { email, ...updateValues } = values;
+
     try {
       await updateAdmin(admin.uid, {
-          ...values,
-          joining_date: values.joining_date.toISOString(),
+          ...updateValues,
+          joining_date: updateValues.joining_date.toISOString(),
       });
       
       toast({
@@ -126,9 +129,9 @@ export default function EditAdminForm({ admin, onAdminUpdated }: EditAdminFormPr
                     name="email"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Email Address</FormLabel>
+                        <FormLabel>Email Address (Read-only)</FormLabel>
                         <FormControl>
-                        <Input placeholder="admin@example.com" {...field} />
+                        <Input placeholder="admin@example.com" {...field} disabled />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
