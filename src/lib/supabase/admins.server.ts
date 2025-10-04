@@ -26,7 +26,7 @@ export const addAdmin = async (formData: FormData) => {
             user_metadata: {
                 role: adminData.role,
                 full_name: adminData.name,
-                avatar_url: adminData.photo_url, // Add photo_url here
+                avatar_url: adminData.photo_url || null,
             }
         }
     });
@@ -53,14 +53,14 @@ export const addAdmin = async (formData: FormData) => {
                 name: adminData.name,
                 email: adminData.email,
                 phone_number: adminData.phone_number,
-                address: adminData.address,
+                address: adminData.address || null,
                 dob: adminData.dob,
-                photo_url: adminData.photo_url,
+                photo_url: adminData.photo_url || null,
                 gender: adminData.gender,
                 joining_date: adminData.joining_date ? new Date(adminData.joining_date as string).toISOString() : null,
-                aadhar_number: adminData.aadhar_number,
-                pan_number: adminData.pan_number,
-                work_experience: adminData.work_experience,
+                aadhar_number: adminData.aadhar_number || null,
+                pan_number: adminData.pan_number || null,
+                work_experience: adminData.work_experience || null,
                 bank_account: adminData.bank_account ? JSON.parse(adminData.bank_account as string) : null,
             });
 
@@ -76,3 +76,4 @@ export const addAdmin = async (formData: FormData) => {
     
     return { message: "Admin account created successfully." };
 };
+

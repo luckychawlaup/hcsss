@@ -24,7 +24,8 @@ export const addTeacher = async (formData: FormData) => {
             password: crypto.randomUUID(), // Temporary password
             user_metadata: {
                 full_name: teacherData.name,
-                role: 'teacher'
+                role: 'teacher',
+                avatar_url: teacherData.photo_url || null
             }
         }
     });
@@ -54,14 +55,14 @@ export const addTeacher = async (formData: FormData) => {
             role: teacherData.role,
             subject: teacherData.subject,
             qualifications: teacherData.qualifications ? JSON.parse(teacherData.qualifications as string) : [],
-            class_teacher_of: teacherData.class_teacher_of,
+            class_teacher_of: teacherData.class_teacher_of || null,
             classes_taught: teacherData.classes_taught ? JSON.parse(teacherData.classes_taught as string) : [],
             joining_date: new Date(teacherData.joining_date as string).toISOString(),
             auth_uid: user.id,
-            photo_url: teacherData.photo_url,
-            work_experience: teacherData.work_experience,
-            aadhar_number: teacherData.aadhar_number,
-            pan_number: teacherData.pan_number,
+            photo_url: teacherData.photo_url || null,
+            work_experience: teacherData.work_experience || null,
+            aadhar_number: teacherData.aadhar_number || null,
+            pan_number: teacherData.pan_number || null,
             bank_account: teacherData.bank_account ? JSON.parse(teacherData.bank_account as string) : null,
         };
 

@@ -27,7 +27,7 @@ export const addStudent = async (formData: FormData) => {
             user_metadata: {
                 full_name: studentData.name,
                 role: 'student',
-                 avatar_url: studentData.photo_url,
+                 avatar_url: studentData.photo_url || null,
             }
         }
     });
@@ -65,14 +65,12 @@ export const addStudent = async (formData: FormData) => {
             guardian_relation: studentData.guardian_relation || null,
             permanent_address: studentData.permanent_address,
             current_address: studentData.current_address || null,
-            class: studentData.class,
-            section: studentData.section,
             admission_date: new Date(studentData.admission_date as string).toISOString(),
             previous_school: studentData.previous_school || null,
             transport_type: studentData.transport_type,
             private_vehicle_number: studentData.private_vehicle_number || null,
             school_transport_details: studentData.school_transport_details ? JSON.parse(studentData.school_transport_details as string) : null,
-            email: `${studentData.name.split(' ').join('').toLowerCase()}.${Date.now().toString().slice(-4)}@hcs.com`,
+            email: user.email,
         };
         
         const { error: dbError } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
