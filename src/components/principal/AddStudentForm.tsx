@@ -151,7 +151,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                         <FormMessage />
                     </FormItem>
                 )} />
-                <FormField control={control_name="photo_url" render={({ field }) => (
+                <FormField control={control} name="photo_url" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Student Photo URL (Optional)</FormLabel>
                          <div className="flex items-center gap-4">
@@ -230,7 +230,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                 <FormField control={control} name="father_email" render={({ field }) => (<FormItem><FormLabel>Father's Email (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={control} name="mother_name" render={({ field }) => (<FormItem><FormLabel>Mother's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={control} name="mother_phone" render={({ field }) => (<FormItem><FormLabel>Mother's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={control} name="mother_email" render={({ field }) => (<FormItem><FormLabel>Mother's Email (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormMessage /></FormItem>)} />
+                <FormField control={control} name="mother_email" render={({ field }) => (<FormItem><FormLabel>Mother's Email (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={control} name="guardian_name" render={({ field }) => (<FormItem><FormLabel>Guardian's Name (If applicable)</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                 <FormField control={control} name="guardian_relation" render={({ field }) => (<FormItem><FormLabel>Relation with Guardian</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
             </div>
@@ -289,4 +289,3 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
-
