@@ -3,7 +3,7 @@
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
-import { addAdmin as addAdminServerAction } from './admins.server';
+import { addAdmin as addAdminServerAction, updateAdmin as updateAdminServerAction } from './admins.server';
 
 const supabase = createClient();
 const ADMIN_ROLES_TABLE = 'admin_roles';
@@ -91,6 +91,24 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'employee_id' 
     
     return addAdminServerAction(formData);
 };
+
+export const updateAdmin = async (uid: string, adminData: Partial<Omit<AdminUser, 'uid' | 'employee_id' | 'created_at'>>) => {
+    const formData = new FormData();
+    formData.append('uid', uid);
+    Object.entries(adminData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+             if (typeof value === 'object' && value instanceof Date) {
+                formData.append(key, value.toISOString());
+            } else if (typeof value === 'object') {
+                formData.append(key, JSON.stringify(value));
+            } else {
+                formData.append(key, value.toString());
+            }
+        }
+    });
+
+    return updateAdminServerAction(formData);
+}
 
 // --- Get a single admin by UID ---
 export const getAdminByUid = async (uid: string): Promise<AdminUser | null> => {

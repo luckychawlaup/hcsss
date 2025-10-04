@@ -7,14 +7,14 @@ import Header from "@/components/dashboard/Header";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "../ui/skeleton";
-import { ArrowLeft, UserPlus, Users, GraduationCap, DollarSign, Info, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle, Eye, CheckCircle, Megaphone, Copy, ChevronRight } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, GraduationCap, DollarSign, Info, KeyRound, Calculator, School, User as UserIcon, Trash2, Loader2, AlertTriangle, Eye, CheckCircle, Megaphone, Copy, ChevronRight, Edit } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "../ui/button";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { getAdmins, removeAdmin, AdminUser } from "@/lib/supabase/admins";
+import { getAdmins, removeAdmin, AdminUser, updateAdmin } from "@/lib/supabase/admins";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AddAdminForm from "./AddAdminForm";
 import SchoolStatus from "../dashboard/SchoolStatus";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "../ui/input";
 import { getTeachersAndPending, Teacher } from "@/lib/supabase/teachers";
+import EditAdminForm from "./EditAdminForm";
 
 const SchoolInfoForm = dynamic(() => import('../principal/SchoolInfoForm'), {
     loading: () => <Skeleton className="h-80 w-full" />
@@ -65,6 +66,8 @@ const ManageAdminRoles = () => {
     const { toast } = useToast();
     const [manageAdminsTab, setManageAdminsTab] = useState("viewAdmins");
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [adminToEdit, setAdminToEdit] = useState<AdminUser | null>(null);
 
 
     const fetchAdmins = async () => {
@@ -85,6 +88,11 @@ const ManageAdminRoles = () => {
 
     const principals = adminUsers.filter(u => u.role === 'principal');
     const accountants = adminUsers.filter(u => u.role === 'accountant');
+    
+    const handleEditClick = (user: AdminUser) => {
+        setAdminToEdit(user);
+        setIsEditOpen(true);
+    }
 
     const handleRemove = async (user: AdminUser) => {
         setIsDeleting(user.uid);
@@ -102,6 +110,12 @@ const ManageAdminRoles = () => {
     const handleAdminAdded = () => {
         fetchAdmins();
         setManageAdminsTab("viewAdmins");
+    }
+    
+    const handleAdminUpdated = () => {
+        fetchAdmins();
+        setIsEditOpen(false);
+        setAdminToEdit(null);
     }
 
     if (isLoading) return <Skeleton className="h-64 w-full" />;
@@ -127,6 +141,9 @@ const ManageAdminRoles = () => {
                                         <p className="text-sm text-muted-foreground">{p.email}</p>
                                     </div>
                                     <div>
+                                        <Button size="icon" variant="ghost" onClick={() => handleEditClick(p)} disabled={isDeleting === p.uid}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
                                         <Button size="icon" variant="ghost" onClick={() => handleRemove(p)} disabled={isDeleting === p.uid}>
                                             {isDeleting === p.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
                                         </Button>
@@ -147,6 +164,9 @@ const ManageAdminRoles = () => {
                                         <p className="text-sm text-muted-foreground">{a.email}</p>
                                     </div>
                                      <div>
+                                        <Button size="icon" variant="ghost" onClick={() => handleEditClick(a)} disabled={isDeleting === a.uid}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
                                         <Button size="icon" variant="ghost" onClick={() => handleRemove(a)} disabled={isDeleting === a.uid}>
                                             {isDeleting === a.uid ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
                                         </Button>
@@ -171,6 +191,22 @@ const ManageAdminRoles = () => {
                 </Card>
             </TabsContent>
         </Tabs>
+        
+        {adminToEdit && (
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent className="sm:max-w-[800px]">
+                    <DialogHeader>
+                        <DialogTitle>Edit Administrator: {adminToEdit.name}</DialogTitle>
+                        <DialogDescription>
+                            Update the details for this administrator.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[70vh] overflow-y-auto p-1 pr-4">
+                        <EditAdminForm admin={adminToEdit} onAdminUpdated={handleAdminUpdated} />
+                    </div>
+                </DialogContent>
+            </Dialog>
+        )}
         </>
     );
 };

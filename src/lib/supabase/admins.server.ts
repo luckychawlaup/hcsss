@@ -52,7 +52,7 @@ export const addAdmin = async (formData: FormData) => {
                 role: adminData.role,
                 name: adminData.name,
                 email: adminData.email,
-                phone_number: adminData.phone_number,
+                phone_number: adminData.phone_number || null,
                 address: adminData.address || null,
                 dob: adminData.dob,
                 photo_url: adminData.photo_url || null,
@@ -77,3 +77,33 @@ export const addAdmin = async (formData: FormData) => {
     return { message: "Admin account created successfully." };
 };
 
+
+export const updateAdmin = async (formData: FormData) => {
+    const supabase = createClient();
+    const adminData = Object.fromEntries(formData.entries());
+    const uid = adminData.uid as string;
+
+    if (!uid) {
+        throw new Error("UID is required to update an admin.");
+    }
+
+    // Omit uid and role from the update payload
+    const { uid: _, role, ...updatePayload } = adminData;
+    
+    // Parse bank_account if it's a string
+    if (typeof updatePayload.bank_account === 'string') {
+        updatePayload.bank_account = JSON.parse(updatePayload.bank_account);
+    }
+
+    const { error: dbError } = await supabase
+        .from(ADMIN_ROLES_TABLE)
+        .update(updatePayload)
+        .eq('uid', uid);
+
+    if (dbError) {
+        console.error("Error updating admin profile:", dbError);
+        throw new Error(`Failed to update admin profile: ${dbError.message}`);
+    }
+
+    return { message: "Admin account updated successfully." };
+};
