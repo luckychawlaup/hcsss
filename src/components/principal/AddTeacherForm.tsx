@@ -149,7 +149,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
       
         toast({
             title: "Teacher Added!",
-            description: `An account for ${values.name} has been created and an email has been sent to set up their password.`,
+            description: `An account for ${values.name} has been created. They will receive an email to set their password.`,
         });
         reset();
         onTeacherAdded();

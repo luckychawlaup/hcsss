@@ -18,10 +18,10 @@ export const addTeacher = async (formData: FormData) => {
     const supabase = createClient();
     const teacherData = Object.fromEntries(formData.entries());
 
+    // Call Edge function to create user without a password
     const { data: functionData, error: functionError } = await supabase.functions.invoke('create-user', {
         body: {
             email: teacherData.email as string,
-            password: crypto.randomUUID(), // Temporary password
             user_metadata: {
                 full_name: teacherData.name,
                 role: 'teacher',
@@ -42,6 +42,12 @@ export const addTeacher = async (formData: FormData) => {
 
     try {
         const employee_id = generateEmployeeId(10);
+        
+        // Correctly parse array and json fields from FormData
+        const qualifications = teacherData.qualifications ? JSON.parse(teacherData.qualifications as string) : [];
+        const classes_taught = teacherData.classes_taught ? JSON.parse(teacherData.classes_taught as string) : [];
+        const bank_account = teacherData.bank_account ? JSON.parse(teacherData.bank_account as string) : null;
+
         const finalTeacherData = {
             employee_id: employee_id,
             name: teacherData.name,
@@ -54,16 +60,16 @@ export const addTeacher = async (formData: FormData) => {
             address: teacherData.address,
             role: teacherData.role,
             subject: teacherData.subject,
-            qualifications: teacherData.qualifications ? JSON.parse(teacherData.qualifications as string) : [],
+            qualifications: qualifications,
             class_teacher_of: teacherData.class_teacher_of || null,
-            classes_taught: teacherData.classes_taught ? JSON.parse(teacherData.classes_taught as string) : [],
-            joining_date: teacherData.joining_date as string, // This is already an ISO string from FormData
+            classes_taught: classes_taught,
+            joining_date: teacherData.joining_date as string,
             auth_uid: user.id,
             photo_url: teacherData.photo_url || null,
             work_experience: teacherData.work_experience || null,
             aadhar_number: teacherData.aadhar_number || null,
             pan_number: teacherData.pan_number || null,
-            bank_account: teacherData.bank_account ? JSON.parse(teacherData.bank_account as string) : null,
+            bank_account: bank_account,
         };
 
         const { error: dbError } = await supabase.from(TEACHERS_COLLECTION).insert([finalTeacherData]);

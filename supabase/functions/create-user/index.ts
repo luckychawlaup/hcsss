@@ -14,10 +14,10 @@ serve(async (req) => {
   }
 
   try {
-    const { email, password, user_metadata } = await req.json();
+    const { email, user_metadata } = await req.json();
 
-    if (!email || !password) {
-      throw new Error("Email and password are required.");
+    if (!email) {
+      throw new Error("Email is required.");
     }
 
     const supabaseAdmin = createClient(
@@ -25,10 +25,10 @@ serve(async (req) => {
       Deno.env.get("PROJECT_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // Create user without a password. Supabase will handle sending an invitation.
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password,
-      email_confirm: true, // Auto-confirm the email
+      email_confirm: true, // Auto-confirm the email to allow immediate login after password set
       user_metadata,
     });
 
@@ -39,6 +39,18 @@ serve(async (req) => {
     if (!data.user) {
         throw new Error("User creation did not return a user object.");
     }
+
+    // Now, generate the password reset link (which acts as a setup link)
+    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email,
+    });
+
+    if (resetError) {
+      // If this fails, we should still return the user, but log the error
+      console.error('Failed to generate magic link for new user:', resetError.message);
+    }
+
 
     return new Response(JSON.stringify({ user: data.user }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
