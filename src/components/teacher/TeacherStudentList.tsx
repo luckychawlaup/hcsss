@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState } from "react";
@@ -18,15 +19,8 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { Calendar } from "../ui/calendar";
-import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Textarea } from "../ui/textarea";
-
-const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-const sections = ["A", "B"];
+import { Label } from "../ui/label";
 
 
 interface TeacherStudentListProps {
@@ -40,6 +34,8 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [studentToEdit, setStudentToEdit] = useState<CombinedStudent | null>(null);
+  const [updatedHouse, setUpdatedHouse] = useState<Student['house'] | undefined>(undefined);
+  const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
   const filteredStudents = useMemo(() => {
@@ -70,6 +66,36 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
         variant: "destructive"
     });
   };
+  
+  const handleEditClick = (student: CombinedStudent) => {
+    setStudentToEdit(student);
+    setUpdatedHouse(student.house);
+    setIsEditOpen(true);
+  }
+
+  const handleUpdate = async () => {
+    if (!studentToEdit || updatedHouse === undefined) return;
+
+    setIsUpdating(true);
+    try {
+        await onUpdateStudent(studentToEdit.id, { house: updatedHouse });
+        toast({
+            title: "Student Updated",
+            description: `${studentToEdit.name}'s house has been updated successfully.`
+        });
+        setIsEditOpen(false);
+        setStudentToEdit(null);
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: "Could not update the student's details."
+        });
+    } finally {
+        setIsUpdating(false);
+    }
+  }
+
 
   if (isLoading) {
     return <Skeleton className="h-64 w-full" />;
@@ -130,7 +156,7 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
                   <TableCell>{student.father_phone || student.mother_phone}</TableCell>
                    {isClassTeacher && (
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => {}}>
+                      <Button variant="ghost" size="icon" onClick={() => handleEditClick(student)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -147,8 +173,37 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
           </TableBody>
         </Table>
       </div>
+       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Student: {studentToEdit?.name}</DialogTitle>
+                    <DialogDescription>
+                        As a class teacher, you can assign or change the student's house.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-2">
+                    <Label htmlFor="house-select">House</Label>
+                    <Select onValueChange={(value) => setUpdatedHouse(value as Student['house'])} defaultValue={studentToEdit?.house}>
+                        <SelectTrigger id="house-select">
+                            <SelectValue placeholder="Select a house" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Red">Red</SelectItem>
+                            <SelectItem value="Green">Green</SelectItem>
+                            <SelectItem value="Blue">Blue</SelectItem>
+                            <SelectItem value="Yellow">Yellow</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdating}>Cancel</Button>
+                    <Button onClick={handleUpdate} disabled={isUpdating}>
+                        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Save Changes
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
-
-    

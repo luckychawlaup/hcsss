@@ -22,6 +22,7 @@ CREATE TABLE public.students (
     blood_group TEXT,
     religion TEXT,
     category TEXT,
+    house TEXT,
     father_name TEXT NOT NULL,
     father_phone TEXT,
     father_email TEXT,
@@ -61,14 +62,19 @@ USING (
     (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527')
 );
 
-DROP POLICY IF EXISTS "Allow class teachers to view students in their classes" ON public.students;
-CREATE POLICY "Allow class teachers to view students in their classes"
-ON public.students FOR SELECT
+DROP POLICY IF EXISTS "Allow teachers to manage their students records" ON public.students;
+CREATE POLICY "Allow teachers to manage their students records"
+ON public.students FOR ALL
 USING (
-    (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = (class || '-' || section)
+    (
+        (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = (class || '-' || section)
+    )
     OR
-    (class || '-' || section) IN (SELECT unnest(classes_taught) FROM public.teachers WHERE auth_uid = auth.uid())
+    (
+      (class || '-' || section) IN (SELECT unnest(classes_taught) FROM public.teachers WHERE auth_uid = auth.uid())
+    )
 );
+
 
 DROP POLICY IF EXISTS "Allow students to view their own profile" ON public.students;
 CREATE POLICY "Allow students to view their own profile"
@@ -88,6 +94,7 @@ export interface Student {
     blood_group?: string;
     religion?: string;
     category?: 'General' | 'OBC' | 'SC' | 'ST' | 'Other';
+    house?: 'Red' | 'Green' | 'Blue' | 'Yellow';
     
     father_name: string;
     father_phone?: string;
@@ -188,19 +195,7 @@ export const getStudentByEmail = async (email: string): Promise<Student | null> 
 };
 
 export const updateStudent = async (id: string, updates: Partial<any>) => {
-    const dbUpdates = {
-        name: updates.name,
-        father_name: updates.fatherName,
-        mother_name: updates.motherName,
-        address: updates.address,
-        class: updates.class,
-        section: updates.section,
-        date_of_birth: updates.dateOfBirth,
-        father_phone: updates.fatherPhone,
-        mother_phone: updates.motherPhone,
-        student_phone: updates.studentPhone,
-    };
-    const { error } = await supabase.from(STUDENTS_COLLECTION).update(dbUpdates).eq('id', id);
+    const { error } = await supabase.from(STUDENTS_COLLECTION).update(updates).eq('id', id);
     if (error) throw error;
 };
 

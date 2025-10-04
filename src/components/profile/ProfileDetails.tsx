@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from 'react';
@@ -27,7 +28,8 @@ import {
   GraduationCap,
   Edit,
   Key,
-  Fingerprint
+  Fingerprint,
+  Flag
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -132,6 +134,7 @@ export function StudentProfileDetails({ student, user }: { student: Student, use
                     <DetailItem icon={<Phone />} label="Student's Contact" value={student.student_phone} />
                     <DetailItem icon={<Calendar />} label="Date of Birth" value={formatDate(student.date_of_birth)} />
                     <DetailItem icon={<Calendar />} label="Admission Date" value={formatDate(student.admission_date)} />
+                    <DetailItem icon={<Flag />} label="House" value={student.house} />
                     <DetailItem icon={<Home />} label="Address" value={student.address} />
                 </CardContent>
             </Card>
