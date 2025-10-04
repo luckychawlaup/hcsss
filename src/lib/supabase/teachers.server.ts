@@ -57,7 +57,7 @@ export const addTeacher = async (formData: FormData) => {
             qualifications: teacherData.qualifications ? JSON.parse(teacherData.qualifications as string) : [],
             class_teacher_of: teacherData.class_teacher_of || null,
             classes_taught: teacherData.classes_taught ? JSON.parse(teacherData.classes_taught as string) : [],
-            joining_date: new Date(teacherData.joining_date as string).toISOString(),
+            joining_date: teacherData.joining_date as string, // This is already an ISO string from FormData
             auth_uid: user.id,
             photo_url: teacherData.photo_url || null,
             work_experience: teacherData.work_experience || null,
