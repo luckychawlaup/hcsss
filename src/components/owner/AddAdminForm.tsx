@@ -175,7 +175,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                     <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                        <Input placeholder="e.g., +911234567890" {...field} />
+                        <Input type="tel" maxLength={13} placeholder="e.g., +911234567890" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -244,7 +244,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                         <FormItem>
                         <FormLabel>Aadhar Number (Optional)</FormLabel>
                         <FormControl>
-                            <Input type="number" placeholder="12-digit Aadhar number" {...field} />
+                            <Input type="text" maxLength={12} placeholder="12-digit Aadhar number" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -257,7 +257,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                         <FormItem>
                         <FormLabel>PAN Number (Optional)</FormLabel>
                         <FormControl>
-                            <Input placeholder="10-character PAN" {...field} />
+                            <Input type="text" maxLength={10} placeholder="10-character PAN" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -305,3 +305,5 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
     </>
   );
 }
+
+    
