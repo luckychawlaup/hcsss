@@ -5,6 +5,16 @@ import { createClient } from "@/lib/supabase/server";
 
 const ADMIN_ROLES_TABLE = 'admin_roles';
 
+const generateEmployeeId = (length: number) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+
 export const addAdmin = async (formData: FormData) => {
     const supabase = createClient();
     const adminData = Object.fromEntries(formData.entries());
@@ -32,10 +42,13 @@ export const addAdmin = async (formData: FormData) => {
     }
 
     try {
+        const employee_id = generateEmployeeId(10);
+
         const { error: dbError } = await supabase
             .from(ADMIN_ROLES_TABLE)
             .insert({ 
                 uid: user.id,
+                employee_id: employee_id,
                 role: adminData.role,
                 name: adminData.name,
                 email: adminData.email,

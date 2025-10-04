@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import type { Student } from "@/lib/supabase/students";
 import type { Teacher } from "@/lib/supabase/teachers";
+import type { AdminUser } from "@/lib/supabase/admins";
 import type { User as AuthUser } from '@supabase/supabase-js';
 import {
   Card,
@@ -149,8 +150,10 @@ export function StudentProfileDetails({ student, user }: { student: Student, use
     )
 }
 
-export function TeacherProfile({ teacher }: { teacher: Teacher & { uid?: string } }) {
-    const displayId = teacher.auth_uid || teacher.uid || '';
+export function TeacherProfile({ teacher }: { teacher: (Teacher | AdminUser) & { auth_uid?: string } }) {
+    const displayId = 'employee_id' in teacher && teacher.employee_id ? teacher.employee_id : ('auth_uid' in teacher ? teacher.auth_uid : teacher.uid)?.substring(0, 8).toUpperCase() || 'N/A';
+    const idLabel = 'employee_id' in teacher && teacher.employee_id ? 'Employee ID' : 'User ID';
+
     return (
          <div className="w-full">
              <div className="bg-card p-6 text-center border-b">
@@ -159,7 +162,7 @@ export function TeacherProfile({ teacher }: { teacher: Teacher & { uid?: string 
                     <AvatarFallback>{teacher.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{teacher.name}</h1>
-                <p className="text-muted-foreground text-xs">ID: {displayId.substring(0, 8).toUpperCase()}</p>
+                <p className="text-muted-foreground text-xs">{idLabel}: {displayId}</p>
                  {teacher.email && <p className="text-sm text-muted-foreground mt-1">{teacher.email}</p>}
             </div>
         </div>

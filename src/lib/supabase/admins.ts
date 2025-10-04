@@ -12,6 +12,7 @@ export const ADMIN_ROLES_TABLE_SETUP_SQL = `
 -- Creates the table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.admin_roles (
     uid UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    employee_id TEXT UNIQUE,
     role TEXT NOT NULL CHECK (role IN ('principal', 'accountant')),
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -50,6 +51,7 @@ USING (auth.role() = 'authenticated');
 
 export interface AdminUser {
     uid: string;
+    employee_id?: string;
     role: 'principal' | 'accountant';
     name: string;
     email: string;
@@ -64,7 +66,7 @@ export interface AdminUser {
     created_at?: string;
 }
 
-export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'created_at'>) => {
+export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'employee_id' | 'created_at'>) => {
     const formData = new FormData();
     Object.entries(adminData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
