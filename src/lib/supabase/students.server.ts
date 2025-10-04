@@ -1,4 +1,5 @@
 
+
 'use server'
 
 import { createClient } from "@/lib/supabase/server";
@@ -36,24 +37,35 @@ export const addStudent = async (formData: FormData) => {
         const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
         
         const finalStudentData = { 
-            name: studentData.name,
-            email: studentData.email,
-            father_name: studentData.father_name,
-            mother_name: studentData.mother_name,
-            address: studentData.address,
-            class: studentData.class,
-            section: studentData.section,
-            admission_date: new Date(studentData.admission_date as string).toISOString(),
-            date_of_birth: studentData.date_of_birth,
-            opted_subjects: studentData.opted_subjects ? JSON.parse(studentData.opted_subjects as string) : [],
-            father_phone: studentData.father_phone,
-            mother_phone: studentData.mother_phone,
-            student_phone: studentData.student_phone,
-            aadhar_number: studentData.aadhar_number,
             auth_uid: user.id,
             srn,
-            photo_url: studentData.photo_url,
-            aadhar_url: studentData.aadhar_url,
+            name: studentData.name,
+            email: studentData.email,
+            date_of_birth: studentData.date_of_birth,
+            gender: studentData.gender,
+            blood_group: studentData.blood_group || null,
+            religion: studentData.religion || null,
+            category: studentData.category || null,
+            father_name: studentData.father_name,
+            father_phone: studentData.father_phone,
+            father_email: studentData.father_email || null,
+            mother_name: studentData.mother_name,
+            mother_phone: studentData.mother_phone,
+            mother_email: studentData.mother_email || null,
+            guardian_name: studentData.guardian_name || null,
+            guardian_relation: studentData.guardian_relation || null,
+            student_phone: studentData.student_phone || null,
+            permanent_address: studentData.permanent_address,
+            current_address: studentData.current_address || null,
+            class: studentData.class,
+            section: studentData.section,
+            roll_number: studentData.roll_number || null,
+            admission_date: new Date(studentData.admission_date as string).toISOString(),
+            previous_school: studentData.previous_school || null,
+            emergency_contacts: studentData.emergency_contacts ? JSON.parse(studentData.emergency_contacts as string) : [],
+            transport_type: studentData.transport_type,
+            private_vehicle_number: studentData.private_vehicle_number || null,
+            school_transport_details: studentData.school_transport_details ? JSON.parse(studentData.school_transport_details as string) : null,
         };
         
         const { error: dbError } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);

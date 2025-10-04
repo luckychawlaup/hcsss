@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
@@ -7,33 +8,126 @@ import { addStudent as addStudentServerAction } from './students.server';
 const supabase = createClient();
 const STUDENTS_COLLECTION = 'students';
 
+export const STUDENTS_TABLE_SETUP_SQL = `
+DROP TABLE IF EXISTS public.students CASCADE;
+
+CREATE TABLE public.students (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_uid UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+    srn TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    date_of_birth TEXT NOT NULL,
+    gender TEXT,
+    blood_group TEXT,
+    religion TEXT,
+    category TEXT,
+    father_name TEXT NOT NULL,
+    father_phone TEXT,
+    father_email TEXT,
+    mother_name TEXT NOT NULL,
+    mother_phone TEXT,
+    mother_email TEXT,
+    guardian_name TEXT,
+    guardian_relation TEXT,
+    student_phone TEXT,
+    permanent_address TEXT NOT NULL,
+    current_address TEXT,
+    class TEXT NOT NULL,
+    section TEXT NOT NULL,
+    roll_number TEXT,
+    admission_date TIMESTAMPTZ NOT NULL,
+    previous_school TEXT,
+    emergency_contacts TEXT[],
+    transport_type TEXT,
+    private_vehicle_number TEXT,
+    school_transport_details JSONB,
+    photo_url TEXT,
+    aadhar_number TEXT,
+    aadhar_url TEXT,
+    opted_subjects TEXT[],
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow principal/owner to manage student records" ON public.students;
+CREATE POLICY "Allow principal/owner to manage student records"
+ON public.students FOR ALL
+USING (
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
+    OR
+    (auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}')
+);
+
+DROP POLICY IF EXISTS "Allow class teachers to view students in their classes" ON public.students;
+CREATE POLICY "Allow class teachers to view students in their classes"
+ON public.students FOR SELECT
+USING (
+    (SELECT class_teacher_of FROM public.teachers WHERE auth_uid = auth.uid()) = (class || '-' || section)
+    OR
+    (class || '-' || section) IN (SELECT unnest(classes_taught) FROM public.teachers WHERE auth_uid = auth.uid())
+);
+
+DROP POLICY IF EXISTS "Allow students to view their own profile" ON public.students;
+CREATE POLICY "Allow students to view their own profile"
+ON public.students FOR SELECT
+USING (auth_uid = auth.uid());
+`;
+
+
 export interface Student {
     id: string;
     auth_uid: string;
     srn: string;
     name: string;
     email: string;
-    photo_url?: string;
+    date_of_birth: string;
+    gender?: 'Male' | 'Female' | 'Other';
+    blood_group?: string;
+    religion?: string;
+    category?: 'General' | 'OBC' | 'SC' | 'ST' | 'Other';
+    
     father_name: string;
+    father_phone?: string;
+    father_email?: string;
     mother_name: string;
-    address: string;
+    mother_phone?: string;
+    mother_email?: string;
+
+    guardian_name?: string;
+    guardian_relation?: string;
+    student_phone?: string;
+
+    permanent_address: string;
+    current_address?: string;
+    
     class: string;
     section: string;
-    admission_date: string; // ISO string
-    date_of_birth: string; // DD/MM/YYYY
+    roll_number?: string;
+    admission_date: string;
+    previous_school?: string;
+
+    emergency_contacts?: string[];
+    transport_type?: 'None' | 'School' | 'Private';
+    private_vehicle_number?: string;
+    school_transport_details?: {
+        driver_name?: string;
+        driver_phone?: string;
+        bus_number?: string;
+    };
+    
+    photo_url?: string;
     aadhar_number?: string;
     aadhar_url?: string;
     opted_subjects?: string[];
-    father_phone?: string;
-    mother_phone?: string;
-    student_phone?: string;
 }
 
 export type CombinedStudent = (Student & { status: 'Registered' });
 
 // This function is now a wrapper around the server action.
 export const addStudent = async (studentData: Omit<Student, 'id' | 'auth_uid' | 'srn'>) => {
-    // We create a FormData object to send the file to the server action.
     const formData = new FormData();
     Object.entries(studentData).forEach(([key, value]) => {
         if (value instanceof Date) {

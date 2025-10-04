@@ -33,30 +33,49 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { addStudent } from "@/lib/supabase/students";
 import { Separator } from "../ui/separator";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B", "C", "D"];
 
 const addStudentSchema = z.object({
     name: z.string().min(2, "Student name is required."),
-    email: z.string().email("A valid email is required for the student's account."),
-    father_name: z.string().min(2, "Father's name is required."),
-    mother_name: z.string().min(2, "Mother's name is required."),
+    email: z.string().email("A valid email is required for the student's login."),
     date_of_birth: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in DD/MM/YYYY format."),
-    admission_date: z.date({ required_error: "Admission date is required."}),
-    address: z.string().min(10, "A valid address is required."),
+    gender: z.enum(["Male", "Female", "Other"], { required_error: "Gender is required."}),
+    blood_group: z.string().optional(),
+    religion: z.string().optional(),
+    category: z.string().optional(),
+    
+    father_name: z.string().min(2, "Father's name is required."),
+    father_phone: z.string().min(10, "A valid phone number is required."),
+    father_email: z.string().email("Invalid email format.").optional().or(z.literal('')),
+    mother_name: z.string().min(2, "Mother's name is required."),
+    mother_phone: z.string().min(10, "A valid phone number is required."),
+    mother_email: z.string().email("Invalid email format.").optional().or(z.literal('')),
+    
+    guardian_name: z.string().optional(),
+    guardian_relation: z.string().optional(),
+    student_phone: z.string().optional(),
+
+    permanent_address: z.string().min(10, "Permanent address is required."),
+    current_address: z.string().optional(),
+
     class: z.string({ required_error: "Class is required."}),
     section: z.string({ required_error: "Section is required."}),
-    father_phone: z.string().optional(),
-    mother_phone: z.string().optional(),
-    student_phone: z.string().optional(),
-    opted_subjects: z.array(z.string()).optional(),
-    photo_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
-    aadhar_number: z.string().length(12, "Aadhar number must be 12 digits.").optional().or(z.literal('')),
-    aadhar_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
-}).refine(data => data.father_phone || data.mother_phone, {
-    message: "At least one parent's phone number is required.",
-    path: ["father_phone"],
+    roll_number: z.string().optional(),
+    admission_date: z.date({ required_error: "Admission date is required."}),
+    previous_school: z.string().optional(),
+
+    emergency_contacts: z.array(z.object({ value: z.string() })).optional(),
+
+    transport_type: z.enum(["None", "School", "Private"], { required_error: "Please select a transport option."}),
+    private_vehicle_number: z.string().optional(),
+    school_transport_details: z.object({
+        driver_name: z.string().optional(),
+        driver_phone: z.string().optional(),
+        bus_number: z.string().optional(),
+    }).optional(),
 });
 
 
@@ -67,7 +86,6 @@ interface AddStudentFormProps {
 export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [subjectInput, setSubjectInput] = useState("");
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof addStudentSchema>>({
@@ -75,32 +93,24 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     defaultValues: {
       name: "",
       email: "",
+      date_of_birth: "",
       father_name: "",
       mother_name: "",
-      address: "",
-      date_of_birth: "",
-      opted_subjects: [],
-      photo_url: "",
+      father_phone: "",
+      mother_phone: "",
+      permanent_address: "",
+      emergency_contacts: [{ value: "" }],
+      transport_type: "None",
     },
   });
 
-  const { control, handleSubmit, reset, watch, setValue } = form;
-  const optedSubjects = watch("opted_subjects", []);
+  const { control, handleSubmit, reset, watch } = form;
+  const { fields, append, remove } = useFieldArray({
+      control,
+      name: "emergency_contacts",
+  });
+  const transportType = watch("transport_type");
 
-  const handleAddSubject = () => {
-      if(subjectInput.trim()) {
-          setValue("opted_subjects", [...(optedSubjects || []), subjectInput.trim()]);
-          setSubjectInput("");
-      }
-  }
-
-  const handleRemoveSubject = (index: number) => {
-    if (optedSubjects) {
-      const newSubjects = [...optedSubjects];
-      newSubjects.splice(index, 1);
-      setValue("opted_subjects", newSubjects);
-    }
-  }
 
   async function onSubmit(values: z.infer<typeof addStudentSchema>) {
     setIsLoading(true);
@@ -108,9 +118,9 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     try {
         await addStudent({
             ...values,
-            photo_url: values.photo_url || undefined,
-            aadhar_url: values.aadhar_url || undefined,
-            aadhar_number: values.aadhar_number || undefined,
+            emergency_contacts: values.emergency_contacts?.map(c => c.value).filter(Boolean),
+            private_vehicle_number: values.transport_type === 'Private' ? values.private_vehicle_number : undefined,
+            school_transport_details: values.transport_type === 'School' ? values.school_transport_details : undefined,
         });
         toast({
             title: "Student Added Successfully!",
@@ -134,260 +144,169 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
         </Alert>
       )}
       <Form {...form}>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Rohan Kumar" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Student's Login Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="student.email@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={control}
-              name="father_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Father's Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={control}
-              name="mother_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mother's Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={control}
-              name="date_of_birth"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date of Birth</FormLabel>
-                  <FormControl>
-                    <Input placeholder="DD/MM/YYYY" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-                control={control}
-                name="admission_date"
-                render={({ field }) => (
-                <FormItem className="flex flex-col">
-                    <FormLabel>Admission Date</FormLabel>
-                    <Popover>
-                    <PopoverTrigger asChild>
-                        <FormControl>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? (
-                            formatDate(field.value, "PPP")
-                            ) : (
-                            <span>Pick a date</span>
-                            )}
-                        </Button>
-                        </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                        />
-                    </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-             <FormField
-              control={control}
-              name="father_phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Father's Phone</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={control}
-              name="mother_phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mother's Phone</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={control}
-              name="student_phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Student's Phone (Optional)</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-                control={control}
-                name="class"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Class</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        {classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-             <FormField
-                control={control}
-                name="section"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Section</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        {sections.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-          </div>
-            <Separator/>
-            <p className="font-semibold text-foreground">Subjects & Documents</p>
-             <div className="space-y-4">
-                <FormItem>
-                    <FormLabel>Opted Subjects (for senior classes)</FormLabel>
-                    <div className="flex gap-2">
-                        <Input value={subjectInput} onChange={(e) => setSubjectInput(e.target.value)} placeholder="e.g., Physics" />
-                        <Button type="button" variant="outline" onClick={handleAddSubject}><PlusCircle/></Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        {optedSubjects?.map((q, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-secondary rounded-full pl-3 pr-1 py-1 text-sm">
-                                {q}
-                                <button type="button" onClick={() => handleRemoveSubject(i)} className="rounded-full bg-secondary-foreground/10 text-secondary-foreground hover:bg-secondary-foreground/20 h-5 w-5 flex items-center justify-center">
-                                    <X className="h-3 w-3"/>
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </FormItem>
-                 <FormField
-                    control={control}
-                    name="photo_url"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Student Photo URL (Optional)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="https://example.com/photo.jpg" {...field} />
-                        </FormControl>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Personal Details</h3>
+            <Separator />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField control={control} name="name" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl><Input placeholder="As per Birth Certificate / Aadhar" {...field} /></FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={control}
-                    name="aadhar_number"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Aadhar Number (Optional)</FormLabel>
-                        <FormControl>
-                            <Input {...field} />
-                        </FormControl>
+                    </FormItem>
+                )} />
+                <FormField control={control} name="email" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Student's Login Email</FormLabel>
+                        <FormControl><Input placeholder="student.email@example.com" {...field} /></FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={control}
-                    name="aadhar_url"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Aadhar Card Scan URL (Optional)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="https://example.com/aadhar.jpg" {...field} />
-                        </FormControl>
+                    </FormItem>
+                )} />
+                <FormField control={control} name="date_of_birth" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Date of Birth</FormLabel>
+                        <FormControl><Input placeholder="DD/MM/YYYY" {...field} /></FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                    </FormItem>
+                )} />
+                <FormField control={control} name="gender" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Gender</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="Male">Male</SelectItem>
+                                <SelectItem value="Female">Female</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={control} name="blood_group" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Blood Group (Optional)</FormLabel>
+                        <FormControl><Input placeholder="e.g., O+" {...field} /></FormControl>
+                    </FormItem>
+                )} />
+                <FormField control={control} name="religion" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Religion (Optional)</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                    </FormItem>
+                )} />
+                <FormField control={control} name="category" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Category (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="General">General</SelectItem>
+                                <SelectItem value="OBC">OBC</SelectItem>
+                                <SelectItem value="SC">SC</SelectItem>
+                                <SelectItem value="ST">ST</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </FormItem>
+                )} />
+                 <FormField control={control} name="student_phone" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Student's Phone (for WhatsApp)</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                    </FormItem>
+                )} />
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Parent / Guardian Details</h3>
+            <Separator />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField control={control} name="father_name" render={({ field }) => (<FormItem><FormLabel>Father's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name="father_phone" render={({ field }) => (<FormItem><FormLabel>Father's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name="father_email" render={({ field }) => (<FormItem><FormLabel>Father's Email (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name="mother_name" render={({ field }) => (<FormItem><FormLabel>Mother's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name="mother_phone" render={({ field }) => (<FormItem><FormLabel>Mother's Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name="mother_email" render={({ field }) => (<FormItem><FormLabel>Mother's Email (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormMessage /></FormItem>)} />
+                <FormField control={control} name="guardian_name" render={({ field }) => (<FormItem><FormLabel>Guardian's Name (If applicable)</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                <FormField control={control} name="guardian_relation" render={({ field }) => (<FormItem><FormLabel>Guardian's Relation</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Address Information</h3>
+            <Separator />
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField control={control} name="permanent_address" render={({ field }) => (<FormItem><FormLabel>Permanent Address</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={control} name="current_address" render={({ field }) => (<FormItem><FormLabel>Current Address (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Academic Details</h3>
+            <Separator />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField control={control} name="class" render={({ field }) => (<FormItem><FormLabel>Class</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger></FormControl><SelectContent>{classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={control} name="section" render={({ field }) => (<FormItem><FormLabel>Section</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger></FormControl><SelectContent>{sections.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={control} name="roll_number" render={({ field }) => (<FormItem><FormLabel>Roll Number (Optional)</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                <FormField control={control} name="admission_date" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Admission Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? formatDate(field.value, "PPP") : (<span>Pick a date</span>)}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                <FormField control={control} name="previous_school" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Previous School (If any)</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Emergency & Transport</h3>
+            <Separator />
+            <div className="space-y-4">
+                <div>
+                    <Label>Emergency Contact Numbers (Optional)</Label>
+                    {fields.map((field, index) => (
+                        <FormField
+                            control={control}
+                            key={field.id}
+                            name={`emergency_contacts.${index}.value`}
+                            render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 pt-2">
+                                <FormControl><Input {...field} /></FormControl>
+                                <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
+                                </FormItem>
+                            )}
+                        />
+                    ))}
+                    <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => append({ value: "" })}>
+                        <PlusCircle className="mr-2 h-4 w-4"/> Add Number
+                    </Button>
+                </div>
+                <FormField control={control} name="transport_type" render={({ field }) => (
+                    <FormItem className="space-y-3"><FormLabel>School Transport</FormLabel>
+                        <FormControl>
+                            <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4">
+                                <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="None" /></FormControl><FormLabel className="font-normal">Not Required</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="School" /></FormControl><FormLabel className="font-normal">School Transport</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="Private" /></FormControl><FormLabel className="font-normal">Private Vehicle</FormLabel></FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+
+                {transportType === 'Private' && (
+                    <FormField control={control} name="private_vehicle_number" render={({ field }) => (<FormItem><FormLabel>Private Vehicle Registration Number</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                )}
+                {transportType === 'School' && (
+                    <div className="p-4 border rounded-md space-y-4 bg-secondary/50">
+                        <h4 className="font-medium">School Transport Details</h4>
+                        <FormField control={control} name="school_transport_details.driver_name" render={({ field }) => (<FormItem><FormLabel>Driver Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={control} name="school_transport_details.driver_phone" render={({ field }) => (<FormItem><FormLabel>Driver Phone</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={control} name="school_transport_details.bus_number" render={({ field }) => (<FormItem><FormLabel>School Bus Registration Number</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                    </div>
+                )}
+            </div>
+          </div>
+          
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Admit Student
@@ -397,3 +316,4 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     </>
   );
 }
+
