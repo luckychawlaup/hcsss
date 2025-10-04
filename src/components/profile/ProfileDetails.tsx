@@ -149,7 +149,8 @@ export function StudentProfileDetails({ student, user }: { student: Student, use
     )
 }
 
-export function TeacherProfile({ teacher }: { teacher: Teacher }) {
+export function TeacherProfile({ teacher }: { teacher: Teacher & { uid?: string } }) {
+    const displayId = teacher.auth_uid || teacher.uid || '';
     return (
          <div className="w-full">
              <div className="bg-card p-6 text-center border-b">
@@ -158,7 +159,7 @@ export function TeacherProfile({ teacher }: { teacher: Teacher }) {
                     <AvatarFallback>{teacher.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{teacher.name}</h1>
-                <p className="text-muted-foreground text-xs">Teacher ID: {teacher.auth_uid.substring(0, 8).toUpperCase()}</p>
+                <p className="text-muted-foreground text-xs">ID: {displayId.substring(0, 8).toUpperCase()}</p>
                  {teacher.email && <p className="text-sm text-muted-foreground mt-1">{teacher.email}</p>}
             </div>
         </div>
