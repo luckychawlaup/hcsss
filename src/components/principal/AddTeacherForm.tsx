@@ -29,7 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2, CalendarIcon, AlertCircle, PlusCircle, X } from "lucide-react";
+import { Loader2, CalendarIcon, AlertCircle, PlusCircle, X, Landmark } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
@@ -43,17 +43,27 @@ const addTeacherSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
   dob: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in DD/MM/YYYY format."),
+  gender: z.enum(["Male", "Female", "Other"], { required_error: "Please select a gender."}),
   father_name: z.string().min(2, "Father's name is required."),
   mother_name: z.string().min(2, "Mother's name is required."),
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
   address: z.string().min(10, "Address is too short."),
-  role: z.enum(["classTeacher", "teacher"], { required_error: "You must select a role."}),
+  role: z.enum(["classTeacher", "subjectTeacher"], { required_error: "You must select a role."}),
   subject: z.string().min(2, "Subject is required."),
   qualifications: z.array(z.string()).optional().default([]),
   class_teacher_of: z.string().optional(),
   classes_taught: z.array(z.string()).optional().default([]),
   joining_date: z.date({ required_error: "Joining date is required."}),
   photo_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
+  work_experience: z.string().optional(),
+  aadhar_number: z.string().length(12, "Aadhar number must be 12 digits.").optional().or(z.literal('')),
+  pan_number: z.string().length(10, "PAN must be exactly 10 characters.").optional().or(z.literal('')),
+  bank_account: z.object({
+      accountHolderName: z.string().optional(),
+      accountNumber: z.string().optional(),
+      ifscCode: z.string().optional(),
+      bankName: z.string().optional(),
+  }).optional(),
 }).refine(data => {
     if (data.role === 'classTeacher') return !!data.class_teacher_of;
     return true;
@@ -61,7 +71,7 @@ const addTeacherSchema = z.object({
     message: "Please select a class for the Class Teacher.",
     path: ["class_teacher_of"],
 }).refine(data => {
-    if (data.role === 'teacher') return data.classes_taught && data.classes_taught.length > 0;
+    if (data.role === 'subjectTeacher') return data.classes_taught && data.classes_taught.length > 0;
     return true;
 }, {
     message: "Please select at least one class for the Subject Teacher.",
@@ -93,6 +103,15 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
       qualifications: [],
       classes_taught: [],
       photo_url: "",
+      work_experience: "",
+      aadhar_number: "",
+      pan_number: "",
+      bank_account: {
+          accountHolderName: "",
+          accountNumber: "",
+          ifscCode: "",
+          bankName: "",
+      }
     },
   });
 
@@ -120,6 +139,10 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
         await addTeacher({
             ...values,
             photo_url: values.photo_url || undefined,
+            work_experience: values.work_experience || undefined,
+            aadhar_number: values.aadhar_number || undefined,
+            pan_number: values.pan_number || undefined,
+            bank_account: values.bank_account,
         });
       
         toast({
@@ -213,6 +236,28 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
                   )}
                 />
                  <FormField
+                  control={control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                           <SelectItem value="Male">Male</SelectItem>
+                           <SelectItem value="Female">Female</SelectItem>
+                           <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
                     control={control}
                     name="joining_date"
                     render={({ field }) => (
@@ -276,6 +321,45 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
                     </FormItem>
                     )}
                 />
+                <FormField
+                    control={control}
+                    name="work_experience"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Work Experience (Optional)</FormLabel>
+                        <FormControl>
+                        <Textarea placeholder="Describe previous roles and experiences..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={control}
+                    name="aadhar_number"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Aadhar Number (Optional)</FormLabel>
+                        <FormControl>
+                            <Input type="text" maxLength={12} placeholder="12-digit Aadhar number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={control}
+                    name="pan_number"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>PAN Number (Optional)</FormLabel>
+                        <FormControl>
+                            <Input type="text" maxLength={10} placeholder="10-character PAN" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
             </div>
             
             <Separator/>
@@ -316,7 +400,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
                                     </FormItem>
                                     <FormItem className="flex items-center space-x-2 space-y-0">
                                         <FormControl>
-                                        <RadioGroupItem value="teacher" />
+                                        <RadioGroupItem value="subjectTeacher" />
                                         </FormControl>
                                         <FormLabel className="font-normal">Subject Teacher</FormLabel>
                                     </FormItem>
@@ -429,6 +513,55 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
                         </FormControl>
                         <FormMessage />
                         </FormItem>
+                    )}
+                />
+            </div>
+
+             <Separator />
+             <p className="font-semibold text-foreground flex items-center gap-2 pt-2"><Landmark/> Bank Account Details (for salary)</p>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                 <FormField
+                    control={form.control}
+                    name="bank_account.accountHolderName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Account Holder Name</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="bank_account.accountNumber"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Account Number</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="bank_account.ifscCode"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>IFSC Code</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="bank_account.bankName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Bank Name</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
                     )}
                 />
             </div>

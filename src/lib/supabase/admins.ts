@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.admin_roles (
     aadhar_number TEXT,
     pan_number TEXT,
     work_experience TEXT,
+    bank_account JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -65,6 +66,12 @@ export interface AdminUser {
     aadhar_number?: string;
     pan_number?: string;
     work_experience?: string;
+    bank_account?: {
+        accountHolderName?: string;
+        accountNumber?: string;
+        ifscCode?: string;
+        bankName?: string;
+    };
     created_at?: string;
 }
 
@@ -72,7 +79,13 @@ export const addAdmin = async (adminData: Omit<AdminUser, 'uid' | 'employee_id' 
     const formData = new FormData();
     Object.entries(adminData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-            formData.append(key, value.toString());
+             if (typeof value === 'object' && value instanceof Date) {
+                formData.append(key, value.toISOString());
+            } else if (typeof value === 'object') {
+                formData.append(key, JSON.stringify(value));
+            } else {
+                formData.append(key, value.toString());
+            }
         }
     });
     

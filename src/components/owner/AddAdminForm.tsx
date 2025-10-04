@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Loader2, CalendarIcon, AlertCircle } from "lucide-react";
+import { Loader2, CalendarIcon, AlertCircle, Landmark } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
@@ -26,6 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Separator } from "../ui/separator";
 
 const addAdminSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -40,6 +41,12 @@ const addAdminSchema = z.object({
   aadhar_number: z.string().length(12, "Aadhar number must be exactly 12 digits.").regex(/^\d+$/, "Aadhar must only contain numbers.").optional().or(z.literal('')),
   pan_number: z.string().length(10, "PAN must be exactly 10 characters.").optional().or(z.literal('')),
   work_experience: z.string().optional(),
+  bank_account: z.object({
+      accountHolderName: z.string().optional(),
+      accountNumber: z.string().optional(),
+      ifscCode: z.string().optional(),
+      bankName: z.string().optional(),
+  }).optional(),
 });
 
 interface AddAdminFormProps {
@@ -64,6 +71,12 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
       aadhar_number: "",
       pan_number: "",
       work_experience: "",
+      bank_account: {
+          accountHolderName: "",
+          accountNumber: "",
+          ifscCode: "",
+          bankName: "",
+      }
     },
   });
 
@@ -80,6 +93,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
           pan_number: values.pan_number || undefined,
           work_experience: values.work_experience || undefined,
           joining_date: values.joining_date.toISOString(),
+          bank_account: values.bank_account,
       });
       
       toast({
@@ -280,12 +294,62 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                     )}
                 />
             </div>
+            
+            <Separator />
+             <p className="font-semibold text-foreground flex items-center gap-2 pt-2"><Landmark/> Bank Account Details (for salary)</p>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                 <FormField
+                    control={form.control}
+                    name="bank_account.accountHolderName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Account Holder Name</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="bank_account.accountNumber"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Account Number</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="bank_account.ifscCode"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>IFSC Code</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="bank_account.bankName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Bank Name</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            </div>
+
 
             <FormField
                 control={form.control}
                 name="role"
                 render={({ field }) => (
-                <FormItem className="space-y-3">
+                <FormItem className="space-y-3 pt-4">
                     <FormLabel>Select Role to Assign</FormLabel>
                     <FormControl>
                         <RadioGroup

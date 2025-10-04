@@ -61,6 +61,7 @@ export const addAdmin = async (formData: FormData) => {
                 aadhar_number: adminData.aadhar_number,
                 pan_number: adminData.pan_number,
                 work_experience: adminData.work_experience,
+                bank_account: adminData.bank_account ? JSON.parse(adminData.bank_account as string) : null,
             });
 
         if (dbError) {

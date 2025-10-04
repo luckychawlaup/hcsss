@@ -5,6 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 
 const TEACHERS_COLLECTION = 'teachers';
 
+const generateEmployeeId = (length: number) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
 export const addTeacher = async (formData: FormData) => {
     const supabase = createClient();
     const teacherData = Object.fromEntries(formData.entries());
@@ -31,10 +40,13 @@ export const addTeacher = async (formData: FormData) => {
     }
 
     try {
+        const employee_id = generateEmployeeId(10);
         const finalTeacherData = {
+            employee_id: employee_id,
             name: teacherData.name,
             email: teacherData.email,
             dob: teacherData.dob,
+            gender: teacherData.gender,
             father_name: teacherData.father_name,
             mother_name: teacherData.mother_name,
             phone_number: teacherData.phone_number,
@@ -47,6 +59,10 @@ export const addTeacher = async (formData: FormData) => {
             joining_date: new Date(teacherData.joining_date as string).toISOString(),
             auth_uid: user.id,
             photo_url: teacherData.photo_url,
+            work_experience: teacherData.work_experience,
+            aadhar_number: teacherData.aadhar_number,
+            pan_number: teacherData.pan_number,
+            bank_account: teacherData.bank_account ? JSON.parse(teacherData.bank_account as string) : null,
         };
 
         const { error: dbError } = await supabase.from(TEACHERS_COLLECTION).insert([finalTeacherData]);

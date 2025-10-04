@@ -12,10 +12,12 @@ export const TEACHERS_TABLE_SETUP_SQL = `
 CREATE TABLE IF NOT EXISTS public.teachers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_uid UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+    employee_id TEXT UNIQUE,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     photo_url TEXT,
     dob TEXT NOT NULL,
+    gender TEXT,
     father_name TEXT,
     mother_name TEXT,
     phone_number TEXT,
@@ -26,6 +28,9 @@ CREATE TABLE IF NOT EXISTS public.teachers (
     class_teacher_of TEXT,
     classes_taught TEXT[],
     joining_date TEXT NOT NULL, -- Changed to TEXT to store ISO string
+    work_experience TEXT,
+    aadhar_number TEXT,
+    pan_number TEXT,
     bank_account JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -42,7 +47,7 @@ DROP POLICY IF EXISTS "Allow teachers to view and update their own profiles" ON 
 CREATE POLICY "Allow principal/owner to manage teachers"
 ON public.teachers FOR ALL
 USING (
-    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) = 'principal'
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
     (auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}') -- Owner UID
 );
@@ -62,10 +67,12 @@ WITH CHECK (
 export interface Teacher {
     id: string;
     auth_uid: string;
+    employee_id?: string;
     name: string;
     email: string;
     photo_url?: string;
     dob: string; // DD/MM/YYYY
+    gender?: 'Male' | 'Female' | 'Other';
     father_name: string;
     mother_name: string;
     phone_number: string;
@@ -76,6 +83,9 @@ export interface Teacher {
     class_teacher_of?: string; // e.g., "10-A"
     classes_taught?: string[];
     joining_date: string; // ISO string
+    work_experience?: string;
+    aadhar_number?: string;
+    pan_number?: string;
     bank_account?: {
         accountHolderName?: string;
         accountNumber?: string;
@@ -86,7 +96,7 @@ export interface Teacher {
 
 export type CombinedTeacher = (Teacher & { status: 'Registered' });
 
-export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid'>) => {
+export const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'auth_uid' | 'employee_id'>) => {
     const formData = new FormData();
     Object.entries(teacherData).forEach(([key, value]) => {
         if (value instanceof Date) {
