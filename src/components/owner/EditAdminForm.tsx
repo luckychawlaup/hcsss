@@ -63,14 +63,17 @@ export default function EditAdminForm({ admin, onAdminUpdated }: EditAdminFormPr
     resolver: zodResolver(editAdminSchema),
     defaultValues: {
       ...admin,
-      address: admin.address || '',
-      work_experience: admin.work_experience || '',
+      address: admin.address || "",
+      work_experience: admin.work_experience || "",
+      photo_url: admin.photo_url || "",
+      aadhar_number: admin.aadhar_number || "",
+      pan_number: admin.pan_number || "",
       joining_date: admin.joining_date ? parseISO(admin.joining_date) : new Date(),
-      bank_account: admin.bank_account || {
-          accountHolderName: "",
-          accountNumber: "",
-          ifscCode: "",
-          bankName: "",
+      bank_account: {
+          accountHolderName: admin.bank_account?.accountHolderName || "",
+          accountNumber: admin.bank_account?.accountNumber || "",
+          ifscCode: admin.bank_account?.ifscCode || "",
+          bankName: admin.bank_account?.bankName || "",
       },
     },
   });
