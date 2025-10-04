@@ -14,13 +14,29 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Search, Edit, FileDown, Loader2 } from "lucide-react";
+import { Users, Search, Edit, FileDown, Loader2, PlusCircle, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Label } from "../ui/label";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
+import { Textarea } from "../ui/textarea";
+
+const editStudentSchema = z.object({
+  student_phone: z.string().optional(),
+  email: z.string().email({ message: "Invalid email format." }).optional().or(z.literal('')),
+  roll_number: z.string().optional(),
+  house: z.string().optional(),
+  emergency_contacts: z.array(z.object({
+    name: z.string().min(1, "Name cannot be empty"),
+    phone: z.string().min(10, "Phone number seems too short")
+  })).optional(),
+});
 
 
 interface TeacherStudentListProps {
@@ -34,9 +50,18 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [studentToEdit, setStudentToEdit] = useState<CombinedStudent | null>(null);
-  const [updatedHouse, setUpdatedHouse] = useState<Student['house'] | undefined>(undefined);
-  const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof editStudentSchema>>({
+    resolver: zodResolver(editStudentSchema),
+  });
+
+  const { control, handleSubmit, reset, formState: { isSubmitting } } = form;
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "emergency_contacts",
+  });
 
   const filteredStudents = useMemo(() => {
     return students.filter(student =>
@@ -47,19 +72,6 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
   }, [students, searchTerm]);
 
    const handleExport = () => {
-    const dataToExport = filteredStudents.map(({ id, auth_uid, ...student }) => ({
-        "SRN": student.status === 'Registered' ? student.srn : 'Pending',
-        "Name": student.name,
-        "Class": `${student.class}-${student.section}`,
-        "Father's Name": student.father_name,
-        "Father's Phone": student.father_phone || 'N/A',
-        "Mother's Name": student.mother_name,
-        "Mother's Phone": student.mother_phone || 'N/A',
-    }));
-
-    // This part requires a library like xlsx, which is removed.
-    // To re-enable, add `xlsx` to package.json
-    console.log("Export to Excel is disabled. Data to export:", dataToExport);
     toast({
         title: "Export Disabled",
         description: "The library required for Excel export has been removed. Please ask to have it re-installed.",
@@ -69,19 +81,40 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
   
   const handleEditClick = (student: CombinedStudent) => {
     setStudentToEdit(student);
-    setUpdatedHouse(student.house);
+    const emergency_contacts = Array.isArray(student.emergency_contacts)
+        ? student.emergency_contacts.map(contact => {
+            const [name, ...phoneParts] = contact.split(':');
+            return { name: name?.trim() || '', phone: phoneParts.join(':').trim() || '' };
+        }).filter(c => c.name && c.phone)
+        : [];
+    
+    reset({
+      student_phone: student.student_phone || '',
+      email: student.email || '',
+      roll_number: student.roll_number || '',
+      house: student.house || '',
+      emergency_contacts: emergency_contacts
+    });
     setIsEditOpen(true);
   }
 
-  const handleUpdate = async () => {
-    if (!studentToEdit || updatedHouse === undefined) return;
+  const onUpdateSubmit = async (values: z.infer<typeof editStudentSchema>) => {
+    if (!studentToEdit) return;
 
-    setIsUpdating(true);
+    const emergency_contacts_string = values.emergency_contacts
+      ?.filter(c => c.name && c.phone)
+      .map(c => `${c.name}: ${c.phone}`);
+
+    const updatePayload = {
+      ...values,
+      emergency_contacts: emergency_contacts_string,
+    };
+    
     try {
-        await onUpdateStudent(studentToEdit.id, { house: updatedHouse });
+        await onUpdateStudent(studentToEdit.id, updatePayload);
         toast({
             title: "Student Updated",
-            description: `${studentToEdit.name}'s house has been updated successfully.`
+            description: `${studentToEdit.name}'s details have been updated.`
         });
         setIsEditOpen(false);
         setStudentToEdit(null);
@@ -91,8 +124,6 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
             title: "Update Failed",
             description: "Could not update the student's details."
         });
-    } finally {
-        setIsUpdating(false);
     }
   }
 
@@ -174,31 +205,92 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
         </Table>
       </div>
        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Edit Student: {studentToEdit?.name}</DialogTitle>
                     <DialogDescription>
-                        As a class teacher, you can assign or change the student's house.
+                        Update the student's academic and communication details.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-2">
-                    <Label htmlFor="house-select">House</Label>
-                    <Select onValueChange={(value) => setUpdatedHouse(value as Student['house'])} defaultValue={studentToEdit?.house}>
-                        <SelectTrigger id="house-select">
-                            <SelectValue placeholder="Select a house" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Red">Red</SelectItem>
-                            <SelectItem value="Green">Green</SelectItem>
-                            <SelectItem value="Blue">Blue</SelectItem>
-                            <SelectItem value="Yellow">Yellow</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                <Form {...form}>
+                  <form onSubmit={handleSubmit(onUpdateSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto p-1 pr-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       <FormField
+                          control={control}
+                          name="student_phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Student's Phone (WhatsApp)</FormLabel>
+                              <FormControl><Input {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Student's Email</FormLabel>
+                              <FormControl><Input {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={control}
+                          name="roll_number"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Roll Number</FormLabel>
+                              <FormControl><Input {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="house"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>House</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Assign a house"/>
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="Red">Red</SelectItem>
+                                    <SelectItem value="Green">Green</SelectItem>
+                                    <SelectItem value="Blue">Blue</SelectItem>
+                                    <SelectItem value="Yellow">Yellow</SelectItem>
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+                    <div>
+                      <Label>Emergency Contacts</Label>
+                       {fields.map((field, index) => (
+                          <div key={field.id} className="flex items-center gap-2 pt-2">
+                              <FormField control={control} name={`emergency_contacts.${index}.name`} render={({ field }) => (<FormItem className="flex-1"><FormControl><Input {...field} placeholder="Contact Name" /></FormControl><FormMessage/></FormItem>)} />
+                              <FormField control={control} name={`emergency_contacts.${index}.phone`} render={({ field }) => (<FormItem className="flex-1"><FormControl><Input {...field} placeholder="Phone Number" /></FormControl><FormMessage/></FormItem>)} />
+                              <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                      ))}
+                       <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => append({ name: "", phone: "" })}>
+                          <PlusCircle className="mr-2 h-4 w-4"/> Add Contact
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdating}>Cancel</Button>
-                    <Button onClick={handleUpdate} disabled={isUpdating}>
-                        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                    <Button onClick={handleSubmit(onUpdateSubmit)} disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                         Save Changes
                     </Button>
                 </DialogFooter>
@@ -207,3 +299,4 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
     </div>
   );
 }
+

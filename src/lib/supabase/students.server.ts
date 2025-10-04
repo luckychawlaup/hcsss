@@ -40,7 +40,6 @@ export const addStudent = async (formData: FormData) => {
             auth_uid: user.id,
             srn,
             name: studentData.name,
-            email: studentData.email,
             date_of_birth: studentData.date_of_birth,
             gender: studentData.gender,
             blood_group: studentData.blood_group || null,
@@ -54,18 +53,20 @@ export const addStudent = async (formData: FormData) => {
             mother_email: studentData.mother_email || null,
             guardian_name: studentData.guardian_name || null,
             guardian_relation: studentData.guardian_relation || null,
-            student_phone: studentData.student_phone || null,
             permanent_address: studentData.permanent_address,
             current_address: studentData.current_address || null,
             class: studentData.class,
             section: studentData.section,
-            roll_number: studentData.roll_number || null,
             admission_date: new Date(studentData.admission_date as string).toISOString(),
             previous_school: studentData.previous_school || null,
-            emergency_contacts: studentData.emergency_contacts ? JSON.parse(studentData.emergency_contacts as string) : [],
             transport_type: studentData.transport_type,
             private_vehicle_number: studentData.private_vehicle_number || null,
             school_transport_details: studentData.school_transport_details ? JSON.parse(studentData.school_transport_details as string) : null,
+            // These fields are now managed by the class teacher
+            email: studentData.email,
+            student_phone: null,
+            roll_number: null,
+            emergency_contacts: [],
         };
         
         const { error: dbError } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);

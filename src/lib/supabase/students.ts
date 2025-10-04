@@ -117,7 +117,7 @@ export interface Student {
     previous_school?: string;
 
     emergency_contacts?: string[];
-    transport_type?: 'None' | 'School' | 'Private';
+    transport_type?: 'Own Vehicle' | 'Pedestrian' | 'School Transport';
     private_vehicle_number?: string;
     school_transport_details?: {
         driver_name?: string;
@@ -242,7 +242,6 @@ export const getStudentsForTeacher = (teacher: any | null, callback: (students: 
         const { data, error } = await supabase.from(STUDENTS_COLLECTION)
             .select('*')
             .in('class', classList.map(c => c.split('-')[0]))
-            .in('section', classList.map(c => c.split('-')[1]));
             
         if (error) {
             console.error("Error fetching students for teacher:", error);
