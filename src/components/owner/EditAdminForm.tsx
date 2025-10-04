@@ -63,6 +63,8 @@ export default function EditAdminForm({ admin, onAdminUpdated }: EditAdminFormPr
     resolver: zodResolver(editAdminSchema),
     defaultValues: {
       ...admin,
+      address: admin.address || '',
+      work_experience: admin.work_experience || '',
       joining_date: admin.joining_date ? parseISO(admin.joining_date) : new Date(),
       bank_account: admin.bank_account || {
           accountHolderName: "",
