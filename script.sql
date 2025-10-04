@@ -1,13 +1,34 @@
 -- =================================================================
--- HILTON CONVENT SCHOOL - COMPLETE DATABASE SETUP SCRIPT
+-- HILTON CONVENT SCHOOL - COMPLETE DATABASE RESET & SETUP SCRIPT
 -- =================================================================
--- This script will create all necessary tables, functions, and
--- row-level security policies for the application.
--- Admin/Owner UID: 8ca56ec5-5e29-444f-931a-7247d65da329
+-- This script will DROP all existing tables and recreate them fresh
+-- New Admin/Owner UID: 431e9a2b-64f9-46ac-9a00-479a91435527
 -- =================================================================
 
 -- -----------------------------------------------------------------
--- Function to get student count for SRN generation
+-- STEP 1: DROP ALL EXISTING TABLES (in reverse dependency order)
+-- -----------------------------------------------------------------
+DROP TABLE IF EXISTS public.salary_slips CASCADE;
+DROP TABLE IF EXISTS public.school_info CASCADE;
+DROP TABLE IF EXISTS public.leaves CASCADE;
+DROP TABLE IF EXISTS public.homework CASCADE;
+DROP TABLE IF EXISTS public.school_holidays CASCADE;
+DROP TABLE IF EXISTS public.fees CASCADE;
+DROP TABLE IF EXISTS public.feedback CASCADE;
+DROP TABLE IF EXISTS public.announcements CASCADE;
+DROP TABLE IF EXISTS public.attendance CASCADE;
+DROP TABLE IF EXISTS public.marks CASCADE;
+DROP TABLE IF EXISTS public.exams CASCADE;
+DROP TABLE IF EXISTS public.students CASCADE;
+DROP TABLE IF EXISTS public.teachers CASCADE;
+DROP TABLE IF EXISTS public.admin_roles CASCADE;
+
+-- Drop functions
+DROP FUNCTION IF EXISTS get_student_count() CASCADE;
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+
+-- -----------------------------------------------------------------
+-- STEP 2: CREATE FUNCTIONS
 -- -----------------------------------------------------------------
 CREATE OR REPLACE FUNCTION get_student_count()
 RETURNS integer AS $$
@@ -19,9 +40,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- -----------------------------------------------------------------
--- Function to update timestamp on row updates
--- -----------------------------------------------------------------
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -31,9 +49,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- -----------------------------------------------------------------
--- Table: admin_roles
+-- STEP 3: CREATE ALL TABLES WITH NEW OWNER ID
 -- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.admin_roles (
+
+-- Table: admin_roles
+CREATE TABLE public.admin_roles (
     uid UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     role TEXT NOT NULL CHECK (role IN ('owner', 'principal', 'accountant')),
     name TEXT NOT NULL,
@@ -47,15 +67,12 @@ CREATE TABLE IF NOT EXISTS public.admin_roles (
 
 ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow owner to manage admin roles" ON public.admin_roles;
 CREATE POLICY "Allow owner to manage admin roles"
 ON public.admin_roles FOR ALL
-USING (auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid);
+USING (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid);
 
--- -----------------------------------------------------------------
 -- Table: teachers
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.teachers (
+CREATE TABLE public.teachers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_uid UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -79,15 +96,12 @@ CREATE TABLE IF NOT EXISTS public.teachers (
 
 ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow principal/owner to manage teachers" ON public.teachers;
-DROP POLICY IF EXISTS "Allow teachers to view and update their own profiles" ON public.teachers;
-
 CREATE POLICY "Allow principal/owner to manage teachers"
 ON public.teachers FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
 );
 
 CREATE POLICY "Allow teachers to view and update their own profiles"
@@ -100,10 +114,8 @@ CREATE TRIGGER update_teachers_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- -----------------------------------------------------------------
 -- Table: students
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.students (
+CREATE TABLE public.students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_uid UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     srn TEXT UNIQUE NOT NULL,
@@ -129,15 +141,12 @@ CREATE TABLE IF NOT EXISTS public.students (
 
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow admin and teachers to manage students" ON public.students;
-DROP POLICY IF EXISTS "Allow students to view their own profile" ON public.students;
-
 CREATE POLICY "Allow admin and teachers to manage students"
 ON public.students FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
     OR
     EXISTS (SELECT 1 FROM public.teachers WHERE auth_uid = auth.uid())
 );
@@ -151,10 +160,8 @@ CREATE TRIGGER update_students_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- -----------------------------------------------------------------
 -- Table: exams
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.exams (
+CREATE TABLE public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     date TIMESTAMPTZ NOT NULL,
@@ -166,9 +173,6 @@ CREATE TABLE IF NOT EXISTS public.exams (
 
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow authenticated users to read exams" ON public.exams;
-DROP POLICY IF EXISTS "Allow admins and class teachers to manage exams" ON public.exams;
-
 CREATE POLICY "Allow authenticated users to read exams"
 ON public.exams FOR SELECT
 USING (auth.role() = 'authenticated');
@@ -178,15 +182,13 @@ ON public.exams FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
     OR
     (SELECT role FROM public.teachers WHERE auth_uid = auth.uid()) = 'classTeacher'
 );
 
--- -----------------------------------------------------------------
 -- Table: marks
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.marks (
+CREATE TABLE public.marks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
     exam_id UUID NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
@@ -201,9 +203,6 @@ CREATE TABLE IF NOT EXISTS public.marks (
 );
 
 ALTER TABLE public.marks ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Allow class teachers & principal to manage marks" ON public.marks;
-DROP POLICY IF EXISTS "Allow students to view their own marks" ON public.marks;
 
 CREATE POLICY "Allow class teachers & principal to manage marks"
 ON public.marks FOR ALL
@@ -220,7 +219,7 @@ USING (
     OR
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
 );
 
 CREATE POLICY "Allow students to view their own marks"
@@ -234,10 +233,8 @@ CREATE TRIGGER update_marks_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- -----------------------------------------------------------------
 -- Table: attendance
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.attendance (
+CREATE TABLE public.attendance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
     class_section TEXT NOT NULL,
@@ -250,10 +247,6 @@ CREATE TABLE IF NOT EXISTS public.attendance (
 );
 
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Allow teachers to manage attendance" ON public.attendance;
-DROP POLICY IF EXISTS "Allow students to view their own attendance" ON public.attendance;
-DROP POLICY IF EXISTS "Allow principal/owner/accountant to view all attendance" ON public.attendance;
 
 CREATE POLICY "Allow teachers to manage attendance"
 ON public.attendance FOR ALL
@@ -279,7 +272,7 @@ ON public.attendance FOR SELECT
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'accountant', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
 );
 
 CREATE TRIGGER update_attendance_updated_at 
@@ -287,13 +280,11 @@ CREATE TRIGGER update_attendance_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
-CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON public.attendance(student_id, date);
-CREATE INDEX IF NOT EXISTS idx_attendance_class_date ON public.attendance(class_section, date);
+CREATE INDEX idx_attendance_student_date ON public.attendance(student_id, date);
+CREATE INDEX idx_attendance_class_date ON public.attendance(class_section, date);
 
--- -----------------------------------------------------------------
 -- Table: announcements
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.announcements (
+CREATE TABLE public.announcements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     content TEXT NOT NULL,
     target TEXT NOT NULL CHECK (target IN ('students', 'teachers', 'both')),
@@ -308,16 +299,12 @@ CREATE TABLE IF NOT EXISTS public.announcements (
 
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow admins to manage all announcements" ON public.announcements;
-DROP POLICY IF EXISTS "Allow teachers to manage announcements for their classes" ON public.announcements;
-DROP POLICY IF EXISTS "Allow authenticated users to read relevant announcements" ON public.announcements;
-
 CREATE POLICY "Allow admins to manage all announcements"
 ON public.announcements FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
 );
 
 CREATE POLICY "Allow teachers to manage announcements for their classes"
@@ -360,13 +347,11 @@ USING (
     ) = (target_audience->>'value')
 );
 
-CREATE INDEX IF NOT EXISTS idx_announcements_target ON public.announcements(target);
-CREATE INDEX IF NOT EXISTS idx_announcements_created_at ON public.announcements(created_at DESC);
+CREATE INDEX idx_announcements_target ON public.announcements(target);
+CREATE INDEX idx_announcements_created_at ON public.announcements(created_at DESC);
 
--- -----------------------------------------------------------------
 -- Table: feedback
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.feedback (
+CREATE TABLE public.feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     user_name TEXT NOT NULL,
@@ -382,10 +367,6 @@ CREATE TABLE IF NOT EXISTS public.feedback (
 );
 
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Allow authenticated users to submit feedback" ON public.feedback;
-DROP POLICY IF EXISTS "Allow admins and teachers to manage feedback" ON public.feedback;
-DROP POLICY IF EXISTS "Allow users to read their own feedback" ON public.feedback;
 
 CREATE POLICY "Allow authenticated users to submit feedback"
 ON public.feedback FOR INSERT
@@ -408,10 +389,8 @@ CREATE TRIGGER update_feedback_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- -----------------------------------------------------------------
 -- Table: fees
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.fees (
+CREATE TABLE public.fees (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
     month TEXT NOT NULL,
@@ -425,10 +404,6 @@ CREATE TABLE IF NOT EXISTS public.fees (
 
 ALTER TABLE public.fees ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow accountants to manage fees" ON public.fees;
-DROP POLICY IF EXISTS "Allow students to view their own fees" ON public.fees;
-DROP POLICY IF EXISTS "Allow principal/owner to manage fees" ON public.fees;
-
 CREATE POLICY "Allow accountants to manage fees"
 ON public.fees FOR ALL
 USING (
@@ -440,7 +415,7 @@ ON public.fees FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
 );
 
 CREATE POLICY "Allow students to view their own fees"
@@ -452,12 +427,10 @@ CREATE TRIGGER update_fees_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
-CREATE INDEX IF NOT EXISTS idx_fees_student_month ON public.fees(student_id, month);
+CREATE INDEX idx_fees_student_month ON public.fees(student_id, month);
 
--- -----------------------------------------------------------------
 -- Table: school_holidays
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.school_holidays (
+CREATE TABLE public.school_holidays (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     date DATE NOT NULL,
     description TEXT NOT NULL,
@@ -468,16 +441,12 @@ CREATE TABLE IF NOT EXISTS public.school_holidays (
 
 ALTER TABLE public.school_holidays ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow admins to manage holidays" ON public.school_holidays;
-DROP POLICY IF EXISTS "Allow class teachers to manage their class holidays" ON public.school_holidays;
-DROP POLICY IF EXISTS "Allow authenticated users to read holidays" ON public.school_holidays;
-
 CREATE POLICY "Allow admins to manage holidays"
 ON public.school_holidays FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
 );
 
 CREATE POLICY "Allow class teachers to manage their class holidays"
@@ -496,12 +465,10 @@ CREATE POLICY "Allow authenticated users to read holidays"
 ON public.school_holidays FOR SELECT
 USING (auth.role() = 'authenticated');
 
-CREATE INDEX IF NOT EXISTS idx_holidays_date ON public.school_holidays(date);
+CREATE INDEX idx_holidays_date ON public.school_holidays(date);
 
--- -----------------------------------------------------------------
 -- Table: homework
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.homework (
+CREATE TABLE public.homework (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assigned_by UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
     teacher_name TEXT NOT NULL,
@@ -514,10 +481,6 @@ CREATE TABLE IF NOT EXISTS public.homework (
 );
 
 ALTER TABLE public.homework ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Allow teachers to manage homework for their classes" ON public.homework;
-DROP POLICY IF EXISTS "Allow students to view homework for their class" ON public.homework;
-DROP POLICY IF EXISTS "Allow admins to access all homework" ON public.homework;
 
 CREATE POLICY "Allow teachers to manage homework for their classes"
 ON public.homework FOR ALL
@@ -547,17 +510,15 @@ ON public.homework FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
 );
 
-CREATE INDEX IF NOT EXISTS idx_homework_class_section ON public.homework(class_section);
-CREATE INDEX IF NOT EXISTS idx_homework_assigned_by ON public.homework(assigned_by);
-CREATE INDEX IF NOT EXISTS idx_homework_due_date ON public.homework(due_date);
+CREATE INDEX idx_homework_class_section ON public.homework(class_section);
+CREATE INDEX idx_homework_assigned_by ON public.homework(assigned_by);
+CREATE INDEX idx_homework_due_date ON public.homework(due_date);
 
--- -----------------------------------------------------------------
 -- Table: leaves
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.leaves (
+CREATE TABLE public.leaves (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     user_name TEXT NOT NULL,
@@ -578,10 +539,6 @@ CREATE TABLE IF NOT EXISTS public.leaves (
 
 ALTER TABLE public.leaves ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow authenticated users to insert their own leave" ON public.leaves;
-DROP POLICY IF EXISTS "Allow users to view their own leave requests" ON public.leaves;
-DROP POLICY IF EXISTS "Allow teachers/admins to manage all leave requests" ON public.leaves;
-
 CREATE POLICY "Allow authenticated users to insert their own leave"
 ON public.leaves FOR INSERT
 WITH CHECK (auth.uid() = user_id);
@@ -598,13 +555,11 @@ USING (
     EXISTS (SELECT 1 FROM public.admin_roles WHERE uid = auth.uid())
 );
 
-CREATE INDEX IF NOT EXISTS idx_leaves_user_id ON public.leaves(user_id);
-CREATE INDEX IF NOT EXISTS idx_leaves_status ON public.leaves(status);
+CREATE INDEX idx_leaves_user_id ON public.leaves(user_id);
+CREATE INDEX idx_leaves_status ON public.leaves(status);
 
--- -----------------------------------------------------------------
 -- Table: school_info
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.school_info (
+CREATE TABLE public.school_info (
     id TEXT PRIMARY KEY DEFAULT 'main',
     name TEXT NOT NULL,
     email TEXT NOT NULL,
@@ -619,15 +574,12 @@ CREATE TABLE IF NOT EXISTS public.school_info (
 
 ALTER TABLE public.school_info ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow principal to manage school info" ON public.school_info;
-DROP POLICY IF EXISTS "Allow authenticated users to read school info" ON public.school_info;
-
 CREATE POLICY "Allow principal to manage school info"
 ON public.school_info FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
 );
 
 CREATE POLICY "Allow authenticated users to read school info"
@@ -639,10 +591,8 @@ CREATE TRIGGER update_school_info_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- -----------------------------------------------------------------
 -- Table: salary_slips
--- -----------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.salary_slips (
+CREATE TABLE public.salary_slips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID NOT NULL REFERENCES public.teachers(id) ON DELETE CASCADE,
     month TEXT NOT NULL,
@@ -659,34 +609,30 @@ CREATE TABLE IF NOT EXISTS public.salary_slips (
 
 ALTER TABLE public.salary_slips ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow principal/owner to manage salary slips" ON public.salary_slips;
-DROP POLICY IF EXISTS "Allow teachers to view their own salary slips" ON public.salary_slips;
-
 CREATE POLICY "Allow principal/owner to manage salary slips"
 ON public.salary_slips FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    auth.uid() = '8ca56ec5-5e29-444f-931a-7247d65da329'::uuid
+    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'::uuid
 );
 
 CREATE POLICY "Allow teachers to view their own salary slips"
 ON public.salary_slips FOR SELECT
 USING (teacher_id = (SELECT id FROM public.teachers WHERE auth_uid = auth.uid()));
 
-CREATE INDEX IF NOT EXISTS idx_salary_slips_teacher_month ON public.salary_slips(teacher_id, month);
+CREATE INDEX idx_salary_slips_teacher_month ON public.salary_slips(teacher_id, month);
 
--- =================================================================
--- INITIAL DATA - Insert default school info
--- =================================================================
+-- -----------------------------------------------------------------
+-- STEP 4: INSERT DEFAULT DATA
+-- -----------------------------------------------------------------
 INSERT INTO public.school_info (id, name, email, phone, address, affiliation_no, school_code)
 VALUES (
     'main',
     'Hilton Convent School',
     'hiltonconventschool@gmail.com',
-    '+91-+919548322595',
+    '+91-9548322595',
     'Joya Road, Amroha, 244221, Uttar Pradesh (west)',
     '2131151',
     '81259'
-)
-ON CONFLICT (id) DO NOTHING;
+);

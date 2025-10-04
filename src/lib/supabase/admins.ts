@@ -23,23 +23,18 @@ CREATE TABLE IF NOT EXISTS public.admin_roles (
 ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow owner to manage admin roles" ON public.admin_roles;
-DROP POLICY IF EXISTS "Allow authenticated admins to read admin roles" ON public.admin_roles;
+DROP POLICY IF EXISTS "Allow authenticated admins to read their own role" ON public.admin_roles;
 
+-- Policy for the Owner (full access)
 CREATE POLICY "Allow owner to manage admin roles"
 ON public.admin_roles FOR ALL
-USING (
-    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'
-)
-WITH CHECK (
-    auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527'
-);
+USING (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527')
+WITH CHECK (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527');
 
-
-CREATE POLICY "Allow authenticated admins to read admin roles"
+-- Policy for other admins (can only see their own entry)
+CREATE POLICY "Allow authenticated admins to read their own role"
 ON public.admin_roles FOR SELECT
-USING (
-    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IS NOT NULL
-);
+USING (auth.uid() = uid);
 `;
 
 
