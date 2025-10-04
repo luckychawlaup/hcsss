@@ -34,6 +34,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
 import { addTeacher } from "@/lib/supabase/teachers";
+import Image from "next/image";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B", "C", "D"];
@@ -118,6 +119,7 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
   const { control, handleSubmit, reset, watch, setValue } = form;
   const role = watch("role");
   const qualifications = watch("qualifications", []);
+  const photoUrl = watch("photo_url");
 
   const handleAddQualification = () => {
     if (qualificationInput.trim()) {
@@ -508,9 +510,20 @@ export default function AddTeacherForm({ onTeacherAdded }: AddTeacherFormProps) 
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Teacher's Photo URL (Optional)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="https://example.com/photo.jpg" {...field} />
-                        </FormControl>
+                        <div className="flex items-center gap-4">
+                            <FormControl className="flex-1">
+                                <Input placeholder="https://example.com/photo.jpg" {...field} />
+                            </FormControl>
+                            {photoUrl && (
+                                <Image 
+                                    src={photoUrl} 
+                                    alt="Preview"
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full object-cover"
+                                />
+                            )}
+                        </div>
                         <FormMessage />
                         </FormItem>
                     )}

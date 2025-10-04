@@ -27,6 +27,7 @@ import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "../ui/separator";
+import Image from "next/image";
 
 const addAdminSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -79,6 +80,8 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
       }
     },
   });
+
+  const photoUrl = form.watch("photo_url");
 
   async function onSubmit(values: z.infer<typeof addAdminSchema>) {
     setIsLoading(true);
@@ -254,15 +257,26 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                     </FormItem>
                     )}
                 />
-                <FormField
+                 <FormField
                     control={form.control}
                     name="photo_url"
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Admin Photo URL (Optional)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="https://example.com/photo.jpg" {...field} />
-                        </FormControl>
+                        <div className="flex items-center gap-4">
+                            <FormControl className="flex-1">
+                                <Input placeholder="https://example.com/photo.jpg" {...field} />
+                            </FormControl>
+                            {photoUrl && (
+                                <Image 
+                                    src={photoUrl} 
+                                    alt="Preview"
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full object-cover"
+                                />
+                            )}
+                        </div>
                         <FormMessage />
                         </FormItem>
                     )}

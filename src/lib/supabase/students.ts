@@ -118,6 +118,7 @@ export interface Student {
     srn: string;
     name: string;
     email: string;
+    photo_url?: string;
     date_of_birth: string;
     gender?: 'Male' | 'Female' | 'Other';
     blood_group?: string;
@@ -154,7 +155,6 @@ export interface Student {
         bus_number?: string;
     };
     
-    photo_url?: string;
     aadhar_number?: string;
     aadhar_url?: string;
     opted_subjects?: string[];

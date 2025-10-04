@@ -35,12 +35,14 @@ import { addStudent } from "@/lib/supabase/students";
 import { Separator } from "../ui/separator";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Label } from "../ui/label";
+import Image from "next/image";
 
 const classes = ["Nursery", "LKG", "UKG", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
 const sections = ["A", "B", "C", "D"];
 
 const addStudentSchema = z.object({
     name: z.string().min(2, "Student name is required."),
+    photo_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
     date_of_birth: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in DD/MM/YYYY format."),
     gender: z.enum(["Male", "Female", "Other"], { required_error: "Gender is required."}),
     blood_group: z.string().optional(),
@@ -88,6 +90,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
     resolver: zodResolver(addStudentSchema),
     defaultValues: {
       name: "",
+      photo_url: "",
       date_of_birth: "",
       father_name: "",
       mother_name: "",
@@ -100,6 +103,7 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
 
   const { control, handleSubmit, reset, watch } = form;
   const transportType = watch("transport_type");
+  const photoUrl = watch("photo_url");
 
 
   async function onSubmit(values: z.infer<typeof addStudentSchema>) {
@@ -144,6 +148,26 @@ export default function AddStudentForm({ onStudentAdded }: AddStudentFormProps) 
                     <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl><Input placeholder="As per Birth Certificate / Aadhaar / TC" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={control_name="photo_url" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Student Photo URL (Optional)</FormLabel>
+                         <div className="flex items-center gap-4">
+                            <FormControl className="flex-1">
+                                <Input placeholder="https://example.com/photo.jpg" {...field} />
+                            </FormControl>
+                            {photoUrl && (
+                                <Image 
+                                    src={photoUrl} 
+                                    alt="Preview"
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full object-cover"
+                                />
+                            )}
+                        </div>
                         <FormMessage />
                     </FormItem>
                 )} />

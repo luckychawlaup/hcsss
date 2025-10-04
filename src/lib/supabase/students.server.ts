@@ -26,7 +26,8 @@ export const addStudent = async (formData: FormData) => {
             password: crypto.randomUUID(), // Temporary password
             user_metadata: {
                 full_name: studentData.name,
-                role: 'student'
+                role: 'student',
+                 avatar_url: studentData.photo_url,
             }
         }
     });
@@ -48,6 +49,7 @@ export const addStudent = async (formData: FormData) => {
             auth_uid: user.id,
             srn,
             name: studentData.name,
+            photo_url: studentData.photo_url || null,
             date_of_birth: studentData.date_of_birth,
             gender: studentData.gender,
             blood_group: studentData.blood_group || null,
