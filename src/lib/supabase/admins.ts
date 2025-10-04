@@ -7,6 +7,42 @@ import { addAdmin as addAdminServerAction } from './admins.server';
 const supabase = createClient();
 const ADMIN_ROLES_TABLE = 'admin_roles';
 
+export const ADMIN_ROLES_TABLE_SETUP_SQL = `
+CREATE TABLE IF NOT EXISTS public.admin_roles (
+    uid UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('principal', 'accountant')),
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    phone_number TEXT,
+    address TEXT,
+    photo_url TEXT,
+    dob TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow owner to manage admin roles" ON public.admin_roles;
+DROP POLICY IF EXISTS "Allow authenticated admins to read admin roles" ON public.admin_roles;
+
+CREATE POLICY "Allow owner to manage admin roles"
+ON public.admin_roles FOR ALL
+USING (
+    auth.uid() = (SELECT id FROM public.users WHERE email = '${process.env.NEXT_PUBLIC_OWNER_EMAIL}')
+)
+WITH CHECK (
+    auth.uid() = (SELECT id FROM public.users WHERE email = '${process.env.NEXT_PUBLIC_OWNER_EMAIL}')
+);
+
+
+CREATE POLICY "Allow authenticated admins to read admin roles"
+ON public.admin_roles FOR SELECT
+USING (
+    (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IS NOT NULL
+);
+`;
+
+
 export interface AdminUser {
     uid: string;
     role: 'principal' | 'accountant';
