@@ -163,7 +163,7 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>SRN</TableHead>
+              <TableHead>Student ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Class</TableHead>
               <TableHead>Father's Name</TableHead>
@@ -299,4 +299,3 @@ export default function TeacherStudentList({ students, isLoading, isClassTeacher
     </div>
   );
 }
-

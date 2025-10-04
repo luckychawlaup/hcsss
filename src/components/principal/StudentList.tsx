@@ -188,6 +188,7 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                 <Table>
                 <TableHeader>
                     <TableRow>
+                    <TableHead>Student ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Father's Name</TableHead>
@@ -199,6 +200,7 @@ export default function StudentList({ students, isLoading, onUpdateStudent, onDe
                     {filteredStudents.length > 0 ? (
                         filteredStudents.map((student) => (
                         <TableRow key={student.id}>
+                            <TableCell className="font-mono">{student.srn}</TableCell>
                             <TableCell className="font-medium">
                                 <div className="flex items-center gap-2">
                                     {student.name}

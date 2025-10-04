@@ -6,13 +6,23 @@ import { createClient } from "@/lib/supabase/server";
 
 const STUDENTS_COLLECTION = 'students';
 
+const generateStudentId = (length: number) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+};
+
+
 export const addStudent = async (formData: FormData) => {
     const supabase = createClient();
     const studentData = Object.fromEntries(formData.entries());
 
     const { data: functionData, error: functionError } = await supabase.functions.invoke('create-user', {
         body: {
-            email: studentData.email as string,
+            email: `${studentData.name.split(' ').join('').toLowerCase()}.${Date.now().toString().slice(-4)}@hcs.com`,
             password: crypto.randomUUID(), // Temporary password
             user_metadata: {
                 full_name: studentData.name,
@@ -32,9 +42,7 @@ export const addStudent = async (formData: FormData) => {
     }
 
     try {
-        const { data: countData, error: countError } = await supabase.rpc('get_student_count');
-        if (countError) throw countError;
-        const srn = `HCS${(countData + 1).toString().padStart(4, '0')}`;
+        const srn = generateStudentId(6);
         
         const finalStudentData = { 
             auth_uid: user.id,
@@ -62,11 +70,7 @@ export const addStudent = async (formData: FormData) => {
             transport_type: studentData.transport_type,
             private_vehicle_number: studentData.private_vehicle_number || null,
             school_transport_details: studentData.school_transport_details ? JSON.parse(studentData.school_transport_details as string) : null,
-            // These fields are now managed by the class teacher
-            email: studentData.email,
-            student_phone: null,
-            roll_number: null,
-            emergency_contacts: [],
+            email: `${studentData.name.split(' ').join('').toLowerCase()}.${Date.now().toString().slice(-4)}@hcs.com`,
         };
         
         const { error: dbError } = await supabase.from(STUDENTS_COLLECTION).insert([finalStudentData]);
