@@ -2,6 +2,10 @@
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hiltonconventschool/app.git"
+  },
   "scripts": {
     "dev": "next dev -p 9002",
     "dev-random": "next dev -p $((RANDOM % 1000 + 9000))",
@@ -24,7 +28,19 @@
     "full-upgrade": "rm -rf node_modules package-lock.json && npm install && npm update && npm audit fix --force",
     "upgrade-and-start": "npm run full-upgrade && npm run dev-random",
     "complete-reset": "rm -rf .next node_modules/.cache out build node_modules package-lock.json && npm cache clean --force && npm install && npm update && npm audit fix --force && next build && npm run dev-random",
-    "super-clean": "rm -rf .next node_modules/.cache out build node_modules package-lock.json && npm cache clean --force && npm install && npm update && npm audit fix --force && npm run dev-random"
+    "super-clean": "rm -rf .next node_modules/.cache out build node_modules package-lock.json && npm cache clean --force && npm install && npm update && npm audit fix --force && npm run dev-random",
+    "git-status": "git status",
+    "git-add": "git add .",
+    "git-commit": "git commit -m",
+    "git-push": "git push origin main",
+    "deploy-prep": "npm run typecheck && npm run lint && npm run build",
+    "git-deploy": "npm run git-add && npm run git-commit 'Deploy: Production build' && npm run git-push",
+    "quick-deploy": "npm run deploy-prep && npm run git-deploy",
+    "force-push": "git push origin main --force",
+    "pull-latest": "git pull origin main",
+    "sync": "npm run pull-latest && npm run super-clean",
+    "update-and-deploy": "git pull origin main && rm -rf .next node_modules/.cache out build node_modules package-lock.json && npm cache clean --force && npm install && npm update && npm audit fix --force && npm run typecheck && npm run lint && npm run build && git add . && git commit -m 'Auto-deploy: Updated dependencies and code' && git push origin main",
+    "mega-deploy": "git stash && git pull origin main && git stash pop && rm -rf .next node_modules/.cache out build node_modules package-lock.json && npm cache clean --force && npm install && npm update && npm audit fix --force && npm run build && git add . && git commit -m 'Mega deploy: Latest code + dependencies' && git push origin main"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
