@@ -228,6 +228,7 @@ export function AdminProfileDetails({ profile, user }: { profile: AdminUser, use
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <DetailItem icon={<Briefcase />} label="Role" value={profile.role} />
                     <DetailItem icon={<Calendar />} label="Joining Date" value={formatDate(profile.joining_date)} />
+                    <DetailItem icon={<Book />} label="Work Experience" value={profile.work_experience} />
                 </CardContent>
             </Card>
             <Card>

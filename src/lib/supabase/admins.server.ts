@@ -60,6 +60,7 @@ export const addAdmin = async (formData: FormData) => {
                 joining_date: adminData.joining_date ? new Date(adminData.joining_date as string).toISOString() : null,
                 aadhar_number: adminData.aadhar_number,
                 pan_number: adminData.pan_number,
+                work_experience: adminData.work_experience,
             });
 
         if (dbError) {

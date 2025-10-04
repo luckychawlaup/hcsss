@@ -39,6 +39,7 @@ const addAdminSchema = z.object({
   photo_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
   aadhar_number: z.string().length(12, "Aadhar number must be exactly 12 digits.").regex(/^\d+$/, "Aadhar must only contain numbers.").optional().or(z.literal('')),
   pan_number: z.string().length(10, "PAN must be exactly 10 characters.").optional().or(z.literal('')),
+  work_experience: z.string().optional(),
 });
 
 interface AddAdminFormProps {
@@ -62,6 +63,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
       photo_url: "",
       aadhar_number: "",
       pan_number: "",
+      work_experience: "",
     },
   });
 
@@ -76,6 +78,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
           photo_url: values.photo_url || undefined,
           aadhar_number: values.aadhar_number || undefined,
           pan_number: values.pan_number || undefined,
+          work_experience: values.work_experience || undefined,
           joining_date: values.joining_date.toISOString(),
       });
       
@@ -175,7 +178,7 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                     <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                        <Input type="tel" maxLength={13} placeholder="e.g., +911234567890" {...field} />
+                        <Input type="tel" maxLength={13} placeholder="With country code, e.g. +91..." {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -219,6 +222,19 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                         <FormLabel>Address (Optional)</FormLabel>
                         <FormControl>
                         <Textarea placeholder="Enter full address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="work_experience"
+                    render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                        <FormLabel>Work Experience (Optional)</FormLabel>
+                        <FormControl>
+                        <Textarea placeholder="Describe previous roles and experiences..." {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -305,5 +321,3 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
     </>
   );
 }
-
-    

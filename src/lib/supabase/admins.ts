@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.admin_roles (
     joining_date TIMESTAMPTZ,
     aadhar_number TEXT,
     pan_number TEXT,
+    work_experience TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -63,6 +64,7 @@ export interface AdminUser {
     joining_date?: string;
     aadhar_number?: string;
     pan_number?: string;
+    work_experience?: string;
     created_at?: string;
 }
 
