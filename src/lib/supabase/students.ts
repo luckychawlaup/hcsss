@@ -58,7 +58,7 @@ ON public.students FOR ALL
 USING (
     (SELECT role FROM public.admin_roles WHERE uid = auth.uid()) IN ('principal', 'owner')
     OR
-    (auth.uid() = '${process.env.NEXT_PUBLIC_OWNER_UID}')
+    (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527')
 );
 
 DROP POLICY IF EXISTS "Allow class teachers to view students in their classes" ON public.students;
