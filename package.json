@@ -4,10 +4,27 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 9002",
+    "dev-random": "next dev -p $((RANDOM % 1000 + 9000))",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clear-cache": "rm -rf .next node_modules/.cache out build",
+    "clear-npm": "npm cache clean --force",
+    "clear-all": "rm -rf .next node_modules/.cache out build && npm cache clean --force",
+    "reinstall": "rm -rf node_modules package-lock.json && npm install",
+    "fresh-start": "rm -rf .next node_modules/.cache out build && npm cache clean --force && npm run dev-random",
+    "nuclear": "rm -rf .next node_modules/.cache out build node_modules package-lock.json && npm cache clean --force && npm install && npm run dev-random",
+    "audit": "npm audit",
+    "audit-fix": "npm audit fix",
+    "audit-fix-force": "npm audit fix --force",
+    "update-packages": "npm update",
+    "check-updates": "npm outdated",
+    "upgrade-all": "npm update && npm audit fix --force",
+    "full-upgrade": "rm -rf node_modules package-lock.json && npm install && npm update && npm audit fix --force",
+    "upgrade-and-start": "npm run full-upgrade && npm run dev-random",
+    "complete-reset": "rm -rf .next node_modules/.cache out build node_modules package-lock.json && npm cache clean --force && npm install && npm update && npm audit fix --force && next build && npm run dev-random",
+    "super-clean": "rm -rf .next node_modules/.cache out build node_modules package-lock.json && npm cache clean --force && npm install && npm update && npm audit fix --force && npm run dev-random"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
