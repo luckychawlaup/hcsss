@@ -9,6 +9,7 @@ const supabase = createClient();
 const ADMIN_ROLES_TABLE = 'admin_roles';
 
 export const ADMIN_ROLES_TABLE_SETUP_SQL = `
+-- Creates the table if it doesn't exist
 CREATE TABLE IF NOT EXISTS public.admin_roles (
     uid UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     role TEXT NOT NULL CHECK (role IN ('principal', 'accountant')),
@@ -18,11 +19,17 @@ CREATE TABLE IF NOT EXISTS public.admin_roles (
     address TEXT,
     photo_url TEXT,
     dob TEXT,
+    gender TEXT,
+    joining_date TIMESTAMPTZ,
+    aadhar_number TEXT,
+    pan_number TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Enables Row Level Security on the table
 ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
 
+-- Removes old policies to prevent conflicts
 DROP POLICY IF EXISTS "Allow owner to manage admin roles" ON public.admin_roles;
 DROP POLICY IF EXISTS "Allow authenticated users to read admin roles" ON public.admin_roles;
 DROP POLICY IF EXISTS "Allow authenticated admins to read admin roles" ON public.admin_roles; -- remove legacy policy
@@ -30,8 +37,8 @@ DROP POLICY IF EXISTS "Allow authenticated admins to read admin roles" ON public
 -- Policy for the Owner to have full control (insert, update, delete, select)
 CREATE POLICY "Allow owner to manage admin roles"
 ON public.admin_roles FOR ALL
-USING (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527')
-WITH CHECK (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527');
+USING (auth.uid() = '431e9a2b-64f9-46ac-9a00-479a91435527');
+
 
 -- Policy for ANY logged-in user to be able to READ from this table.
 -- This is safe and necessary for the getRole() function to work correctly for all users.
@@ -50,6 +57,10 @@ export interface AdminUser {
     address?: string;
     photo_url?: string;
     dob?: string;
+    gender?: 'Male' | 'Female' | 'Other';
+    joining_date?: string;
+    aadhar_number?: string;
+    pan_number?: string;
     created_at?: string;
 }
 

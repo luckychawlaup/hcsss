@@ -6,7 +6,7 @@ const cspHeader = `
     connect-src 'self' https://bagndvjulypekmcddkyn.supabase.co wss://bagndvjulypekmcddkyn.supabase.co;
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
     style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://picsum.photos https://fastly.picsum.photos https://hiltonconventschool.edu.in https://cnvwsxlwpvyjxemgpdks.supabase.co https://ik.imagekit.io https://bagndvjulypekmcddkyn.supabase.co https://api.dicebear.com;
+    img-src 'self' blob: data: https:;
     font-src 'self' https://r2cdn.perplexity.ai;
     object-src 'none';
     base-uri 'self';
@@ -39,54 +39,10 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'fastly.picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
        {
         protocol: 'https',
-        hostname: 'cnvwsxlwpvyjxemgpdks.supabase.co',
-        port: '',
-        pathname: '/**',
+        hostname: '**',
       },
-      {
-        protocol: 'https',
-        hostname: 'ik.imagekit.io',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'bagndvjulypekmcddkyn.supabase.co',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'api.dicebear.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'hiltonconventschool.edu.in',
-        port: '',
-        pathname: '/**',
-      }
     ],
   },
 };

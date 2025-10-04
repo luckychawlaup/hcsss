@@ -22,15 +22,23 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "../ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { addAdmin } from "@/lib/supabase/admins";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Calendar } from "../ui/calendar";
+import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 const addAdminSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
   dob: z.string().regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in DD/MM/YYYY format."),
+  gender: z.enum(["Male", "Female", "Other"], { required_error: "Please select a gender."}),
   phone_number: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
   address: z.string().optional(),
   role: z.enum(["principal", "accountant"], { required_error: "You must select a role."}),
+  joining_date: z.date({ required_error: "Joining date is required."}),
   photo_url: z.string().url("Please enter a valid URL or leave it empty.").optional().or(z.literal('')),
+  aadhar_number: z.string().length(12, "Aadhar number must be 12 digits.").optional().or(z.literal('')),
+  pan_number: z.string().length(10, "PAN must be 10 characters.").optional().or(z.literal('')),
 });
 
 interface AddAdminFormProps {
@@ -52,6 +60,8 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
       address: "",
       role: "principal",
       photo_url: "",
+      aadhar_number: "",
+      pan_number: "",
     },
   });
 
@@ -64,6 +74,9 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
           ...values,
           address: values.address || '',
           photo_url: values.photo_url || undefined,
+          aadhar_number: values.aadhar_number || undefined,
+          pan_number: values.pan_number || undefined,
+          joining_date: values.joining_date.toISOString(),
       });
       
       toast({
@@ -134,6 +147,28 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                   )}
                 />
                 <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                           <SelectItem value="Male">Male</SelectItem>
+                           <SelectItem value="Female">Female</SelectItem>
+                           <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
                     control={form.control}
                     name="phone_number"
                     render={({ field }) => (
@@ -141,6 +176,49 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
                         <Input placeholder="+91 12345 67890" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="joining_date"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>Date of Joining</FormLabel>
+                        <Popover>
+                        <PopoverTrigger asChild>
+                            <FormControl>
+                            <Button
+                                variant={"outline"}
+                                className={cn("w-full pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>
+                                {field.value ? (format(field.value, "PPP")) : (<span>Pick a date</span>)}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                            </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                            />
+                        </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                        <FormLabel>Address (Optional)</FormLabel>
+                        <FormControl>
+                        <Textarea placeholder="Enter full address" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -159,17 +237,30 @@ export default function AddAdminForm({ onAdminAdded }: AddAdminFormProps) {
                         </FormItem>
                     )}
                 />
-                 <FormField
+                <FormField
                     control={form.control}
-                    name="address"
+                    name="aadhar_number"
                     render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Address (Optional)</FormLabel>
+                        <FormItem>
+                        <FormLabel>Aadhar Number (Optional)</FormLabel>
                         <FormControl>
-                        <Textarea placeholder="Enter full address" {...field} />
+                            <Input placeholder="12-digit Aadhar number" {...field} />
                         </FormControl>
                         <FormMessage />
-                    </FormItem>
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="pan_number"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>PAN Number (Optional)</FormLabel>
+                        <FormControl>
+                            <Input placeholder="10-character PAN" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
                     )}
                 />
             </div>

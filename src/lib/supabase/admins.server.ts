@@ -42,7 +42,11 @@ export const addAdmin = async (formData: FormData) => {
                 phone_number: adminData.phone_number,
                 address: adminData.address,
                 dob: adminData.dob,
-                photo_url: adminData.photo_url
+                photo_url: adminData.photo_url,
+                gender: adminData.gender,
+                joining_date: adminData.joining_date ? new Date(adminData.joining_date as string).toISOString() : null,
+                aadhar_number: adminData.aadhar_number,
+                pan_number: adminData.pan_number,
             });
 
         if (dbError) {
