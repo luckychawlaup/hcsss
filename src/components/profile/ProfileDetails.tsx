@@ -29,7 +29,8 @@ import {
   Edit,
   Key,
   Fingerprint,
-  Flag
+  Flag,
+  Landmark
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -251,6 +252,15 @@ export function AdminProfileDetails({ profile, user }: { profile: AdminUser, use
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                      <DetailItem icon={<Key />} label="PAN Number" value={profile.pan_number} />
                      <DetailItem icon={<Fingerprint />} label="Aadhar Number" value={profile.aadhar_number} />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader><CardTitle className="text-lg">Bank Account Information</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                     <DetailItem icon={<User />} label="Account Holder Name" value={profile.bank_account?.accountHolderName} />
+                     <DetailItem icon={<Landmark />} label="Bank Name" value={profile.bank_account?.bankName} />
+                     <DetailItem icon={<Key />} label="Account Number" value={profile.bank_account?.accountNumber} />
+                     <DetailItem icon={<Fingerprint />} label="IFSC Code" value={profile.bank_account?.ifscCode} />
                 </CardContent>
             </Card>
              {user && (
